@@ -1,17 +1,17 @@
 :root {
-  --bg-primary: #0d0d0d;
-  --bg-surface: #141414;
-  --bg-surface-hover: #1f1f1f;
-  --bg-surface-active: #2a2a2a;
+  --bg-primary: #0a0a0c;
+  --bg-surface: rgba(24, 24, 28, 0.82);
+  --bg-surface-hover: rgba(38, 38, 44, 0.9);
+  --bg-surface-active: rgba(52, 52, 60, 0.95);
   --accent: #e3d139;
-  --accent-glow: rgba(227, 209, 57, 0.25);
-  --accent-subtle: rgba(227, 209, 57, 0.12);
+  --accent-glow: rgba(227, 209, 57, 0.3);
+  --accent-subtle: rgba(227, 209, 57, 0.15);
   --text-white: #ffffff;
-  --text-muted: #8e8e93;
-  --text-dim: #5c5c62;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
   --danger: #ff453a;
-  --danger-bg: rgba(255, 69, 58, 0.12);
-  --border-color: rgba(255, 255, 255, 0.08);
+  --danger-bg: rgba(255, 69, 58, 0.14);
+  --border-color: rgba(255, 255, 255, 0.1);
   --border-active: var(--accent);
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
@@ -35,155 +35,82 @@ html, body {
   user-select: none;
 }
 
-/* Overall Split Screen Container */
-.login-container {
-  display: flex;
+/* ========================================================
+   FULL SCREEN BACKGROUND IMAGE & VIGNETTE OVERLAY
+   ======================================================== */
+.login-bg-layer {
+  position: fixed;
+  inset: 0;
   width: 100vw;
   height: 100vh;
-  background-color: var(--bg-primary);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.42;
+  filter: saturate(1.15) brightness(0.85);
+  pointer-events: none;
+  transform: scale(1.02);
+  z-index: 0;
+}
+
+.login-bg-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at center, rgba(10, 10, 12, 0.6) 0%, rgba(8, 8, 10, 0.92) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ========================================================
+   CENTERED LOGIN CONTAINER
+   ======================================================== */
+.login-container {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  padding: 24px;
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
 .login-container.fade-out {
   opacity: 0;
-  transform: scale(0.99);
+  transform: scale(0.98);
 }
 
 /* ========================================================
-   LEFT SIDE HERO PANEL (approx 70%)
+   AUTHENTICATION CARD (Centered Frosted Glassmorphism)
    ======================================================== */
-.hero-panel {
-  flex: 7;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: clamp(32px, 5vw, 64px);
-  background-color: var(--bg-primary);
-  overflow: hidden;
-  border-right: 1px solid var(--border-color);
-}
-
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.35;
-  filter: saturate(1.1) brightness(0.9);
-  pointer-events: none;
-  transform: scale(1.02);
-  transition: transform 10s ease-out;
-}
-
-.hero-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(13, 13, 13, 0.85) 0%,
-    rgba(13, 13, 13, 0.6) 45%,
-    rgba(13, 13, 13, 0.92) 100%
-  );
-  pointer-events: none;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 2;
-  max-width: 620px;
-  margin-top: auto;
-  margin-bottom: auto;
-}
-
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: rgba(227, 209, 57, 0.1);
-  border: 1px solid rgba(227, 209, 57, 0.3);
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 24px;
-}
-
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-}
-
-.hero-tagline {
-  font-size: clamp(30px, 3.8vw, 48px);
-  font-weight: 700;
-  line-height: 1.18;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-  margin-bottom: 18px;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6);
-}
-
-.hero-subtext {
-  font-size: clamp(14px, 1.3vw, 17px);
-  color: #c4c4c8;
-  line-height: 1.55;
-  font-weight: 400;
-  max-width: 520px;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
-}
-
-.hero-footer {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--text-dim);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-}
-
-.secure-tag {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-muted);
-}
-
-/* ========================================================
-   RIGHT SIDE AUTH PANEL (approx 30%)
-   ======================================================== */
-.auth-panel {
-  flex: 3;
-  min-width: 330px;
-  max-width: 440px;
-  background-color: var(--bg-primary);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 32px 28px;
-  position: relative;
-  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.5);
-  overflow-y: auto;
-}
-
 .auth-card {
   width: 100%;
-  max-width: 320px;
+  max-width: 380px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  background: rgba(18, 18, 22, 0.82);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 36px 32px 28px 32px;
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: cardPop 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cardPop {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Logo Header */
@@ -192,31 +119,31 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 22px;
 }
 
 .logo-mark {
   height: 48px;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(0 2px 10px rgba(227, 209, 57, 0.25));
+  filter: drop-shadow(0 2px 10px rgba(227, 209, 57, 0.3));
 }
 
 .logo-text {
   height: 34px;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
 
 .auth-intro {
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .auth-title {
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-white);
   letter-spacing: -0.01em;
   margin-bottom: 6px;
@@ -243,7 +170,7 @@ html, body {
   pointer-events: none;
 }
 
-/* 4-Digit PIN Boxes */
+/* 4-Digit PIN Masked Boxes */
 .pin-display {
   display: flex;
   gap: 14px;
@@ -254,28 +181,28 @@ html, body {
 }
 
 .pin-box {
-  width: 52px;
-  height: 58px;
-  border-radius: 12px;
-  background-color: var(--bg-surface);
+  width: 54px;
+  height: 60px;
+  border-radius: 14px;
+  background-color: rgba(26, 26, 32, 0.85);
   border: 1.5px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all var(--transition-fast);
   position: relative;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 .pin-box.focused {
-  border-color: rgba(227, 209, 57, 0.6);
+  border-color: rgba(227, 209, 57, 0.7);
   box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 .pin-box.filled {
   border-color: var(--accent);
-  background-color: rgba(227, 209, 57, 0.06);
-  box-shadow: 0 0 12px var(--accent-glow);
+  background-color: rgba(227, 209, 57, 0.08);
+  box-shadow: 0 0 14px var(--accent-glow);
 }
 
 .pin-dot {
@@ -301,7 +228,7 @@ html, body {
 .pin-box.error {
   border-color: var(--danger) !important;
   background-color: var(--danger-bg) !important;
-  box-shadow: 0 0 14px rgba(255, 69, 58, 0.35) !important;
+  box-shadow: 0 0 14px rgba(255, 69, 58, 0.4) !important;
 }
 
 .pin-box.error .pin-dot {
@@ -311,8 +238,8 @@ html, body {
 /* Success Glow */
 .pin-box.success {
   border-color: var(--accent) !important;
-  background-color: rgba(227, 209, 57, 0.18) !important;
-  box-shadow: 0 0 18px rgba(227, 209, 57, 0.6) !important;
+  background-color: rgba(227, 209, 57, 0.22) !important;
+  box-shadow: 0 0 20px rgba(227, 209, 57, 0.7) !important;
 }
 
 @keyframes shake {
@@ -322,7 +249,7 @@ html, body {
   40%, 60% { transform: translate3d(6px, 0, 0); }
 }
 
-/* Feedback Area (Wrong PIN message) */
+/* Feedback Area */
 .feedback-area {
   height: 24px;
   display: flex;
@@ -357,14 +284,14 @@ html, body {
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   width: 100%;
-  max-width: 280px;
+  max-width: 290px;
   margin-bottom: 16px;
 }
 
 .num-btn {
   height: 52px;
-  border-radius: 12px;
-  background-color: var(--bg-surface);
+  border-radius: 13px;
+  background-color: rgba(30, 30, 36, 0.85);
   border: 1px solid var(--border-color);
   color: var(--text-white);
   font-size: 20px;
@@ -376,12 +303,12 @@ html, body {
   cursor: pointer;
   outline: none;
   transition: all var(--transition-fast);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .num-btn:hover {
   background-color: var(--bg-surface-hover);
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
 
@@ -421,48 +348,19 @@ html, body {
 }
 
 .auth-helper {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-dim);
   text-align: center;
   letter-spacing: 0.01em;
 }
 
 /* ========================================================
-   RESPONSIVENESS (Down to 900x600)
+   RESPONSIVENESS (for smaller heights / displays)
    ======================================================== */
-@media (max-width: 960px) {
-  .hero-panel {
-    flex: 6;
-    padding: 28px;
-  }
-  .auth-panel {
-    flex: 4;
-    min-width: 320px;
-    padding: 24px 20px;
-  }
-  .hero-tagline {
-    font-size: 32px;
-  }
-  .pin-box {
-    width: 48px;
-    height: 52px;
-  }
-  .num-btn {
-    height: 48px;
-    font-size: 18px;
-  }
-}
-
-@media (max-height: 680px) {
-  .hero-panel {
-    padding: 24px;
-  }
-  .hero-tagline {
-    font-size: 28px;
-    margin-bottom: 12px;
-  }
-  .hero-badge {
-    margin-bottom: 14px;
+@media (max-height: 700px) {
+  .auth-card {
+    padding: 24px 24px 18px 24px;
+    border-radius: 20px;
   }
   .logo-header {
     margin-bottom: 14px;
@@ -474,18 +372,22 @@ html, body {
     height: 28px;
   }
   .auth-intro {
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
   .auth-title {
     font-size: 19px;
   }
   .pin-box {
-    width: 44px;
-    height: 48px;
+    width: 46px;
+    height: 50px;
   }
   .num-btn {
-    height: 42px;
-    font-size: 17px;
+    height: 44px;
+    font-size: 18px;
+  }
+  .numpad {
+    gap: 8px;
+    margin-bottom: 12px;
   }
   .feedback-area {
     height: 18px;
@@ -503,9 +405,6 @@ html, body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-  .hero-bg {
-    transform: none !important;
   }
   .pin-display.shake {
     animation: none !important;
