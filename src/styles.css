@@ -804,83 +804,159 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Pagination Footer (Bottom Right) */
+/* ========================================================
+   PAGINATION FOOTER & CONTROLS (Modern, Clean & Balanced)
+   ======================================================== */
 .table-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 18px;
-  padding-top: 12px;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 6px 4px 6px;
+  margin-top: auto;
+  border-top: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 
 .pagination-info {
-  font-size: 12.5px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  user-select: none;
 }
 
 .pagination-controls {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  user-select: none;
 }
 
-.btn-page {
-  height: 30px;
-  padding: 0 10px;
+/* Prev / Next Buttons */
+.btn-page,
+.btn-page-nav {
+  height: 32px;
+  padding: 0 12px;
   border: 1px solid var(--border-light);
-  border-radius: 5px;
+  border-radius: 7px;
   background-color: #ffffff;
   color: var(--text-primary);
   font-family: var(--font-family);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-speed);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease-in-out;
+  outline: none;
 }
 
-.btn-page:hover:not(:disabled) {
-  background-color: #f3f4f6;
+.btn-page:hover:not(:disabled),
+.btn-page-nav:hover:not(:disabled) {
+  background-color: #f8fafc;
   border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.07);
+  transform: translateY(-0.5px);
 }
 
-.btn-page:disabled {
-  opacity: 0.4;
+.btn-page:active:not(:disabled),
+.btn-page-nav:active:not(:disabled) {
+  background-color: #f1f5f9;
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-page:disabled,
+.btn-page-nav:disabled {
+  opacity: 0.38;
+  background-color: #f9fafb;
+  border-color: var(--border-light);
+  color: var(--text-muted);
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  pointer-events: none;
 }
 
+.page-nav-icon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.3;
+  flex-shrink: 0;
+}
+
+/* Page Numbers Container */
 .page-numbers {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
+/* Page Number Buttons (Supports both .btn-page-number and .btn-page-num) */
+.btn-page-number,
 .btn-page-num {
-  width: 30px;
-  height: 30px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-light);
-  border-radius: 5px;
+  border-radius: 7px;
   background-color: #ffffff;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-family: var(--font-family);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-speed);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease-in-out;
+  outline: none;
+  user-select: none;
 }
 
-.btn-page-num:hover {
-  background-color: #f3f4f6;
+.btn-page-number:hover:not(.active),
+.btn-page-num:hover:not(.active) {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: var(--text-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.07);
+  transform: translateY(-0.5px);
 }
 
+.btn-page-number:active:not(.active),
+.btn-page-num:active:not(.active) {
+  background-color: #f1f5f9;
+  transform: translateY(0);
+}
+
+.btn-page-number.active,
 .btn-page-num.active {
   background-color: #111827;
   color: #ffffff;
   border-color: #111827;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(17, 24, 39, 0.25);
+  cursor: default;
+  transform: none;
+}
+
+.page-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 32px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  user-select: none;
 }
 
 /* Empty State */

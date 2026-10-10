@@ -359,6 +359,55 @@ function renderInventory() {
   renderInventoryPagination(total, totalPages);
 }
 
+function renderPaginationNumbers(container, currentPage, totalPages, onSelect) {
+  if (!container) return;
+  container.innerHTML = '';
+  if (totalPages <= 0) return;
+
+  const createBtn = (page) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `btn-page-number btn-page-num ${page === currentPage ? 'active' : ''}`;
+    btn.textContent = page;
+    btn.setAttribute('aria-label', `Page ${page}`);
+    if (page === currentPage) btn.setAttribute('aria-current', 'page');
+    btn.addEventListener('click', () => onSelect(page));
+    return btn;
+  };
+
+  const createEllipsis = () => {
+    const span = document.createElement('span');
+    span.className = 'page-ellipsis';
+    span.textContent = '…';
+    return span;
+  };
+
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) {
+      container.appendChild(createBtn(i));
+    }
+  } else {
+    container.appendChild(createBtn(1));
+
+    if (currentPage > 3) {
+      container.appendChild(createEllipsis());
+    }
+
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+
+    for (let i = start; i <= end; i++) {
+      container.appendChild(createBtn(i));
+    }
+
+    if (currentPage < totalPages - 2) {
+      container.appendChild(createEllipsis());
+    }
+
+    container.appendChild(createBtn(totalPages));
+  }
+}
+
 function renderInventoryPagination(total, totalPages) {
   const start = total === 0 ? 0 : (inventoryPage - 1) * inventoryPageSize + 1;
   const end = Math.min(inventoryPage * inventoryPageSize, total);
@@ -367,17 +416,10 @@ function renderInventoryPagination(total, totalPages) {
   el.btnInvPrevPage.disabled = inventoryPage <= 1;
   el.btnInvNextPage.disabled = inventoryPage >= totalPages;
 
-  el.invPageNumbers.innerHTML = '';
-  for (let i = 1; i <= totalPages; i++) {
-    const btn = document.createElement('button');
-    btn.className = `btn-page-number ${i === inventoryPage ? 'active' : ''}`;
-    btn.textContent = i;
-    btn.addEventListener('click', () => {
-      inventoryPage = i;
-      renderInventory();
-    });
-    el.invPageNumbers.appendChild(btn);
-  }
+  renderPaginationNumbers(el.invPageNumbers, inventoryPage, totalPages, (page) => {
+    inventoryPage = page;
+    renderInventory();
+  });
 }
 
 // ============================================
@@ -447,17 +489,10 @@ function renderVendorPagination(total, totalPages) {
   el.btnVendorPrevPage.disabled = vendorPage <= 1;
   el.btnVendorNextPage.disabled = vendorPage >= totalPages;
 
-  el.vendorPageNumbers.innerHTML = '';
-  for (let i = 1; i <= totalPages; i++) {
-    const btn = document.createElement('button');
-    btn.className = `btn-page-number ${i === vendorPage ? 'active' : ''}`;
-    btn.textContent = i;
-    btn.addEventListener('click', () => {
-      vendorPage = i;
-      renderVendors();
-    });
-    el.vendorPageNumbers.appendChild(btn);
-  }
+  renderPaginationNumbers(el.vendorPageNumbers, vendorPage, totalPages, (page) => {
+    vendorPage = page;
+    renderVendors();
+  });
 }
 
 // ============================================
@@ -546,17 +581,10 @@ function renderInvoicePagination(total, totalPages) {
   el.btnInvoicePrevPage.disabled = invoicePage <= 1;
   el.btnInvoiceNextPage.disabled = invoicePage >= totalPages;
 
-  el.invoicePageNumbers.innerHTML = '';
-  for (let i = 1; i <= totalPages; i++) {
-    const btn = document.createElement('button');
-    btn.className = `btn-page-number ${i === invoicePage ? 'active' : ''}`;
-    btn.textContent = i;
-    btn.addEventListener('click', () => {
-      invoicePage = i;
-      renderInvoices();
-    });
-    el.invoicePageNumbers.appendChild(btn);
-  }
+  renderPaginationNumbers(el.invoicePageNumbers, invoicePage, totalPages, (page) => {
+    invoicePage = page;
+    renderInvoices();
+  });
 }
 
 // Generate sequential Invoice number
@@ -1356,6 +1384,61 @@ if (el.btnClearVendorSearch) {
     el.btnClearVendorSearch.classList.add('hidden');
     vendorPage = 1;
     renderVendors();
+  });
+}
+
+// Pagination Prev/Next Click Event Listeners
+if (el.btnInvPrevPage) {
+  el.btnInvPrevPage.addEventListener('click', () => {
+    if (inventoryPage > 1) {
+      inventoryPage--;
+      renderInventory();
+    }
+  });
+}
+if (el.btnInvNextPage) {
+  el.btnInvNextPage.addEventListener('click', () => {
+    const totalPages = Math.ceil(getFilteredInventory().length / inventoryPageSize) || 1;
+    if (inventoryPage < totalPages) {
+      inventoryPage++;
+      renderInventory();
+    }
+  });
+}
+
+if (el.btnVendorPrevPage) {
+  el.btnVendorPrevPage.addEventListener('click', () => {
+    if (vendorPage > 1) {
+      vendorPage--;
+      renderVendors();
+    }
+  });
+}
+if (el.btnVendorNextPage) {
+  el.btnVendorNextPage.addEventListener('click', () => {
+    const totalPages = Math.ceil(getFilteredVendors().length / vendorPageSize) || 1;
+    if (vendorPage < totalPages) {
+      vendorPage++;
+      renderVendors();
+    }
+  });
+}
+
+if (el.btnInvoicePrevPage) {
+  el.btnInvoicePrevPage.addEventListener('click', () => {
+    if (invoicePage > 1) {
+      invoicePage--;
+      renderInvoices();
+    }
+  });
+}
+if (el.btnInvoiceNextPage) {
+  el.btnInvoiceNextPage.addEventListener('click', () => {
+    const totalPages = Math.ceil(getFilteredInvoices().length / invoicePageSize) || 1;
+    if (invoicePage < totalPages) {
+      invoicePage++;
+      renderInvoices();
+    }
   });
 }
 
