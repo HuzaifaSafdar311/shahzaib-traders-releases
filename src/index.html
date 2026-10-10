@@ -1,55 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shahzaib Traders - Inventory Management</title>
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
   <div class="app-container">
-    <!-- Sidebar -->
-    <aside class="sidebar">
+    <!-- Sidebar (Full Open or Half-Closed Mini) -->
+    <aside id="sidebar" class="sidebar">
       <div class="brand">
-        <div class="brand-logo-badge">
-          <svg class="brand-logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="48" fill="#000000"/>
-            <!-- Stylized ST Monogram in Yellow -->
-            <text x="49" y="68" text-anchor="middle" font-family="'Arial Black', system-ui, sans-serif" font-weight="900" font-style="italic" font-size="52" fill="#E5C310" letter-spacing="-3">ST</text>
+        <div class="brand-full">
+          <img src="full-logo.png" alt="Shahzaib Traders" class="brand-full-img">
+        </div>
+        <div class="brand-mini">
+          <img src="circle-logo.png" alt="ST" class="brand-circle-img" title="Shahzaib Traders">
+        </div>
+        <button id="btnToggleSidebar" class="btn-toggle-sidebar" title="Collapse / Expand Sidebar">
+          <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
-        </div>
-        <div class="brand-text-container">
-          <span class="brand-name-top">Shahzaib</span>
-          <span class="brand-name-bottom">Traders</span>
-        </div>
+        </button>
       </div>
 
       <nav class="nav-menu">
-        <button id="navInventoryBtn" class="nav-item active">
+        <button id="navInventoryBtn" class="nav-item active" title="Inventory">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
             <line x1="8" y1="21" x2="16" y2="21"></line>
             <line x1="12" y1="17" x2="12" y2="21"></line>
           </svg>
-          <span>Inventory</span>
+          <span class="nav-label">Inventory</span>
           <span id="badgeInventoryCount" class="badge">0</span>
         </button>
 
-        <button id="navVendorBtn" class="nav-item">
+        <button id="navVendorBtn" class="nav-item" title="Vendors">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
             <circle cx="9" cy="7" r="4"></circle>
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
           </svg>
-          <span>Vendors</span>
+          <span class="nav-label">Vendors</span>
           <span id="badgeVendorCount" class="badge">0</span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
         <span class="status-indicator"></span>
-        <span class="status-label">SQLite Database Active</span>
+        <span class="status-label">SQLite Active</span>
       </div>
     </aside>
 
@@ -349,4 +351,5 @@
 
   <script src="renderer.js"></script>
 </body>
+
 </html>

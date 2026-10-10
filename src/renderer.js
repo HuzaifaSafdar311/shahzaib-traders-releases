@@ -862,6 +862,42 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
+// Sidebar Toggle Handler (Full open vs Half-closed mini)
+const sidebarEl = document.getElementById('sidebar');
+const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+const brandMini = document.querySelector('.brand-mini');
+
+function toggleSidebar() {
+  if (!sidebarEl) return;
+  sidebarEl.classList.toggle('collapsed');
+  try {
+    localStorage.setItem('sidebar_collapsed', sidebarEl.classList.contains('collapsed') ? 'true' : 'false');
+  } catch (e) {}
+}
+
+if (btnToggleSidebar) {
+  btnToggleSidebar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSidebar();
+  });
+}
+
+if (brandMini) {
+  brandMini.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (sidebarEl && sidebarEl.classList.contains('collapsed')) {
+      toggleSidebar();
+    }
+  });
+}
+
+// Restore saved sidebar collapsed state on load
+try {
+  if (localStorage.getItem('sidebar_collapsed') === 'true' && sidebarEl) {
+    sidebarEl.classList.add('collapsed');
+  }
+} catch (e) {}
+
 // Initial Boot
 async function init() {
   await reloadFromDatabase();
