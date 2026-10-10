@@ -1177,7 +1177,7 @@ body {
 
 .radial-nodes-panel {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 4px);
   right: 10px;
   z-index: 1000;
   pointer-events: none;
@@ -1192,12 +1192,12 @@ body {
   pointer-events: auto;
 }
 
-/* Left-Bottom Speed-Dial Arc Container (No background disk) */
+/* Left-Bottom Speed-Dial Arc Container (Shifted up and rotated) */
 .radial-nodes-arc {
   position: relative;
   z-index: 999;
-  width: 185px;
-  height: 155px;
+  width: 195px;
+  height: 108px;
   pointer-events: none;
 }
 
@@ -1214,17 +1214,17 @@ body {
   transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Node 1: PDF (Top-Left on Arc) */
+/* Node 1: PDF (Top-Left on Arc, shifted up and rotated) */
 .node-arc-pdf {
-  right: 115px;
-  top: 6px;
-  animation: arcPopPdf 0.26s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  right: 132px;
+  top: -4px;
+  animation: arcPopPdf 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 @keyframes arcPopPdf {
   from {
     opacity: 0;
-    transform: translate(100px, -10px) scale(0.2);
+    transform: translate(110px, 15px) scale(0.2);
   }
   to {
     opacity: 1;
@@ -1232,18 +1232,18 @@ body {
   }
 }
 
-/* Node 2: Excel (Middle-Left diagonal on Arc) */
+/* Node 2: Excel (Middle-Left diagonal on Arc, shifted up) */
 .node-arc-excel {
-  right: 68px;
-  top: 54px;
-  animation: arcPopExcel 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  right: 75px;
+  top: 18px;
+  animation: arcPopExcel 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   animation-delay: 0.04s;
 }
 
 @keyframes arcPopExcel {
   from {
     opacity: 0;
-    transform: translate(50px, -45px) scale(0.2);
+    transform: translate(60px, -15px) scale(0.2);
   }
   to {
     opacity: 1;
@@ -1251,18 +1251,18 @@ body {
   }
 }
 
-/* Node 3: CSV (Bottom-Left on Arc) */
+/* Node 3: CSV (Bottom-Right on Arc, shifted up by ~48px) */
 .node-arc-csv {
-  right: 8px;
-  top: 96px;
-  animation: arcPopCsv 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  right: 18px;
+  top: 48px;
+  animation: arcPopCsv 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   animation-delay: 0.08s;
 }
 
 @keyframes arcPopCsv {
   from {
     opacity: 0;
-    transform: translate(0px, -80px) scale(0.2);
+    transform: translate(10px, -45px) scale(0.2);
   }
   to {
     opacity: 1;
