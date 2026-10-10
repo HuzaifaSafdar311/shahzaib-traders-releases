@@ -311,8 +311,8 @@ function renderInventory() {
         <td class="col-vendor"><span class="vendor-tag">${escapeHtml(item.vendorName || 'N/A')}</span></td>
         <td class="col-stock-qty qty-val">${Number(item.quantity).toLocaleString()}</td>
         <td class="col-sell-qty sell-val">${Number(item.totalSell || 0).toLocaleString()}</td>
-        <td class="col-price price-val">$${wholesale}</td>
-        <td class="col-price price-val">$${individual}</td>
+        <td class="col-price price-val">PKR ${Number(wholesale).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+        <td class="col-price price-val">PKR ${Number(individual).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
         <td class="col-date date-val">${escapeHtml(item.date || '')}</td>
         <td class="col-dots-actions">
           <div class="action-dropdown-container">
@@ -490,10 +490,10 @@ function updateTotalPricesSummary() {
   const totalIndividual = (qty * individual).toFixed(2);
 
   if (el.summaryTotalWholesale) {
-    el.summaryTotalWholesale.textContent = `$${Number(totalWholesale).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    el.summaryTotalWholesale.textContent = `PKR ${Number(totalWholesale).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   }
   if (el.summaryTotalIndividual) {
-    el.summaryTotalIndividual.textContent = `$${Number(totalIndividual).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    el.summaryTotalIndividual.textContent = `PKR ${Number(totalIndividual).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   }
 }
 
@@ -743,7 +743,7 @@ el.btnExportInventory.addEventListener('click', async () => {
     return;
   }
 
-  let csv = 'Stock Name,Vendor,Total Stock,Total Sell,Wholesale Price,Individual Price,Date\r\n';
+  let csv = 'Stock Name,Vendor,Total Stock,Total Sell,Wholesale Price (PKR),Individual Price (PKR),Date\r\n';
   appData.inventory.forEach(item => {
     const name = `"${(item.stockName || '').replace(/"/g, '""')}"`;
     const vendor = `"${(item.vendorName || '').replace(/"/g, '""')}"`;

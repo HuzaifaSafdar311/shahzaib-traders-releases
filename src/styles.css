@@ -1053,10 +1053,54 @@ body {
   padding-top: 18px;
 }
 
+/* Delete Confirmation Popup */
+.modal-card.modal-confirm-card {
+  width: 440px;
+  max-width: 92vw;
+  border-radius: 8px;
+  background-color: #ffffff;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+}
+
+.modal-header-danger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-danger-icon {
+  width: 19px;
+  height: 19px;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.confirm-modal-body {
+  padding: 22px 22px 18px 22px;
+}
+
 .confirm-text {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: #1f2937;
   line-height: 1.5;
+  margin: 0 0 8px 0;
+}
+
+.confirm-warning-note {
+  font-size: 12.5px;
+  color: #dc2626;
+  font-weight: 500;
+  margin: 0;
+}
+
+.confirm-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px 20px 22px;
+  border-top: 1px solid var(--border-light);
+  background-color: #f9fafb;
 }
 
 /* Toast Notifications */
