@@ -59,7 +59,7 @@ body {
 /* Sidebar */
 /* Sidebar (Full Open or Half-Closed Mini) */
 .sidebar {
-  width: 195px;
+  width: 228px;
   background-color: var(--bg-sidebar);
   border-right: 1px solid var(--border-light);
   display: flex;
@@ -79,7 +79,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 10px;
+  padding: 10px 14px;
   height: 52px;
   border-bottom: 1px solid var(--border-light);
   background-color: #ffffff;
@@ -95,7 +95,7 @@ body {
 
 .brand-full-img {
   height: 32px;
-  max-width: 130px;
+  max-width: 145px;
   object-fit: contain;
   display: block;
 }
@@ -183,7 +183,7 @@ body {
 .nav-menu {
   display: flex;
   flex-direction: column;
-  padding: 12px 8px;
+  padding: 12px 10px;
   gap: 5px;
   flex: 1;
 }
@@ -191,9 +191,9 @@ body {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 9px 12px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
