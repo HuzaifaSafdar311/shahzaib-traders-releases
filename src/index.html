@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Management System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <span class="brand-title">Inventory System</span>
+      </div>
+
+      <nav class="nav-menu">
+        <button id="navInventoryBtn" class="nav-item active">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <span>Inventory</span>
+          <span id="badgeInventoryCount" class="badge">0</span>
+        </button>
+
+        <button id="navVendorBtn" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Vendors</span>
+          <span id="badgeVendorCount" class="badge">0</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="status-indicator"></span>
+        <span class="status-label">Active Database</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- INVENTORY VIEW -->
+      <section id="inventoryView" class="view-section active">
+        <header class="section-header">
+          <div class="header-left">
+            <h1 class="view-title">Inventory</h1>
+          </div>
+          <div class="header-right">
+            <button id="btnExportInventory" class="btn btn-secondary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Export CSV</span>
+            </button>
+            <button id="btnOpenAddStock" class="btn btn-primary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Add Stock</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Search and Filters Bar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="inventorySearchInput" placeholder="Search stock name or vendor..." autocomplete="off">
+            <button id="btnClearInventorySearch" class="btn-clear hidden">&times;</button>
+          </div>
+
+          <div class="filters-group">
+            <div class="filter-item">
+              <label for="filterVendorSelect">Vendor</label>
+              <select id="filterVendorSelect">
+                <option value="">All Vendors</option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label for="filterStockStatus">Stock Level</label>
+              <select id="filterStockStatus">
+                <option value="">All Levels</option>
+                <option value="in-stock">In Stock (&gt; 20)</option>
+                <option value="low-stock">Low Stock (1 - 20)</option>
+                <option value="out-of-stock">Out of Stock (0)</option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label for="filterDateOrder">Sort By Date</label>
+              <select id="filterDateOrder">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="qty-high">Quantity: High to Low</option>
+                <option value="qty-low">Quantity: Low to High</option>
+              </select>
+            </div>
+
+            <button id="btnResetInventoryFilters" class="btn btn-text">Reset</button>
+          </div>
+        </div>
+
+        <!-- Inventory Table -->
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 32%;">Stock Name</th>
+                <th style="width: 25%;">Vendor</th>
+                <th style="width: 14%; text-align: right;">Quantity</th>
+                <th style="width: 15%;">Date</th>
+                <th style="width: 14%; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+          <div id="inventoryEmptyState" class="empty-state hidden">
+            <span>No stock records found</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- VENDORS VIEW -->
+      <section id="vendorView" class="view-section">
+        <header class="section-header">
+          <div class="header-left">
+            <h1 class="view-title">Vendors</h1>
+          </div>
+          <div class="header-right">
+            <button id="btnOpenAddVendor" class="btn btn-primary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Add Vendor</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Vendor Toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="vendorSearchInput" placeholder="Search vendor name, contact person, phone..." autocomplete="off">
+            <button id="btnClearVendorSearch" class="btn-clear hidden">&times;</button>
+          </div>
+        </div>
+
+        <!-- Vendor Table -->
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 28%;">Vendor Name</th>
+                <th style="width: 22%;">Contact Person</th>
+                <th style="width: 18%;">Phone</th>
+                <th style="width: 20%;">Email</th>
+                <th style="width: 12%; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="vendorTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+          <div id="vendorEmptyState" class="empty-state hidden">
+            <span>No vendor records found</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: ADD / EDIT STOCK -->
+  <div id="modalStock" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalStockTitle" class="modal-title">Add Stock</h2>
+        <button id="btnCloseStockModal" class="btn-close">&times;</button>
+      </div>
+      <form id="stockForm" class="modal-form">
+        <input type="hidden" id="stockId">
+
+        <div class="form-group">
+          <label for="stockNameInput">Stock Name <span class="req">*</span></label>
+          <input type="text" id="stockNameInput" placeholder="Enter stock item name" required>
+        </div>
+
+        <div class="form-group">
+          <div class="label-with-action">
+            <label for="stockVendorSelect">Vendor <span class="req">*</span></label>
+            <button type="button" id="btnQuickAddVendor" class="link-btn">+ New Vendor</button>
+          </div>
+          <select id="stockVendorSelect" required>
+            <option value="">Select Vendor</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="stockQtyInput">Quantity <span class="req">*</span></label>
+            <input type="number" id="stockQtyInput" min="0" step="1" placeholder="0" required>
+          </div>
+          <div class="form-group flex-1">
+            <label for="stockDateInput">Date <span class="req">*</span></label>
+            <input type="date" id="stockDateInput" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btnCancelStock" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btnSaveStock" class="btn btn-primary">Save Stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT VENDOR -->
+  <div id="modalVendor" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalVendorTitle" class="modal-title">Add Vendor</h2>
+        <button id="btnCloseVendorModal" class="btn-close">&times;</button>
+      </div>
+      <form id="vendorForm" class="modal-form">
+        <input type="hidden" id="vendorId">
+
+        <div class="form-group">
+          <label for="vendorNameInput">Vendor Name <span class="req">*</span></label>
+          <input type="text" id="vendorNameInput" placeholder="Enter company / vendor name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="vendorContactInput">Contact Person</label>
+          <input type="text" id="vendorContactInput" placeholder="Representative name">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="vendorPhoneInput">Phone</label>
+            <input type="tel" id="vendorPhoneInput" placeholder="+1 (555) 000-0000">
+          </div>
+          <div class="form-group flex-1">
+            <label for="vendorEmailInput">Email</label>
+            <input type="email" id="vendorEmailInput" placeholder="name@company.com">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btnCancelVendor" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btnSaveVendor" class="btn btn-primary">Save Vendor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRM DELETE -->
+  <div id="modalConfirm" class="modal-overlay hidden">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h2 id="confirmTitle" class="modal-title">Confirm Delete</h2>
+        <button id="btnCloseConfirmModal" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="confirmMessage" class="confirm-text">Are you sure you want to delete this record?</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnCancelConfirm" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="btnExecuteConfirm" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

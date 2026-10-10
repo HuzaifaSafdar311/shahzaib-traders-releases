@@ -1,0 +1,25 @@
+{
+  "name": "inventory-management-system",
+  "version": "1.0.0",
+  "description": "Desktop Inventory Management System built with Electron",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arhamsolution-me/Inventory-management.git"
+  },
+  "keywords": [
+    "inventory",
+    "vendors",
+    "electron",
+    "desktop"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^44.7.0"
+  }
+}
