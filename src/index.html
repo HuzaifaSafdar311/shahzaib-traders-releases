@@ -255,14 +255,16 @@
             </select>
           </div>
 
+          <input type="hidden" id="stockSellInput" value="0">
+
           <div class="form-group">
             <label for="stockQtyInput">Total Stock (Units) <span class="req">*</span></label>
             <input type="number" id="stockQtyInput" min="0" step="1" placeholder="0" required>
           </div>
 
           <div class="form-group">
-            <label for="stockSellInput">Total Sell (Units)</label>
-            <input type="number" id="stockSellInput" min="0" step="1" placeholder="0" value="0">
+            <label for="stockDateInput">Date <span class="req">*</span></label>
+            <input type="date" id="stockDateInput" required>
           </div>
 
           <div class="form-group">
@@ -285,11 +287,6 @@
               <span class="total-price-label">Total Individual Price (Qty &times; Individual)</span>
               <span id="summaryTotalIndividual" class="total-price-value">$0.00</span>
             </div>
-          </div>
-
-          <div class="form-group span-2">
-            <label for="stockDateInput">Date <span class="req">*</span></label>
-            <input type="date" id="stockDateInput" required>
           </div>
         </div>
 
