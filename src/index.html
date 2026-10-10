@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shahzaib Traders - Inventory Management</title>
+  <title>Shahzaib Traders - Inventory & Invoicing System</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -46,6 +46,18 @@
           </svg>
           <span class="nav-label">Vendors</span>
           <span id="badgeVendorCount" class="badge">0</span>
+        </button>
+
+        <button id="navInvoiceBtn" class="nav-item" title="Invoices">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span class="nav-label">Invoices</span>
+          <span id="badgeInvoiceCount" class="badge">0</span>
         </button>
       </nav>
 
@@ -103,24 +115,22 @@
             </div>
           </div>
 
-          <!-- User-Entered Stock Level Filter -->
-          <div class="filter-item user-stock-filter">
-            <label for="filterStockLevelInput">Stock &le;</label>
-            <input type="number" id="filterStockLevelInput" placeholder="Enter qty" min="0" class="filter-num-input">
-          </div>
+          <div class="filters-group-row">
+            <div class="filter-wrapper">
+              <label for="filterStockLevelInput" class="filter-label">Filter Stock</label>
+              <input type="number" id="filterStockLevelInput" class="filter-input-number" placeholder="Max Qty" min="0">
+            </div>
 
-          <div class="filter-item">
-            <label for="filterDateOrder">Sort</label>
-            <select id="filterDateOrder" class="filter-select">
-              <option value="newest">Newest Date</option>
-              <option value="oldest">Oldest Date</option>
-              <option value="stock-high">Stock: High to Low</option>
-              <option value="stock-low">Stock: Low to High</option>
-              <option value="sell-high">Total Sell: High to Low</option>
-            </select>
-          </div>
+            <div class="filter-wrapper">
+              <label for="filterDateOrder" class="filter-label">Sort Date</label>
+              <select id="filterDateOrder" class="filter-select">
+                <option value="desc">Newest First</option>
+                <option value="asc">Oldest First</option>
+              </select>
+            </div>
 
-          <button id="btnResetInventoryFilters" class="btn btn-text">Reset</button>
+            <button id="btnResetInventoryFilters" class="btn-reset-filters" title="Reset all inventory filters">Reset</button>
+          </div>
         </div>
 
         <!-- Inventory Table -->
@@ -130,10 +140,10 @@
               <tr>
                 <th class="col-stock-name">Stock Name</th>
                 <th class="col-vendor">Vendor</th>
-                <th class="col-stock-qty">Total Stock</th>
-                <th class="col-sell-qty">Total Sell</th>
-                <th class="col-price">Wholesale (pc)</th>
-                <th class="col-price">Individual (pc)</th>
+                <th class="col-qty">Quantity</th>
+                <th class="col-sell">Total Sell</th>
+                <th class="col-price">Wholesale Price</th>
+                <th class="col-price">Individual Price</th>
                 <th class="col-date">Date</th>
                 <th class="col-dots-actions">Actions</th>
               </tr>
@@ -147,7 +157,7 @@
           </div>
         </div>
 
-        <!-- Pagination Controls Bottom Right -->
+        <!-- Inventory Pagination Controls Bottom Right -->
         <div class="table-footer">
           <div id="inventoryPaginationInfo" class="pagination-info">Showing 0-0 of 0 items</div>
           <div class="pagination-controls">
@@ -226,10 +236,96 @@
           </div>
         </div>
       </section>
+
+      <!-- INVOICES VIEW (Clean & Proper Invoicing) -->
+      <section id="invoiceView" class="view-section">
+        <header class="section-header">
+          <div class="header-left">
+            <h1 class="view-title">Invoices</h1>
+          </div>
+          <div class="header-right">
+            <button id="btnOpenCreateInvoice" class="btn btn-primary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Create Invoice</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Invoice Toolbar -->
+        <div class="toolbar toolbar-left-aligned">
+          <div class="search-box-group">
+            <div class="search-by-wrapper">
+              <label for="invoiceSearchBy" class="search-by-label">Search by</label>
+              <select id="invoiceSearchBy" class="search-by-select">
+                <option value="all">All</option>
+                <option value="invoiceNumber">Invoice #</option>
+                <option value="customerName">Customer</option>
+              </select>
+            </div>
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="invoiceSearchInput" placeholder="Search invoices..." autocomplete="off">
+              <button id="btnClearInvoiceSearch" class="btn-clear hidden">&times;</button>
+            </div>
+          </div>
+
+          <div class="filters-group-row">
+            <div class="filter-wrapper">
+              <label for="filterInvoiceStatus" class="filter-label">Status</label>
+              <select id="filterInvoiceStatus" class="filter-select">
+                <option value="all">All Statuses</option>
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </div>
+            <button id="btnResetInvoiceFilters" class="btn-reset-filters" title="Reset invoice filters">Reset</button>
+          </div>
+        </div>
+
+        <!-- Invoices Table -->
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="col-inv-no">Invoice #</th>
+                <th class="col-date">Date</th>
+                <th class="col-customer">Customer Name</th>
+                <th class="col-phone">Phone</th>
+                <th class="col-items-count">Items</th>
+                <th class="col-total">Total Amount</th>
+                <th class="col-status">Status</th>
+                <th class="col-dots-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+          <div id="invoiceEmptyState" class="empty-state hidden">
+            <span>No invoices found. Click "Create Invoice" to generate one.</span>
+          </div>
+        </div>
+
+        <!-- Invoices Pagination Controls Bottom Right -->
+        <div class="table-footer">
+          <div id="invoicePaginationInfo" class="pagination-info">Showing 0-0 of 0 items</div>
+          <div class="pagination-controls">
+            <button id="btnInvoicePrevPage" class="btn-page" disabled>Previous</button>
+            <div id="invoicePageNumbers" class="page-numbers"></div>
+            <button id="btnInvoiceNextPage" class="btn-page">Next</button>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
-  <!-- MODAL: ADD / EDIT STOCK (ENLARGED & BALANCED EQUAL ALIGNMENT) -->
+  <!-- MODAL: ADD / EDIT STOCK -->
   <div id="modalStock" class="modal-overlay hidden">
     <div class="modal-card modal-lg">
       <div class="modal-header">
@@ -326,6 +422,132 @@
           <button type="submit" id="btnSaveVendor" class="btn btn-primary">Save Vendor</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CREATE INVOICE (Clean & Fast) -->
+  <div id="modalInvoice" class="modal-overlay hidden">
+    <div class="modal-card modal-xl">
+      <div class="modal-header">
+        <h2 class="modal-title">Create Sales Invoice</h2>
+        <button id="btnCloseInvoiceModal" class="btn-close">&times;</button>
+      </div>
+      <form id="invoiceForm" class="modal-form">
+        <!-- Customer & Invoice Meta Header -->
+        <div class="invoice-meta-grid">
+          <div class="form-group">
+            <label for="invNumberInput">Invoice # <span class="req">*</span></label>
+            <input type="text" id="invNumberInput" required readonly class="input-readonly">
+          </div>
+
+          <div class="form-group">
+            <label for="invDateInput">Date <span class="req">*</span></label>
+            <input type="date" id="invDateInput" required>
+          </div>
+
+          <div class="form-group">
+            <label for="invStatusSelect">Payment Status</label>
+            <select id="invStatusSelect">
+              <option value="Paid">Paid</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="invCustomerNameInput">Customer Name <span class="req">*</span></label>
+            <input type="text" id="invCustomerNameInput" placeholder="e.g. Ali Hardware Store" required>
+          </div>
+
+          <div class="form-group">
+            <label for="invCustomerPhoneInput">Customer Phone</label>
+            <input type="tel" id="invCustomerPhoneInput" placeholder="+92 300 0000000">
+          </div>
+
+          <div class="form-group">
+            <label for="invCustomerAddressInput">Customer Address</label>
+            <input type="text" id="invCustomerAddressInput" placeholder="Shop #, Market / City">
+          </div>
+        </div>
+
+        <!-- Line Items Section -->
+        <div class="invoice-items-section">
+          <div class="section-subheading-row">
+            <h3 class="section-subheading">Invoice Line Items</h3>
+            <button type="button" id="btnAddInvoiceItemRow" class="btn btn-secondary btn-sm">+ Add Item</button>
+          </div>
+
+          <div class="table-container invoice-items-table-wrapper">
+            <table class="data-table" id="invoiceItemsTable">
+              <thead>
+                <tr>
+                  <th style="width: 40%;">Stock Item</th>
+                  <th style="width: 15%;">Available</th>
+                  <th style="width: 15%;">Quantity</th>
+                  <th style="width: 15%;">Unit Price (Rs)</th>
+                  <th style="width: 15%;">Total (Rs)</th>
+                  <th style="width: 50px;"></th>
+                </tr>
+              </thead>
+              <tbody id="invoiceItemsTableBody">
+                <!-- Dynamic Item Rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Calculation Summary & Notes -->
+        <div class="invoice-bottom-grid">
+          <div class="form-group">
+            <label for="invNotesInput">Notes / Terms</label>
+            <textarea id="invNotesInput" rows="3" placeholder="Goods sold are non-refundable. Thank you for your business."></textarea>
+          </div>
+
+          <div class="invoice-summary-card">
+            <div class="summary-line">
+              <span>Subtotal:</span>
+              <span id="invSubtotalDisplay" class="summary-val">Rs 0.00</span>
+            </div>
+            <div class="summary-line">
+              <label for="invDiscountInput">Discount (Rs):</label>
+              <input type="number" id="invDiscountInput" class="input-inline-num" min="0" step="1" value="0">
+            </div>
+            <div class="summary-line total-line">
+              <span>Grand Total:</span>
+              <span id="invTotalDisplay" class="summary-val-total">Rs 0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btnCancelInvoice" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btnSaveInvoice" class="btn btn-primary">Generate Invoice</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CLEAN PRINTABLE INVOICE VIEW -->
+  <div id="modalViewInvoice" class="modal-overlay hidden">
+    <div class="modal-card modal-lg">
+      <div class="modal-header no-print">
+        <h2 class="modal-title">Invoice Preview</h2>
+        <div class="modal-actions-right">
+          <button type="button" id="btnPrintInvoice" class="btn btn-primary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <span>Print Invoice</span>
+          </button>
+          <button id="btnCloseViewInvoiceModal" class="btn-close">&times;</button>
+        </div>
+      </div>
+
+      <!-- Printable Clean Invoice Sheet -->
+      <div id="printableInvoiceSheet" class="printable-invoice">
+        <!-- Rendered dynamically via JS -->
+      </div>
     </div>
   </div>
 
