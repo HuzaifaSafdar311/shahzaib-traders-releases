@@ -285,15 +285,15 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 600px;
-  height: 600px;
-  max-width: 70vw;
-  max-height: 70vh;
+  width: 700px;
+  height: 700px;
+  max-width: 80vw;
+  max-height: 80vh;
   background-image: url('circle-logo.png');
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  opacity: 0.028; /* Faint, low-opacity circular watermark */
+  opacity: 0.018; /* Super subtle low opacity watermark */
   pointer-events: none;
   z-index: 0;
 }
@@ -685,15 +685,15 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 480px;
-  height: 480px;
-  max-width: 65vw;
-  max-height: 65vh;
+  width: 620px;
+  height: 620px;
+  max-width: 75vw;
+  max-height: 75vh;
   background-image: url('circle-logo.png');
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  opacity: 0.035; /* Fainter, low-opacity circular watermark */
+  opacity: 0.022; /* Kafi bara, very soft & low opacity */
   pointer-events: none;
   z-index: 0;
 }
@@ -780,19 +780,19 @@ body {
 
 .col-stock-qty {
   width: 9%;
-  text-align: right !important;
+  text-align: center !important;
   white-space: nowrap;
 }
 
 .col-sell-qty {
   width: 9%;
-  text-align: right !important;
+  text-align: center !important;
   white-space: nowrap;
 }
 
 .col-price {
   width: 10.5%;
-  text-align: right !important;
+  text-align: center !important;
   white-space: nowrap;
 }
 
