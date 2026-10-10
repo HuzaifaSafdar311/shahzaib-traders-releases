@@ -238,11 +238,11 @@ function renderInventory() {
     items.forEach(item => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="stock-name-cell">${escapeHtml(item.stockName)}</td>
-        <td><span class="vendor-tag">${escapeHtml(item.vendorName || 'N/A')}</span></td>
-        <td style="text-align: right;" class="qty-val">${Number(item.quantity).toLocaleString()}</td>
-        <td class="date-val">${escapeHtml(item.date || '')}</td>
-        <td>
+        <td class="col-stock-name stock-name-cell">${escapeHtml(item.stockName)}</td>
+        <td class="col-vendor"><span class="vendor-tag">${escapeHtml(item.vendorName || 'N/A')}</span></td>
+        <td class="col-qty qty-val">${Number(item.quantity).toLocaleString()}</td>
+        <td class="col-date date-val">${escapeHtml(item.date || '')}</td>
+        <td class="col-actions">
           <div class="table-actions">
             <button class="btn-table-action" onclick="openEditStock('${item.id}')">Edit</button>
             <button class="btn-table-action delete" onclick="confirmDeleteStock('${item.id}')">Delete</button>
@@ -279,11 +279,11 @@ function renderVendors() {
     vendors.forEach(v => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="stock-name-cell">${escapeHtml(v.name)}</td>
-        <td>${escapeHtml(v.contactPerson || '-')}</td>
-        <td>${escapeHtml(v.phone || '-')}</td>
-        <td>${escapeHtml(v.email || '-')}</td>
-        <td>
+        <td class="col-vendor-name stock-name-cell">${escapeHtml(v.name)}</td>
+        <td class="col-contact">${escapeHtml(v.contactPerson || '-')}</td>
+        <td class="col-phone">${escapeHtml(v.phone || '-')}</td>
+        <td class="col-email">${escapeHtml(v.email || '-')}</td>
+        <td class="col-vendor-actions">
           <div class="table-actions">
             <button class="btn-table-action" onclick="openEditVendor('${v.id}')">Edit</button>
             <button class="btn-table-action delete" onclick="confirmDeleteVendor('${v.id}')">Delete</button>

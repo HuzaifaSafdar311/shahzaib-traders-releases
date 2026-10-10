@@ -412,8 +412,28 @@ body {
   position: relative;
 }
 
+/* Custom scrollbar for clean table horizontal scrolling */
+.table-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
 .data-table {
   width: 100%;
+  min-width: 740px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -450,6 +470,75 @@ body {
 
 .data-table tbody tr:hover {
   background-color: var(--bg-surface-hover);
+}
+
+/* Responsive Column Sizing:
+   Large space for descriptive names, compact space for quantities, dates, phones, actions */
+.col-stock-name {
+  width: 44%;
+  min-width: 240px;
+  word-break: break-word;
+}
+
+.col-vendor {
+  width: 24%;
+  min-width: 160px;
+  word-break: break-word;
+}
+
+.col-qty {
+  width: 100px;
+  min-width: 85px;
+  max-width: 110px;
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.col-date {
+  width: 115px;
+  min-width: 110px;
+  max-width: 130px;
+  white-space: nowrap;
+}
+
+.col-actions {
+  width: 125px;
+  min-width: 120px;
+  max-width: 135px;
+  text-align: center !important;
+  white-space: nowrap;
+}
+
+.col-vendor-name {
+  width: 36%;
+  min-width: 220px;
+  word-break: break-word;
+}
+
+.col-contact {
+  width: 22%;
+  min-width: 150px;
+  word-break: break-word;
+}
+
+.col-phone {
+  width: 140px;
+  min-width: 130px;
+  white-space: nowrap;
+}
+
+.col-email {
+  width: 26%;
+  min-width: 180px;
+  word-break: break-all;
+}
+
+.col-vendor-actions {
+  width: 125px;
+  min-width: 120px;
+  max-width: 135px;
+  text-align: center !important;
+  white-space: nowrap;
 }
 
 .stock-name-cell {
