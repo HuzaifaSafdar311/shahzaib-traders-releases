@@ -9,13 +9,44 @@ let currentTab = 'inventory'; // 'inventory' | 'vendors' | 'invoices'
 let pendingDeleteAction = null;
 let returnToStockModalAfterVendor = false;
 
-// Pagination State (7 items per page)
+// Pagination State (Adaptive page size calculated dynamically to fit available screen height)
 let inventoryPage = 1;
-const inventoryPageSize = 7;
 let vendorPage = 1;
-const vendorPageSize = 7;
 let invoicePage = 1;
-const invoicePageSize = 7;
+
+function getAdaptivePageSize(tabType = 'inventory') {
+  let selector = '#inventoryView .table-container';
+  if (tabType === 'vendors') selector = '#vendorView .table-container';
+  if (tabType === 'invoices') selector = '#invoiceView .table-container';
+
+  let container = document.querySelector(selector);
+  if (!container || container.clientHeight <= 0) {
+    container = document.querySelector('.view-section.active .table-container') || document.querySelector('.table-container');
+  }
+
+  if (container && container.clientHeight > 140) {
+    const thead = container.querySelector('thead');
+    const headerHeight = thead && thead.offsetHeight > 0 ? thead.offsetHeight : 42;
+    const availableHeight = container.clientHeight - headerHeight;
+    // Each table row tr has ~43-44px height (padding: 11px 12px; font-size: 13px)
+    const rowsThatFit = Math.floor(availableHeight / 43);
+    // Guarantee at least 10 items (so standard lists of 10 items stay fully on 1 page without pagination split)
+    return Math.max(rowsThatFit, 10);
+  }
+
+  // Fallback calculation based on window innerHeight
+  if (window.innerHeight > 0) {
+    const estimatedHeight = window.innerHeight - 250;
+    const estimatedRows = Math.floor(estimatedHeight / 43);
+    return Math.max(estimatedRows, 10);
+  }
+
+  return 12;
+}
+
+const getInventoryPageSize = () => getAdaptivePageSize('inventory');
+const getVendorPageSize = () => getAdaptivePageSize('vendors');
+const getInvoicePageSize = () => getAdaptivePageSize('invoices');
 
 // IPC Storage Bridge (SQLite Backend via window.electronAPI with fallback)
 const api = window.electronAPI || {
@@ -313,13 +344,14 @@ function getFilteredInventory() {
 function renderInventory() {
   const filtered = getFilteredInventory();
   const total = filtered.length;
-  const totalPages = Math.ceil(total / inventoryPageSize) || 1;
+  const pageSize = getAdaptivePageSize('inventory');
+  const totalPages = Math.ceil(total / pageSize) || 1;
 
   if (inventoryPage > totalPages) inventoryPage = totalPages;
   if (inventoryPage < 1) inventoryPage = 1;
 
-  const start = (inventoryPage - 1) * inventoryPageSize;
-  const pageItems = filtered.slice(start, start + inventoryPageSize);
+  const start = (inventoryPage - 1) * pageSize;
+  const pageItems = filtered.slice(start, start + pageSize);
 
   el.inventoryTableBody.innerHTML = '';
 
@@ -356,7 +388,7 @@ function renderInventory() {
     });
   }
 
-  renderInventoryPagination(total, totalPages);
+  renderInventoryPagination(total, totalPages, pageSize);
 }
 
 function renderPaginationNumbers(container, currentPage, totalPages, onSelect) {
@@ -408,9 +440,10 @@ function renderPaginationNumbers(container, currentPage, totalPages, onSelect) {
   }
 }
 
-function renderInventoryPagination(total, totalPages) {
-  const start = total === 0 ? 0 : (inventoryPage - 1) * inventoryPageSize + 1;
-  const end = Math.min(inventoryPage * inventoryPageSize, total);
+function renderInventoryPagination(total, totalPages, pageSize) {
+  const size = pageSize || getAdaptivePageSize('inventory');
+  const start = total === 0 ? 0 : (inventoryPage - 1) * size + 1;
+  const end = Math.min(inventoryPage * size, total);
   el.inventoryPaginationInfo.textContent = `Showing ${start}-${end} of ${total} items`;
 
   el.btnInvPrevPage.disabled = inventoryPage <= 1;
@@ -444,13 +477,14 @@ function getFilteredVendors() {
 function renderVendors() {
   const filtered = getFilteredVendors();
   const total = filtered.length;
-  const totalPages = Math.ceil(total / vendorPageSize) || 1;
+  const pageSize = getAdaptivePageSize('vendors');
+  const totalPages = Math.ceil(total / pageSize) || 1;
 
   if (vendorPage > totalPages) vendorPage = totalPages;
   if (vendorPage < 1) vendorPage = 1;
 
-  const start = (vendorPage - 1) * vendorPageSize;
-  const pageItems = filtered.slice(start, start + vendorPageSize);
+  const start = (vendorPage - 1) * pageSize;
+  const pageItems = filtered.slice(start, start + pageSize);
 
   el.vendorTableBody.innerHTML = '';
 
@@ -478,12 +512,13 @@ function renderVendors() {
     });
   }
 
-  renderVendorPagination(total, totalPages);
+  renderVendorPagination(total, totalPages, pageSize);
 }
 
-function renderVendorPagination(total, totalPages) {
-  const start = total === 0 ? 0 : (vendorPage - 1) * vendorPageSize + 1;
-  const end = Math.min(vendorPage * vendorPageSize, total);
+function renderVendorPagination(total, totalPages, pageSize) {
+  const size = pageSize || getAdaptivePageSize('vendors');
+  const start = total === 0 ? 0 : (vendorPage - 1) * size + 1;
+  const end = Math.min(vendorPage * size, total);
   el.vendorPaginationInfo.textContent = `Showing ${start}-${end} of ${total} items`;
 
   el.btnVendorPrevPage.disabled = vendorPage <= 1;
@@ -522,13 +557,14 @@ function getFilteredInvoices() {
 function renderInvoices() {
   const filtered = getFilteredInvoices();
   const total = filtered.length;
-  const totalPages = Math.ceil(total / invoicePageSize) || 1;
+  const pageSize = getAdaptivePageSize('invoices');
+  const totalPages = Math.ceil(total / pageSize) || 1;
 
   if (invoicePage > totalPages) invoicePage = totalPages;
   if (invoicePage < 1) invoicePage = 1;
 
-  const start = (invoicePage - 1) * invoicePageSize;
-  const pageItems = filtered.slice(start, start + invoicePageSize);
+  const start = (invoicePage - 1) * pageSize;
+  const pageItems = filtered.slice(start, start + pageSize);
 
   el.invoiceTableBody.innerHTML = '';
 
@@ -570,12 +606,13 @@ function renderInvoices() {
     });
   }
 
-  renderInvoicePagination(total, totalPages);
+  renderInvoicePagination(total, totalPages, pageSize);
 }
 
-function renderInvoicePagination(total, totalPages) {
-  const start = total === 0 ? 0 : (invoicePage - 1) * invoicePageSize + 1;
-  const end = Math.min(invoicePage * invoicePageSize, total);
+function renderInvoicePagination(total, totalPages, pageSize) {
+  const size = pageSize || getAdaptivePageSize('invoices');
+  const start = total === 0 ? 0 : (invoicePage - 1) * size + 1;
+  const end = Math.min(invoicePage * size, total);
   el.invoicePaginationInfo.textContent = `Showing ${start}-${end} of ${total} invoices`;
 
   el.btnInvoicePrevPage.disabled = invoicePage <= 1;
@@ -1398,7 +1435,8 @@ if (el.btnInvPrevPage) {
 }
 if (el.btnInvNextPage) {
   el.btnInvNextPage.addEventListener('click', () => {
-    const totalPages = Math.ceil(getFilteredInventory().length / inventoryPageSize) || 1;
+    const pageSize = getAdaptivePageSize('inventory');
+    const totalPages = Math.ceil(getFilteredInventory().length / pageSize) || 1;
     if (inventoryPage < totalPages) {
       inventoryPage++;
       renderInventory();
@@ -1416,7 +1454,8 @@ if (el.btnVendorPrevPage) {
 }
 if (el.btnVendorNextPage) {
   el.btnVendorNextPage.addEventListener('click', () => {
-    const totalPages = Math.ceil(getFilteredVendors().length / vendorPageSize) || 1;
+    const pageSize = getAdaptivePageSize('vendors');
+    const totalPages = Math.ceil(getFilteredVendors().length / pageSize) || 1;
     if (vendorPage < totalPages) {
       vendorPage++;
       renderVendors();
@@ -1434,7 +1473,8 @@ if (el.btnInvoicePrevPage) {
 }
 if (el.btnInvoiceNextPage) {
   el.btnInvoiceNextPage.addEventListener('click', () => {
-    const totalPages = Math.ceil(getFilteredInvoices().length / invoicePageSize) || 1;
+    const pageSize = getAdaptivePageSize('invoices');
+    const totalPages = Math.ceil(getFilteredInvoices().length / pageSize) || 1;
     if (invoicePage < totalPages) {
       invoicePage++;
       renderInvoices();
@@ -1536,3 +1576,19 @@ if (document.readyState === 'loading') {
   // DOM is already parsed and ready
   init();
 }
+
+// Dynamically re-render on window resize/maximize to adapt row capacity
+let resizeDebounceTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeDebounceTimer);
+  resizeDebounceTimer = setTimeout(() => {
+    if (currentTab === 'inventory') {
+      renderInventory();
+    } else if (currentTab === 'vendors') {
+      renderVendors();
+    } else if (currentTab === 'invoices') {
+      renderInvoices();
+    }
+  }, 120);
+});
+
