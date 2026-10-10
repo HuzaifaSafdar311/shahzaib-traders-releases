@@ -104,21 +104,10 @@
             </div>
           </div>
 
-          <!-- User-Entered Stock Level Filter -->
+          <!-- Stock Filter (Nearest Quantity Closeness) -->
           <div class="filter-item user-stock-filter">
-            <label for="filterStockLevelInput">Stock &le;</label>
+            <label for="filterStockLevelInput">Stock</label>
             <input type="number" id="filterStockLevelInput" placeholder="Enter qty" min="0" class="filter-num-input">
-          </div>
-
-          <div class="filter-item">
-            <label for="filterDateOrder">Sort</label>
-            <select id="filterDateOrder" class="filter-select">
-              <option value="newest">Newest Date</option>
-              <option value="oldest">Oldest Date</option>
-              <option value="stock-high">Stock: High to Low</option>
-              <option value="stock-low">Stock: Low to High</option>
-              <option value="sell-high">Total Sell: High to Low</option>
-            </select>
           </div>
 
           <button id="btnResetInventoryFilters" class="btn btn-text">Reset</button>

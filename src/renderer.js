@@ -64,7 +64,6 @@ const el = {
   inventorySearchInput: document.getElementById('inventorySearchInput'),
   btnClearInventorySearch: document.getElementById('btnClearInventorySearch'),
   filterStockLevelInput: document.getElementById('filterStockLevelInput'),
-  filterDateOrder: document.getElementById('filterDateOrder'),
   btnResetInventoryFilters: document.getElementById('btnResetInventoryFilters'),
   btnOpenAddStock: document.getElementById('btnOpenAddStock'),
   btnExportInventory: document.getElementById('btnExportInventory'),
@@ -227,8 +226,7 @@ function renderInventory() {
   closeAllActionMenus();
   const query = (el.inventorySearchInput.value || '').trim().toLowerCase();
   const searchBy = el.inventorySearchBy ? el.inventorySearchBy.value : 'all';
-  const sortOrder = el.filterDateOrder.value;
-  const userStockLimit = el.filterStockLevelInput.value.trim() !== '' ? Number(el.filterStockLevelInput.value) : null;
+  const userTargetStock = el.filterStockLevelInput.value.trim() !== '' ? Number(el.filterStockLevelInput.value) : null;
 
   let items = [...appData.inventory];
 
@@ -248,26 +246,20 @@ function renderInventory() {
     });
   }
 
-  // User-entered Stock Level Filter (Stock <= User Value)
-  if (userStockLimit !== null && !isNaN(userStockLimit)) {
-    items = items.filter(item => Number(item.quantity) <= userStockLimit);
-  }
-
-  // Sorting
-  items.sort((a, b) => {
-    if (sortOrder === 'newest') {
+  // Stock Proximity Ranking / Sorting: Items closest to the entered quantity appear first
+  if (userTargetStock !== null && !isNaN(userTargetStock)) {
+    items.sort((a, b) => {
+      const diffA = Math.abs(Number(a.quantity || 0) - userTargetStock);
+      const diffB = Math.abs(Number(b.quantity || 0) - userTargetStock);
+      if (diffA !== diffB) {
+        return diffA - diffB;
+      }
       return (b.date || '').localeCompare(a.date || '');
-    } else if (sortOrder === 'oldest') {
-      return (a.date || '').localeCompare(b.date || '');
-    } else if (sortOrder === 'stock-high') {
-      return Number(b.quantity) - Number(a.quantity);
-    } else if (sortOrder === 'stock-low') {
-      return Number(a.quantity) - Number(b.quantity);
-    } else if (sortOrder === 'sell-high') {
-      return Number(b.totalSell || 0) - Number(a.totalSell || 0);
-    }
-    return 0;
-  });
+    });
+  } else {
+    // Default: Newest date first
+    items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  }
 
   const totalItems = items.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / inventoryPageSize));
@@ -805,11 +797,6 @@ el.filterStockLevelInput.addEventListener('input', () => {
   renderInventory();
 });
 
-el.filterDateOrder.addEventListener('change', () => {
-  inventoryPage = 1;
-  renderInventory();
-});
-
 el.vendorSearchInput.addEventListener('input', (e) => {
   if (e.target.value) {
     el.btnClearVendorSearch.classList.remove('hidden');
@@ -837,7 +824,6 @@ el.btnResetInventoryFilters.addEventListener('click', () => {
   el.btnClearInventorySearch.classList.add('hidden');
   el.inventorySearchBy.value = 'all';
   el.filterStockLevelInput.value = '';
-  el.filterDateOrder.value = 'newest';
   inventoryPage = 1;
   renderInventory();
 });
