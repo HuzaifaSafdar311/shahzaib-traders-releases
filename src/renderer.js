@@ -112,6 +112,8 @@ const el = {
   stockWholesalePrice: document.getElementById('stockWholesalePrice'),
   stockIndividualPrice: document.getElementById('stockIndividualPrice'),
   stockDateInput: document.getElementById('stockDateInput'),
+  summaryTotalWholesale: document.getElementById('summaryTotalWholesale'),
+  summaryTotalIndividual: document.getElementById('summaryTotalIndividual'),
   btnQuickAddVendor: document.getElementById('btnQuickAddVendor'),
 
   // Vendor Modal
@@ -478,6 +480,23 @@ function renderPaginationControls(currentPage, totalPages, prevBtn, nextBtn, con
   }
 }
 
+// Real-time Dynamic Total Prices Calculation in Stock Modal
+function updateTotalPricesSummary() {
+  const qty = parseInt(el.stockQtyInput.value, 10) || 0;
+  const wholesale = parseFloat(el.stockWholesalePrice.value) || 0;
+  const individual = parseFloat(el.stockIndividualPrice.value) || 0;
+
+  const totalWholesale = (qty * wholesale).toFixed(2);
+  const totalIndividual = (qty * individual).toFixed(2);
+
+  if (el.summaryTotalWholesale) {
+    el.summaryTotalWholesale.textContent = `$${Number(totalWholesale).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  }
+  if (el.summaryTotalIndividual) {
+    el.summaryTotalIndividual.textContent = `$${Number(totalIndividual).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  }
+}
+
 // Stock Modal Actions
 function openAddStock() {
   closeAllActionMenus();
@@ -491,6 +510,7 @@ function openAddStock() {
   el.stockWholesalePrice.value = '';
   el.stockIndividualPrice.value = '';
   el.stockDateInput.value = getTodayString();
+  updateTotalPricesSummary();
   el.modalStock.classList.remove('hidden');
   setTimeout(() => el.stockNameInput.focus(), 50);
 }
@@ -509,6 +529,7 @@ window.openEditStock = function(id) {
   el.stockWholesalePrice.value = item.wholesalePrice !== undefined ? item.wholesalePrice : '';
   el.stockIndividualPrice.value = item.individualPrice !== undefined ? item.individualPrice : '';
   el.stockDateInput.value = item.date || getTodayString();
+  updateTotalPricesSummary();
   el.modalStock.classList.remove('hidden');
   setTimeout(() => el.stockNameInput.focus(), 50);
 };
@@ -748,6 +769,11 @@ el.btnOpenAddStock.addEventListener('click', openAddStock);
 el.btnCloseStockModal.addEventListener('click', closeStockModal);
 el.btnCancelStock.addEventListener('click', closeStockModal);
 el.btnQuickAddVendor.addEventListener('click', () => openAddVendor(true));
+
+// Live recalculation on quantity and price inputs
+el.stockQtyInput.addEventListener('input', updateTotalPricesSummary);
+el.stockWholesalePrice.addEventListener('input', updateTotalPricesSummary);
+el.stockIndividualPrice.addEventListener('input', updateTotalPricesSummary);
 
 el.btnOpenAddVendor.addEventListener('click', () => openAddVendor(false));
 el.btnCloseVendorModal.addEventListener('click', closeVendorModal);

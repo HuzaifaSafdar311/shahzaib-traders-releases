@@ -149,9 +149,9 @@
         <div class="table-footer">
           <div id="inventoryPaginationInfo" class="pagination-info">Showing 0-0 of 0 items</div>
           <div class="pagination-controls">
-            <button id="btnInvPrevPage" class="btn-page" disabled>&larr; Prev</button>
+            <button id="btnInvPrevPage" class="btn-page" disabled>Previous</button>
             <div id="invPageNumbers" class="page-numbers"></div>
-            <button id="btnInvNextPage" class="btn-page">Next &rarr;</button>
+            <button id="btnInvNextPage" class="btn-page">Next</button>
           </div>
         </div>
       </section>
@@ -218,9 +218,9 @@
         <div class="table-footer">
           <div id="vendorPaginationInfo" class="pagination-info">Showing 0-0 of 0 items</div>
           <div class="pagination-controls">
-            <button id="btnVendorPrevPage" class="btn-page" disabled>&larr; Prev</button>
+            <button id="btnVendorPrevPage" class="btn-page" disabled>Previous</button>
             <div id="vendorPageNumbers" class="page-numbers"></div>
-            <button id="btnVendorNextPage" class="btn-page">Next &rarr;</button>
+            <button id="btnVendorNextPage" class="btn-page">Next</button>
           </div>
         </div>
       </section>
@@ -271,6 +271,18 @@
           <div class="form-group">
             <label for="stockIndividualPrice">Individual Price (Per Piece) <span class="req">*</span></label>
             <input type="number" id="stockIndividualPrice" min="0" step="0.01" placeholder="0.00" required>
+          </div>
+
+          <!-- Real-Time Calculated Total Prices According to Quantity and Both Prices -->
+          <div class="total-prices-banner span-2">
+            <div class="total-price-box">
+              <span class="total-price-label">Total Wholesale Price (Qty &times; Wholesale)</span>
+              <span id="summaryTotalWholesale" class="total-price-value">$0.00</span>
+            </div>
+            <div class="total-price-box">
+              <span class="total-price-label">Total Individual Price (Qty &times; Individual)</span>
+              <span id="summaryTotalIndividual" class="total-price-value">$0.00</span>
+            </div>
           </div>
 
           <div class="form-group span-2">

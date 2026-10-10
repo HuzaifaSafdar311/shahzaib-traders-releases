@@ -589,9 +589,10 @@ body {
 
 .data-table {
   width: 100%;
-  min-width: 880px;
+  min-width: 960px;
   border-collapse: collapse;
   text-align: left;
+  table-layout: fixed;
 }
 
 .data-table thead {
@@ -603,8 +604,8 @@ body {
 }
 
 .data-table th {
-  padding: 10px 14px;
-  font-size: 11.5px;
+  padding: 11px 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -614,7 +615,7 @@ body {
 }
 
 .data-table td {
-  padding: 11px 14px;
+  padding: 11px 12px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
   font-size: 13px;
@@ -629,63 +630,60 @@ body {
   background-color: var(--bg-surface-hover);
 }
 
-/* Table Column Widths */
+/* Equal Space for All Columns (8 columns in Inventory = 12.5% each) */
 .col-stock-name {
-  width: 28%;
-  min-width: 190px;
+  width: 12.5%;
+  text-align: left;
   word-break: break-word;
 }
 
 .col-vendor {
-  width: 18%;
-  min-width: 140px;
+  width: 12.5%;
+  text-align: left;
   word-break: break-word;
 }
 
 .col-stock-qty {
-  width: 95px;
-  min-width: 85px;
+  width: 12.5%;
   text-align: right !important;
   white-space: nowrap;
 }
 
 .col-sell-qty {
-  width: 90px;
-  min-width: 80px;
+  width: 12.5%;
   text-align: right !important;
   white-space: nowrap;
 }
 
 .col-price {
-  width: 115px;
-  min-width: 100px;
+  width: 12.5%;
   text-align: right !important;
   white-space: nowrap;
 }
 
 .col-date {
-  width: 105px;
-  min-width: 95px;
+  width: 12.5%;
+  text-align: center !important;
   white-space: nowrap;
 }
 
 .col-dots-actions {
-  width: 60px;
-  min-width: 55px;
+  width: 12.5%;
   text-align: center !important;
   white-space: nowrap;
   position: relative;
 }
 
+/* Equal Space for Vendor Columns (3 columns = 33.33% each) */
 .col-vendor-name {
-  width: 65%;
-  min-width: 260px;
+  width: 33.33%;
+  text-align: left;
   word-break: break-word;
 }
 
 .col-phone {
-  width: 220px;
-  min-width: 170px;
+  width: 33.33%;
+  text-align: left;
   white-space: nowrap;
 }
 
@@ -876,6 +874,38 @@ body {
 
 .form-grid-equal .span-2 {
   grid-column: span 2;
+}
+
+/* Real-Time Total Prices Banner in Modal */
+.total-prices-banner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  background-color: #f9fafb;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 4px 0;
+}
+
+.total-price-box {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.total-price-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.total-price-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .form-group {
