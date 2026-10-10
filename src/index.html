@@ -83,9 +83,22 @@
               <div id="radialNodesPanel" class="radial-nodes-panel hidden" aria-hidden="true">
                 <div class="radial-backdrop" id="radialBackdrop"></div>
 
-                <!-- Circular Radial Nodes Halo -->
+                <!-- Circular Radial Dial Wheel -->
                 <div class="radial-nodes-halo">
-                  <!-- Node 1: PDF -->
+                  <!-- Orbit Ring Track -->
+                  <div class="radial-orbit-ring"></div>
+
+                  <!-- Central Hub -->
+                  <div class="radial-center-hub">
+                    <svg class="hub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span class="hub-text">FORMAT</span>
+                  </div>
+
+                  <!-- Node 1: PDF (Top) -->
                   <div class="radial-node-item node-item-pdf">
                     <button type="button" class="radial-node-btn btn-node-pdf" id="btnExportPDF" title="Export as PDF Document">
                       <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -99,7 +112,7 @@
                     <span class="node-label">PDF</span>
                   </div>
 
-                  <!-- Node 2: Excel -->
+                  <!-- Node 2: Excel (Bottom Right) -->
                   <div class="radial-node-item node-item-excel">
                     <button type="button" class="radial-node-btn btn-node-excel" id="btnExportExcel" title="Export as Excel Sheet (.xlsx)">
                       <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -114,7 +127,7 @@
                     <span class="node-label">Excel</span>
                   </div>
 
-                  <!-- Node 3: CSV -->
+                  <!-- Node 3: CSV (Bottom Left) -->
                   <div class="radial-node-item node-item-csv">
                     <button type="button" class="radial-node-btn btn-node-csv" id="btnExportCSV" title="Export as CSV File">
                       <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
