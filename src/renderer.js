@@ -376,7 +376,13 @@ function renderInventory() {
         <td class="col-date date-val">${escapeHtml(item.date || '')}</td>
         <td class="col-dots-actions">
           <div class="dots-wrapper">
-            <button class="btn-dots" onclick="toggleRowMenu(event, '${menuId}')" title="Actions">&bull;&bull;&bull;</button>
+            <button class="btn-dots" onclick="toggleRowMenu(event, '${menuId}')" title="Actions" aria-label="Actions">
+              <svg class="dots-icon" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="2"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+                <circle cx="12" cy="19" r="2"></circle>
+              </svg>
+            </button>
             <div id="${menuId}" class="action-menu hidden">
               <button class="action-menu-item" onclick="openEditStock('${item.id}')">Edit</button>
               <button class="action-menu-item danger" onclick="confirmDeleteStock('${item.id}')">Delete</button>
@@ -500,7 +506,13 @@ function renderVendors() {
         <td class="col-phone">${escapeHtml(vendor.phone || 'N/A')}</td>
         <td class="col-dots-actions">
           <div class="dots-wrapper">
-            <button class="btn-dots" onclick="toggleRowMenu(event, '${menuId}')" title="Actions">&bull;&bull;&bull;</button>
+            <button class="btn-dots" onclick="toggleRowMenu(event, '${menuId}')" title="Actions" aria-label="Actions">
+              <svg class="dots-icon" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="2"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+                <circle cx="12" cy="19" r="2"></circle>
+              </svg>
+            </button>
             <div id="${menuId}" class="action-menu hidden">
               <button class="action-menu-item" onclick="openEditVendor('${vendor.id}')">Edit</button>
               <button class="action-menu-item danger" onclick="confirmDeleteVendor('${vendor.id}')">Delete</button>
@@ -594,7 +606,13 @@ function renderInvoices() {
         <td class="col-status"><span class="badge-status ${statusClass}">${escapeHtml(inv.status || 'Paid')}</span></td>
         <td class="col-dots-actions">
           <div class="dots-wrapper">
-            <button class="btn-dots" onclick="toggleRowMenu(event, '${menuId}')" title="Actions">&bull;&bull;&bull;</button>
+            <button class="btn-dots" onclick="toggleRowMenu(event, '${menuId}')" title="Actions" aria-label="Actions">
+              <svg class="dots-icon" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="2"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+                <circle cx="12" cy="19" r="2"></circle>
+              </svg>
+            </button>
             <div id="${menuId}" class="action-menu hidden">
               <button class="action-menu-item" onclick="openViewInvoice('${inv.id}')">View / Print</button>
               <button class="action-menu-item danger" onclick="confirmDeleteInvoice('${inv.id}')">Delete</button>

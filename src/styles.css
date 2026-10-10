@@ -560,7 +560,8 @@ body {
 }
 
 /* 3-Dots Action Dropdown */
-.action-dropdown-container {
+.action-dropdown-container,
+.dots-wrapper {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -574,11 +575,12 @@ body {
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent;
-  color: var(--text-secondary);
+  color: #6b7280;
   cursor: pointer;
   transition: all var(--transition-speed);
+  padding: 0;
 }
 
 .btn-dots:hover, .btn-dots.active {
@@ -590,6 +592,7 @@ body {
 .dots-icon {
   width: 16px;
   height: 16px;
+  display: block;
   pointer-events: none;
 }
 
