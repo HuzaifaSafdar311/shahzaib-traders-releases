@@ -1,6 +1,6 @@
-# Inventory Management System
+# Shahzaib Traders - Inventory Management System
 
-Desktop Inventory Management application built with Electron and SQLite.
+Desktop Inventory Management application for **Shahzaib Traders**, built with Electron and SQLite.
 
 ## Features
 - **White Theme & Sans-serif Typography**: Minimalist, high-contrast, clean enterprise design.

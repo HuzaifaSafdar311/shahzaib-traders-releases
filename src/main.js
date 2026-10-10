@@ -17,7 +17,7 @@ function createWindow() {
     minWidth: 980,
     minHeight: 620,
     backgroundColor: '#ffffff',
-    title: 'Inventory Management System',
+    title: 'Shahzaib Traders - Inventory Management System',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

@@ -69,22 +69,46 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 18px 20px;
+  gap: 12px;
+  padding: 16px 18px;
   border-bottom: 1px solid var(--border-light);
+  background-color: #ffffff;
 }
 
-.brand-icon {
-  width: 20px;
-  height: 20px;
-  color: var(--text-primary);
+.brand-logo-badge {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.brand-title {
+.brand-logo-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.brand-text-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.12;
+}
+
+.brand-name-top {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.02em;
+}
+
+.brand-name-bottom {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 800;
+  color: #111827;
   letter-spacing: -0.01em;
-  color: var(--text-primary);
 }
 
 .nav-menu {
