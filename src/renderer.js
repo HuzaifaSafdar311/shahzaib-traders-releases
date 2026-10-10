@@ -865,7 +865,17 @@ function escapeHtml(text) {
 // Sidebar Toggle Handler (Full open vs Half-closed mini)
 const sidebarEl = document.getElementById('sidebar');
 const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+const brandEl = document.querySelector('.brand');
 const brandMini = document.querySelector('.brand-mini');
+
+function openSidebar() {
+  if (sidebarEl && sidebarEl.classList.contains('collapsed')) {
+    sidebarEl.classList.remove('collapsed');
+    try {
+      localStorage.setItem('sidebar_collapsed', 'false');
+    } catch (e) {}
+  }
+}
 
 function toggleSidebar() {
   if (!sidebarEl) return;
@@ -882,14 +892,33 @@ if (btnToggleSidebar) {
   });
 }
 
-if (brandMini) {
-  brandMini.addEventListener('click', (e) => {
-    e.stopPropagation();
+// When sidebar is closed, clicking on the circle logo or brand header opens it immediately
+if (brandEl) {
+  brandEl.addEventListener('click', (e) => {
     if (sidebarEl && sidebarEl.classList.contains('collapsed')) {
-      toggleSidebar();
+      e.stopPropagation();
+      openSidebar();
     }
   });
 }
+
+if (brandMini) {
+  brandMini.addEventListener('click', (e) => {
+    if (sidebarEl && sidebarEl.classList.contains('collapsed')) {
+      e.stopPropagation();
+      openSidebar();
+    }
+  });
+}
+
+document.querySelectorAll('.brand-circle-img').forEach(img => {
+  img.addEventListener('click', (e) => {
+    if (sidebarEl && sidebarEl.classList.contains('collapsed')) {
+      e.stopPropagation();
+      openSidebar();
+    }
+  });
+});
 
 // Restore saved sidebar collapsed state on load
 try {

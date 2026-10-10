@@ -148,31 +148,32 @@ body {
   transition: transform 0.22s ease;
 }
 
-/* In half-closed state: show ONLY circle logo */
+/* In half-closed state: show ONLY circle logo and click logo opens sidebar */
 .sidebar.collapsed .brand {
-  padding: 8px 0;
+  padding: 9px 0;
   justify-content: center;
+  cursor: pointer;
 }
 
 .sidebar.collapsed .brand-full {
-  display: none;
+  display: none !important;
 }
 
 .sidebar.collapsed .brand-mini {
-  display: flex;
+  display: flex !important;
+  cursor: pointer;
+}
+
+.sidebar.collapsed .brand-circle-img {
+  cursor: pointer;
+}
+
+.sidebar.collapsed .brand-mini:hover .brand-circle-img {
+  transform: scale(1.12);
 }
 
 .sidebar.collapsed .btn-toggle-sidebar {
-  position: absolute;
-  top: 4px;
-  right: 2px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.sidebar.collapsed:hover .btn-toggle-sidebar {
-  opacity: 1;
-  pointer-events: auto;
+  display: none !important;
 }
 
 .sidebar.collapsed .toggle-icon {
@@ -670,12 +671,31 @@ body {
 /* Tables */
 .table-container {
   flex: 1;
-  background-color: rgba(255, 255, 255, 0.92);
+  background-color: #ffffff;
   border: 1px solid var(--border-light);
   border-radius: 6px;
   overflow: auto;
   position: relative;
-  backdrop-filter: blur(6px);
+}
+
+/* Background Circular Logo with Low Opacity on Table Body */
+.table-container::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 360px;
+  height: 360px;
+  max-width: 55vw;
+  max-height: 55vh;
+  background-image: url('circle-logo.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.055; /* Low opacity circular logo watermark */
+  pointer-events: none;
+  z-index: 0;
 }
 
 .table-container::-webkit-scrollbar {
@@ -702,6 +722,9 @@ body {
   border-collapse: collapse;
   text-align: left;
   table-layout: fixed;
+  position: relative;
+  z-index: 1;
+  background-color: transparent;
 }
 
 .data-table thead {
@@ -732,52 +755,55 @@ body {
 }
 
 .data-table tbody tr {
+  background-color: transparent;
   transition: background-color var(--transition-speed);
 }
 
 .data-table tbody tr:hover {
-  background-color: var(--bg-surface-hover);
+  background-color: rgba(243, 244, 246, 0.75);
 }
 
-/* Equal Space for All Columns (8 columns in Inventory = 12.5% each) */
+/* Column Widths: Vendor moved forward without disturbing any other row */
 .col-stock-name {
-  width: 12.5%;
+  width: 19%;
   text-align: left;
   word-break: break-word;
+  padding-right: 12px;
 }
 
 .col-vendor {
-  width: 12.5%;
+  width: 18%;
   text-align: left;
   word-break: break-word;
+  padding-left: 18px !important; /* Pushed forward with clean breathing room */
 }
 
 .col-stock-qty {
-  width: 12.5%;
+  width: 9%;
   text-align: right !important;
   white-space: nowrap;
 }
 
 .col-sell-qty {
-  width: 12.5%;
+  width: 9%;
   text-align: right !important;
   white-space: nowrap;
 }
 
 .col-price {
-  width: 12.5%;
+  width: 10.5%;
   text-align: right !important;
   white-space: nowrap;
 }
 
 .col-date {
-  width: 12.5%;
+  width: 14%;
   text-align: center !important;
   white-space: nowrap;
 }
 
 .col-dots-actions {
-  width: 12.5%;
+  width: 10%;
   text-align: center !important;
   white-space: nowrap;
   position: relative;
