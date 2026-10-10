@@ -11,6 +11,7 @@ function getDbFilePath() {
 }
 
 function createWindow() {
+  const iconPath = path.join(__dirname, 'circle-logo.png');
   mainWindow = new BrowserWindow({
     width: 1240,
     height: 820,
@@ -18,6 +19,7 @@ function createWindow() {
     minHeight: 620,
     backgroundColor: '#ffffff',
     title: 'Shahzaib Traders - Inventory Management System',
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

@@ -41,39 +41,13 @@ function initDatabase(dbPath) {
   try { db.exec('ALTER TABLE inventory ADD COLUMN wholesalePrice REAL DEFAULT 0;'); } catch (e) {}
   try { db.exec('ALTER TABLE inventory ADD COLUMN individualPrice REAL DEFAULT 0;'); } catch (e) {}
 
-  // Update any existing default vendors to Pakistani numbers
+  // Delete all seeder demo data from SQLite database
   try {
     db.exec(`
-      UPDATE vendors SET phone = '0300-9283401' WHERE id = 'v-1' AND phone LIKE '+1%';
-      UPDATE vendors SET phone = '0321-4998120' WHERE id = 'v-2' AND phone LIKE '+1%';
-      UPDATE vendors SET phone = '0333-8774315' WHERE id = 'v-3' AND phone LIKE '+1%';
+      DELETE FROM inventory WHERE id IN ('inv-1', 'inv-2', 'inv-3', 'inv-4');
+      DELETE FROM vendors WHERE id IN ('v-1', 'v-2', 'v-3');
     `);
   } catch (e) {}
-
-  // Seed default data if empty
-  const vendorCountStmt = db.prepare('SELECT COUNT(*) as count FROM vendors');
-  const vendorCount = vendorCountStmt.get().count;
-
-  if (vendorCount === 0) {
-    const insertVendor = db.prepare(`
-      INSERT INTO vendors (id, name, phone, createdAt)
-      VALUES (?, ?, ?, ?)
-    `);
-
-    insertVendor.run('v-1', 'Apex Industrial Supplies', '0300-9283401', '2025-01-15');
-    insertVendor.run('v-2', 'Global Tech Components', '0321-4998120', '2025-01-18');
-    insertVendor.run('v-3', 'Metro Logistics & Hardware', '0333-8774315', '2025-02-01');
-
-    const insertStock = db.prepare(`
-      INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, totalSell, wholesalePrice, individualPrice, date, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    insertStock.run('inv-1', 'Precision Ball Bearings 608RS', 'v-1', 'Apex Industrial Supplies', 250, 42, 4.50, 7.00, '2025-02-10', '2025-02-10');
-    insertStock.run('inv-2', 'Solid State Relay 25A', 'v-2', 'Global Tech Components', 80, 16, 18.00, 25.50, '2025-02-12', '2025-02-12');
-    insertStock.run('inv-3', 'Heavy Duty Steel Brackets', 'v-3', 'Metro Logistics & Hardware', 120, 35, 8.20, 12.00, '2025-02-14', '2025-02-14');
-    insertStock.run('inv-4', 'Microcontroller Units ESP32', 'v-2', 'Global Tech Components', 45, 22, 3.80, 6.00, '2025-02-18', '2025-02-18');
-  }
 
   dbInstance = db;
   return dbInstance;

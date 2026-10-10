@@ -22,17 +22,8 @@ const api = window.electronAPI || {
       try { return JSON.parse(raw); } catch (e) {}
     }
     return {
-      vendors: [
-        { id: 'v-1', name: 'Apex Industrial Supplies', phone: '0300-9283401', createdAt: '2025-01-15' },
-        { id: 'v-2', name: 'Global Tech Components', phone: '0321-4998120', createdAt: '2025-01-18' },
-        { id: 'v-3', name: 'Metro Logistics & Hardware', phone: '0333-8774315', createdAt: '2025-02-01' }
-      ],
-      inventory: [
-        { id: 'inv-1', stockName: 'Precision Ball Bearings 608RS', vendorId: 'v-1', vendorName: 'Apex Industrial Supplies', quantity: 250, totalSell: 42, wholesalePrice: 4.50, individualPrice: 7.00, date: '2025-02-10' },
-        { id: 'inv-2', stockName: 'Solid State Relay 25A', vendorId: 'v-2', vendorName: 'Global Tech Components', quantity: 80, totalSell: 16, wholesalePrice: 18.00, individualPrice: 25.50, date: '2025-02-12' },
-        { id: 'inv-3', stockName: 'Heavy Duty Steel Brackets', vendorId: 'v-3', vendorName: 'Metro Logistics & Hardware', quantity: 120, totalSell: 35, wholesalePrice: 8.20, individualPrice: 12.00, date: '2025-02-14' },
-        { id: 'inv-4', stockName: 'Microcontroller Units ESP32', vendorId: 'v-2', vendorName: 'Global Tech Components', quantity: 45, totalSell: 22, wholesalePrice: 3.80, individualPrice: 6.00, date: '2025-02-18' }
-      ]
+      vendors: [],
+      inventory: []
     };
   },
   saveData: async (data) => {
@@ -929,6 +920,7 @@ try {
 
 // Initial Boot
 async function init() {
+  try { localStorage.removeItem('inventory_data'); } catch (e) {}
   await reloadFromDatabase();
   renderInventory();
 }
