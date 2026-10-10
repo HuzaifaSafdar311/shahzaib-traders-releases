@@ -6,8 +6,13 @@ const db = require('./db');
 let mainWindow;
 
 function getDbFilePath() {
-  const userDataDir = app.getPath('userData');
-  return path.join(userDataDir, 'inventory.db');
+  if (app.isPackaged) {
+    const userDataDir = app.getPath('userData');
+    return path.join(userDataDir, 'inventory.db');
+  }
+  // When running locally in development, use the project root database
+  const localDb = path.join(__dirname, '..', 'inventory.db');
+  return localDb;
 }
 
 function createWindow() {
@@ -91,7 +96,18 @@ app.whenReady().then(() => {
   });
 });
 
+app.on('before-quit', () => {
+  try {
+    db.closeDatabase();
+  } catch (err) {
+    console.error('Error closing database:', err);
+  }
+});
+
 app.on('window-all-closed', () => {
+  try {
+    db.closeDatabase();
+  } catch (err) {}
   if (process.platform !== 'darwin') {
     app.quit();
   }

@@ -148,14 +148,27 @@ function getTodayString() {
 async function reloadFromDatabase() {
   try {
     const data = await api.getData();
-    if (data) {
+    if (data && (Array.isArray(data.vendors) || Array.isArray(data.inventory))) {
       appData = {
-        vendors: data.vendors || [],
-        inventory: data.inventory || []
+        vendors: Array.isArray(data.vendors) ? data.vendors : [],
+        inventory: Array.isArray(data.inventory) ? data.inventory : []
       };
+      try {
+        localStorage.setItem('inventory_db_backup', JSON.stringify(appData));
+      } catch (e) {}
     }
   } catch (err) {
     console.error('Error reloading database data:', err);
+    try {
+      const raw = localStorage.getItem('inventory_db_backup');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        appData = {
+          vendors: Array.isArray(parsed.vendors) ? parsed.vendors : [],
+          inventory: Array.isArray(parsed.inventory) ? parsed.inventory : []
+        };
+      }
+    } catch (e) {}
   }
   updateBadges();
   refreshVendorDropdowns();
@@ -905,10 +918,19 @@ try {
 } catch (e) {}
 
 // Initial Boot
+let isAppInitialized = false;
 async function init() {
-  try { localStorage.removeItem('inventory_data'); } catch (e) {}
+  if (isAppInitialized) return;
+  isAppInitialized = true;
   await reloadFromDatabase();
   renderInventory();
+  renderVendors();
 }
 
-window.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+  window.addEventListener('load', init);
+} else {
+  // DOM is already parsed and ready
+  init();
+}

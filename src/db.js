@@ -82,6 +82,7 @@ function addStock(item) {
     item.date,
     item.createdAt || new Date().toISOString()
   );
+  checkpoint();
   return { success: true };
 }
 
@@ -103,6 +104,7 @@ function updateStock(item) {
     item.date,
     item.id
   );
+  checkpoint();
   return { success: true };
 }
 
@@ -110,6 +112,7 @@ function deleteStock(id) {
   if (!dbInstance) throw new Error('Database not initialized');
   const stmt = dbInstance.prepare('DELETE FROM inventory WHERE id = ?');
   stmt.run(id);
+  checkpoint();
   return { success: true };
 }
 
@@ -125,6 +128,7 @@ function addVendor(vendor) {
     vendor.phone || '',
     vendor.createdAt || new Date().toISOString()
   );
+  checkpoint();
   return { success: true };
 }
 
@@ -145,6 +149,7 @@ function updateVendor(vendor) {
   `);
   updateInv.run(vendor.name, vendor.id);
 
+  checkpoint();
   return { success: true };
 }
 
@@ -161,6 +166,7 @@ function deleteVendor(id) {
     deleteVen.run(id);
 
     dbInstance.exec('COMMIT');
+    checkpoint();
     return { success: true };
   } catch (err) {
     dbInstance.exec('ROLLBACK');
@@ -202,6 +208,7 @@ function syncAllData(data) {
     });
 
     dbInstance.exec('COMMIT');
+    checkpoint();
     return { success: true };
   } catch (err) {
     dbInstance.exec('ROLLBACK');
@@ -209,8 +216,27 @@ function syncAllData(data) {
   }
 }
 
+function checkpoint() {
+  if (dbInstance) {
+    try {
+      dbInstance.exec('PRAGMA wal_checkpoint(PASSIVE);');
+    } catch (e) {}
+  }
+}
+
+function closeDatabase() {
+  if (dbInstance) {
+    try {
+      dbInstance.exec('PRAGMA wal_checkpoint(FULL);');
+      dbInstance.close();
+    } catch (e) {}
+    dbInstance = null;
+  }
+}
+
 module.exports = {
   initDatabase,
+  closeDatabase,
   getAllData,
   addStock,
   updateStock,
