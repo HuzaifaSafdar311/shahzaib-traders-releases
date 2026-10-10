@@ -8,7 +8,13 @@ let currentTab = 'inventory'; // 'inventory' | 'vendors'
 let pendingDeleteAction = null;
 let returnToStockModalAfterVendor = false;
 
-// IPC Storage Bridge (SQLite Backend via window.electronAPI with local fallback)
+// Pagination State (7 items per page as requested)
+let inventoryPage = 1;
+const inventoryPageSize = 7;
+let vendorPage = 1;
+const vendorPageSize = 7;
+
+// IPC Storage Bridge (SQLite Backend via window.electronAPI with fallback)
 const api = window.electronAPI || {
   getData: async () => {
     const raw = localStorage.getItem('inventory_data');
@@ -22,10 +28,10 @@ const api = window.electronAPI || {
         { id: 'v-3', name: 'Metro Logistics & Hardware', phone: '+1 (555) 018-7743', createdAt: '2025-02-01' }
       ],
       inventory: [
-        { id: 'inv-1', stockName: 'Precision Ball Bearings 608RS', vendorId: 'v-1', vendorName: 'Apex Industrial Supplies', quantity: 250, date: '2025-02-10' },
-        { id: 'inv-2', stockName: 'Solid State Relay 25A', vendorId: 'v-2', vendorName: 'Global Tech Components', quantity: 80, date: '2025-02-12' },
-        { id: 'inv-3', stockName: 'Heavy Duty Steel Brackets', vendorId: 'v-3', vendorName: 'Metro Logistics & Hardware', quantity: 120, date: '2025-02-14' },
-        { id: 'inv-4', stockName: 'Microcontroller Units ESP32', vendorId: 'v-2', vendorName: 'Global Tech Components', quantity: 45, date: '2025-02-18' }
+        { id: 'inv-1', stockName: 'Precision Ball Bearings 608RS', vendorId: 'v-1', vendorName: 'Apex Industrial Supplies', quantity: 250, totalSell: 42, wholesalePrice: 4.50, individualPrice: 7.00, date: '2025-02-10' },
+        { id: 'inv-2', stockName: 'Solid State Relay 25A', vendorId: 'v-2', vendorName: 'Global Tech Components', quantity: 80, totalSell: 16, wholesalePrice: 18.00, individualPrice: 25.50, date: '2025-02-12' },
+        { id: 'inv-3', stockName: 'Heavy Duty Steel Brackets', vendorId: 'v-3', vendorName: 'Metro Logistics & Hardware', quantity: 120, totalSell: 35, wholesalePrice: 8.20, individualPrice: 12.00, date: '2025-02-14' },
+        { id: 'inv-4', stockName: 'Microcontroller Units ESP32', vendorId: 'v-2', vendorName: 'Global Tech Components', quantity: 45, totalSell: 22, wholesalePrice: 3.80, individualPrice: 6.00, date: '2025-02-18' }
       ]
     };
   },
@@ -33,24 +39,12 @@ const api = window.electronAPI || {
     localStorage.setItem('inventory_data', JSON.stringify(data));
     return { success: true };
   },
-  addStock: async (item) => {
-    return { success: true };
-  },
-  updateStock: async (item) => {
-    return { success: true };
-  },
-  deleteStock: async (id) => {
-    return { success: true };
-  },
-  addVendor: async (vendor) => {
-    return { success: true };
-  },
-  updateVendor: async (vendor) => {
-    return { success: true };
-  },
-  deleteVendor: async (id) => {
-    return { success: true };
-  },
+  addStock: async (item) => ({ success: true }),
+  updateStock: async (item) => ({ success: true }),
+  deleteStock: async (id) => ({ success: true }),
+  addVendor: async (vendor) => ({ success: true }),
+  updateVendor: async (vendor) => ({ success: true }),
+  deleteVendor: async (id) => ({ success: true }),
   exportCSV: async ({ content, filename }) => {
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -78,12 +72,17 @@ const el = {
   inventorySearchBy: document.getElementById('inventorySearchBy'),
   inventorySearchInput: document.getElementById('inventorySearchInput'),
   btnClearInventorySearch: document.getElementById('btnClearInventorySearch'),
-  filterVendorSelect: document.getElementById('filterVendorSelect'),
-  filterStockStatus: document.getElementById('filterStockStatus'),
+  filterStockLevelInput: document.getElementById('filterStockLevelInput'),
   filterDateOrder: document.getElementById('filterDateOrder'),
   btnResetInventoryFilters: document.getElementById('btnResetInventoryFilters'),
   btnOpenAddStock: document.getElementById('btnOpenAddStock'),
   btnExportInventory: document.getElementById('btnExportInventory'),
+
+  // Inventory Pagination
+  inventoryPaginationInfo: document.getElementById('inventoryPaginationInfo'),
+  btnInvPrevPage: document.getElementById('btnInvPrevPage'),
+  btnInvNextPage: document.getElementById('btnInvNextPage'),
+  invPageNumbers: document.getElementById('invPageNumbers'),
 
   // Vendor Elements
   vendorTableBody: document.getElementById('vendorTableBody'),
@@ -92,6 +91,12 @@ const el = {
   vendorSearchInput: document.getElementById('vendorSearchInput'),
   btnClearVendorSearch: document.getElementById('btnClearVendorSearch'),
   btnOpenAddVendor: document.getElementById('btnOpenAddVendor'),
+
+  // Vendor Pagination
+  vendorPaginationInfo: document.getElementById('vendorPaginationInfo'),
+  btnVendorPrevPage: document.getElementById('btnVendorPrevPage'),
+  btnVendorNextPage: document.getElementById('btnVendorNextPage'),
+  vendorPageNumbers: document.getElementById('vendorPageNumbers'),
 
   // Stock Modal
   modalStock: document.getElementById('modalStock'),
@@ -103,6 +108,9 @@ const el = {
   stockNameInput: document.getElementById('stockNameInput'),
   stockVendorSelect: document.getElementById('stockVendorSelect'),
   stockQtyInput: document.getElementById('stockQtyInput'),
+  stockSellInput: document.getElementById('stockSellInput'),
+  stockWholesalePrice: document.getElementById('stockWholesalePrice'),
+  stockIndividualPrice: document.getElementById('stockIndividualPrice'),
   stockDateInput: document.getElementById('stockDateInput'),
   btnQuickAddVendor: document.getElementById('btnQuickAddVendor'),
 
@@ -134,9 +142,7 @@ function showToast(message) {
   toast.className = 'toast';
   toast.textContent = message;
   el.toastContainer.appendChild(toast);
-  setTimeout(() => {
-    toast.remove();
-  }, 2600);
+  setTimeout(() => toast.remove(), 2600);
 }
 
 function getTodayString() {
@@ -157,7 +163,7 @@ async function reloadFromDatabase() {
       };
     }
   } catch (err) {
-    console.error('Error reloading data:', err);
+    console.error('Error reloading database data:', err);
   }
   updateBadges();
   refreshVendorDropdowns();
@@ -168,9 +174,32 @@ function updateBadges() {
   el.badgeVendorCount.textContent = appData.vendors.length;
 }
 
+// 3-Dots Action Menu Helpers
+window.toggleRowMenu = function(e, menuId) {
+  e.stopPropagation();
+  const targetMenu = document.getElementById(menuId);
+  const isCurrentlyOpen = targetMenu && !targetMenu.classList.contains('hidden');
+
+  closeAllActionMenus();
+
+  if (targetMenu && !isCurrentlyOpen) {
+    targetMenu.classList.remove('hidden');
+    const btn = targetMenu.previousElementSibling;
+    if (btn) btn.classList.add('active');
+  }
+};
+
+function closeAllActionMenus() {
+  document.querySelectorAll('.action-menu').forEach(m => m.classList.add('hidden'));
+  document.querySelectorAll('.btn-dots').forEach(b => b.classList.remove('active'));
+}
+
+document.addEventListener('click', closeAllActionMenus);
+
 // Tab Switching
 function switchTab(tab) {
   currentTab = tab;
+  closeAllActionMenus();
   if (tab === 'inventory') {
     el.navInventoryBtn.classList.add('active');
     el.navVendorBtn.classList.remove('active');
@@ -188,18 +217,6 @@ function switchTab(tab) {
 
 // Vendor Dropdowns Populate
 function refreshVendorDropdowns(selectedVendorId = '') {
-  // Filter Dropdown
-  const currentFilterVal = el.filterVendorSelect.value;
-  el.filterVendorSelect.innerHTML = '<option value="">All Vendors</option>';
-  appData.vendors.forEach(v => {
-    const opt = document.createElement('option');
-    opt.value = v.id;
-    opt.textContent = v.name;
-    el.filterVendorSelect.appendChild(opt);
-  });
-  el.filterVendorSelect.value = currentFilterVal;
-
-  // Stock Modal Dropdown
   el.stockVendorSelect.innerHTML = '<option value="">Select Vendor</option>';
   appData.vendors.forEach(v => {
     const opt = document.createElement('option');
@@ -212,13 +229,13 @@ function refreshVendorDropdowns(selectedVendorId = '') {
   }
 }
 
-// Inventory Rendering
+// Inventory Rendering (Row shows: Stock Name, Vendor, Total Stock, Total Sell, Wholesale, Individual, Date, 3-Dots Action)
 function renderInventory() {
+  closeAllActionMenus();
   const query = (el.inventorySearchInput.value || '').trim().toLowerCase();
   const searchBy = el.inventorySearchBy ? el.inventorySearchBy.value : 'all';
-  const vendorFilter = el.filterVendorSelect.value;
-  const statusFilter = el.filterStockStatus.value;
   const sortOrder = el.filterDateOrder.value;
+  const userStockLimit = el.filterStockLevelInput.value.trim() !== '' ? Number(el.filterStockLevelInput.value) : null;
 
   let items = [...appData.inventory];
 
@@ -238,18 +255,9 @@ function renderInventory() {
     });
   }
 
-  // Vendor Filter
-  if (vendorFilter) {
-    items = items.filter(item => item.vendorId === vendorFilter);
-  }
-
-  // Stock Level Filter
-  if (statusFilter === 'in-stock') {
-    items = items.filter(item => Number(item.quantity) > 20);
-  } else if (statusFilter === 'low-stock') {
-    items = items.filter(item => Number(item.quantity) > 0 && Number(item.quantity) <= 20);
-  } else if (statusFilter === 'out-of-stock') {
-    items = items.filter(item => Number(item.quantity) <= 0);
+  // User-entered Stock Level Filter (Stock <= User Value)
+  if (userStockLimit !== null && !isNaN(userStockLimit)) {
+    items = items.filter(item => Number(item.quantity) <= userStockLimit);
   }
 
   // Sorting
@@ -258,41 +266,101 @@ function renderInventory() {
       return (b.date || '').localeCompare(a.date || '');
     } else if (sortOrder === 'oldest') {
       return (a.date || '').localeCompare(b.date || '');
-    } else if (sortOrder === 'qty-high') {
+    } else if (sortOrder === 'stock-high') {
       return Number(b.quantity) - Number(a.quantity);
-    } else if (sortOrder === 'qty-low') {
+    } else if (sortOrder === 'stock-low') {
       return Number(a.quantity) - Number(b.quantity);
+    } else if (sortOrder === 'sell-high') {
+      return Number(b.totalSell || 0) - Number(a.totalSell || 0);
     }
     return 0;
   });
 
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / inventoryPageSize));
+
+  if (inventoryPage > totalPages) {
+    inventoryPage = totalPages;
+  }
+  if (inventoryPage < 1) {
+    inventoryPage = 1;
+  }
+
+  const startIdx = (inventoryPage - 1) * inventoryPageSize;
+  const endIdx = Math.min(startIdx + inventoryPageSize, totalItems);
+  const pageItems = items.slice(startIdx, endIdx);
+
   el.inventoryTableBody.innerHTML = '';
 
-  if (items.length === 0) {
+  if (totalItems === 0) {
     el.inventoryEmptyState.classList.remove('hidden');
+    el.inventoryPaginationInfo.textContent = 'Showing 0-0 of 0 items';
   } else {
     el.inventoryEmptyState.classList.add('hidden');
-    items.forEach(item => {
+    el.inventoryPaginationInfo.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${totalItems} items`;
+
+    pageItems.forEach(item => {
       const tr = document.createElement('tr');
+      const wholesale = Number(item.wholesalePrice || 0).toFixed(2);
+      const individual = Number(item.individualPrice || 0).toFixed(2);
+
       tr.innerHTML = `
         <td class="col-stock-name stock-name-cell">${escapeHtml(item.stockName)}</td>
         <td class="col-vendor"><span class="vendor-tag">${escapeHtml(item.vendorName || 'N/A')}</span></td>
-        <td class="col-qty qty-val">${Number(item.quantity).toLocaleString()}</td>
+        <td class="col-stock-qty qty-val">${Number(item.quantity).toLocaleString()}</td>
+        <td class="col-sell-qty sell-val">${Number(item.totalSell || 0).toLocaleString()}</td>
+        <td class="col-price price-val">$${wholesale}</td>
+        <td class="col-price price-val">$${individual}</td>
         <td class="col-date date-val">${escapeHtml(item.date || '')}</td>
-        <td class="col-actions">
-          <div class="table-actions">
-            <button class="btn-table-action" onclick="openEditStock('${item.id}')">Edit</button>
-            <button class="btn-table-action delete" onclick="confirmDeleteStock('${item.id}')">Delete</button>
+        <td class="col-dots-actions">
+          <div class="action-dropdown-container">
+            <button type="button" class="btn-dots" onclick="toggleRowMenu(event, 'inv-menu-${item.id}')" title="More Options">
+              <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="5" r="1.5" fill="currentColor"></circle>
+                <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+                <circle cx="12" cy="19" r="1.5" fill="currentColor"></circle>
+              </svg>
+            </button>
+            <div id="inv-menu-${item.id}" class="action-menu hidden">
+              <button type="button" class="action-menu-item" onclick="openEditStock('${item.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Edit</span>
+              </button>
+              <button type="button" class="action-menu-item text-danger" onclick="confirmDeleteStock('${item.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
         </td>
       `;
       el.inventoryTableBody.appendChild(tr);
     });
   }
+
+  // Render Inventory Pagination Controls
+  renderPaginationControls(
+    inventoryPage,
+    totalPages,
+    el.btnInvPrevPage,
+    el.btnInvNextPage,
+    el.invPageNumbers,
+    (newPage) => {
+      inventoryPage = newPage;
+      renderInventory();
+    }
+  );
 }
 
-// Vendors Rendering (Only Name, Phone, Actions)
+// Vendors Rendering
 function renderVendors() {
+  closeAllActionMenus();
   const query = (el.vendorSearchInput.value || '').trim().toLowerCase();
   const searchBy = el.vendorSearchBy ? el.vendorSearchBy.value : 'all';
   let vendors = [...appData.vendors];
@@ -312,43 +380,123 @@ function renderVendors() {
     });
   }
 
+  const totalItems = vendors.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / vendorPageSize));
+
+  if (vendorPage > totalPages) {
+    vendorPage = totalPages;
+  }
+  if (vendorPage < 1) {
+    vendorPage = 1;
+  }
+
+  const startIdx = (vendorPage - 1) * vendorPageSize;
+  const endIdx = Math.min(startIdx + vendorPageSize, totalItems);
+  const pageItems = vendors.slice(startIdx, endIdx);
+
   el.vendorTableBody.innerHTML = '';
 
-  if (vendors.length === 0) {
+  if (totalItems === 0) {
     el.vendorEmptyState.classList.remove('hidden');
+    el.vendorPaginationInfo.textContent = 'Showing 0-0 of 0 items';
   } else {
     el.vendorEmptyState.classList.add('hidden');
-    vendors.forEach(v => {
+    el.vendorPaginationInfo.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${totalItems} items`;
+
+    pageItems.forEach(v => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="col-vendor-name stock-name-cell">${escapeHtml(v.name)}</td>
         <td class="col-phone">${escapeHtml(v.phone || '-')}</td>
-        <td class="col-vendor-actions">
-          <div class="table-actions">
-            <button class="btn-table-action" onclick="openEditVendor('${v.id}')">Edit</button>
-            <button class="btn-table-action delete" onclick="confirmDeleteVendor('${v.id}')">Delete</button>
+        <td class="col-dots-actions">
+          <div class="action-dropdown-container">
+            <button type="button" class="btn-dots" onclick="toggleRowMenu(event, 'vend-menu-${v.id}')" title="More Options">
+              <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="5" r="1.5" fill="currentColor"></circle>
+                <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+                <circle cx="12" cy="19" r="1.5" fill="currentColor"></circle>
+              </svg>
+            </button>
+            <div id="vend-menu-${v.id}" class="action-menu hidden">
+              <button type="button" class="action-menu-item" onclick="openEditVendor('${v.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Edit</span>
+              </button>
+              <button type="button" class="action-menu-item text-danger" onclick="confirmDeleteVendor('${v.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
         </td>
       `;
       el.vendorTableBody.appendChild(tr);
     });
   }
+
+  // Render Vendor Pagination Controls
+  renderPaginationControls(
+    vendorPage,
+    totalPages,
+    el.btnVendorPrevPage,
+    el.btnVendorNextPage,
+    el.vendorPageNumbers,
+    (newPage) => {
+      vendorPage = newPage;
+      renderVendors();
+    }
+  );
+}
+
+// Generic Pagination Controls Renderer
+function renderPaginationControls(currentPage, totalPages, prevBtn, nextBtn, container, onPageChange) {
+  prevBtn.disabled = currentPage <= 1;
+  nextBtn.disabled = currentPage >= totalPages;
+
+  prevBtn.onclick = () => {
+    if (currentPage > 1) onPageChange(currentPage - 1);
+  };
+
+  nextBtn.onclick = () => {
+    if (currentPage < totalPages) onPageChange(currentPage + 1);
+  };
+
+  container.innerHTML = '';
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `btn-page-num ${i === currentPage ? 'active' : ''}`;
+    btn.textContent = i;
+    btn.onclick = () => onPageChange(i);
+    container.appendChild(btn);
+  }
 }
 
 // Stock Modal Actions
 function openAddStock() {
+  closeAllActionMenus();
   el.modalStockTitle.textContent = 'Add Stock';
   el.stockId.value = '';
   el.stockNameInput.value = '';
   refreshVendorDropdowns();
   el.stockVendorSelect.value = '';
   el.stockQtyInput.value = '';
+  el.stockSellInput.value = '0';
+  el.stockWholesalePrice.value = '';
+  el.stockIndividualPrice.value = '';
   el.stockDateInput.value = getTodayString();
   el.modalStock.classList.remove('hidden');
   setTimeout(() => el.stockNameInput.focus(), 50);
 }
 
 window.openEditStock = function(id) {
+  closeAllActionMenus();
   const item = appData.inventory.find(i => i.id === id);
   if (!item) return;
 
@@ -357,6 +505,9 @@ window.openEditStock = function(id) {
   el.stockNameInput.value = item.stockName;
   refreshVendorDropdowns(item.vendorId);
   el.stockQtyInput.value = item.quantity;
+  el.stockSellInput.value = item.totalSell || 0;
+  el.stockWholesalePrice.value = item.wholesalePrice !== undefined ? item.wholesalePrice : '';
+  el.stockIndividualPrice.value = item.individualPrice !== undefined ? item.individualPrice : '';
   el.stockDateInput.value = item.date || getTodayString();
   el.modalStock.classList.remove('hidden');
   setTimeout(() => el.stockNameInput.focus(), 50);
@@ -368,6 +519,7 @@ function closeStockModal() {
 
 // Vendor Modal Actions (Only Name and Phone Number)
 function openAddVendor(fromStockModal = false) {
+  closeAllActionMenus();
   returnToStockModalAfterVendor = fromStockModal;
   el.modalVendorTitle.textContent = 'Add Vendor';
   el.vendorId.value = '';
@@ -383,6 +535,7 @@ function openAddVendor(fromStockModal = false) {
 }
 
 window.openEditVendor = function(id) {
+  closeAllActionMenus();
   returnToStockModalAfterVendor = false;
   const v = appData.vendors.find(item => item.id === id);
   if (!v) return;
@@ -405,6 +558,7 @@ function closeVendorModal() {
 
 // Delete Confirmations
 window.confirmDeleteStock = function(id) {
+  closeAllActionMenus();
   const item = appData.inventory.find(i => i.id === id);
   if (!item) return;
 
@@ -422,6 +576,7 @@ window.confirmDeleteStock = function(id) {
 };
 
 window.confirmDeleteVendor = function(id) {
+  closeAllActionMenus();
   const v = appData.vendors.find(item => item.id === id);
   if (!v) return;
 
@@ -457,6 +612,9 @@ el.stockForm.addEventListener('submit', async (e) => {
   const stockName = el.stockNameInput.value.trim();
   const vendorId = el.stockVendorSelect.value;
   const quantity = parseInt(el.stockQtyInput.value, 10) || 0;
+  const totalSell = parseInt(el.stockSellInput.value, 10) || 0;
+  const wholesalePrice = parseFloat(el.stockWholesalePrice.value) || 0;
+  const individualPrice = parseFloat(el.stockIndividualPrice.value) || 0;
   const date = el.stockDateInput.value;
 
   if (!stockName || !vendorId) {
@@ -468,7 +626,7 @@ el.stockForm.addEventListener('submit', async (e) => {
 
   if (id) {
     // Edit existing
-    const item = { id, stockName, vendorId, vendorName, quantity, date };
+    const item = { id, stockName, vendorId, vendorName, quantity, totalSell, wholesalePrice, individualPrice, date };
     if (api.updateStock) {
       await api.updateStock(item);
     }
@@ -481,6 +639,9 @@ el.stockForm.addEventListener('submit', async (e) => {
       vendorId,
       vendorName,
       quantity,
+      totalSell,
+      wholesalePrice,
+      individualPrice,
       date,
       createdAt: getTodayString()
     };
@@ -557,13 +718,16 @@ el.btnExportInventory.addEventListener('click', async () => {
     return;
   }
 
-  let csv = 'Stock Name,Vendor,Quantity,Date\r\n';
+  let csv = 'Stock Name,Vendor,Total Stock,Total Sell,Wholesale Price,Individual Price,Date\r\n';
   appData.inventory.forEach(item => {
     const name = `"${(item.stockName || '').replace(/"/g, '""')}"`;
     const vendor = `"${(item.vendorName || '').replace(/"/g, '""')}"`;
     const qty = item.quantity;
+    const sell = item.totalSell || 0;
+    const whole = Number(item.wholesalePrice || 0).toFixed(2);
+    const indiv = Number(item.individualPrice || 0).toFixed(2);
     const date = item.date || '';
-    csv += `${name},${vendor},${qty},${date}\r\n`;
+    csv += `${name},${vendor},${qty},${sell},${whole},${indiv},${date}\r\n`;
   });
 
   const res = await api.exportCSV({
@@ -599,14 +763,29 @@ el.inventorySearchInput.addEventListener('input', (e) => {
   } else {
     el.btnClearInventorySearch.classList.add('hidden');
   }
+  inventoryPage = 1;
   renderInventory();
 });
 
-el.inventorySearchBy.addEventListener('change', renderInventory);
+el.inventorySearchBy.addEventListener('change', () => {
+  inventoryPage = 1;
+  renderInventory();
+});
 
 el.btnClearInventorySearch.addEventListener('click', () => {
   el.inventorySearchInput.value = '';
   el.btnClearInventorySearch.classList.add('hidden');
+  inventoryPage = 1;
+  renderInventory();
+});
+
+el.filterStockLevelInput.addEventListener('input', () => {
+  inventoryPage = 1;
+  renderInventory();
+});
+
+el.filterDateOrder.addEventListener('change', () => {
+  inventoryPage = 1;
   renderInventory();
 });
 
@@ -616,28 +795,29 @@ el.vendorSearchInput.addEventListener('input', (e) => {
   } else {
     el.btnClearVendorSearch.classList.add('hidden');
   }
+  vendorPage = 1;
   renderVendors();
 });
 
-el.vendorSearchBy.addEventListener('change', renderVendors);
+el.vendorSearchBy.addEventListener('change', () => {
+  vendorPage = 1;
+  renderVendors();
+});
 
 el.btnClearVendorSearch.addEventListener('click', () => {
   el.vendorSearchInput.value = '';
   el.btnClearVendorSearch.classList.add('hidden');
+  vendorPage = 1;
   renderVendors();
 });
-
-el.filterVendorSelect.addEventListener('change', renderInventory);
-el.filterStockStatus.addEventListener('change', renderInventory);
-el.filterDateOrder.addEventListener('change', renderInventory);
 
 el.btnResetInventoryFilters.addEventListener('click', () => {
   el.inventorySearchInput.value = '';
   el.btnClearInventorySearch.classList.add('hidden');
   el.inventorySearchBy.value = 'all';
-  el.filterVendorSelect.value = '';
-  el.filterStockStatus.value = '';
+  el.filterStockLevelInput.value = '';
   el.filterDateOrder.value = 'newest';
+  inventoryPage = 1;
   renderInventory();
 });
 

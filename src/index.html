@@ -44,7 +44,7 @@
 
       <div class="sidebar-footer">
         <span class="status-indicator"></span>
-        <span class="status-label">Active Database</span>
+        <span class="status-label">SQLite Database Active</span>
       </div>
     </aside>
 
@@ -75,8 +75,8 @@
           </div>
         </header>
 
-        <!-- Search and Filters Bar -->
-        <div class="toolbar">
+        <!-- Search and Filters Bar (Left Aligned Together) -->
+        <div class="toolbar toolbar-left-aligned">
           <div class="search-box-group">
             <div class="search-by-wrapper">
               <label for="inventorySearchBy" class="search-by-label">Search by</label>
@@ -96,36 +96,24 @@
             </div>
           </div>
 
-          <div class="filters-group">
-            <div class="filter-item">
-              <label for="filterVendorSelect">Vendor</label>
-              <select id="filterVendorSelect">
-                <option value="">All Vendors</option>
-              </select>
-            </div>
-
-            <div class="filter-item">
-              <label for="filterStockStatus">Stock Level</label>
-              <select id="filterStockStatus">
-                <option value="">All Levels</option>
-                <option value="in-stock">In Stock (&gt; 20)</option>
-                <option value="low-stock">Low Stock (1 - 20)</option>
-                <option value="out-of-stock">Out of Stock (0)</option>
-              </select>
-            </div>
-
-            <div class="filter-item">
-              <label for="filterDateOrder">Sort By Date</label>
-              <select id="filterDateOrder">
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="qty-high">Quantity: High to Low</option>
-                <option value="qty-low">Quantity: Low to High</option>
-              </select>
-            </div>
-
-            <button id="btnResetInventoryFilters" class="btn btn-text">Reset</button>
+          <!-- User-Entered Stock Level Filter -->
+          <div class="filter-item user-stock-filter">
+            <label for="filterStockLevelInput">Stock &le;</label>
+            <input type="number" id="filterStockLevelInput" placeholder="Enter qty" min="0" class="filter-num-input">
           </div>
+
+          <div class="filter-item">
+            <label for="filterDateOrder">Sort</label>
+            <select id="filterDateOrder" class="filter-select">
+              <option value="newest">Newest Date</option>
+              <option value="oldest">Oldest Date</option>
+              <option value="stock-high">Stock: High to Low</option>
+              <option value="stock-low">Stock: Low to High</option>
+              <option value="sell-high">Total Sell: High to Low</option>
+            </select>
+          </div>
+
+          <button id="btnResetInventoryFilters" class="btn btn-text">Reset</button>
         </div>
 
         <!-- Inventory Table -->
@@ -135,9 +123,12 @@
               <tr>
                 <th class="col-stock-name">Stock Name</th>
                 <th class="col-vendor">Vendor</th>
-                <th class="col-qty">Quantity</th>
+                <th class="col-stock-qty">Total Stock</th>
+                <th class="col-sell-qty">Total Sell</th>
+                <th class="col-price">Wholesale (pc)</th>
+                <th class="col-price">Individual (pc)</th>
                 <th class="col-date">Date</th>
-                <th class="col-actions">Actions</th>
+                <th class="col-dots-actions">Actions</th>
               </tr>
             </thead>
             <tbody id="inventoryTableBody">
@@ -146,6 +137,16 @@
           </table>
           <div id="inventoryEmptyState" class="empty-state hidden">
             <span>No stock records found</span>
+          </div>
+        </div>
+
+        <!-- Pagination Controls Bottom Right -->
+        <div class="table-footer">
+          <div id="inventoryPaginationInfo" class="pagination-info">Showing 0-0 of 0 items</div>
+          <div class="pagination-controls">
+            <button id="btnInvPrevPage" class="btn-page" disabled>&larr; Prev</button>
+            <div id="invPageNumbers" class="page-numbers"></div>
+            <button id="btnInvNextPage" class="btn-page">Next &rarr;</button>
           </div>
         </div>
       </section>
@@ -168,7 +169,7 @@
         </header>
 
         <!-- Vendor Toolbar -->
-        <div class="toolbar">
+        <div class="toolbar toolbar-left-aligned">
           <div class="search-box-group">
             <div class="search-by-wrapper">
               <label for="vendorSearchBy" class="search-by-label">Search by</label>
@@ -196,7 +197,7 @@
               <tr>
                 <th class="col-vendor-name">Vendor Name</th>
                 <th class="col-phone">Phone Number</th>
-                <th class="col-vendor-actions">Actions</th>
+                <th class="col-dots-actions">Actions</th>
               </tr>
             </thead>
             <tbody id="vendorTableBody">
@@ -207,13 +208,23 @@
             <span>No vendor records found</span>
           </div>
         </div>
+
+        <!-- Vendor Pagination Controls Bottom Right -->
+        <div class="table-footer">
+          <div id="vendorPaginationInfo" class="pagination-info">Showing 0-0 of 0 items</div>
+          <div class="pagination-controls">
+            <button id="btnVendorPrevPage" class="btn-page" disabled>&larr; Prev</button>
+            <div id="vendorPageNumbers" class="page-numbers"></div>
+            <button id="btnVendorNextPage" class="btn-page">Next &rarr;</button>
+          </div>
+        </div>
       </section>
     </main>
   </div>
 
-  <!-- MODAL: ADD / EDIT STOCK -->
+  <!-- MODAL: ADD / EDIT STOCK (ENLARGED & BALANCED EQUAL ALIGNMENT) -->
   <div id="modalStock" class="modal-overlay hidden">
-    <div class="modal-card">
+    <div class="modal-card modal-lg">
       <div class="modal-header">
         <h2 id="modalStockTitle" class="modal-title">Add Stock</h2>
         <button id="btnCloseStockModal" class="btn-close">&times;</button>
@@ -221,27 +232,43 @@
       <form id="stockForm" class="modal-form">
         <input type="hidden" id="stockId">
 
-        <div class="form-group">
-          <label for="stockNameInput">Stock Name <span class="req">*</span></label>
-          <input type="text" id="stockNameInput" placeholder="Enter stock item name" required>
-        </div>
-
-        <div class="form-group">
-          <div class="label-with-action">
-            <label for="stockVendorSelect">Vendor <span class="req">*</span></label>
-            <button type="button" id="btnQuickAddVendor" class="link-btn">+ New Vendor</button>
+        <div class="form-grid-equal">
+          <div class="form-group span-2">
+            <label for="stockNameInput">Stock Name <span class="req">*</span></label>
+            <input type="text" id="stockNameInput" placeholder="Enter stock item name" required>
           </div>
-          <select id="stockVendorSelect" required>
-            <option value="">Select Vendor</option>
-          </select>
-        </div>
 
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label for="stockQtyInput">Quantity <span class="req">*</span></label>
+          <div class="form-group span-2">
+            <div class="label-with-action">
+              <label for="stockVendorSelect">Vendor <span class="req">*</span></label>
+              <button type="button" id="btnQuickAddVendor" class="link-btn">+ New Vendor</button>
+            </div>
+            <select id="stockVendorSelect" required>
+              <option value="">Select Vendor</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="stockQtyInput">Total Stock (Units) <span class="req">*</span></label>
             <input type="number" id="stockQtyInput" min="0" step="1" placeholder="0" required>
           </div>
-          <div class="form-group flex-1">
+
+          <div class="form-group">
+            <label for="stockSellInput">Total Sell (Units)</label>
+            <input type="number" id="stockSellInput" min="0" step="1" placeholder="0" value="0">
+          </div>
+
+          <div class="form-group">
+            <label for="stockWholesalePrice">Wholesale Price (Per Piece) <span class="req">*</span></label>
+            <input type="number" id="stockWholesalePrice" min="0" step="0.01" placeholder="0.00" required>
+          </div>
+
+          <div class="form-group">
+            <label for="stockIndividualPrice">Individual Price (Per Piece) <span class="req">*</span></label>
+            <input type="number" id="stockIndividualPrice" min="0" step="0.01" placeholder="0.00" required>
+          </div>
+
+          <div class="form-group span-2">
             <label for="stockDateInput">Date <span class="req">*</span></label>
             <input type="date" id="stockDateInput" required>
           </div>

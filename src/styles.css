@@ -200,23 +200,25 @@ body {
   gap: 10px;
 }
 
-/* Toolbar */
+/* Toolbar (Left-aligned filters alongside searchbar) */
 .toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+}
+
+.toolbar.toolbar-left-aligned {
+  justify-content: flex-start;
 }
 
 .search-box-group {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  min-width: 320px;
-  max-width: 480px;
+  min-width: 290px;
+  max-width: 440px;
 }
 
 .search-by-wrapper {
@@ -262,7 +264,7 @@ body {
   display: flex;
   align-items: center;
   flex: 1;
-  min-width: 180px;
+  min-width: 160px;
 }
 
 .search-icon {
@@ -283,7 +285,7 @@ body {
   background-color: var(--bg-app);
   color: var(--text-primary);
   font-family: var(--font-family);
-  font-size: 13.5px;
+  font-size: 13px;
   outline: none;
   transition: border-color var(--transition-speed);
 }
@@ -307,11 +309,29 @@ body {
   color: var(--text-primary);
 }
 
-.filters-group {
+/* User-entered Stock Level Filter */
+.user-stock-filter {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-num-input {
+  width: 84px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  outline: none;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  transition: border-color var(--transition-speed);
+}
+
+.filter-num-input:focus {
+  border-color: var(--border-focus);
 }
 
 .filter-item {
@@ -324,27 +344,28 @@ body {
   font-size: 12px;
   color: var(--text-secondary);
   font-weight: 500;
+  white-space: nowrap;
 }
 
-.filter-item select {
+.filter-select {
   height: 36px;
-  padding: 0 28px 0 10px;
+  padding: 0 26px 0 10px;
   border: 1px solid var(--border-light);
   border-radius: 6px;
   background-color: var(--bg-app);
   color: var(--text-primary);
   font-family: var(--font-family);
-  font-size: 13px;
+  font-size: 12.5px;
   outline: none;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 8px auto;
+  background-position: right 8px center;
+  background-size: 7px auto;
 }
 
-.filter-item select:focus {
+.filter-select:focus {
   border-color: var(--border-focus);
 }
 
@@ -410,30 +431,6 @@ body {
   height: 15px;
 }
 
-.btn-table-action {
-  background: none;
-  border: 1px solid var(--border-light);
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-family: var(--font-family);
-  transition: all var(--transition-speed);
-}
-
-.btn-table-action:hover {
-  background-color: var(--bg-surface-active);
-  color: var(--text-primary);
-  border-color: #cbd5e1;
-}
-
-.btn-table-action.delete:hover {
-  border-color: #fca5a5;
-  color: var(--danger-bg);
-  background-color: #fef2f2;
-}
-
 .link-btn {
   background: none;
   border: none;
@@ -448,6 +445,96 @@ body {
   text-decoration: underline;
 }
 
+/* 3-Dots Action Dropdown */
+.action-dropdown-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-dots {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-speed);
+}
+
+.btn-dots:hover, .btn-dots.active {
+  background-color: var(--bg-surface-active);
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+.dots-icon {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.action-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 125px;
+  background-color: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+  padding: 4px;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-menu.hidden {
+  display: none !important;
+}
+
+.action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--transition-speed);
+}
+
+.action-menu-item:hover {
+  background-color: #f3f4f6;
+}
+
+.action-menu-item.text-danger {
+  color: var(--danger-bg);
+}
+
+.action-menu-item.text-danger:hover {
+  background-color: #fef2f2;
+}
+
+.menu-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 /* Tables */
 .table-container {
   flex: 1;
@@ -458,7 +545,6 @@ body {
   position: relative;
 }
 
-/* Custom scrollbar for clean table horizontal scrolling */
 .table-container::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -479,7 +565,7 @@ body {
 
 .data-table {
   width: 100%;
-  min-width: 740px;
+  min-width: 880px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -493,20 +579,21 @@ body {
 }
 
 .data-table th {
-  padding: 10px 16px;
-  font-size: 12px;
+  padding: 10px 14px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
 }
 
 .data-table td {
-  padding: 12px 16px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
-  font-size: 13.5px;
+  font-size: 13px;
   vertical-align: middle;
 }
 
@@ -518,41 +605,52 @@ body {
   background-color: var(--bg-surface-hover);
 }
 
-/* Responsive Column Sizing:
-   Large space for descriptive names, compact space for quantities, dates, phones, actions */
+/* Table Column Widths */
 .col-stock-name {
-  width: 44%;
-  min-width: 240px;
+  width: 28%;
+  min-width: 190px;
   word-break: break-word;
 }
 
 .col-vendor {
-  width: 24%;
-  min-width: 160px;
+  width: 18%;
+  min-width: 140px;
   word-break: break-word;
 }
 
-.col-qty {
-  width: 100px;
+.col-stock-qty {
+  width: 95px;
   min-width: 85px;
-  max-width: 110px;
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.col-sell-qty {
+  width: 90px;
+  min-width: 80px;
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.col-price {
+  width: 115px;
+  min-width: 100px;
   text-align: right !important;
   white-space: nowrap;
 }
 
 .col-date {
-  width: 115px;
-  min-width: 110px;
-  max-width: 130px;
+  width: 105px;
+  min-width: 95px;
   white-space: nowrap;
 }
 
-.col-actions {
-  width: 125px;
-  min-width: 120px;
-  max-width: 135px;
+.col-dots-actions {
+  width: 60px;
+  min-width: 55px;
   text-align: center !important;
   white-space: nowrap;
+  position: relative;
 }
 
 .col-vendor-name {
@@ -567,14 +665,6 @@ body {
   white-space: nowrap;
 }
 
-.col-vendor-actions {
-  width: 125px;
-  min-width: 120px;
-  max-width: 135px;
-  text-align: center !important;
-  white-space: nowrap;
-}
-
 .stock-name-cell {
   font-weight: 600;
   color: var(--text-primary);
@@ -586,7 +676,7 @@ body {
   font-size: 13px;
 }
 
-.qty-val {
+.qty-val, .sell-val, .price-val {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
@@ -596,11 +686,83 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.table-actions {
+/* Pagination Footer (Bottom Right) */
+.table-footer {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  padding-top: 12px;
+  flex-shrink: 0;
+}
+
+.pagination-info {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-page {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 5px;
+  background-color: #ffffff;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-speed);
+}
+
+.btn-page:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #cbd5e1;
+}
+
+.btn-page:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-page-num {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  gap: 6px;
+  border: 1px solid var(--border-light);
+  border-radius: 5px;
+  background-color: #ffffff;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-speed);
+}
+
+.btn-page-num:hover {
+  background-color: #f3f4f6;
+}
+
+.btn-page-num.active {
+  background-color: #111827;
+  color: #ffffff;
+  border-color: #111827;
 }
 
 /* Empty State */
@@ -645,6 +807,12 @@ body {
   width: 380px;
 }
 
+/* Enlarged Stock Modal with Balanced Grid Equal Alignment */
+.modal-card.modal-lg {
+  width: 660px;
+  max-width: 94vw;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -676,20 +844,20 @@ body {
   padding: 20px;
 }
 
+.form-grid-equal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-grid-equal .span-2 {
+  grid-column: span 2;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 16px;
-}
-
-.form-row {
-  display: flex;
-  gap: 14px;
-}
-
-.flex-1 {
-  flex: 1;
 }
 
 .label-with-action {
@@ -710,8 +878,8 @@ body {
 
 .form-group input,
 .form-group select {
-  height: 36px;
-  padding: 0 10px;
+  height: 38px;
+  padding: 0 11px;
   border: 1px solid var(--border-light);
   border-radius: 6px;
   font-family: var(--font-family);
@@ -732,7 +900,7 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  padding-top: 8px;
+  padding-top: 18px;
 }
 
 .confirm-text {

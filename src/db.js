@@ -27,11 +27,19 @@ function initDatabase(dbPath) {
       stockName TEXT NOT NULL,
       vendorId TEXT,
       vendorName TEXT NOT NULL,
-      quantity INTEGER NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 0,
+      totalSell INTEGER NOT NULL DEFAULT 0,
+      wholesalePrice REAL NOT NULL DEFAULT 0,
+      individualPrice REAL NOT NULL DEFAULT 0,
       date TEXT NOT NULL,
       createdAt TEXT NOT NULL
     );
   `);
+
+  // Ensure new columns exist for existing databases
+  try { db.exec('ALTER TABLE inventory ADD COLUMN totalSell INTEGER DEFAULT 0;'); } catch (e) {}
+  try { db.exec('ALTER TABLE inventory ADD COLUMN wholesalePrice REAL DEFAULT 0;'); } catch (e) {}
+  try { db.exec('ALTER TABLE inventory ADD COLUMN individualPrice REAL DEFAULT 0;'); } catch (e) {}
 
   // Seed default data if empty
   const vendorCountStmt = db.prepare('SELECT COUNT(*) as count FROM vendors');
@@ -48,14 +56,14 @@ function initDatabase(dbPath) {
     insertVendor.run('v-3', 'Metro Logistics & Hardware', '+1 (555) 018-7743', '2025-02-01');
 
     const insertStock = db.prepare(`
-      INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, date, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, totalSell, wholesalePrice, individualPrice, date, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    insertStock.run('inv-1', 'Precision Ball Bearings 608RS', 'v-1', 'Apex Industrial Supplies', 250, '2025-02-10', '2025-02-10');
-    insertStock.run('inv-2', 'Solid State Relay 25A', 'v-2', 'Global Tech Components', 80, '2025-02-12', '2025-02-12');
-    insertStock.run('inv-3', 'Heavy Duty Steel Brackets', 'v-3', 'Metro Logistics & Hardware', 120, '2025-02-14', '2025-02-14');
-    insertStock.run('inv-4', 'Microcontroller Units ESP32', 'v-2', 'Global Tech Components', 45, '2025-02-18', '2025-02-18');
+    insertStock.run('inv-1', 'Precision Ball Bearings 608RS', 'v-1', 'Apex Industrial Supplies', 250, 42, 4.50, 7.00, '2025-02-10', '2025-02-10');
+    insertStock.run('inv-2', 'Solid State Relay 25A', 'v-2', 'Global Tech Components', 80, 16, 18.00, 25.50, '2025-02-12', '2025-02-12');
+    insertStock.run('inv-3', 'Heavy Duty Steel Brackets', 'v-3', 'Metro Logistics & Hardware', 120, 35, 8.20, 12.00, '2025-02-14', '2025-02-14');
+    insertStock.run('inv-4', 'Microcontroller Units ESP32', 'v-2', 'Global Tech Components', 45, 22, 3.80, 6.00, '2025-02-18', '2025-02-18');
   }
 
   dbInstance = db;
@@ -65,7 +73,7 @@ function initDatabase(dbPath) {
 function getAllData() {
   if (!dbInstance) throw new Error('Database not initialized');
   const vendorsStmt = dbInstance.prepare('SELECT id, name, phone, createdAt FROM vendors ORDER BY createdAt DESC, name ASC');
-  const inventoryStmt = dbInstance.prepare('SELECT id, stockName, vendorId, vendorName, quantity, date, createdAt FROM inventory ORDER BY date DESC, createdAt DESC');
+  const inventoryStmt = dbInstance.prepare('SELECT id, stockName, vendorId, vendorName, quantity, totalSell, wholesalePrice, individualPrice, date, createdAt FROM inventory ORDER BY date DESC, createdAt DESC');
 
   return {
     vendors: vendorsStmt.all(),
@@ -76,8 +84,8 @@ function getAllData() {
 function addStock(item) {
   if (!dbInstance) throw new Error('Database not initialized');
   const stmt = dbInstance.prepare(`
-    INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, date, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, totalSell, wholesalePrice, individualPrice, date, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   stmt.run(
     item.id,
@@ -85,6 +93,9 @@ function addStock(item) {
     item.vendorId || '',
     item.vendorName || '',
     Number(item.quantity) || 0,
+    Number(item.totalSell) || 0,
+    Number(item.wholesalePrice) || 0,
+    Number(item.individualPrice) || 0,
     item.date,
     item.createdAt || new Date().toISOString()
   );
@@ -95,7 +106,7 @@ function updateStock(item) {
   if (!dbInstance) throw new Error('Database not initialized');
   const stmt = dbInstance.prepare(`
     UPDATE inventory
-    SET stockName = ?, vendorId = ?, vendorName = ?, quantity = ?, date = ?
+    SET stockName = ?, vendorId = ?, vendorName = ?, quantity = ?, totalSell = ?, wholesalePrice = ?, individualPrice = ?, date = ?
     WHERE id = ?
   `);
   stmt.run(
@@ -103,6 +114,9 @@ function updateStock(item) {
     item.vendorId || '',
     item.vendorName || '',
     Number(item.quantity) || 0,
+    Number(item.totalSell) || 0,
+    Number(item.wholesalePrice) || 0,
+    Number(item.individualPrice) || 0,
     item.date,
     item.id
   );
@@ -183,8 +197,8 @@ function syncAllData(data) {
     });
 
     const insertStock = dbInstance.prepare(`
-      INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, date, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, totalSell, wholesalePrice, individualPrice, date, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     (data.inventory || []).forEach(item => {
       insertStock.run(
@@ -193,6 +207,9 @@ function syncAllData(data) {
         item.vendorId || '',
         item.vendorName || '',
         Number(item.quantity) || 0,
+        Number(item.totalSell) || 0,
+        Number(item.wholesalePrice) || 0,
+        Number(item.individualPrice) || 0,
         item.date,
         item.createdAt || new Date().toISOString()
       );
