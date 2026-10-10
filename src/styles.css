@@ -279,25 +279,6 @@ body {
   position: relative;
 }
 
-.main-content::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 700px;
-  height: 700px;
-  max-width: 80vw;
-  max-height: 80vh;
-  background-image: url('circle-logo.png');
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  opacity: 0.018; /* Super subtle low opacity watermark */
-  pointer-events: none;
-  z-index: 0;
-}
-
 .view-section {
   display: none;
   flex-direction: column;
@@ -676,26 +657,6 @@ body {
   border-radius: 6px;
   overflow: auto;
   position: relative;
-}
-
-/* Background Circular Logo with Low Opacity on Table Body */
-.table-container::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 620px;
-  height: 620px;
-  max-width: 75vw;
-  max-height: 75vh;
-  background-image: url('circle-logo.png');
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  opacity: 0.022; /* Kafi bara, very soft & low opacity */
-  pointer-events: none;
-  z-index: 0;
 }
 
 .table-container::-webkit-scrollbar {
