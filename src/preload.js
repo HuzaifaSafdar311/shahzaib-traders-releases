@@ -9,5 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addVendor: (vendor) => ipcRenderer.invoke('add-vendor', vendor),
   updateVendor: (vendor) => ipcRenderer.invoke('update-vendor', vendor),
   deleteVendor: (id) => ipcRenderer.invoke('delete-vendor', id),
-  exportCSV: (options) => ipcRenderer.invoke('export-csv', options)
+  exportPDF: (data) => ipcRenderer.invoke('export-pdf', data),
+  exportExcel: (data) => ipcRenderer.invoke('export-excel', data),
+  exportCSV: (data) => ipcRenderer.invoke('export-csv', data)
 });

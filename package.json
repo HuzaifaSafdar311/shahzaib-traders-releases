@@ -21,5 +21,8 @@
   "license": "ISC",
   "devDependencies": {
     "electron": "^44.7.0"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
   }
 }

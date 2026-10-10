@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const db = require('./db');
+const exporter = require('./exporter');
 
 let mainWindow;
 
@@ -77,18 +78,16 @@ app.whenReady().then(() => {
     return db.deleteVendor(id);
   });
 
-  ipcMain.handle('export-csv', async (event, { content, filename }) => {
-    const { filePath } = await dialog.showSaveDialog(mainWindow, {
-      title: 'Export CSV',
-      defaultPath: filename || 'inventory_export.csv',
-      filters: [{ name: 'CSV Files', extensions: ['csv'] }]
-    });
+  ipcMain.handle('export-pdf', async (event, data) => {
+    return exporter.exportPDF(data, mainWindow);
+  });
 
-    if (filePath) {
-      fs.writeFileSync(filePath, content, 'utf-8');
-      return { success: true, filePath };
-    }
-    return { success: false, cancelled: true };
+  ipcMain.handle('export-excel', async (event, data) => {
+    return exporter.exportExcel(data, mainWindow);
+  });
+
+  ipcMain.handle('export-csv', async (event, data) => {
+    return exporter.exportCSV(data, mainWindow);
   });
 
   app.on('activate', () => {

@@ -36,16 +36,9 @@ const api = window.electronAPI || {
   addVendor: async (vendor) => ({ success: true }),
   updateVendor: async (vendor) => ({ success: true }),
   deleteVendor: async (id) => ({ success: true }),
-  exportCSV: async ({ content, filename }) => {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    return { success: true };
-  }
+  exportPDF: async (data) => ({ success: true }),
+  exportExcel: async (data) => ({ success: true }),
+  exportCSV: async (data) => ({ success: true })
 };
 
 // DOM Elements
@@ -66,7 +59,15 @@ const el = {
   filterStockLevelInput: document.getElementById('filterStockLevelInput'),
   btnResetInventoryFilters: document.getElementById('btnResetInventoryFilters'),
   btnOpenAddStock: document.getElementById('btnOpenAddStock'),
-  btnExportInventory: document.getElementById('btnExportInventory'),
+
+  // Radial Export Widget Elements
+  radialExportWidget: document.getElementById('radialExportWidget'),
+  btnExportToggle: document.getElementById('btnExportToggle'),
+  radialNodesPanel: document.getElementById('radialNodesPanel'),
+  radialBackdrop: document.getElementById('radialBackdrop'),
+  btnExportPDF: document.getElementById('btnExportPDF'),
+  btnExportExcel: document.getElementById('btnExportExcel'),
+  btnExportCSV: document.getElementById('btnExportCSV'),
 
   // Inventory Pagination
   inventoryPaginationInfo: document.getElementById('inventoryPaginationInfo'),
@@ -732,34 +733,157 @@ el.btnExecuteConfirm.addEventListener('click', async () => {
   closeConfirmModal();
 });
 
-// Export CSV
-el.btnExportInventory.addEventListener('click', async () => {
-  if (appData.inventory.length === 0) {
-    showToast('No inventory data to export');
-    return;
+// Circular Radial Export Speed-Dial Controls
+function openRadialExportMenu() {
+  if (!el.radialNodesPanel) return;
+  el.radialNodesPanel.classList.remove('hidden');
+  el.btnExportToggle.classList.add('active');
+  el.btnExportToggle.setAttribute('aria-expanded', 'true');
+}
+
+function closeRadialExportMenu() {
+  if (!el.radialNodesPanel) return;
+  el.radialNodesPanel.classList.add('hidden');
+  el.btnExportToggle.classList.remove('active');
+  el.btnExportToggle.setAttribute('aria-expanded', 'false');
+}
+
+function toggleRadialExportMenu(e) {
+  if (e) e.stopPropagation();
+  if (!el.radialNodesPanel) return;
+  if (el.radialNodesPanel.classList.contains('hidden')) {
+    openRadialExportMenu();
+  } else {
+    closeRadialExportMenu();
   }
+}
 
-  let csv = 'Stock Name,Vendor,Total Stock,Total Sell,Wholesale Price (PKR),Individual Price (PKR),Date\r\n';
-  appData.inventory.forEach(item => {
-    const name = `"${(item.stockName || '').replace(/"/g, '""')}"`;
-    const vendor = `"${(item.vendorName || '').replace(/"/g, '""')}"`;
-    const qty = item.quantity;
-    const sell = item.totalSell || 0;
-    const whole = Number(item.wholesalePrice || 0).toFixed(2);
-    const indiv = Number(item.individualPrice || 0).toFixed(2);
-    const date = item.date || '';
-    csv += `${name},${vendor},${qty},${sell},${whole},${indiv},${date}\r\n`;
+if (el.btnExportToggle) {
+  el.btnExportToggle.addEventListener('click', toggleRadialExportMenu);
+}
+
+if (el.radialBackdrop) {
+  el.radialBackdrop.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeRadialExportMenu();
   });
+}
 
-  const res = await api.exportCSV({
-    content: csv,
-    filename: `inventory_${getTodayString()}.csv`
-  });
-
-  if (res && res.success) {
-    showToast('CSV export successful');
+// Close radial menu when clicking outside
+document.addEventListener('click', (e) => {
+  if (el.radialExportWidget && !el.radialExportWidget.contains(e.target)) {
+    closeRadialExportMenu();
   }
 });
+
+// Close radial menu on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeRadialExportMenu();
+  }
+});
+
+function getPreparedExportData() {
+  const items = [...appData.inventory];
+  let totalQty = 0;
+  let totalSell = 0;
+  let totalWholesale = 0;
+  let totalIndividual = 0;
+
+  items.forEach(item => {
+    const q = Number(item.quantity) || 0;
+    const s = Number(item.totalSell) || 0;
+    const wp = Number(item.wholesalePrice) || 0;
+    const ip = Number(item.individualPrice) || 0;
+    totalQty += q;
+    totalSell += s;
+    totalWholesale += q * wp;
+    totalIndividual += q * ip;
+  });
+
+  const now = new Date();
+  return {
+    items,
+    summary: {
+      totalItems: items.length,
+      totalQuantity: totalQty,
+      totalSell,
+      totalWholesale,
+      totalIndividual,
+      dateGenerated: now.toLocaleDateString('en-PK', { year: 'numeric', month: 'long', day: 'numeric' }),
+      timeGenerated: now.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })
+    }
+  };
+}
+
+// 1. PDF Export Node Handler
+if (el.btnExportPDF) {
+  el.btnExportPDF.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    closeRadialExportMenu();
+    if (appData.inventory.length === 0) {
+      showToast('No inventory data to export');
+      return;
+    }
+    showToast('Preparing PDF report...');
+    try {
+      const payload = getPreparedExportData();
+      const res = await api.exportPDF(payload);
+      if (res && res.success) {
+        showToast('PDF exported successfully');
+      }
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      showToast('Error exporting PDF');
+    }
+  });
+}
+
+// 2. Excel (.xlsx) Export Node Handler
+if (el.btnExportExcel) {
+  el.btnExportExcel.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    closeRadialExportMenu();
+    if (appData.inventory.length === 0) {
+      showToast('No inventory data to export');
+      return;
+    }
+    showToast('Preparing Excel workbook...');
+    try {
+      const payload = getPreparedExportData();
+      const res = await api.exportExcel(payload);
+      if (res && res.success) {
+        showToast('Excel exported successfully');
+      }
+    } catch (err) {
+      console.error('Excel export failed:', err);
+      showToast('Error exporting Excel');
+    }
+  });
+}
+
+// 3. CSV Export Node Handler
+if (el.btnExportCSV) {
+  el.btnExportCSV.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    closeRadialExportMenu();
+    if (appData.inventory.length === 0) {
+      showToast('No inventory data to export');
+      return;
+    }
+    showToast('Preparing CSV file...');
+    try {
+      const payload = getPreparedExportData();
+      const res = await api.exportCSV(payload);
+      if (res && res.success) {
+        showToast('CSV exported successfully');
+      }
+    } catch (err) {
+      console.error('CSV export failed:', err);
+      showToast('Error exporting CSV');
+    }
+  });
+}
 
 // Event Listeners
 el.navInventoryBtn.addEventListener('click', () => switchTab('inventory'));
