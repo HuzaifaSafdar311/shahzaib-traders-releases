@@ -167,19 +167,22 @@ function updateVendor(vendor) {
 
 function deleteVendor(id) {
   if (!dbInstance) throw new Error('Database not initialized');
-  // Delete the vendor
-  const stmt = dbInstance.prepare('DELETE FROM vendors WHERE id = ?');
-  stmt.run(id);
+  dbInstance.exec('BEGIN TRANSACTION');
+  try {
+    // Cascade delete: Delete all stock items belonging to this vendor
+    const deleteStock = dbInstance.prepare('DELETE FROM inventory WHERE vendorId = ?');
+    deleteStock.run(id);
 
-  // Unset vendorId for linked items
-  const updateInv = dbInstance.prepare(`
-    UPDATE inventory
-    SET vendorId = ''
-    WHERE vendorId = ?
-  `);
-  updateInv.run(id);
+    // Delete the vendor record
+    const deleteVen = dbInstance.prepare('DELETE FROM vendors WHERE id = ?');
+    deleteVen.run(id);
 
-  return { success: true };
+    dbInstance.exec('COMMIT');
+    return { success: true };
+  } catch (err) {
+    dbInstance.exec('ROLLBACK');
+    throw err;
+  }
 }
 
 function syncAllData(data) {

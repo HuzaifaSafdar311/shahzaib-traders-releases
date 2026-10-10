@@ -604,7 +604,7 @@ window.confirmDeleteVendor = function(id) {
   const linkedItems = appData.inventory.filter(i => i.vendorId === id);
   let message = `Are you sure you want to delete vendor "${v.name}"?`;
   if (linkedItems.length > 0) {
-    message += ` (${linkedItems.length} inventory item(s) are linked to this vendor).`;
+    message += ` This will also delete all associated stock (${linkedItems.length} item(s)).`;
   }
 
   el.confirmTitle.textContent = 'Delete Vendor';
@@ -613,10 +613,14 @@ window.confirmDeleteVendor = function(id) {
     if (api.deleteVendor) {
       await api.deleteVendor(id);
     }
+    // Fallback if local storage
+    appData.vendors = appData.vendors.filter(item => item.id !== id);
+    appData.inventory = appData.inventory.filter(item => item.vendorId !== id);
+
     await reloadFromDatabase();
     renderVendors();
     renderInventory();
-    showToast('Vendor deleted');
+    showToast(linkedItems.length > 0 ? 'Vendor and associated stock deleted' : 'Vendor deleted');
   };
   el.modalConfirm.classList.remove('hidden');
 };
