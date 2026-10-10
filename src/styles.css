@@ -1177,22 +1177,10 @@ body {
 
 .radial-nodes-panel {
   position: absolute;
-  top: calc(100% + 14px);
-  right: -55px;
+  top: calc(100% + 6px);
+  right: 10px;
   z-index: 1000;
-  animation: radialDialPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  transform-origin: top center;
-}
-
-@keyframes radialDialPop {
-  from {
-    opacity: 0;
-    transform: translateY(-12px) scale(0.3) rotate(-25deg);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotate(0deg);
-  }
+  pointer-events: none;
 }
 
 .radial-backdrop {
@@ -1201,186 +1189,140 @@ body {
   z-index: 998;
   background: transparent;
   cursor: default;
+  pointer-events: auto;
 }
 
-/* True Circular Dial Wheel */
-.radial-nodes-halo {
+/* Left-Bottom Speed-Dial Arc Container (No background disk) */
+.radial-nodes-arc {
   position: relative;
   z-index: 999;
-  width: 224px;
-  height: 224px;
-  border-radius: 50%;
-  background: radial-gradient(circle at center, #ffffff 42%, #f8fafc 80%, #f1f5f9 100%);
-  border: 2px solid #e2e8f0;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22), 0 4px 16px rgba(15, 23, 42, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Rotating Dashed Orbit Ring */
-.radial-orbit-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 148px;
-  height: 148px;
-  border-radius: 50%;
-  border: 1.5px dashed #cbd5e1;
+  width: 185px;
+  height: 155px;
   pointer-events: none;
-  animation: orbitSpin 35s linear infinite;
 }
 
-@keyframes orbitSpin {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-/* Center Core Hub */
-.radial-center-hub {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: #f8fafc;
-  border: 1.5px solid #cbd5e1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.04);
-  pointer-events: none;
-  z-index: 1000;
-}
-
-.radial-center-hub .hub-icon {
-  width: 15px;
-  height: 15px;
-  color: #475569;
-}
-
-.radial-center-hub .hub-text {
-  font-size: 7.5px;
-  font-weight: 800;
-  color: #64748b;
-  letter-spacing: 0.6px;
-  line-height: 1;
-  margin-top: 2px;
-}
-
-/* 3 Circular Nodes in a True Circle at 120-Degree Separation */
+/* Floating Circular Nodes positioned in a Left-Bottom Arc */
 .radial-node-item {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   cursor: pointer;
+  pointer-events: auto;
   z-index: 1001;
-  animation: radialNodePop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Node 1: PDF (Top / North) */
-.node-item-pdf {
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  animation-delay: 0.03s;
+/* Node 1: PDF (Top-Left on Arc) */
+.node-arc-pdf {
+  right: 115px;
+  top: 6px;
+  animation: arcPopPdf 0.26s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-/* Node 2: Excel (Bottom-Right / Southeast) */
-.node-item-excel {
-  bottom: 20px;
-  right: 22px;
+@keyframes arcPopPdf {
+  from {
+    opacity: 0;
+    transform: translate(100px, -10px) scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* Node 2: Excel (Middle-Left diagonal on Arc) */
+.node-arc-excel {
+  right: 68px;
+  top: 54px;
+  animation: arcPopExcel 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.04s;
+}
+
+@keyframes arcPopExcel {
+  from {
+    opacity: 0;
+    transform: translate(50px, -45px) scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* Node 3: CSV (Bottom-Left on Arc) */
+.node-arc-csv {
+  right: 8px;
+  top: 96px;
+  animation: arcPopCsv 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   animation-delay: 0.08s;
 }
 
-/* Node 3: CSV (Bottom-Left / Southwest) */
-.node-item-csv {
-  bottom: 20px;
-  left: 22px;
-  animation-delay: 0.13s;
-}
-
-@keyframes radialNodePop {
+@keyframes arcPopCsv {
   from {
     opacity: 0;
-    transform: scale(0.3);
+    transform: translate(0px, -80px) scale(0.2);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translate(0, 0) scale(1);
   }
 }
 
-.node-item-pdf {
-  animation-name: radialNodePopTop;
-}
-
-@keyframes radialNodePopTop {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) scale(0.3);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
-  }
+.radial-node-item:hover {
+  transform: scale(1.1);
 }
 
 .radial-node-btn {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: none;
+  border: 2px solid #ffffff;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   position: relative;
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
   user-select: none;
 }
 
 .radial-node-btn:hover {
-  transform: scale(1.15);
+  transform: translateY(-2px);
 }
 
 .radial-node-btn:active {
-  transform: scale(0.94);
+  transform: scale(0.92);
 }
 
-/* Node Format Badges & Colors */
+/* Node Format Badges & Saturated Floating Glow */
 .btn-node-pdf {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.42);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.45), 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 .btn-node-pdf:hover {
-  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.58);
+  box-shadow: 0 10px 28px rgba(239, 68, 68, 0.62), 0 4px 10px rgba(0, 0, 0, 0.16);
 }
 
 .btn-node-excel {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.42);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45), 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 .btn-node-excel:hover {
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.58);
+  box-shadow: 0 10px 28px rgba(16, 185, 129, 0.62), 0 4px 10px rgba(0, 0, 0, 0.16);
 }
 
 .btn-node-csv {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.42);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.45), 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 .btn-node-csv:hover {
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.58);
+  box-shadow: 0 10px 28px rgba(59, 130, 246, 0.62), 0 4px 10px rgba(0, 0, 0, 0.16);
 }
 
 .radial-node-btn .node-icon {
@@ -1401,14 +1343,20 @@ body {
 .radial-node-item .node-label {
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-secondary);
-  transition: color 0.15s ease;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border-light);
+  padding: 1px 7px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: all 0.15s ease;
   user-select: none;
-  margin-top: 2px;
 }
 
 .radial-node-item:hover .node-label {
-  color: var(--text-primary);
+  background: #ffffff;
+  border-color: var(--text-secondary);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
 }
 
 .hidden {
