@@ -23,9 +23,9 @@ const api = window.electronAPI || {
     }
     return {
       vendors: [
-        { id: 'v-1', name: 'Apex Industrial Supplies', phone: '+1 (555) 019-2834', createdAt: '2025-01-15' },
-        { id: 'v-2', name: 'Global Tech Components', phone: '+1 (555) 014-9981', createdAt: '2025-01-18' },
-        { id: 'v-3', name: 'Metro Logistics & Hardware', phone: '+1 (555) 018-7743', createdAt: '2025-02-01' }
+        { id: 'v-1', name: 'Apex Industrial Supplies', phone: '0300-9283401', createdAt: '2025-01-15' },
+        { id: 'v-2', name: 'Global Tech Components', phone: '0321-4998120', createdAt: '2025-01-18' },
+        { id: 'v-3', name: 'Metro Logistics & Hardware', phone: '0333-8774315', createdAt: '2025-02-01' }
       ],
       inventory: [
         { id: 'inv-1', stockName: 'Precision Ball Bearings 608RS', vendorId: 'v-1', vendorName: 'Apex Industrial Supplies', quantity: 250, totalSell: 42, wholesalePrice: 4.50, individualPrice: 7.00, date: '2025-02-10' },

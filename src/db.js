@@ -41,6 +41,15 @@ function initDatabase(dbPath) {
   try { db.exec('ALTER TABLE inventory ADD COLUMN wholesalePrice REAL DEFAULT 0;'); } catch (e) {}
   try { db.exec('ALTER TABLE inventory ADD COLUMN individualPrice REAL DEFAULT 0;'); } catch (e) {}
 
+  // Update any existing default vendors to Pakistani numbers
+  try {
+    db.exec(`
+      UPDATE vendors SET phone = '0300-9283401' WHERE id = 'v-1' AND phone LIKE '+1%';
+      UPDATE vendors SET phone = '0321-4998120' WHERE id = 'v-2' AND phone LIKE '+1%';
+      UPDATE vendors SET phone = '0333-8774315' WHERE id = 'v-3' AND phone LIKE '+1%';
+    `);
+  } catch (e) {}
+
   // Seed default data if empty
   const vendorCountStmt = db.prepare('SELECT COUNT(*) as count FROM vendors');
   const vendorCount = vendorCountStmt.get().count;
@@ -51,9 +60,9 @@ function initDatabase(dbPath) {
       VALUES (?, ?, ?, ?)
     `);
 
-    insertVendor.run('v-1', 'Apex Industrial Supplies', '+1 (555) 019-2834', '2025-01-15');
-    insertVendor.run('v-2', 'Global Tech Components', '+1 (555) 014-9981', '2025-01-18');
-    insertVendor.run('v-3', 'Metro Logistics & Hardware', '+1 (555) 018-7743', '2025-02-01');
+    insertVendor.run('v-1', 'Apex Industrial Supplies', '0300-9283401', '2025-01-15');
+    insertVendor.run('v-2', 'Global Tech Components', '0321-4998120', '2025-01-18');
+    insertVendor.run('v-3', 'Metro Logistics & Hardware', '0333-8774315', '2025-02-01');
 
     const insertStock = db.prepare(`
       INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, totalSell, wholesalePrice, individualPrice, date, createdAt)
