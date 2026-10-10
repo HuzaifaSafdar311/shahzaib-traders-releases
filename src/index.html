@@ -77,13 +77,23 @@
 
         <!-- Search and Filters Bar -->
         <div class="toolbar">
-          <div class="search-box">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="inventorySearchInput" placeholder="Search stock name or vendor..." autocomplete="off">
-            <button id="btnClearInventorySearch" class="btn-clear hidden">&times;</button>
+          <div class="search-box-group">
+            <div class="search-by-wrapper">
+              <label for="inventorySearchBy" class="search-by-label">Search by</label>
+              <select id="inventorySearchBy" class="search-by-select">
+                <option value="all">All</option>
+                <option value="stockName">Stock Name</option>
+                <option value="vendorName">Vendor</option>
+              </select>
+            </div>
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="inventorySearchInput" placeholder="Search inventory..." autocomplete="off">
+              <button id="btnClearInventorySearch" class="btn-clear hidden">&times;</button>
+            </div>
           </div>
 
           <div class="filters-group">
@@ -159,13 +169,23 @@
 
         <!-- Vendor Toolbar -->
         <div class="toolbar">
-          <div class="search-box">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="vendorSearchInput" placeholder="Search vendor name, contact person, phone..." autocomplete="off">
-            <button id="btnClearVendorSearch" class="btn-clear hidden">&times;</button>
+          <div class="search-box-group">
+            <div class="search-by-wrapper">
+              <label for="vendorSearchBy" class="search-by-label">Search by</label>
+              <select id="vendorSearchBy" class="search-by-select">
+                <option value="all">All</option>
+                <option value="name">Vendor Name</option>
+                <option value="phone">Phone Number</option>
+              </select>
+            </div>
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="vendorSearchInput" placeholder="Search vendors..." autocomplete="off">
+              <button id="btnClearVendorSearch" class="btn-clear hidden">&times;</button>
+            </div>
           </div>
         </div>
 
@@ -175,9 +195,7 @@
             <thead>
               <tr>
                 <th class="col-vendor-name">Vendor Name</th>
-                <th class="col-contact">Contact Person</th>
-                <th class="col-phone">Phone</th>
-                <th class="col-email">Email</th>
+                <th class="col-phone">Phone Number</th>
                 <th class="col-vendor-actions">Actions</th>
               </tr>
             </thead>
@@ -239,7 +257,7 @@
 
   <!-- MODAL: ADD / EDIT VENDOR -->
   <div id="modalVendor" class="modal-overlay hidden">
-    <div class="modal-card">
+    <div class="modal-card modal-sm">
       <div class="modal-header">
         <h2 id="modalVendorTitle" class="modal-title">Add Vendor</h2>
         <button id="btnCloseVendorModal" class="btn-close">&times;</button>
@@ -249,23 +267,12 @@
 
         <div class="form-group">
           <label for="vendorNameInput">Vendor Name <span class="req">*</span></label>
-          <input type="text" id="vendorNameInput" placeholder="Enter company / vendor name" required>
+          <input type="text" id="vendorNameInput" placeholder="Enter vendor name" required>
         </div>
 
         <div class="form-group">
-          <label for="vendorContactInput">Contact Person</label>
-          <input type="text" id="vendorContactInput" placeholder="Representative name">
-        </div>
-
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label for="vendorPhoneInput">Phone</label>
-            <input type="tel" id="vendorPhoneInput" placeholder="+1 (555) 000-0000">
-          </div>
-          <div class="form-group flex-1">
-            <label for="vendorEmailInput">Email</label>
-            <input type="email" id="vendorEmailInput" placeholder="name@company.com">
-          </div>
+          <label for="vendorPhoneInput">Phone Number <span class="req">*</span></label>
+          <input type="tel" id="vendorPhoneInput" placeholder="+1 (555) 000-0000" required>
         </div>
 
         <div class="modal-footer">

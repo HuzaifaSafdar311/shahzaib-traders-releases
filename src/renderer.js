@@ -8,7 +8,7 @@ let currentTab = 'inventory'; // 'inventory' | 'vendors'
 let pendingDeleteAction = null;
 let returnToStockModalAfterVendor = false;
 
-// Fallback Storage API if window.electronAPI is unavailable
+// IPC Storage Bridge (SQLite Backend via window.electronAPI with local fallback)
 const api = window.electronAPI || {
   getData: async () => {
     const raw = localStorage.getItem('inventory_data');
@@ -17,9 +17,9 @@ const api = window.electronAPI || {
     }
     return {
       vendors: [
-        { id: 'v-1', name: 'Apex Industrial Supplies', contactPerson: 'David Miller', phone: '+1 (555) 019-2834', email: 'sales@apexsupplies.com', createdAt: '2025-01-15' },
-        { id: 'v-2', name: 'Global Tech Components', contactPerson: 'Sarah Chen', phone: '+1 (555) 014-9981', email: 'orders@globaltech.io', createdAt: '2025-01-18' },
-        { id: 'v-3', name: 'Metro Logistics & Hardware', contactPerson: 'Tariq Mahmood', phone: '+1 (555) 018-7743', email: 'info@metrologistics.com', createdAt: '2025-02-01' }
+        { id: 'v-1', name: 'Apex Industrial Supplies', phone: '+1 (555) 019-2834', createdAt: '2025-01-15' },
+        { id: 'v-2', name: 'Global Tech Components', phone: '+1 (555) 014-9981', createdAt: '2025-01-18' },
+        { id: 'v-3', name: 'Metro Logistics & Hardware', phone: '+1 (555) 018-7743', createdAt: '2025-02-01' }
       ],
       inventory: [
         { id: 'inv-1', stockName: 'Precision Ball Bearings 608RS', vendorId: 'v-1', vendorName: 'Apex Industrial Supplies', quantity: 250, date: '2025-02-10' },
@@ -31,6 +31,24 @@ const api = window.electronAPI || {
   },
   saveData: async (data) => {
     localStorage.setItem('inventory_data', JSON.stringify(data));
+    return { success: true };
+  },
+  addStock: async (item) => {
+    return { success: true };
+  },
+  updateStock: async (item) => {
+    return { success: true };
+  },
+  deleteStock: async (id) => {
+    return { success: true };
+  },
+  addVendor: async (vendor) => {
+    return { success: true };
+  },
+  updateVendor: async (vendor) => {
+    return { success: true };
+  },
+  deleteVendor: async (id) => {
     return { success: true };
   },
   exportCSV: async ({ content, filename }) => {
@@ -57,6 +75,7 @@ const el = {
   // Inventory Elements
   inventoryTableBody: document.getElementById('inventoryTableBody'),
   inventoryEmptyState: document.getElementById('inventoryEmptyState'),
+  inventorySearchBy: document.getElementById('inventorySearchBy'),
   inventorySearchInput: document.getElementById('inventorySearchInput'),
   btnClearInventorySearch: document.getElementById('btnClearInventorySearch'),
   filterVendorSelect: document.getElementById('filterVendorSelect'),
@@ -69,6 +88,7 @@ const el = {
   // Vendor Elements
   vendorTableBody: document.getElementById('vendorTableBody'),
   vendorEmptyState: document.getElementById('vendorEmptyState'),
+  vendorSearchBy: document.getElementById('vendorSearchBy'),
   vendorSearchInput: document.getElementById('vendorSearchInput'),
   btnClearVendorSearch: document.getElementById('btnClearVendorSearch'),
   btnOpenAddVendor: document.getElementById('btnOpenAddVendor'),
@@ -94,9 +114,7 @@ const el = {
   vendorForm: document.getElementById('vendorForm'),
   vendorId: document.getElementById('vendorId'),
   vendorNameInput: document.getElementById('vendorNameInput'),
-  vendorContactInput: document.getElementById('vendorContactInput'),
   vendorPhoneInput: document.getElementById('vendorPhoneInput'),
-  vendorEmailInput: document.getElementById('vendorEmailInput'),
 
   // Confirm Modal
   modalConfirm: document.getElementById('modalConfirm'),
@@ -129,9 +147,20 @@ function getTodayString() {
   return `${year}-${month}-${day}`;
 }
 
-async function persist() {
-  await api.saveData(appData);
+async function reloadFromDatabase() {
+  try {
+    const data = await api.getData();
+    if (data) {
+      appData = {
+        vendors: data.vendors || [],
+        inventory: data.inventory || []
+      };
+    }
+  } catch (err) {
+    console.error('Error reloading data:', err);
+  }
   updateBadges();
+  refreshVendorDropdowns();
 }
 
 function updateBadges() {
@@ -186,18 +215,26 @@ function refreshVendorDropdowns(selectedVendorId = '') {
 // Inventory Rendering
 function renderInventory() {
   const query = (el.inventorySearchInput.value || '').trim().toLowerCase();
+  const searchBy = el.inventorySearchBy ? el.inventorySearchBy.value : 'all';
   const vendorFilter = el.filterVendorSelect.value;
   const statusFilter = el.filterStockStatus.value;
   const sortOrder = el.filterDateOrder.value;
 
   let items = [...appData.inventory];
 
-  // Search Filter
+  // Search Filter with Search By
   if (query) {
     items = items.filter(item => {
-      const nameMatch = item.stockName.toLowerCase().includes(query);
-      const vendorMatch = (item.vendorName || '').toLowerCase().includes(query);
-      return nameMatch || vendorMatch;
+      const stockName = (item.stockName || '').toLowerCase();
+      const vendorName = (item.vendorName || '').toLowerCase();
+
+      if (searchBy === 'stockName') {
+        return stockName.includes(query);
+      } else if (searchBy === 'vendorName') {
+        return vendorName.includes(query);
+      } else {
+        return stockName.includes(query) || vendorName.includes(query);
+      }
     });
   }
 
@@ -254,19 +291,24 @@ function renderInventory() {
   }
 }
 
-// Vendors Rendering
+// Vendors Rendering (Only Name, Phone, Actions)
 function renderVendors() {
   const query = (el.vendorSearchInput.value || '').trim().toLowerCase();
+  const searchBy = el.vendorSearchBy ? el.vendorSearchBy.value : 'all';
   let vendors = [...appData.vendors];
 
   if (query) {
     vendors = vendors.filter(v => {
-      return (
-        (v.name || '').toLowerCase().includes(query) ||
-        (v.contactPerson || '').toLowerCase().includes(query) ||
-        (v.phone || '').toLowerCase().includes(query) ||
-        (v.email || '').toLowerCase().includes(query)
-      );
+      const name = (v.name || '').toLowerCase();
+      const phone = (v.phone || '').toLowerCase();
+
+      if (searchBy === 'name') {
+        return name.includes(query);
+      } else if (searchBy === 'phone') {
+        return phone.includes(query);
+      } else {
+        return name.includes(query) || phone.includes(query);
+      }
     });
   }
 
@@ -280,9 +322,7 @@ function renderVendors() {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="col-vendor-name stock-name-cell">${escapeHtml(v.name)}</td>
-        <td class="col-contact">${escapeHtml(v.contactPerson || '-')}</td>
         <td class="col-phone">${escapeHtml(v.phone || '-')}</td>
-        <td class="col-email">${escapeHtml(v.email || '-')}</td>
         <td class="col-vendor-actions">
           <div class="table-actions">
             <button class="btn-table-action" onclick="openEditVendor('${v.id}')">Edit</button>
@@ -326,15 +366,13 @@ function closeStockModal() {
   el.modalStock.classList.add('hidden');
 }
 
-// Vendor Modal Actions
+// Vendor Modal Actions (Only Name and Phone Number)
 function openAddVendor(fromStockModal = false) {
   returnToStockModalAfterVendor = fromStockModal;
   el.modalVendorTitle.textContent = 'Add Vendor';
   el.vendorId.value = '';
   el.vendorNameInput.value = '';
-  el.vendorContactInput.value = '';
   el.vendorPhoneInput.value = '';
-  el.vendorEmailInput.value = '';
 
   if (fromStockModal) {
     el.modalStock.classList.add('hidden');
@@ -352,9 +390,7 @@ window.openEditVendor = function(id) {
   el.modalVendorTitle.textContent = 'Edit Vendor';
   el.vendorId.value = v.id;
   el.vendorNameInput.value = v.name;
-  el.vendorContactInput.value = v.contactPerson || '';
   el.vendorPhoneInput.value = v.phone || '';
-  el.vendorEmailInput.value = v.email || '';
   el.modalVendor.classList.remove('hidden');
   setTimeout(() => el.vendorNameInput.focus(), 50);
 };
@@ -375,8 +411,10 @@ window.confirmDeleteStock = function(id) {
   el.confirmTitle.textContent = 'Delete Stock';
   el.confirmMessage.textContent = `Are you sure you want to delete "${item.stockName}"?`;
   pendingDeleteAction = async () => {
-    appData.inventory = appData.inventory.filter(i => i.id !== id);
-    await persist();
+    if (api.deleteStock) {
+      await api.deleteStock(id);
+    }
+    await reloadFromDatabase();
     renderInventory();
     showToast('Stock item deleted');
   };
@@ -396,16 +434,10 @@ window.confirmDeleteVendor = function(id) {
   el.confirmTitle.textContent = 'Delete Vendor';
   el.confirmMessage.textContent = message;
   pendingDeleteAction = async () => {
-    appData.vendors = appData.vendors.filter(item => item.id !== id);
-    // Keep inventory items but unlink or preserve vendor name
-    appData.inventory.forEach(item => {
-      if (item.vendorId === id) {
-        item.vendorName = `${v.name} (Removed)`;
-        item.vendorId = '';
-      }
-    });
-    await persist();
-    refreshVendorDropdowns();
+    if (api.deleteVendor) {
+      await api.deleteVendor(id);
+    }
+    await reloadFromDatabase();
     renderVendors();
     renderInventory();
     showToast('Vendor deleted');
@@ -418,7 +450,7 @@ function closeConfirmModal() {
   pendingDeleteAction = null;
 }
 
-// Save Handlers
+// Save Handlers (Persisted to SQLite)
 el.stockForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = el.stockId.value;
@@ -436,18 +468,11 @@ el.stockForm.addEventListener('submit', async (e) => {
 
   if (id) {
     // Edit existing
-    const idx = appData.inventory.findIndex(item => item.id === id);
-    if (idx !== -1) {
-      appData.inventory[idx] = {
-        ...appData.inventory[idx],
-        stockName,
-        vendorId,
-        vendorName,
-        quantity,
-        date
-      };
-      showToast('Stock item updated');
+    const item = { id, stockName, vendorId, vendorName, quantity, date };
+    if (api.updateStock) {
+      await api.updateStock(item);
     }
+    showToast('Stock item updated');
   } else {
     // Add new
     const newItem = {
@@ -459,11 +484,13 @@ el.stockForm.addEventListener('submit', async (e) => {
       date,
       createdAt: getTodayString()
     };
-    appData.inventory.unshift(newItem);
+    if (api.addStock) {
+      await api.addStock(newItem);
+    }
     showToast('Stock item added');
   }
 
-  await persist();
+  await reloadFromDatabase();
   closeStockModal();
   renderInventory();
 });
@@ -472,9 +499,7 @@ el.vendorForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = el.vendorId.value;
   const name = el.vendorNameInput.value.trim();
-  const contactPerson = el.vendorContactInput.value.trim();
   const phone = el.vendorPhoneInput.value.trim();
-  const email = el.vendorEmailInput.value.trim();
 
   if (!name) return;
 
@@ -482,39 +507,27 @@ el.vendorForm.addEventListener('submit', async (e) => {
 
   if (id) {
     // Edit existing
-    const idx = appData.vendors.findIndex(v => v.id === id);
-    if (idx !== -1) {
-      appData.vendors[idx] = {
-        ...appData.vendors[idx],
-        name,
-        contactPerson,
-        phone,
-        email
-      };
-      // Also update vendorName in inventory
-      appData.inventory.forEach(item => {
-        if (item.vendorId === id) {
-          item.vendorName = name;
-        }
-      });
-      showToast('Vendor updated');
+    const vendor = { id, name, phone };
+    if (api.updateVendor) {
+      await api.updateVendor(vendor);
     }
+    showToast('Vendor updated');
   } else {
-    // Add new
+    // Add new (only Name and Phone Number)
     createdVendorId = 'v-' + Date.now();
     const newVendor = {
       id: createdVendorId,
       name,
-      contactPerson,
       phone,
-      email,
       createdAt: getTodayString()
     };
-    appData.vendors.push(newVendor);
+    if (api.addVendor) {
+      await api.addVendor(newVendor);
+    }
     showToast('Vendor added');
   }
 
-  await persist();
+  await reloadFromDatabase();
   refreshVendorDropdowns(createdVendorId);
 
   el.modalVendor.classList.add('hidden');
@@ -589,6 +602,8 @@ el.inventorySearchInput.addEventListener('input', (e) => {
   renderInventory();
 });
 
+el.inventorySearchBy.addEventListener('change', renderInventory);
+
 el.btnClearInventorySearch.addEventListener('click', () => {
   el.inventorySearchInput.value = '';
   el.btnClearInventorySearch.classList.add('hidden');
@@ -604,6 +619,8 @@ el.vendorSearchInput.addEventListener('input', (e) => {
   renderVendors();
 });
 
+el.vendorSearchBy.addEventListener('change', renderVendors);
+
 el.btnClearVendorSearch.addEventListener('click', () => {
   el.vendorSearchInput.value = '';
   el.btnClearVendorSearch.classList.add('hidden');
@@ -617,6 +634,7 @@ el.filterDateOrder.addEventListener('change', renderInventory);
 el.btnResetInventoryFilters.addEventListener('click', () => {
   el.inventorySearchInput.value = '';
   el.btnClearInventorySearch.classList.add('hidden');
+  el.inventorySearchBy.value = 'all';
   el.filterVendorSelect.value = '';
   el.filterStockStatus.value = '';
   el.filterDateOrder.value = 'newest';
@@ -636,20 +654,7 @@ function escapeHtml(text) {
 
 // Initial Boot
 async function init() {
-  try {
-    const data = await api.getData();
-    if (data && (data.vendors || data.inventory)) {
-      appData = {
-        vendors: data.vendors || [],
-        inventory: data.inventory || []
-      };
-    }
-  } catch (err) {
-    console.error('Failed to load initial data:', err);
-  }
-
-  refreshVendorDropdowns();
-  updateBadges();
+  await reloadFromDatabase();
   renderInventory();
 }
 

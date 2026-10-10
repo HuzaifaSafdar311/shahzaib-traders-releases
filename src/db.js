@@ -1,0 +1,219 @@
+const { DatabaseSync } = require('node:sqlite');
+const path = require('path');
+const fs = require('fs');
+
+let dbInstance = null;
+
+function initDatabase(dbPath) {
+  if (dbInstance) return dbInstance;
+
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  const db = new DatabaseSync(dbPath);
+
+  // Enable WAL mode for better concurrency and performance
+  db.exec('PRAGMA journal_mode = WAL;');
+
+  // Create tables
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vendors (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory (
+      id TEXT PRIMARY KEY,
+      stockName TEXT NOT NULL,
+      vendorId TEXT,
+      vendorName TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+  `);
+
+  // Seed default data if empty
+  const vendorCountStmt = db.prepare('SELECT COUNT(*) as count FROM vendors');
+  const vendorCount = vendorCountStmt.get().count;
+
+  if (vendorCount === 0) {
+    const insertVendor = db.prepare(`
+      INSERT INTO vendors (id, name, phone, createdAt)
+      VALUES (?, ?, ?, ?)
+    `);
+
+    insertVendor.run('v-1', 'Apex Industrial Supplies', '+1 (555) 019-2834', '2025-01-15');
+    insertVendor.run('v-2', 'Global Tech Components', '+1 (555) 014-9981', '2025-01-18');
+    insertVendor.run('v-3', 'Metro Logistics & Hardware', '+1 (555) 018-7743', '2025-02-01');
+
+    const insertStock = db.prepare(`
+      INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, date, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    insertStock.run('inv-1', 'Precision Ball Bearings 608RS', 'v-1', 'Apex Industrial Supplies', 250, '2025-02-10', '2025-02-10');
+    insertStock.run('inv-2', 'Solid State Relay 25A', 'v-2', 'Global Tech Components', 80, '2025-02-12', '2025-02-12');
+    insertStock.run('inv-3', 'Heavy Duty Steel Brackets', 'v-3', 'Metro Logistics & Hardware', 120, '2025-02-14', '2025-02-14');
+    insertStock.run('inv-4', 'Microcontroller Units ESP32', 'v-2', 'Global Tech Components', 45, '2025-02-18', '2025-02-18');
+  }
+
+  dbInstance = db;
+  return dbInstance;
+}
+
+function getAllData() {
+  if (!dbInstance) throw new Error('Database not initialized');
+  const vendorsStmt = dbInstance.prepare('SELECT id, name, phone, createdAt FROM vendors ORDER BY createdAt DESC, name ASC');
+  const inventoryStmt = dbInstance.prepare('SELECT id, stockName, vendorId, vendorName, quantity, date, createdAt FROM inventory ORDER BY date DESC, createdAt DESC');
+
+  return {
+    vendors: vendorsStmt.all(),
+    inventory: inventoryStmt.all()
+  };
+}
+
+function addStock(item) {
+  if (!dbInstance) throw new Error('Database not initialized');
+  const stmt = dbInstance.prepare(`
+    INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, date, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  stmt.run(
+    item.id,
+    item.stockName,
+    item.vendorId || '',
+    item.vendorName || '',
+    Number(item.quantity) || 0,
+    item.date,
+    item.createdAt || new Date().toISOString()
+  );
+  return { success: true };
+}
+
+function updateStock(item) {
+  if (!dbInstance) throw new Error('Database not initialized');
+  const stmt = dbInstance.prepare(`
+    UPDATE inventory
+    SET stockName = ?, vendorId = ?, vendorName = ?, quantity = ?, date = ?
+    WHERE id = ?
+  `);
+  stmt.run(
+    item.stockName,
+    item.vendorId || '',
+    item.vendorName || '',
+    Number(item.quantity) || 0,
+    item.date,
+    item.id
+  );
+  return { success: true };
+}
+
+function deleteStock(id) {
+  if (!dbInstance) throw new Error('Database not initialized');
+  const stmt = dbInstance.prepare('DELETE FROM inventory WHERE id = ?');
+  stmt.run(id);
+  return { success: true };
+}
+
+function addVendor(vendor) {
+  if (!dbInstance) throw new Error('Database not initialized');
+  const stmt = dbInstance.prepare(`
+    INSERT INTO vendors (id, name, phone, createdAt)
+    VALUES (?, ?, ?, ?)
+  `);
+  stmt.run(
+    vendor.id,
+    vendor.name,
+    vendor.phone || '',
+    vendor.createdAt || new Date().toISOString()
+  );
+  return { success: true };
+}
+
+function updateVendor(vendor) {
+  if (!dbInstance) throw new Error('Database not initialized');
+  const stmt = dbInstance.prepare(`
+    UPDATE vendors
+    SET name = ?, phone = ?
+    WHERE id = ?
+  `);
+  stmt.run(vendor.name, vendor.phone || '', vendor.id);
+
+  // Also update vendorName across inventory items
+  const updateInv = dbInstance.prepare(`
+    UPDATE inventory
+    SET vendorName = ?
+    WHERE vendorId = ?
+  `);
+  updateInv.run(vendor.name, vendor.id);
+
+  return { success: true };
+}
+
+function deleteVendor(id) {
+  if (!dbInstance) throw new Error('Database not initialized');
+  // Delete the vendor
+  const stmt = dbInstance.prepare('DELETE FROM vendors WHERE id = ?');
+  stmt.run(id);
+
+  // Unset vendorId for linked items
+  const updateInv = dbInstance.prepare(`
+    UPDATE inventory
+    SET vendorId = ''
+    WHERE vendorId = ?
+  `);
+  updateInv.run(id);
+
+  return { success: true };
+}
+
+function syncAllData(data) {
+  if (!dbInstance) throw new Error('Database not initialized');
+  dbInstance.exec('BEGIN TRANSACTION');
+  try {
+    dbInstance.exec('DELETE FROM inventory; DELETE FROM vendors;');
+
+    const insertVendor = dbInstance.prepare(`
+      INSERT INTO vendors (id, name, phone, createdAt)
+      VALUES (?, ?, ?, ?)
+    `);
+    (data.vendors || []).forEach(v => {
+      insertVendor.run(v.id, v.name, v.phone || '', v.createdAt || new Date().toISOString());
+    });
+
+    const insertStock = dbInstance.prepare(`
+      INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, date, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    (data.inventory || []).forEach(item => {
+      insertStock.run(
+        item.id,
+        item.stockName,
+        item.vendorId || '',
+        item.vendorName || '',
+        Number(item.quantity) || 0,
+        item.date,
+        item.createdAt || new Date().toISOString()
+      );
+    });
+
+    dbInstance.exec('COMMIT');
+    return { success: true };
+  } catch (err) {
+    dbInstance.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+module.exports = {
+  initDatabase,
+  getAllData,
+  addStock,
+  updateStock,
+  deleteStock,
+  addVendor,
+  updateVendor,
+  deleteVendor,
+  syncAllData
+};
