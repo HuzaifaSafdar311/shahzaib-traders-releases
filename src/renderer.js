@@ -117,15 +117,14 @@ const el = {
   dashStockHealthStatus: document.getElementById('dashStockHealthStatus'),
   dashPotentialMarginPKR: document.getElementById('dashPotentialMarginPKR'),
   dashStockRatioPercent: document.getElementById('dashStockRatioPercent'),
-  ratioSoldBar: document.getElementById('ratioSoldBar'),
-  ratioAvailBar: document.getElementById('ratioAvailBar'),
-  ratioSoldQtyDisplay: document.getElementById('ratioSoldQtyDisplay'),
-  ratioAvailQtyDisplay: document.getElementById('ratioAvailQtyDisplay'),
   countHealthyStock: document.getElementById('countHealthyStock'),
   countLowStock: document.getElementById('countLowStock'),
   countOutStock: document.getElementById('countOutStock'),
   dashTopProductsList: document.getElementById('dashTopProductsList'),
   dashRecentSalesBody: document.getElementById('dashRecentSalesBody'),
+  dashWholesaleSub: document.getElementById('dashWholesaleSub'),
+  dashRetailSub: document.getElementById('dashRetailSub'),
+  dashMarginSub: document.getElementById('dashMarginSub'),
 
   // Invoices Stat Strip Elements
   invStatTotalCount: document.getElementById('invStatTotalCount'),
@@ -217,6 +216,7 @@ const el = {
   shopCartPanel: document.getElementById('shopCartPanel'),
   cartIconBadge: document.getElementById('cartIconBadge'),
   cartBadgeCount: document.getElementById('cartBadgeCount'),
+  cartCountBadge: document.getElementById('cartCountBadge'),
   cartItemsSubtitle: document.getElementById('cartItemsSubtitle'),
   btnClearCart: document.getElementById('btnClearCart'),
   posCustomerName: document.getElementById('posCustomerName'),
@@ -229,6 +229,26 @@ const el = {
   posCashReceived: document.getElementById('posCashReceived'),
   posChangeDue: document.getElementById('posChangeDue'),
   btnCheckoutOrder: document.getElementById('btnCheckoutOrder'),
+  cartStepView: document.getElementById('cartStepView'),
+  receiptStepView: document.getElementById('receiptStepView'),
+  btnCartDone: document.getElementById('btnCartDone'),
+  btnBackToCart: document.getElementById('btnBackToCart'),
+  rcptItemsList: document.getElementById('rcptItemsList'),
+  rcptDate: document.getElementById('rcptDate'),
+  rcptItemCount: document.getElementById('rcptItemCount'),
+  rcptCustNameDisplay: document.getElementById('rcptCustNameDisplay'),
+  rcptCustPhoneDisplay: document.getElementById('rcptCustPhoneDisplay'),
+  rcptSubtotalDisplay: document.getElementById('rcptSubtotalDisplay'),
+  rcptDiscountDisplay: document.getElementById('rcptDiscountDisplay'),
+  rcptGrandTotalDisplay: document.getElementById('rcptGrandTotalDisplay'),
+  rcptActiveModeDisplay: document.getElementById('rcptActiveModeDisplay'),
+
+  // Dedicated Slip / Receipt Page Elements
+  receiptPageView: document.getElementById('receiptPageView'),
+  receiptPageSheet: document.getElementById('receiptPageSheet'),
+  btnReceiptBackToShop: document.getElementById('btnReceiptBackToShop'),
+  btnReceiptGoToInvoices: document.getElementById('btnReceiptGoToInvoices'),
+  btnPrintReceiptPage: document.getElementById('btnPrintReceiptPage'),
 
   // Invoice List Elements
   invoiceTableBody: document.getElementById('invoiceTableBody'),
@@ -392,6 +412,7 @@ function switchTab(tab) {
   if (el.invoiceView) el.invoiceView.classList.toggle('active', tab === 'invoices');
   if (el.inventoryView) el.inventoryView.classList.toggle('active', tab === 'inventory');
   if (el.vendorView) el.vendorView.classList.toggle('active', tab === 'vendors');
+  if (el.receiptPageView) el.receiptPageView.classList.toggle('active', tab === 'receiptPage');
 
   if (tab === 'dashboard') renderDashboard();
   else if (tab === 'shop') {
@@ -450,11 +471,7 @@ function renderDashboard() {
 
   // 1. Metric Cards
   if (el.dashTotalInventoryItems) el.dashTotalInventoryItems.textContent = `${totalItemsCount} Products`;
-  if (el.dashTotalInventoryUnits) el.dashTotalInventoryUnits.textContent = `${totalUnits.toLocaleString('en-PK')} total units in warehouse`;
-
   if (el.dashTotalSalesPKR) el.dashTotalSalesPKR.textContent = `PKR ${totalSalesPKR.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
-  if (el.dashTotalUnitsSold) el.dashTotalUnitsSold.textContent = `${totalSoldUnits.toLocaleString('en-PK')} units sold across ${invoices.length} receipt${invoices.length === 1 ? '' : 's'}`;
-
   if (el.dashWholesaleValuePKR) el.dashWholesaleValuePKR.textContent = `PKR ${totalWholesale.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
   if (el.dashIndividualValuePKR) el.dashIndividualValuePKR.textContent = `PKR ${totalIndividual.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
   if (el.dashRemainingUnits) el.dashRemainingUnits.textContent = `${totalUnits.toLocaleString('en-PK')} Units`;
@@ -465,7 +482,7 @@ function renderDashboard() {
     if (lowStockItems.length > 0) {
       el.dashAlertBanner.classList.remove('hidden');
       if (el.dashAlertSubtitle) {
-        el.dashAlertSubtitle.textContent = `${lowStockItems.length} product${lowStockItems.length === 1 ? ' is' : 's are'} running critically low in stock and need replenishment.`;
+        el.dashAlertSubtitle.textContent = `${lowStockItems.length} items require restock`;
       }
       el.dashAlertCardsGrid.innerHTML = '';
       lowStockItems.slice(0, 8).forEach(item => {
@@ -490,53 +507,164 @@ function renderDashboard() {
     }
   }
 
-  // 3. Stock Ratio Stacked Bar
+  // 3. Stock Health Donut Chart (SVG)
+  const donutSvg = document.getElementById('stockDonutSvg');
+  const donutLegend = document.getElementById('stockDonutLegend');
+  if (donutLegend) {
+    donutLegend.innerHTML = `
+      <div class="donut-legend-item"><span class="legend-dot" style="background:#10b981"></span><span>Healthy: <strong>${healthyCount}</strong></span></div>
+      <div class="donut-legend-item"><span class="legend-dot" style="background:#f59e0b"></span><span>Low: <strong>${lowCount}</strong></span></div>
+      <div class="donut-legend-item"><span class="legend-dot" style="background:#ef4444"></span><span>Out: <strong>${outCount}</strong></span></div>
+    `;
+  }
+  if (donutSvg) {
+    donutSvg.innerHTML = '';
+    const totalItems = healthyCount + lowCount + outCount;
+    const cx = 60, cy = 60, r = 44, strokeW = 18;
+    const circumference = 2 * Math.PI * r;
+    const segments = [
+      { label: 'Healthy', count: healthyCount, color: '#10b981' },
+      { label: 'Low',     count: lowCount,     color: '#f59e0b' },
+      { label: 'Out',     count: outCount,      color: '#ef4444' }
+    ];
+    const svgNS = 'http://www.w3.org/2000/svg';
+
+    // Background circle
+    const bgCircle = document.createElementNS(svgNS, 'circle');
+    bgCircle.setAttribute('cx', cx); bgCircle.setAttribute('cy', cy); bgCircle.setAttribute('r', r);
+    bgCircle.setAttribute('fill', 'none'); bgCircle.setAttribute('stroke', '#f1f5f9');
+    bgCircle.setAttribute('stroke-width', strokeW);
+    donutSvg.appendChild(bgCircle);
+
+    if (totalItems === 0) {
+      // Empty donut placeholder
+      const ph = document.createElementNS(svgNS, 'circle');
+      ph.setAttribute('cx', cx); ph.setAttribute('cy', cy); ph.setAttribute('r', r);
+      ph.setAttribute('fill', 'none'); ph.setAttribute('stroke', '#e2e8f0');
+      ph.setAttribute('stroke-width', strokeW);
+      donutSvg.appendChild(ph);
+    } else {
+      let offset = 0;
+      segments.forEach(seg => {
+        if (seg.count === 0) return;
+        const pct = seg.count / totalItems;
+        const dash = pct * circumference;
+        const gap = circumference - dash;
+        const circle = document.createElementNS(svgNS, 'circle');
+        circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', r);
+        circle.setAttribute('fill', 'none');
+        circle.setAttribute('stroke', seg.color);
+        circle.setAttribute('stroke-width', strokeW);
+        circle.setAttribute('stroke-dasharray', `${dash} ${gap}`);
+        circle.setAttribute('stroke-dashoffset', -offset * circumference);
+        circle.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
+        circle.setAttribute('stroke-linecap', 'round');
+        donutSvg.appendChild(circle);
+        offset += pct;
+      });
+    }
+
+    // Center text
+    const centerText = document.createElementNS(svgNS, 'text');
+    centerText.setAttribute('x', cx); centerText.setAttribute('y', cy + 5);
+    centerText.setAttribute('text-anchor', 'middle');
+    centerText.setAttribute('font-size', '18'); centerText.setAttribute('font-weight', '800');
+    centerText.setAttribute('fill', '#111827');
+    centerText.textContent = totalItems;
+    donutSvg.appendChild(centerText);
+
+    const centerSub = document.createElementNS(svgNS, 'text');
+    centerSub.setAttribute('x', cx); centerSub.setAttribute('y', cy + 18);
+    centerSub.setAttribute('text-anchor', 'middle');
+    centerSub.setAttribute('font-size', '8'); centerSub.setAttribute('fill', '#94a3b8');
+    centerSub.textContent = 'products';
+    donutSvg.appendChild(centerSub);
+  }
+
+  // Update sold/stock ratio badge
   const totalRatio = totalSoldUnits + totalUnits;
   const soldPct = totalRatio > 0 ? Math.round((totalSoldUnits / totalRatio) * 100) : 0;
-  const availPct = 100 - soldPct;
-
   if (el.dashStockRatioPercent) el.dashStockRatioPercent.textContent = `${soldPct}% Sold`;
-  if (el.ratioSoldBar) el.ratioSoldBar.style.width = `${soldPct}%`;
-  if (el.ratioAvailBar) el.ratioAvailBar.style.width = `${availPct}%`;
-  if (el.ratioSoldQtyDisplay) el.ratioSoldQtyDisplay.textContent = totalSoldUnits.toLocaleString('en-PK');
-  if (el.ratioAvailQtyDisplay) el.ratioAvailQtyDisplay.textContent = totalUnits.toLocaleString('en-PK');
 
   // Stock Health Status Counters
   if (el.countHealthyStock) el.countHealthyStock.textContent = healthyCount;
   if (el.countLowStock) el.countLowStock.textContent = lowCount;
   if (el.countOutStock) el.countOutStock.textContent = outCount;
 
-  // 4. Top Selling Products Leaderboard
+
+
+  // 4. Top Selling Products — SVG Bar Chart
   if (el.dashTopProductsList) {
     el.dashTopProductsList.innerHTML = '';
     const sorted = [...inventory].sort((a, b) => (Number(b.totalSell) || 0) - (Number(a.totalSell) || 0));
     const top5 = sorted.slice(0, 5);
-    const maxSell = top5.length > 0 ? Math.max(1, Number(top5[0].totalSell) || 0) : 1;
+    const maxSell = top5.length > 0 ? Math.max(1, Number(top5[0].totalSell) || 1) : 1;
 
     if (top5.length === 0 || (Number(top5[0].totalSell) || 0) === 0) {
-      el.dashTopProductsList.innerHTML = '<div style="color: var(--text-muted); font-size: 12.5px; padding: 10px 0;">No sales recorded yet. Completed sales in Shop counter will appear here.</div>';
+      el.dashTopProductsList.innerHTML = '<div style="color: var(--text-muted); font-size: 12.5px; padding: 20px 0; text-align:center;">No sales recorded yet.</div>';
     } else {
-      top5.forEach(prod => {
-        const sold = Number(prod.totalSell) || 0;
-        const pct = Math.min(100, Math.round((sold / maxSell) * 100));
-        const rate = Number(prod.individualPrice || prod.wholesalePrice || 0);
-        const revenue = sold * rate;
+      const BAR_W = 48, GAP = 18, CHART_H = 110, LABEL_H = 36;
+      const totalW = top5.length * (BAR_W + GAP) - GAP;
+      const colors = ['#6366f1','#10b981','#f59e0b','#3b82f6','#ef4444'];
 
-        const row = document.createElement('div');
-        row.className = 'top-product-item';
-        row.innerHTML = `
-          <div class="top-prod-header">
-            <span class="top-prod-name" title="${escapeHtml(prod.stockName)}">${escapeHtml(prod.stockName)}</span>
-            <span class="top-prod-val">${sold} sold &bull; PKR ${revenue.toLocaleString('en-PK')}</span>
-          </div>
-          <div class="top-prod-bar-bg">
-            <div class="top-prod-bar-fill" style="width: ${pct}%;"></div>
-          </div>
-        `;
-        el.dashTopProductsList.appendChild(row);
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('width', '100%');
+      svg.setAttribute('viewBox', `0 0 ${totalW + 20} ${CHART_H + LABEL_H}`);
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      svg.style.overflow = 'visible';
+
+      top5.forEach((prod, i) => {
+        const sold = Number(prod.totalSell) || 0;
+        const barH = Math.max(4, Math.round((sold / maxSell) * CHART_H));
+        const x = 10 + i * (BAR_W + GAP);
+        const y = CHART_H - barH;
+        const color = colors[i % colors.length];
+
+        // Bar
+        const rect = document.createElementNS(svgNS, 'rect');
+        rect.setAttribute('x', x); rect.setAttribute('y', y);
+        rect.setAttribute('width', BAR_W); rect.setAttribute('height', barH);
+        rect.setAttribute('rx', 5); rect.setAttribute('fill', color);
+        rect.setAttribute('opacity', '0.88');
+        svg.appendChild(rect);
+
+        // Value label on top
+        const valText = document.createElementNS(svgNS, 'text');
+        valText.setAttribute('x', x + BAR_W / 2); valText.setAttribute('y', y - 5);
+        valText.setAttribute('text-anchor', 'middle');
+        valText.setAttribute('font-size', '11'); valText.setAttribute('font-weight', '700');
+        valText.setAttribute('fill', '#1e293b');
+        valText.textContent = sold;
+        svg.appendChild(valText);
+
+        // Product name (truncated, rotated)
+        const nameText = document.createElementNS(svgNS, 'text');
+        const name = (prod.stockName || '').substring(0, 12) + ((prod.stockName || '').length > 12 ? '…' : '');
+        nameText.setAttribute('x', x + BAR_W / 2);
+        nameText.setAttribute('y', CHART_H + 14);
+        nameText.setAttribute('text-anchor', 'middle');
+        nameText.setAttribute('font-size', '10'); nameText.setAttribute('fill', '#64748b');
+        nameText.textContent = name;
+        svg.appendChild(nameText);
+
+        // Revenue sub-label
+        const rate = Number(prod.individualPrice || prod.wholesalePrice || 0);
+        const rev = sold * rate;
+        const revText = document.createElementNS(svgNS, 'text');
+        revText.setAttribute('x', x + BAR_W / 2);
+        revText.setAttribute('y', CHART_H + 28);
+        revText.setAttribute('text-anchor', 'middle');
+        revText.setAttribute('font-size', '9'); revText.setAttribute('fill', '#10b981');
+        revText.setAttribute('font-weight', '600');
+        revText.textContent = `PKR ${rev >= 1000 ? (rev/1000).toFixed(1)+'k' : rev}`;
+        svg.appendChild(revText);
       });
+
+      el.dashTopProductsList.appendChild(svg);
     }
   }
+
 
   // 5. Recent Sales Stream
   if (el.dashRecentSalesBody) {
@@ -818,6 +946,7 @@ let posCart = []; // [{ stockId, stockName, price, wholesalePrice, quantity, max
 let posSelectedFilter = 'all'; // 'all' | 'in-stock' | 'low-stock'
 let posPaymentMode = 'Cash';
 let shopSubTab = 'counter'; // 'counter' | 'history'
+let posCurrentStep = 'cart'; // 'cart' | 'receipt'
 
 function switchShopSubTab(subTab) {
   shopSubTab = subTab;
@@ -898,11 +1027,28 @@ function renderShopProducts() {
   }
   if (el.shopProductsEmpty) el.shopProductsEmpty.classList.add('hidden');
 
-  list.forEach(item => {
+  // Build table
+  const table = document.createElement('table');
+  table.className = 'pos-product-table';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Item Name</th>
+        <th>Vendor</th>
+        <th>Price (PKR)</th>
+        <th>Stock</th>
+        <th>Quantity</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector('tbody');
+
+  list.forEach((item, idx) => {
     const availableQty = Number(item.quantity || 0);
     const retailPrice = Number(item.individualPrice || item.wholesalePrice || 0);
-    const card = document.createElement('div');
-    card.className = 'pos-product-card';
 
     let badgeClass = 'in-stock';
     let badgeText = `${availableQty} in stock`;
@@ -911,39 +1057,42 @@ function renderShopProducts() {
       badgeText = 'Out of stock';
     } else if (availableQty <= 10) {
       badgeClass = 'low-stock';
-      badgeText = `${availableQty} low stock`;
+      badgeText = `${availableQty} low`;
     }
 
     const priceFormatted = Number(retailPrice).toLocaleString('en-PK', { minimumFractionDigits: 2 });
+    const disabled = availableQty <= 0 ? 'disabled' : '';
 
-    card.innerHTML = `
-      <div class="pos-product-vendor">${escapeHtml(item.vendorName || 'General Stock')}</div>
-      <div class="pos-product-title" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</div>
-      <div class="pos-product-meta-row">
-        <div class="pos-product-price">PKR ${priceFormatted}</div>
-        <span class="pos-stock-badge ${badgeClass}">${badgeText}</span>
-      </div>
-      <div class="pos-card-actions">
+    const tr = document.createElement('tr');
+    tr.className = 'pos-product-row' + (availableQty === 0 ? ' pos-row-out' : '');
+    tr.innerHTML = `
+      <td class="pos-row-num">${idx + 1}</td>
+      <td class="pos-row-name" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</td>
+      <td class="pos-row-vendor">${escapeHtml(item.vendorName || 'General Stock')}</td>
+      <td class="pos-row-price">${priceFormatted}</td>
+      <td class="pos-row-stock"><span class="pos-stock-badge ${badgeClass}">${badgeText}</span></td>
+      <td class="pos-row-stepper">
         <div class="pos-qty-stepper">
-          <button type="button" class="pos-btn-step btn-step-down" ${availableQty <= 0 ? 'disabled' : ''}>-</button>
-          <input type="number" class="pos-step-input" value="1" min="1" max="${availableQty}" ${availableQty <= 0 ? 'disabled' : ''}>
-          <button type="button" class="pos-btn-step btn-step-up" ${availableQty <= 0 ? 'disabled' : ''}>+</button>
+          <button type="button" class="pos-btn-step btn-step-down" ${disabled}>-</button>
+          <input type="number" class="pos-step-input" value="1" min="1" max="${availableQty}" ${disabled}>
+          <button type="button" class="pos-btn-step btn-step-up" ${disabled}>+</button>
         </div>
-        <button type="button" class="btn-pos-add" ${availableQty <= 0 ? 'disabled' : ''} data-id="${item.id}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;">
-            <circle cx="9" cy="21" r="1"></circle>
-            <circle cx="20" cy="21" r="1"></circle>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+      </td>
+      <td class="pos-row-action">
+        <button type="button" class="btn-pos-add" ${disabled} data-id="${item.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
           <span>Add</span>
         </button>
-      </div>
+      </td>
     `;
 
-    const stepInput = card.querySelector('.pos-step-input');
-    const btnDown = card.querySelector('.btn-step-down');
-    const btnUp = card.querySelector('.btn-step-up');
-    const btnAdd = card.querySelector('.btn-pos-add');
+    const stepInput = tr.querySelector('.pos-step-input');
+    const btnDown = tr.querySelector('.btn-step-down');
+    const btnUp = tr.querySelector('.btn-step-up');
+    const btnAdd = tr.querySelector('.btn-pos-add');
 
     if (btnDown && stepInput) {
       btnDown.addEventListener('click', (e) => {
@@ -970,8 +1119,10 @@ function renderShopProducts() {
       });
     }
 
-    el.shopProductsGrid.appendChild(card);
+    tbody.appendChild(tr);
   });
+
+  el.shopProductsGrid.appendChild(table);
 }
 
 function addToPosCart(stockId, quantity = 1) {
@@ -1010,6 +1161,7 @@ function addToPosCart(stockId, quantity = 1) {
     });
   }
 
+  posCurrentStep = 'cart'; // Always ensure we are in cart step when adding an item
   renderPosCart();
   updateBadges();
 }
@@ -1041,54 +1193,63 @@ function removeFromPosCart(stockId) {
 function clearPosCart() {
   if (posCart.length === 0) return;
   posCart = [];
+  posCurrentStep = 'cart';
   renderPosCart();
   updateBadges();
   showToast('Cart cleared');
 }
 
 function renderPosCart() {
-  if (!el.cartItemsList) return;
+  const cartPanel = el.shopCartPanel || document.getElementById('shopCartPanel');
+  const cartStepView = el.cartStepView || document.getElementById('cartStepView');
+  const receiptStepView = el.receiptStepView || document.getElementById('receiptStepView');
+  const cartList = el.cartItemsList || document.getElementById('cartItemsList');
+  const countBadge = el.cartCountBadge || document.getElementById('cartCountBadge');
+  const btnDone = el.btnCartDone || document.getElementById('btnCartDone');
 
-  el.cartItemsList.innerHTML = '';
   const totalCount = posCart.reduce((sum, i) => sum + i.quantity, 0);
 
-  if (el.cartBadgeCount) el.cartBadgeCount.textContent = totalCount;
-  if (el.cartItemsSubtitle) el.cartItemsSubtitle.textContent = `${totalCount} item${totalCount === 1 ? '' : 's'} in cart`;
+  if (countBadge) {
+    countBadge.textContent = `${totalCount} item${totalCount === 1 ? '' : 's'}`;
+  }
 
+  // If cart is empty, hide right panel & reset step to 'cart'
   if (posCart.length === 0) {
+    posCurrentStep = 'cart';
+    if (cartPanel) {
+      cartPanel.classList.remove('rcpt-panel-visible');
+      cartPanel.classList.add('rcpt-panel-hidden');
+    }
+    if (cartStepView) {
+      cartStepView.classList.remove('hidden');
+      cartStepView.classList.add('active');
+    }
+    if (receiptStepView) {
+      receiptStepView.classList.add('hidden');
+      receiptStepView.classList.remove('active');
+    }
+    if (cartList) cartList.innerHTML = '';
     if (el.cartEmptyState) el.cartEmptyState.classList.remove('hidden');
     if (el.posSubtotal) el.posSubtotal.textContent = 'PKR 0.00';
     if (el.posGrandTotal) el.posGrandTotal.textContent = 'PKR 0.00';
-    if (el.posChangeDue) el.posChangeDue.textContent = 'PKR 0.00';
+    if (btnDone) btnDone.disabled = true;
     if (el.btnCheckoutOrder) el.btnCheckoutOrder.disabled = true;
     updateBadges();
     return;
   }
 
+  // Cart has items: show right panel
+  if (cartPanel) {
+    cartPanel.classList.remove('rcpt-panel-hidden');
+    cartPanel.classList.add('rcpt-panel-visible');
+  }
   if (el.cartEmptyState) el.cartEmptyState.classList.add('hidden');
+  if (btnDone) btnDone.disabled = false;
 
+  // Calculate totals
   let subtotal = 0;
-
   posCart.forEach(item => {
-    const lineTotal = item.price * item.quantity;
-    subtotal += lineTotal;
-
-    const row = document.createElement('div');
-    row.className = 'cart-item-row';
-    row.innerHTML = `
-      <div class="cart-item-info">
-        <div class="cart-item-name" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</div>
-        <div class="cart-item-rate">@ PKR ${Number(item.price).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</div>
-      </div>
-      <div class="cart-item-stepper">
-        <button type="button" class="btn-cart-step" onclick="updatePosCartQty('${item.stockId}', -1)">-</button>
-        <span class="cart-step-val">${item.quantity}</span>
-        <button type="button" class="btn-cart-step" onclick="updatePosCartQty('${item.stockId}', 1)">+</button>
-      </div>
-      <div class="cart-item-amount">Rs ${Number(lineTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</div>
-      <button type="button" class="btn-cart-del" onclick="removeFromPosCart('${item.stockId}')" title="Remove">&times;</button>
-    `;
-    el.cartItemsList.appendChild(row);
+    subtotal += item.price * item.quantity;
   });
 
   const discountVal = Number(el.posDiscountInput ? el.posDiscountInput.value : 0) || 0;
@@ -1097,14 +1258,113 @@ function renderPosCart() {
   if (el.posSubtotal) el.posSubtotal.textContent = `PKR ${Number(subtotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
   if (el.posGrandTotal) el.posGrandTotal.textContent = `PKR ${Number(grandTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
 
-  const cashReceived = Number(el.posCashReceived ? el.posCashReceived.value : 0) || 0;
-  const changeDue = cashReceived > grandTotal ? (cashReceived - grandTotal) : 0;
-  if (el.posChangeDue) {
-    el.posChangeDue.textContent = `PKR ${Number(changeDue).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  // Populate Step 1: Shopping Cart Items List
+  if (cartList) {
+    cartList.innerHTML = '';
+    posCart.forEach(item => {
+      const lineTotal = item.price * item.quantity;
+      const card = document.createElement('div');
+      card.className = 'cart-item-card';
+      card.innerHTML = `
+        <div class="cart-item-card-top">
+          <span class="cart-item-card-name" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</span>
+          <span class="cart-item-card-rate">@ Rs ${Number(item.price).toLocaleString('en-PK')}</span>
+        </div>
+        <div class="cart-item-card-bottom">
+          <div class="cart-stepper">
+            <button type="button" class="btn-stepper" onclick="updatePosCartQty('${item.stockId}', -1)" title="Decrease">−</button>
+            <span class="stepper-qty">${item.quantity}</span>
+            <button type="button" class="btn-stepper" onclick="updatePosCartQty('${item.stockId}', 1)" title="Increase">+</button>
+          </div>
+          <div class="cart-item-right-group">
+            <span class="cart-item-line-total">Rs ${Number(lineTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span>
+            <button type="button" class="btn-item-del" onclick="removeFromPosCart('${item.stockId}')" title="Remove item">×</button>
+          </div>
+        </div>
+      `;
+      cartList.appendChild(card);
+    });
+  }
+
+  // Handle Step Visibility: Cart View vs Receipt View
+  if (posCurrentStep === 'cart') {
+    if (cartStepView) {
+      cartStepView.classList.remove('hidden');
+      cartStepView.classList.add('active');
+    }
+    if (receiptStepView) {
+      receiptStepView.classList.add('hidden');
+      receiptStepView.classList.remove('active');
+    }
+  } else if (posCurrentStep === 'receipt') {
+    if (cartStepView) {
+      cartStepView.classList.add('hidden');
+      cartStepView.classList.remove('active');
+    }
+    if (receiptStepView) {
+      receiptStepView.classList.remove('hidden');
+      receiptStepView.classList.add('active');
+    }
+    renderThermalReceiptView(subtotal, discountVal, grandTotal, totalCount);
   }
 
   if (el.btnCheckoutOrder) el.btnCheckoutOrder.disabled = false;
   updateBadges();
+}
+
+function renderThermalReceiptView(subtotal, discountVal, grandTotal, totalCount) {
+  const rcptDate = el.rcptDate || document.getElementById('rcptDate');
+  const rcptItemCount = el.rcptItemCount || document.getElementById('rcptItemCount');
+  const rcptCustName = el.rcptCustNameDisplay || document.getElementById('rcptCustNameDisplay');
+  const rcptCustPhone = el.rcptCustPhoneDisplay || document.getElementById('rcptCustPhoneDisplay');
+  const rcptSubtotal = el.rcptSubtotalDisplay || document.getElementById('rcptSubtotalDisplay');
+  const rcptDiscount = el.rcptDiscountDisplay || document.getElementById('rcptDiscountDisplay');
+  const rcptGrandTotal = el.rcptGrandTotalDisplay || document.getElementById('rcptGrandTotalDisplay');
+  const rcptActiveMode = el.rcptActiveModeDisplay || document.getElementById('rcptActiveModeDisplay');
+  const rcptItemsList = el.rcptItemsList || document.getElementById('rcptItemsList');
+
+  // Date and Time
+  if (rcptDate) {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true });
+    rcptDate.textContent = `${dateStr}  ${timeStr}`;
+  }
+
+  if (rcptItemCount) {
+    rcptItemCount.textContent = `${totalCount} item${totalCount === 1 ? '' : 's'}`;
+  }
+
+  const custNameVal = (el.posCustomerName && el.posCustomerName.value.trim()) ? el.posCustomerName.value.trim() : 'Walk-in Customer';
+  const custPhoneVal = (el.posCustomerPhone && el.posCustomerPhone.value.trim()) ? el.posCustomerPhone.value.trim() : '-';
+
+  if (rcptCustName) rcptCustName.textContent = custNameVal;
+  if (rcptCustPhone) rcptCustPhone.textContent = custPhoneVal;
+  if (rcptActiveMode) rcptActiveMode.textContent = posPaymentMode || 'Cash';
+
+  if (rcptSubtotal) rcptSubtotal.textContent = `PKR ${Number(subtotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (rcptDiscount) rcptDiscount.textContent = `PKR ${Number(discountVal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (rcptGrandTotal) rcptGrandTotal.textContent = `PKR ${Number(grandTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+
+  if (rcptItemsList) {
+    rcptItemsList.innerHTML = '';
+    posCart.forEach(item => {
+      const lineTotal = item.price * item.quantity;
+      const row = document.createElement('div');
+      row.className = 'tr-receipt-item-row';
+      row.innerHTML = `
+        <div class="tr-item-top-line">
+          <span class="tr-item-title" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</span>
+          <span class="tr-item-del-btn" style="display:none;"></span>
+        </div>
+        <div class="tr-item-bottom-line">
+          <span class="tr-item-qty-rate">${item.quantity} × Rs ${Number(item.price).toLocaleString('en-PK')}</span>
+          <span class="tr-item-line-total">Rs ${Number(lineTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span>
+        </div>
+      `;
+      rcptItemsList.appendChild(row);
+    });
+  }
 }
 
 async function checkoutPosSale() {
@@ -1166,8 +1426,8 @@ async function checkoutPosSale() {
     renderShopProducts();
     renderInvoices();
 
-    // Open Realistic Thermal Cash Receipt matching reference image
-    openViewInvoice(newInvoice.id, {
+    // Navigate to dedicated Slip / Receipt Page (No modal popup)
+    openReceiptPage(newInvoice.id, {
       cashReceived: cashReceived,
       changeDue: changeDue,
       paymentMode: posPaymentMode
@@ -1175,6 +1435,7 @@ async function checkoutPosSale() {
 
     // Reset Cart
     posCart = [];
+    posCurrentStep = 'cart';
     if (el.posDiscountInput) el.posDiscountInput.value = '0';
     if (el.posCashReceived) el.posCashReceived.value = '';
     renderPosCart();
@@ -1224,30 +1485,6 @@ function renderInvoices() {
   if (invoicePage > totalPages) invoicePage = totalPages;
   if (invoicePage < 1) invoicePage = 1;
 
-  // Update Invoices KPI Summary Strip
-  if (el.invStatTotalCount) el.invStatTotalCount.textContent = (appData.invoices || []).length;
-  if (el.invStatSoldItemsCount) {
-    let soldCount = 0;
-    (appData.invoices || []).forEach(inv => {
-      let itemsArr = [];
-      try {
-        itemsArr = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || []);
-      } catch (e) {}
-      itemsArr.forEach(it => {
-        soldCount += (Number(it.quantity) || 0);
-      });
-    });
-    el.invStatSoldItemsCount.textContent = `${soldCount.toLocaleString('en-PK')} units`;
-  }
-  if (el.invStatTotalRevenue) {
-    const totalRev = (appData.invoices || []).reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
-    el.invStatTotalRevenue.textContent = `PKR ${totalRev.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
-  }
-  if (el.invStatPaidCount) {
-    const paidCount = (appData.invoices || []).filter(inv => (inv.status || 'Paid') === 'Paid').length;
-    el.invStatPaidCount.textContent = `${paidCount} Paid`;
-  }
-
   const start = (invoicePage - 1) * pageSize;
   const pageItems = filtered.slice(start, start + pageSize);
 
@@ -1271,13 +1508,13 @@ function renderInvoices() {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="col-inv-no"><strong>${escapeHtml(inv.invoiceNumber)}</strong></td>
-        <td class="col-date">${escapeHtml(inv.date || '')}</td>
-        <td class="col-customer">${escapeHtml(inv.customerName)}</td>
-        <td class="col-phone">${escapeHtml(inv.customerPhone || '-')}</td>
-        <td class="col-items-count"><strong>${totalQtySold}</strong> item(s)</td>
-        <td class="col-total">Rs ${totalFormatted}</td>
-        <td class="col-status"><span class="badge-status ${statusClass}">${escapeHtml(inv.status || 'Paid')}</span></td>
-        <td class="col-dots-actions">
+        <td class="col-inv-date">${escapeHtml(inv.date || '')}</td>
+        <td class="col-inv-customer" title="${escapeHtml(inv.customerName)}">${escapeHtml(inv.customerName)}</td>
+        <td class="col-inv-phone">${escapeHtml(inv.customerPhone || '-')}</td>
+        <td class="col-inv-items"><strong>${totalQtySold}</strong></td>
+        <td class="col-inv-total">PKR ${totalFormatted}</td>
+        <td class="col-inv-status"><span class="badge-status ${statusClass}">${escapeHtml(inv.status || 'Paid')}</span></td>
+        <td class="col-inv-actions">
           <div class="dots-wrapper">
             <button class="btn-dots" onclick="toggleRowMenu(event, '${menuId}')" title="Actions" aria-label="Actions">
               <svg class="dots-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -1536,12 +1773,8 @@ el.invoiceForm.addEventListener('submit', async (e) => {
   }
 });
 
-// View and Print Thermal Cash Receipt Sheet (Matching Reference Design)
-window.openViewInvoice = function(invId, checkoutMeta = null) {
-  closeAllActionMenus();
-  const inv = (appData.invoices || []).find(i => i.id === invId);
-  if (!inv) return;
-
+// Generate Thermal Cash Receipt HTML String
+function generateReceiptPaperHtml(inv, checkoutMeta = null) {
   let items = [];
   try {
     items = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || []);
@@ -1578,7 +1811,7 @@ window.openViewInvoice = function(invId, checkoutMeta = null) {
 
   const barcodeNumber = String(inv.invoiceNumber || 'INV-1001').replace(/[^a-zA-Z0-9]/g, '');
 
-  el.printableInvoiceSheet.innerHTML = `
+  return `
     <div class="thermal-receipt-paper">
       <!-- Store Header -->
       <div class="tr-store-header">
@@ -1644,14 +1877,14 @@ window.openViewInvoice = function(invId, checkoutMeta = null) {
           <td class="tr-meta-label">CUSTOMER:</td>
           <td class="tr-meta-val">${escapeHtml(inv.customerName || 'Walk-in Customer')}</td>
         </tr>
-        ${inv.customerPhone ? `<tr><td class="tr-meta-label">PHONE:</td><td class="tr-meta-val">${escapeHtml(inv.customerPhone)}</td></tr>` : ''}
+        ${(inv.customerPhone && inv.customerPhone.trim()) ? `<tr><td class="tr-meta-label">PHONE:</td><td class="tr-meta-val">${escapeHtml(inv.customerPhone)}</td></tr>` : ''}
         <tr>
           <td class="tr-meta-label">PAYMENT:</td>
           <td class="tr-meta-val">${escapeHtml(paymentMode)}</td>
         </tr>
         <tr>
-          <td class="tr-meta-label">OPERATOR:</td>
-          <td class="tr-meta-val">Counter #1 (Admin)</td>
+          <td class="tr-meta-label">STATUS:</td>
+          <td class="tr-meta-val" style="font-weight: 800; color: #16a34a;">PAID / VERIFIED</td>
         </tr>
       </table>
 
@@ -1759,12 +1992,38 @@ window.openViewInvoice = function(invId, checkoutMeta = null) {
       </div>
     </div>
   `;
+}
 
-  el.modalViewInvoice.classList.remove('hidden');
+// Open Dedicated Slip / Receipt Page View (No Popup Modal!)
+window.openReceiptPage = function(invId, checkoutMeta = null) {
+  closeAllActionMenus();
+  if (el.modalViewInvoice) el.modalViewInvoice.classList.add('hidden');
+
+  const inv = (appData.invoices || []).find(i => i.id === invId);
+  if (!inv) return;
+
+  const receiptHtml = generateReceiptPaperHtml(inv, checkoutMeta);
+
+  if (el.receiptPageSheet) {
+    el.receiptPageSheet.innerHTML = receiptHtml;
+  }
+  if (el.printableInvoiceSheet) {
+    el.printableInvoiceSheet.innerHTML = receiptHtml;
+  }
+
+  switchTab('receiptPage');
+  if (el.receiptPageView) {
+    el.receiptPageView.scrollTop = 0;
+  }
+};
+
+// Also route openViewInvoice to the dedicated receipt page
+window.openViewInvoice = function(invId, checkoutMeta = null) {
+  openReceiptPage(invId, checkoutMeta);
 };
 
 function closeViewInvoiceModal() {
-  el.modalViewInvoice.classList.add('hidden');
+  if (el.modalViewInvoice) el.modalViewInvoice.classList.add('hidden');
 }
 
 // Delete Invoice Confirm
@@ -2199,6 +2458,8 @@ document.querySelectorAll('.btn-pay-mode').forEach(btn => {
     document.querySelectorAll('.btn-pay-mode').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     posPaymentMode = btn.dataset.mode || 'Cash';
+    const disp = document.getElementById('rcptActiveModeDisplay');
+    if (disp) disp.textContent = posPaymentMode;
   });
 });
 
@@ -2211,8 +2472,35 @@ if (el.posCashReceived) {
 if (el.btnClearCart) {
   el.btnClearCart.addEventListener('click', clearPosCart);
 }
+if (el.btnCartDone) {
+  el.btnCartDone.addEventListener('click', () => {
+    if (posCart.length === 0) {
+      showToast('Cart is empty. Add items first.', 'warning');
+      return;
+    }
+    posCurrentStep = 'receipt';
+    renderPosCart();
+  });
+}
+if (el.btnBackToCart) {
+  el.btnBackToCart.addEventListener('click', () => {
+    posCurrentStep = 'cart';
+    renderPosCart();
+  });
+}
 if (el.btnCheckoutOrder) {
   el.btnCheckoutOrder.addEventListener('click', checkoutPosSale);
+}
+
+// Dedicated Receipt Slip Page Toolbar Listeners
+if (el.btnReceiptBackToShop) {
+  el.btnReceiptBackToShop.addEventListener('click', () => switchTab('shop'));
+}
+if (el.btnReceiptGoToInvoices) {
+  el.btnReceiptGoToInvoices.addEventListener('click', () => switchTab('invoices'));
+}
+if (el.btnPrintReceiptPage) {
+  el.btnPrintReceiptPage.addEventListener('click', () => window.print());
 }
 
 // Invoice Event Listeners

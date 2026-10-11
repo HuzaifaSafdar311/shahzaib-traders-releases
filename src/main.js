@@ -67,6 +67,18 @@ function createWindow() {
 
   mainWindow.removeMenu();
 
+  // Hotkey support for quick reload (Ctrl+R / F5) and DevTools (Ctrl+Shift+I)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if ((input.control && input.key.toLowerCase() === 'r') || input.key === 'F5') {
+      mainWindow.reload();
+      event.preventDefault();
+    }
+    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+      mainWindow.webContents.toggleDevTools();
+      event.preventDefault();
+    }
+  });
+
   // 1. Play splash animation
   mainWindow.loadFile(path.join(__dirname, 'splash.html'));
 
