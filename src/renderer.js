@@ -5,7 +5,7 @@ let appData = {
   invoices: []
 };
 
-let currentTab = 'inventory'; // 'inventory' | 'vendors' | 'invoices'
+let currentTab = 'dashboard'; // 'dashboard' | 'shop' | 'invoices' | 'inventory' | 'vendors'
 let pendingDeleteAction = null;
 let returnToStockModalAfterVendor = false;
 
@@ -81,17 +81,58 @@ const api = window.electronAPI || {
 
 // DOM Elements
 const el = {
+  navDashboardBtn: document.getElementById('navDashboardBtn'),
+  navShopBtn: document.getElementById('navShopBtn'),
+  navInvoiceBtn: document.getElementById('navInvoiceBtn'),
   navInventoryBtn: document.getElementById('navInventoryBtn'),
   navVendorBtn: document.getElementById('navVendorBtn'),
-  navInvoiceBtn: document.getElementById('navInvoiceBtn'),
 
+  dashboardView: document.getElementById('dashboardView'),
+  shopView: document.getElementById('shopView'),
+  invoiceView: document.getElementById('invoiceView'),
   inventoryView: document.getElementById('inventoryView'),
   vendorView: document.getElementById('vendorView'),
-  invoiceView: document.getElementById('invoiceView'),
 
+  badgeAlertCount: document.getElementById('badgeAlertCount'),
+  badgeShopCount: document.getElementById('badgeShopCount'),
+  badgeInvoiceCount: document.getElementById('badgeInvoiceCount'),
   badgeInventoryCount: document.getElementById('badgeInventoryCount'),
   badgeVendorCount: document.getElementById('badgeVendorCount'),
-  badgeInvoiceCount: document.getElementById('badgeInvoiceCount'),
+
+  // Dashboard Elements
+  dashAlertBanner: document.getElementById('dashAlertBanner'),
+  dashAlertSubtitle: document.getElementById('dashAlertSubtitle'),
+  btnDismissDashAlert: document.getElementById('btnDismissDashAlert'),
+  dashAlertCardsGrid: document.getElementById('dashAlertCardsGrid'),
+  btnDashQuickSale: document.getElementById('btnDashQuickSale'),
+  btnDashAddStock: document.getElementById('btnDashAddStock'),
+  btnDashViewAllInvoices: document.getElementById('btnDashViewAllInvoices'),
+  dashTotalInventoryItems: document.getElementById('dashTotalInventoryItems'),
+  dashTotalInventoryUnits: document.getElementById('dashTotalInventoryUnits'),
+  dashTotalSalesPKR: document.getElementById('dashTotalSalesPKR'),
+  dashTotalUnitsSold: document.getElementById('dashTotalUnitsSold'),
+  dashWholesaleValuePKR: document.getElementById('dashWholesaleValuePKR'),
+  dashIndividualValuePKR: document.getElementById('dashIndividualValuePKR'),
+  dashRemainingUnits: document.getElementById('dashRemainingUnits'),
+  dashStockHealthStatus: document.getElementById('dashStockHealthStatus'),
+  dashPotentialMarginPKR: document.getElementById('dashPotentialMarginPKR'),
+  dashStockRatioPercent: document.getElementById('dashStockRatioPercent'),
+  ratioSoldBar: document.getElementById('ratioSoldBar'),
+  ratioAvailBar: document.getElementById('ratioAvailBar'),
+  ratioSoldQtyDisplay: document.getElementById('ratioSoldQtyDisplay'),
+  ratioAvailQtyDisplay: document.getElementById('ratioAvailQtyDisplay'),
+  countHealthyStock: document.getElementById('countHealthyStock'),
+  countLowStock: document.getElementById('countLowStock'),
+  countOutStock: document.getElementById('countOutStock'),
+  dashTopProductsList: document.getElementById('dashTopProductsList'),
+  dashRecentSalesBody: document.getElementById('dashRecentSalesBody'),
+
+  // Invoices Stat Strip Elements
+  invStatTotalCount: document.getElementById('invStatTotalCount'),
+  invStatSoldItemsCount: document.getElementById('invStatSoldItemsCount'),
+  invStatTotalRevenue: document.getElementById('invStatTotalRevenue'),
+  invStatPaidCount: document.getElementById('invStatPaidCount'),
+  btnShopGoToInvoices: document.getElementById('btnShopGoToInvoices'),
 
   // Inventory Elements
   inventoryTableBody: document.getElementById('inventoryTableBody'),
@@ -242,12 +283,13 @@ const el = {
 };
 
 // Utilities
-function showToast(message) {
+function showToast(message, type = 'info') {
   const toast = document.createElement('div');
-  toast.className = 'toast';
+  const typeClass = type === 'error' ? 'toast-error' : (type === 'warning' ? 'toast-warning' : '');
+  toast.className = `toast ${typeClass}`.trim();
   toast.textContent = message;
   el.toastContainer.appendChild(toast);
-  setTimeout(() => toast.remove(), 2600);
+  setTimeout(() => toast.remove(), 3200);
 }
 
 function getTodayString() {
@@ -290,9 +332,26 @@ async function reloadFromDatabase() {
 }
 
 function updateBadges() {
-  if (el.badgeInventoryCount) el.badgeInventoryCount.textContent = appData.inventory.length;
-  if (el.badgeVendorCount) el.badgeVendorCount.textContent = appData.vendors.length;
-  if (el.badgeInvoiceCount) el.badgeInvoiceCount.textContent = appData.invoices.length;
+  if (el.badgeInventoryCount) el.badgeInventoryCount.textContent = (appData.inventory || []).length;
+  if (el.badgeVendorCount) el.badgeVendorCount.textContent = (appData.vendors || []).length;
+  if (el.badgeInvoiceCount) el.badgeInvoiceCount.textContent = (appData.invoices || []).length;
+  
+  // Active Shop cart count badge
+  if (el.badgeShopCount) {
+    const cartCount = (posCart || []).reduce((sum, i) => sum + (Number(i.quantity) || 0), 0);
+    el.badgeShopCount.textContent = cartCount;
+  }
+
+  // Low stock alert count badge (warning pulse if <= 10)
+  const lowCount = (appData.inventory || []).filter(i => (Number(i.quantity) || 0) <= 10).length;
+  if (el.badgeAlertCount) {
+    if (lowCount > 0) {
+      el.badgeAlertCount.textContent = `${lowCount} ⚠️`;
+      el.badgeAlertCount.classList.remove('hidden');
+    } else {
+      el.badgeAlertCount.classList.add('hidden');
+    }
+  }
 }
 
 // 3-Dots Action Menu Helpers
@@ -322,21 +381,198 @@ function switchTab(tab) {
   currentTab = tab;
   closeAllActionMenus();
 
+  if (el.navDashboardBtn) el.navDashboardBtn.classList.toggle('active', tab === 'dashboard');
+  if (el.navShopBtn) el.navShopBtn.classList.toggle('active', tab === 'shop');
+  if (el.navInvoiceBtn) el.navInvoiceBtn.classList.toggle('active', tab === 'invoices');
   if (el.navInventoryBtn) el.navInventoryBtn.classList.toggle('active', tab === 'inventory');
   if (el.navVendorBtn) el.navVendorBtn.classList.toggle('active', tab === 'vendors');
-  if (el.navInvoiceBtn) el.navInvoiceBtn.classList.toggle('active', tab === 'invoices');
 
+  if (el.dashboardView) el.dashboardView.classList.toggle('active', tab === 'dashboard');
+  if (el.shopView) el.shopView.classList.toggle('active', tab === 'shop');
+  if (el.invoiceView) el.invoiceView.classList.toggle('active', tab === 'invoices');
   if (el.inventoryView) el.inventoryView.classList.toggle('active', tab === 'inventory');
   if (el.vendorView) el.vendorView.classList.toggle('active', tab === 'vendors');
-  if (el.invoiceView) el.invoiceView.classList.toggle('active', tab === 'invoices');
 
-  if (tab === 'inventory') renderInventory();
-  else if (tab === 'vendors') renderVendors();
-  else if (tab === 'invoices') {
+  if (tab === 'dashboard') renderDashboard();
+  else if (tab === 'shop') {
     renderShopProducts();
     renderPosCart();
+  } else if (tab === 'invoices') {
     renderInvoices();
+  } else if (tab === 'inventory') {
+    renderInventory();
+  } else if (tab === 'vendors') {
+    renderVendors();
   }
+}
+
+// ============================================
+// DASHBOARD LOGIC (Metrics, Alerts & Visuals)
+// ============================================
+function renderDashboard() {
+  const inventory = appData.inventory || [];
+  const invoices = appData.invoices || [];
+
+  const totalItemsCount = inventory.length;
+  let totalUnits = 0;
+  let totalSoldUnits = 0;
+  let totalWholesale = 0;
+  let totalIndividual = 0;
+  let healthyCount = 0;
+  let lowCount = 0;
+  let outCount = 0;
+  const lowStockItems = [];
+
+  inventory.forEach(item => {
+    const q = Number(item.quantity) || 0;
+    const s = Number(item.totalSell) || 0;
+    const wp = Number(item.wholesalePrice) || 0;
+    const ip = Number(item.individualPrice) || 0;
+
+    totalUnits += q;
+    totalSoldUnits += s;
+    totalWholesale += q * wp;
+    totalIndividual += q * ip;
+
+    if (q === 0) {
+      outCount++;
+      lowStockItems.push(item);
+    } else if (q <= 10) {
+      lowCount++;
+      lowStockItems.push(item);
+    } else {
+      healthyCount++;
+    }
+  });
+
+  const totalSalesPKR = invoices.reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+  const potentialMargin = Math.max(0, totalIndividual - totalWholesale);
+
+  // 1. Metric Cards
+  if (el.dashTotalInventoryItems) el.dashTotalInventoryItems.textContent = `${totalItemsCount} Products`;
+  if (el.dashTotalInventoryUnits) el.dashTotalInventoryUnits.textContent = `${totalUnits.toLocaleString('en-PK')} total units in warehouse`;
+
+  if (el.dashTotalSalesPKR) el.dashTotalSalesPKR.textContent = `PKR ${totalSalesPKR.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (el.dashTotalUnitsSold) el.dashTotalUnitsSold.textContent = `${totalSoldUnits.toLocaleString('en-PK')} units sold across ${invoices.length} receipt${invoices.length === 1 ? '' : 's'}`;
+
+  if (el.dashWholesaleValuePKR) el.dashWholesaleValuePKR.textContent = `PKR ${totalWholesale.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (el.dashIndividualValuePKR) el.dashIndividualValuePKR.textContent = `PKR ${totalIndividual.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (el.dashRemainingUnits) el.dashRemainingUnits.textContent = `${totalUnits.toLocaleString('en-PK')} Units`;
+  if (el.dashPotentialMarginPKR) el.dashPotentialMarginPKR.textContent = `PKR ${potentialMargin.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+
+  // 2. Low Stock Alert Banner & Cards
+  if (el.dashAlertBanner && el.dashAlertCardsGrid) {
+    if (lowStockItems.length > 0) {
+      el.dashAlertBanner.classList.remove('hidden');
+      if (el.dashAlertSubtitle) {
+        el.dashAlertSubtitle.textContent = `${lowStockItems.length} product${lowStockItems.length === 1 ? ' is' : 's are'} running critically low in stock and need replenishment.`;
+      }
+      el.dashAlertCardsGrid.innerHTML = '';
+      lowStockItems.slice(0, 8).forEach(item => {
+        const q = Number(item.quantity) || 0;
+        const isOut = q === 0;
+        const card = document.createElement('div');
+        card.className = 'alert-stock-card';
+        card.innerHTML = `
+          <div class="alert-card-header">
+            <span class="alert-card-name" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</span>
+            <span class="alert-card-qty-badge ${isOut ? 'out' : 'low'}">${isOut ? 'OUT OF STOCK' : `${q} left`}</span>
+          </div>
+          <div class="alert-card-meta">
+            <span>Vendor: <strong>${escapeHtml(item.vendorName || 'General')}</strong></span>
+            <button type="button" class="alert-card-btn" onclick="openEditStock('${item.id}')">Restock</button>
+          </div>
+        `;
+        el.dashAlertCardsGrid.appendChild(card);
+      });
+    } else {
+      el.dashAlertBanner.classList.add('hidden');
+    }
+  }
+
+  // 3. Stock Ratio Stacked Bar
+  const totalRatio = totalSoldUnits + totalUnits;
+  const soldPct = totalRatio > 0 ? Math.round((totalSoldUnits / totalRatio) * 100) : 0;
+  const availPct = 100 - soldPct;
+
+  if (el.dashStockRatioPercent) el.dashStockRatioPercent.textContent = `${soldPct}% Sold`;
+  if (el.ratioSoldBar) el.ratioSoldBar.style.width = `${soldPct}%`;
+  if (el.ratioAvailBar) el.ratioAvailBar.style.width = `${availPct}%`;
+  if (el.ratioSoldQtyDisplay) el.ratioSoldQtyDisplay.textContent = totalSoldUnits.toLocaleString('en-PK');
+  if (el.ratioAvailQtyDisplay) el.ratioAvailQtyDisplay.textContent = totalUnits.toLocaleString('en-PK');
+
+  // Stock Health Status Counters
+  if (el.countHealthyStock) el.countHealthyStock.textContent = healthyCount;
+  if (el.countLowStock) el.countLowStock.textContent = lowCount;
+  if (el.countOutStock) el.countOutStock.textContent = outCount;
+
+  // 4. Top Selling Products Leaderboard
+  if (el.dashTopProductsList) {
+    el.dashTopProductsList.innerHTML = '';
+    const sorted = [...inventory].sort((a, b) => (Number(b.totalSell) || 0) - (Number(a.totalSell) || 0));
+    const top5 = sorted.slice(0, 5);
+    const maxSell = top5.length > 0 ? Math.max(1, Number(top5[0].totalSell) || 0) : 1;
+
+    if (top5.length === 0 || (Number(top5[0].totalSell) || 0) === 0) {
+      el.dashTopProductsList.innerHTML = '<div style="color: var(--text-muted); font-size: 12.5px; padding: 10px 0;">No sales recorded yet. Completed sales in Shop counter will appear here.</div>';
+    } else {
+      top5.forEach(prod => {
+        const sold = Number(prod.totalSell) || 0;
+        const pct = Math.min(100, Math.round((sold / maxSell) * 100));
+        const rate = Number(prod.individualPrice || prod.wholesalePrice || 0);
+        const revenue = sold * rate;
+
+        const row = document.createElement('div');
+        row.className = 'top-product-item';
+        row.innerHTML = `
+          <div class="top-prod-header">
+            <span class="top-prod-name" title="${escapeHtml(prod.stockName)}">${escapeHtml(prod.stockName)}</span>
+            <span class="top-prod-val">${sold} sold &bull; PKR ${revenue.toLocaleString('en-PK')}</span>
+          </div>
+          <div class="top-prod-bar-bg">
+            <div class="top-prod-bar-fill" style="width: ${pct}%;"></div>
+          </div>
+        `;
+        el.dashTopProductsList.appendChild(row);
+      });
+    }
+  }
+
+  // 5. Recent Sales Stream
+  if (el.dashRecentSalesBody) {
+    el.dashRecentSalesBody.innerHTML = '';
+    const recent = [...invoices].slice(0, 5);
+    if (recent.length === 0) {
+      el.dashRecentSalesBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 16px 0;">No invoices recorded yet.</td></tr>';
+    } else {
+      recent.forEach(inv => {
+        let itemsArr = [];
+        try {
+          itemsArr = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || []);
+        } catch (e) {}
+
+        const itemsSold = itemsArr.reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
+        const totalFmt = Number(inv.totalAmount || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 });
+        const isPaid = (inv.status === 'Paid');
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(inv.invoiceNumber)}</strong></td>
+          <td>${escapeHtml(inv.date || '')}</td>
+          <td>${escapeHtml(inv.customerName || 'Walk-in Customer')}</td>
+          <td>${itemsSold} units</td>
+          <td><strong>PKR ${totalFmt}</strong></td>
+          <td><span class="badge-status ${isPaid ? 'badge-paid' : 'badge-pending'}">${escapeHtml(inv.status || 'Paid')}</span></td>
+          <td style="text-align: right;">
+            <button type="button" class="btn-view-receipt-sm" onclick="openViewInvoice('${inv.id}')">View</button>
+          </td>
+        `;
+        el.dashRecentSalesBody.appendChild(tr);
+      });
+    }
+  }
+
+  updateBadges();
 }
 
 // ============================================
@@ -744,7 +980,12 @@ function addToPosCart(stockId, quantity = 1) {
 
   const available = Number(stock.quantity || 0);
   if (available <= 0) {
-    showToast('Item is out of stock', 'error');
+    showToast(`"${stock.stockName}" is OUT OF STOCK! Cannot add to cart.`, 'error');
+    return;
+  }
+
+  if (quantity > available) {
+    showToast(`Insufficient stock! Only ${available} units of "${stock.stockName}" available in stock, cannot sell ${quantity}.`, 'error');
     return;
   }
 
@@ -752,52 +993,56 @@ function addToPosCart(stockId, quantity = 1) {
   if (existing) {
     const newQty = existing.quantity + quantity;
     if (newQty > available) {
-      existing.quantity = available;
-      showToast(`Maximum available stock (${available}) reached`, 'warning');
-    } else {
-      existing.quantity = newQty;
+      showToast(`Insufficient stock! Only ${available} units of "${stock.stockName}" available in stock (Cart already has ${existing.quantity}). Cannot sell more.`, 'error');
+      return;
     }
+    existing.quantity = newQty;
   } else {
-    const addQty = Math.min(quantity, available);
     const price = Number(stock.individualPrice || stock.wholesalePrice || 0);
     posCart.push({
       stockId: stock.id,
       stockName: stock.stockName,
       price: price,
       wholesalePrice: Number(stock.wholesalePrice || 0),
-      quantity: addQty,
+      quantity: quantity,
       maxQty: available,
       vendorName: stock.vendorName || ''
     });
   }
 
   renderPosCart();
+  updateBadges();
 }
 
 function updatePosCartQty(stockId, delta) {
   const item = posCart.find(i => i.stockId === stockId);
   if (!item) return;
 
+  if (delta > 0 && item.quantity + delta > item.maxQty) {
+    showToast(`Insufficient stock! Only ${item.maxQty} units of "${item.stockName}" available in stock. Cannot sell more.`, 'error');
+    return;
+  }
+
   item.quantity += delta;
   if (item.quantity <= 0) {
     posCart = posCart.filter(i => i.stockId !== stockId);
-  } else if (item.quantity > item.maxQty) {
-    item.quantity = item.maxQty;
-    showToast(`Maximum available stock is ${item.maxQty}`, 'warning');
   }
 
   renderPosCart();
+  updateBadges();
 }
 
 function removeFromPosCart(stockId) {
   posCart = posCart.filter(i => i.stockId !== stockId);
   renderPosCart();
+  updateBadges();
 }
 
 function clearPosCart() {
   if (posCart.length === 0) return;
   posCart = [];
   renderPosCart();
+  updateBadges();
   showToast('Cart cleared');
 }
 
@@ -816,6 +1061,7 @@ function renderPosCart() {
     if (el.posGrandTotal) el.posGrandTotal.textContent = 'PKR 0.00';
     if (el.posChangeDue) el.posChangeDue.textContent = 'PKR 0.00';
     if (el.btnCheckoutOrder) el.btnCheckoutOrder.disabled = true;
+    updateBadges();
     return;
   }
 
@@ -858,12 +1104,23 @@ function renderPosCart() {
   }
 
   if (el.btnCheckoutOrder) el.btnCheckoutOrder.disabled = false;
+  updateBadges();
 }
 
 async function checkoutPosSale() {
   if (posCart.length === 0) {
     showToast('Cart is empty. Add items first.', 'warning');
     return;
+  }
+
+  // Strict stock availability validation before initiating checkout
+  for (const item of posCart) {
+    const stock = (appData.inventory || []).find(i => i.id === item.stockId);
+    const available = stock ? Number(stock.quantity || 0) : 0;
+    if (item.quantity > available) {
+      showToast(`Cannot complete sale! Insufficient stock for "${item.stockName}". Available: ${available}, Requested: ${item.quantity}.`, 'error');
+      return;
+    }
   }
 
   const subtotal = posCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
@@ -899,11 +1156,12 @@ async function checkoutPosSale() {
   try {
     const res = await api.createInvoice(newInvoice);
     if (res && res.success === false) {
-      showToast('Failed to complete sale: ' + (res.error || 'Unknown error'), 'error');
+      showToast(res.error || 'Failed to complete sale', 'error');
       return;
     }
 
     await reloadFromDatabase();
+    renderDashboard();
     renderInventory();
     renderShopProducts();
     renderInvoices();
@@ -966,6 +1224,30 @@ function renderInvoices() {
   if (invoicePage > totalPages) invoicePage = totalPages;
   if (invoicePage < 1) invoicePage = 1;
 
+  // Update Invoices KPI Summary Strip
+  if (el.invStatTotalCount) el.invStatTotalCount.textContent = (appData.invoices || []).length;
+  if (el.invStatSoldItemsCount) {
+    let soldCount = 0;
+    (appData.invoices || []).forEach(inv => {
+      let itemsArr = [];
+      try {
+        itemsArr = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || []);
+      } catch (e) {}
+      itemsArr.forEach(it => {
+        soldCount += (Number(it.quantity) || 0);
+      });
+    });
+    el.invStatSoldItemsCount.textContent = `${soldCount.toLocaleString('en-PK')} units`;
+  }
+  if (el.invStatTotalRevenue) {
+    const totalRev = (appData.invoices || []).reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+    el.invStatTotalRevenue.textContent = `PKR ${totalRev.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  }
+  if (el.invStatPaidCount) {
+    const paidCount = (appData.invoices || []).filter(inv => (inv.status || 'Paid') === 'Paid').length;
+    el.invStatPaidCount.textContent = `${paidCount} Paid`;
+  }
+
   const start = (invoicePage - 1) * pageSize;
   const pageItems = filtered.slice(start, start + pageSize);
 
@@ -981,7 +1263,7 @@ function renderInvoices() {
         itemsArr = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || []);
       } catch (e) {}
 
-      const itemsCount = itemsArr.length;
+      const totalQtySold = itemsArr.reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
       const totalFormatted = Number(inv.totalAmount || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 });
       const statusClass = (inv.status === 'Paid') ? 'badge-paid' : 'badge-pending';
       const menuId = `menu-invc-${inv.id}`;
@@ -992,7 +1274,7 @@ function renderInvoices() {
         <td class="col-date">${escapeHtml(inv.date || '')}</td>
         <td class="col-customer">${escapeHtml(inv.customerName)}</td>
         <td class="col-phone">${escapeHtml(inv.customerPhone || '-')}</td>
-        <td class="col-items-count">${itemsCount} item(s)</td>
+        <td class="col-items-count"><strong>${totalQtySold}</strong> item(s)</td>
         <td class="col-total">Rs ${totalFormatted}</td>
         <td class="col-status"><span class="badge-status ${statusClass}">${escapeHtml(inv.status || 'Paid')}</span></td>
         <td class="col-dots-actions">
@@ -1190,7 +1472,14 @@ el.invoiceForm.addEventListener('submit', async (e) => {
       return;
     }
     if (quantity <= 0) {
-      showToast('Quantity must be greater than 0');
+      showToast('Quantity must be greater than 0', 'warning');
+      return;
+    }
+
+    const stockItem = appData.inventory.find(s => s.id === stockId);
+    const available = stockItem ? Number(stockItem.quantity || 0) : 0;
+    if (quantity > available) {
+      showToast(`Cannot create invoice! Insufficient stock for "${stockName}". Available: ${available}, Requested: ${quantity}.`, 'error');
       return;
     }
 
@@ -1226,11 +1515,16 @@ el.invoiceForm.addEventListener('submit', async (e) => {
 
   try {
     if (api.createInvoice) {
-      await api.createInvoice(newInvoice);
+      const res = await api.createInvoice(newInvoice);
+      if (res && res.success === false) {
+        showToast(res.error || 'Failed to save invoice', 'error');
+        return;
+      }
     }
     showToast('Invoice created successfully');
     closeInvoiceModal();
     await reloadFromDatabase();
+    renderDashboard();
     renderInvoices();
     renderInventory();
 
@@ -1238,7 +1532,7 @@ el.invoiceForm.addEventListener('submit', async (e) => {
     openViewInvoice(newInvoice.id);
   } catch (err) {
     console.error('Error saving invoice:', err);
-    showToast('Failed to save invoice');
+    showToast('Failed to save invoice: ' + err.message, 'error');
   }
 });
 
@@ -1843,9 +2137,20 @@ if (el.btnExportCSV) {
 
 
 // Sidebar & Tab Event Listeners
+if (el.navDashboardBtn) el.navDashboardBtn.addEventListener('click', () => switchTab('dashboard'));
+if (el.navShopBtn) el.navShopBtn.addEventListener('click', () => switchTab('shop'));
+if (el.navInvoiceBtn) el.navInvoiceBtn.addEventListener('click', () => switchTab('invoices'));
 if (el.navInventoryBtn) el.navInventoryBtn.addEventListener('click', () => switchTab('inventory'));
 if (el.navVendorBtn) el.navVendorBtn.addEventListener('click', () => switchTab('vendors'));
-if (el.navInvoiceBtn) el.navInvoiceBtn.addEventListener('click', () => switchTab('invoices'));
+
+// Dashboard & Shop Quick Action Listeners
+if (el.btnDashQuickSale) el.btnDashQuickSale.addEventListener('click', () => switchTab('shop'));
+if (el.btnDashAddStock) el.btnDashAddStock.addEventListener('click', openAddStock);
+if (el.btnDashViewAllInvoices) el.btnDashViewAllInvoices.addEventListener('click', () => switchTab('invoices'));
+if (el.btnDismissDashAlert) el.btnDismissDashAlert.addEventListener('click', () => {
+  if (el.dashAlertBanner) el.dashAlertBanner.classList.add('hidden');
+});
+if (el.btnShopGoToInvoices) el.btnShopGoToInvoices.addEventListener('click', () => switchTab('invoices'));
 
 if (el.btnOpenAddStock) el.btnOpenAddStock.addEventListener('click', openAddStock);
 if (el.btnCloseStockModal) el.btnCloseStockModal.addEventListener('click', closeStockModal);
@@ -1861,12 +2166,6 @@ if (el.btnCloseVendorModal) el.btnCloseVendorModal.addEventListener('click', clo
 if (el.btnCancelVendor) el.btnCancelVendor.addEventListener('click', closeVendorModal);
 
 // Shop / POS Event Listeners
-if (el.btnShopTabCounter) {
-  el.btnShopTabCounter.addEventListener('click', () => switchShopSubTab('counter'));
-}
-if (el.btnShopTabHistory) {
-  el.btnShopTabHistory.addEventListener('click', () => switchShopSubTab('history'));
-}
 
 if (el.shopCatalogSearch) {
   el.shopCatalogSearch.addEventListener('input', (e) => {
@@ -2154,6 +2453,7 @@ async function init() {
   if (isAppInitialized) return;
   isAppInitialized = true;
   await reloadFromDatabase();
+  renderDashboard();
   renderInventory();
   renderVendors();
   renderShopProducts();
@@ -2174,13 +2474,16 @@ let resizeDebounceTimer = null;
 window.addEventListener('resize', () => {
   clearTimeout(resizeDebounceTimer);
   resizeDebounceTimer = setTimeout(() => {
-    if (currentTab === 'inventory') {
+    if (currentTab === 'dashboard') {
+      renderDashboard();
+    } else if (currentTab === 'shop') {
+      renderShopProducts();
+    } else if (currentTab === 'invoices') {
+      renderInvoices();
+    } else if (currentTab === 'inventory') {
       renderInventory();
     } else if (currentTab === 'vendors') {
       renderVendors();
-    } else if (currentTab === 'invoices') {
-      renderShopProducts();
-      renderInvoices();
     }
   }, 120);
 });

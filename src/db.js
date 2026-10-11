@@ -484,23 +484,35 @@ function createInvoice(invoice) {
       status: invoice.status || 'Paid',
       createdAt: invoice.createdAt || new Date().toISOString()
     };
+    // Validate stock availability before performing sale
+    const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : (invoice.items || []);
+    for (const it of items) {
+      if (it.stockId) {
+        const item = jsonData.inventory.find(s => s.id === it.stockId);
+        const available = item ? (Number(item.quantity) || 0) : 0;
+        const requested = Number(it.quantity) || 0;
+        if (requested > available) {
+          const name = (item && item.stockName) || it.stockName || 'Stock item';
+          return {
+            success: false,
+            error: `Insufficient stock! Only ${available} units of "${name}" available, cannot sell ${requested}.`
+          };
+        }
+      }
+    }
+
     jsonData.invoices.push(newInvoice);
 
     // Update totalSell and deduct available quantity in inventory for sold items
-    try {
-      const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : (invoice.items || []);
-      for (const it of items) {
-        if (it.stockId) {
-          const item = jsonData.inventory.find(s => s.id === it.stockId);
-          if (item) {
-            const soldQty = Number(it.quantity) || 0;
-            item.totalSell = (Number(item.totalSell) || 0) + soldQty;
-            item.quantity = Math.max(0, (Number(item.quantity) || 0) - soldQty);
-          }
+    for (const it of items) {
+      if (it.stockId) {
+        const item = jsonData.inventory.find(s => s.id === it.stockId);
+        if (item) {
+          const soldQty = Number(it.quantity) || 0;
+          item.totalSell = (Number(item.totalSell) || 0) + soldQty;
+          item.quantity = Math.max(0, (Number(item.quantity) || 0) - soldQty);
         }
       }
-    } catch (err) {
-      console.error('Error updating stock sell count on invoice create:', err);
     }
 
     saveJsonData();
@@ -508,30 +520,49 @@ function createInvoice(invoice) {
   }
 
   if (!dbInstance) throw new Error('Database not initialized');
-  const stmt = dbInstance.prepare(`
-    INSERT INTO invoices (id, invoiceNumber, customerName, customerPhone, customerAddress, date, items, subtotal, discount, totalAmount, notes, status, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
 
-  stmt.run(
-    invoice.id || `invc-${Date.now()}`,
-    invoice.invoiceNumber,
-    invoice.customerName,
-    invoice.customerPhone || '',
-    invoice.customerAddress || '',
-    invoice.date,
-    itemsJson,
-    Number(invoice.subtotal) || 0,
-    Number(invoice.discount) || 0,
-    Number(invoice.totalAmount) || 0,
-    invoice.notes || '',
-    invoice.status || 'Paid',
-    invoice.createdAt || new Date().toISOString()
-  );
+  // SQLite WAL: Validate stock availability and execute in a transaction
+  const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : (invoice.items || []);
+  const checkStockStmt = dbInstance.prepare('SELECT id, stockName, quantity FROM inventory WHERE id = ?');
 
-  // Update totalSell and deduct available quantity in inventory for sold items
+  for (const it of items) {
+    if (it.stockId) {
+      const row = checkStockStmt.get(it.stockId);
+      const available = row ? (Number(row.quantity) || 0) : 0;
+      const requested = Number(it.quantity) || 0;
+      if (requested > available) {
+        const name = (row && row.stockName) || it.stockName || 'Stock item';
+        return {
+          success: false,
+          error: `Insufficient stock! Only ${available} units of "${name}" available, cannot sell ${requested}.`
+        };
+      }
+    }
+  }
+
+  dbInstance.exec('BEGIN TRANSACTION;');
   try {
-    const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : (invoice.items || []);
+    const stmt = dbInstance.prepare(`
+      INSERT INTO invoices (id, invoiceNumber, customerName, customerPhone, customerAddress, date, items, subtotal, discount, totalAmount, notes, status, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      invoice.id || `invc-${Date.now()}`,
+      invoice.invoiceNumber,
+      invoice.customerName,
+      invoice.customerPhone || '',
+      invoice.customerAddress || '',
+      invoice.date,
+      itemsJson,
+      Number(invoice.subtotal) || 0,
+      Number(invoice.discount) || 0,
+      Number(invoice.totalAmount) || 0,
+      invoice.notes || '',
+      invoice.status || 'Paid',
+      invoice.createdAt || new Date().toISOString()
+    );
+
     const updateSellStmt = dbInstance.prepare('UPDATE inventory SET totalSell = totalSell + ?, quantity = MAX(0, quantity - ?) WHERE id = ?');
     for (const it of items) {
       if (it.stockId) {
@@ -539,12 +570,15 @@ function createInvoice(invoice) {
         updateSellStmt.run(soldQty, soldQty, it.stockId);
       }
     }
-    checkpoint();
-  } catch (err) {
-    console.error('Error updating stock sell on invoice create:', err);
-  }
 
-  return { success: true };
+    dbInstance.exec('COMMIT;');
+    checkpoint();
+    return { success: true };
+  } catch (err) {
+    dbInstance.exec('ROLLBACK;');
+    console.error('Error creating invoice in SQLite transaction:', err);
+    return { success: false, error: err.message };
+  }
 }
 
 function deleteInvoice(id) {
