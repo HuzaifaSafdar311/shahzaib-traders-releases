@@ -29,29 +29,7 @@
       </div>
 
       <nav class="nav-menu">
-        <button id="navDashboardBtn" class="nav-item active" title="Dashboard">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-          <span class="nav-label">Dashboard</span>
-          <span id="badgeAlertCount" class="badge badge-alert hidden">0 ⚠️</span>
-        </button>
-
-        <button id="navShopBtn" class="nav-item" title="Shop & POS Counter">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="9" cy="21" r="1"></circle>
-            <circle cx="20" cy="21" r="1"></circle>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-          </svg>
-          <span class="nav-label">Shop</span>
-          <span id="badgeShopCount" class="badge">0</span>
-        </button>
-
-
-        <button id="navInventoryBtn" class="nav-item" title="Inventory">
+        <button id="navInventoryBtn" class="nav-item active" title="Inventory">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
             <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -81,237 +59,8 @@
 
     <!-- Main Content Area -->
     <main class="main-content">
-      <!-- DASHBOARD VIEW (Business Overview, Valuation, Alerts & Analytics) -->
-      <section id="dashboardView" class="view-section active">
-        <header class="section-header dashboard-header">
-          <div class="header-left">
-            <h1 class="view-title">Dashboard</h1>
-          </div>
-          <div class="header-right">
-            <button id="btnDashQuickSale" class="btn btn-primary" type="button">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="9" cy="21" r="1"></circle>
-                <circle cx="20" cy="21" r="1"></circle>
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-              </svg>
-              <span>Open Shop POS</span>
-            </button>
-            <button id="btnDashAddStock" class="btn btn-secondary" type="button">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>+ Add Stock</span>
-            </button>
-          </div>
-        </header>
-
-        <div class="dashboard-scroll">
-          <!-- LOW STOCK ALERT BANNER / POPUP -->
-          <div id="dashAlertBanner" class="dash-alert-banner hidden">
-            <div class="dash-alert-header">
-              <div class="dash-alert-title-wrap">
-                <div class="dash-alert-pulse-badge">⚠️</div>
-                <div>
-                  <h3 class="dash-alert-title">Low Stock Alert</h3>
-                  <span id="dashAlertSubtitle" class="dash-alert-subtitle">Immediate attention required</span>
-                </div>
-              </div>
-              <button type="button" id="btnDismissDashAlert" class="btn-alert-dismiss"
-                title="Hide banner">&times;</button>
-            </div>
-            <div id="dashAlertCardsGrid" class="dash-alert-cards-grid">
-              <!-- Rendered dynamically via JS -->
-            </div>
-          </div>
-
-          <!-- 6 METRIC CARDS -->
-          <div class="dash-metrics-grid">
-            <!-- Card 1: Total Inventory Items -->
-            <div class="dash-metric-card">
-              <div class="metric-top">
-                <span class="metric-label">Total Inventory</span>
-                <div class="metric-icon-box bg-blue">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                  </svg>
-                </div>
-              </div>
-              <div class="metric-value" id="dashTotalInventoryItems">0 Items</div>
-            </div>
-
-            <!-- Card 2: Total Sales in PKR -->
-            <div class="dash-metric-card highlight-green">
-              <div class="metric-top">
-                <span class="metric-label">Total Sales (PKR)</span>
-                <div class="metric-icon-box bg-emerald">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                  </svg>
-                </div>
-              </div>
-              <div class="metric-value text-emerald" id="dashTotalSalesPKR">PKR 0.00</div>
-            </div>
-
-            <!-- Card 3: Wholesale Inventory Value -->
-            <div class="dash-metric-card">
-              <div class="metric-top">
-                <span class="metric-label">Wholesale Value</span>
-                <div class="metric-icon-box bg-amber">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <path d="M16 10a4 4 0 0 1-8 0"></path>
-                  </svg>
-                </div>
-              </div>
-              <div class="metric-value text-amber" id="dashWholesaleValuePKR">PKR 0.00</div>
-            </div>
-
-            <!-- Card 4: Retail / Individual Value -->
-            <div class="dash-metric-card">
-              <div class="metric-top">
-                <span class="metric-label">Individual / Retail Value</span>
-                <div class="metric-icon-box bg-indigo">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                </div>
-              </div>
-              <div class="metric-value text-indigo" id="dashIndividualValuePKR">PKR 0.00</div>
-            </div>
-
-            <!-- Card 5: Remaining Stock Units -->
-            <div class="dash-metric-card">
-              <div class="metric-top">
-                <span class="metric-label">Remaining Stock</span>
-                <div class="metric-icon-box bg-cyan">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path
-                      d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-                    </path>
-                  </svg>
-                </div>
-              </div>
-              <div class="metric-value text-cyan" id="dashRemainingUnits">0 Units</div>
-            </div>
-
-            <!-- Card 6: Potential Profit / Margin -->
-            <div class="dash-metric-card">
-              <div class="metric-top">
-                <span class="metric-label">Potential Gross Margin</span>
-                <div class="metric-icon-box bg-purple">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                    <polyline points="17 6 23 6 23 12"></polyline>
-                  </svg>
-                </div>
-              </div>
-              <div class="metric-value text-purple" id="dashPotentialMarginPKR">PKR 0.00</div>
-            </div>
-          </div>
-
-          <!-- VISUALS & ANALYTICS PANELS -->
-          <div class="dash-visuals-grid">
-            <!-- Visual Panel 1: Stock Health Status -->
-            <div class="dash-visual-card">
-              <div class="visual-card-header">
-                <div class="visual-header-title">
-                  <svg class="visual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="20" x2="18" y2="10"></line>
-                    <line x1="12" y1="20" x2="12" y2="4"></line>
-                    <line x1="6" y1="20" x2="6" y2="14"></line>
-                  </svg>
-                  <span>Stock Health Overview</span>
-                </div>
-                <span class="visual-badge" id="dashStockRatioPercent">0% Sold</span>
-              </div>
-              <div class="visual-card-body">
-                <!-- Stock Health Donut Chart -->
-                <div class="stock-donut-wrap">
-                  <svg id="stockDonutSvg" class="stock-donut-svg" viewBox="0 0 120 120">
-                    <!-- Rendered dynamically -->
-                  </svg>
-                  <div class="stock-donut-legend" id="stockDonutLegend"></div>
-                </div>
-
-                <!-- Stock Condition Health Gauges -->
-                <div class="stock-status-chips-row">
-                  <div class="status-chip chip-healthy">
-                    <span class="chip-dot"></span>
-                    <span>Healthy (&gt;10): <strong id="countHealthyStock">0</strong></span>
-                  </div>
-                  <div class="status-chip chip-low">
-                    <span class="chip-dot"></span>
-                    <span>Low (&le;10): <strong id="countLowStock">0</strong></span>
-                  </div>
-                  <div class="status-chip chip-out">
-                    <span class="chip-dot"></span>
-                    <span>Out: <strong id="countOutStock">0</strong></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Visual Panel 2: Top Selling Products (Units Sold) -->
-            <div class="dash-visual-card">
-              <div class="visual-card-header">
-                <div class="visual-header-title">
-                  <svg class="visual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon
-                      points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                    </polygon>
-                  </svg>
-                  <span>Top Selling Products (Shop Sales)</span>
-                </div>
-                <span class="visual-badge" id="dashTopSellerBadge">Leaderboard</span>
-              </div>
-              <div class="visual-card-body">
-                <div id="dashTopProductsList" class="dash-top-products-list">
-                  <!-- Rendered dynamically via JS -->
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Visual Panel 3: Recent Sales Stream -->
-          <div class="dash-visual-card recent-sales-card">
-            <div class="visual-card-header">
-              <div class="visual-header-title">
-                <svg class="visual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                </svg>
-                <span>Recent Sales &amp; Receipts</span>
-              </div>
-            </div>
-            <div class="visual-card-body table-responsive">
-              <table class="recent-sales-table">
-                <thead>
-                  <tr>
-                    <th>Receipt #</th>
-                    <th>Date</th>
-                    <th>Customer Name</th>
-                    <th>Items Sold</th>
-                    <th>Grand Total</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Action</th>
-                  </tr>
-                </thead>
-                <tbody id="dashRecentSalesBody">
-                  <!-- Rendered dynamically via JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <!-- INVENTORY VIEW -->
-      <section id="inventoryView" class="view-section">
+      <section id="inventoryView" class="view-section active">
         <header class="section-header">
           <div class="header-left">
             <h1 class="view-title">Inventory</h1>
@@ -437,7 +186,6 @@
                 <th class="col-vendor">Vendor</th>
                 <th class="col-stock-qty">Total Stock</th>
                 <th class="col-sell-qty">Total Sell</th>
-                <th class="col-price">Original Value</th>
                 <th class="col-price">Wholesale</th>
                 <th class="col-price">Individual</th>
                 <th class="col-date">Date</th>
@@ -478,8 +226,7 @@
       <section id="vendorView" class="view-section">
         <header class="section-header">
           <div class="header-left">
-            <h1 class="view-title">Vendors & Suppliers</h1>
-            <p class="view-subtitle">Manage suppliers, procurement records, and purchase history</p>
+            <h1 class="view-title">Vendors</h1>
           </div>
           <div class="header-right">
             <button id="btnOpenAddVendor" class="btn btn-primary">
@@ -492,17 +239,14 @@
           </div>
         </header>
 
-
-
         <!-- Vendor Toolbar -->
         <div class="toolbar toolbar-left-aligned">
           <div class="search-box-group">
             <div class="search-by-wrapper">
               <label for="vendorSearchBy" class="search-by-label">Search by</label>
               <select id="vendorSearchBy" class="search-by-select">
-                <option value="all">All Fields</option>
-                <option value="name">Company / Vendor Name</option>
-                <option value="contactPerson">Contact Person</option>
+                <option value="all">All</option>
+                <option value="name">Vendor Name</option>
                 <option value="phone">Phone Number</option>
               </select>
             </div>
@@ -511,7 +255,7 @@
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
-              <input type="text" id="vendorSearchInput" placeholder="Search by name, contact person, or phone..." autocomplete="off">
+              <input type="text" id="vendorSearchInput" placeholder="Search vendors..." autocomplete="off">
               <button id="btnClearVendorSearch" class="btn-clear hidden">&times;</button>
             </div>
           </div>
@@ -522,12 +266,9 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th class="col-vendor-company">Vendor / Business</th>
-                <th class="col-vendor-contact">Phone / Contact</th>
-                <th class="col-vendor-skus">Supplied Items</th>
-                <th class="col-vendor-units">Total Units Bought</th>
-                <th class="col-vendor-spend">Total Purchase Spend</th>
-                <th class="col-vendor-actions">Actions</th>
+                <th class="col-vendor-name">Vendor Name</th>
+                <th class="col-phone">Phone Number</th>
+                <th class="col-dots-actions">Actions</th>
               </tr>
             </thead>
             <tbody id="vendorTableBody">
@@ -560,195 +301,7 @@
         </div>
       </section>
 
-      <!-- SHOP / POS VIEW (Point of Sale & Billing System) -->
-      <section id="shopView" class="view-section">
-        <header class="section-header shop-section-header">
-          <div class="header-left">
-            <h1 class="view-title">Shop POS &amp; Billing</h1>
-            <p class="view-subtitle">Fast counter billing, customer invoicing &amp; sales records</p>
-          </div>
-          <div class="header-right">
-            <button id="btnOpenCreateBill" class="btn btn-primary" type="button" title="Create a new customer bill">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="12" y1="18" x2="12" y2="12"></line>
-                <line x1="9" y1="15" x2="15" y2="15"></line>
-              </svg>
-              <span>+ Create Bill</span>
-            </button>
-          </div>
-        </header>
-
-        <div id="shopContainer" class="shop-clean-container">
-          <!-- Top Shop KPI Cards -->
-          <div class="shop-metrics-grid">
-            <div class="shop-metric-card">
-              <div class="shop-metric-icon bg-emerald-subtle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-              </div>
-              <div class="shop-metric-details">
-                <span class="shop-metric-label">Today's Bills</span>
-                <span id="shopTodayBillsCount" class="shop-metric-value">0</span>
-                <span id="shopTodayBillsSub" class="shop-metric-sub">0 sales recorded today</span>
-              </div>
-            </div>
-
-            <div class="shop-metric-card">
-              <div class="shop-metric-icon bg-blue-subtle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="1" x2="12" y2="23"></line>
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-              </div>
-              <div class="shop-metric-details">
-                <span class="shop-metric-label">Today's Sales Revenue</span>
-                <span id="shopTodayRevenue" class="shop-metric-value">PKR 0.00</span>
-                <span class="shop-metric-sub">Billed today</span>
-              </div>
-            </div>
-
-            <div class="shop-metric-card">
-              <div class="shop-metric-icon bg-violet-subtle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                  <line x1="8" y1="21" x2="16" y2="21"></line>
-                  <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
-              </div>
-              <div class="shop-metric-details">
-                <span class="shop-metric-label">Total Bills Generated</span>
-                <span id="shopTotalBillsCount" class="shop-metric-value">0</span>
-                <span class="shop-metric-sub">All-time invoices</span>
-              </div>
-            </div>
-
-            <div class="shop-metric-card">
-              <div class="shop-metric-icon bg-amber-subtle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-              </div>
-              <div class="shop-metric-details">
-                <span class="shop-metric-label">Total Sales Volume</span>
-                <span id="shopTotalRevenue" class="shop-metric-value">PKR 0.00</span>
-                <span class="shop-metric-sub">Cumulative sales</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bills Table Section -->
-          <div class="shop-bills-wrapper">
-            <div class="shop-bills-header-row">
-              <div class="shop-bills-title-group">
-                <h2 class="section-title">Sales &amp; Customer Bills</h2>
-                <span id="shopBillsCountSubtitle" class="shop-bills-subtitle">0 invoices recorded</span>
-              </div>
-              <div class="shop-bills-actions-group">
-                <div class="search-box shop-search-box">
-                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
-                  <input type="text" id="shopBillsSearchInput" placeholder="Search bill #, customer, phone..." autocomplete="off">
-                  <button id="btnClearShopBillsSearch" class="btn-clear hidden">&times;</button>
-                </div>
-                <button type="button" id="btnShopHeaderCreateBill" class="btn btn-primary btn-create-bill-header" title="Create New Customer Bill">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>+ Create Bill</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="table-container shop-bills-table-container">
-              <table class="data-table" id="shopBillsTable">
-                <thead>
-                  <tr>
-                    <th class="col-bill-no">Bill #</th>
-                    <th class="col-bill-date">Date &amp; Time</th>
-                    <th class="col-bill-customer">Customer</th>
-                    <th class="col-bill-items">Items</th>
-                    <th class="col-bill-subtotal">Order Total</th>
-                    <th class="col-bill-discount">Discount</th>
-                    <th class="col-bill-total">Net Grand Total</th>
-                    <th class="col-bill-status">Status</th>
-                    <th class="col-bill-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="shopBillsTableBody">
-                  <!-- Rendered dynamically -->
-                </tbody>
-              </table>
-
-              <div id="shopBillsEmptyState" class="empty-state hidden">
-                <div class="empty-state-icon-circle">
-                  <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                  </svg>
-                </div>
-                <h3 class="empty-title">No Bills Generated Yet</h3>
-                <p class="empty-desc">Create your first customer bill to start processing sales and printing receipts.</p>
-                <button type="button" id="btnShopEmptyCreateBill" class="btn btn-primary btn-empty-cta">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>+ Create Bill</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- DEDICATED SLIP / RECEIPT PAGE VIEW (Full Page, No Modal Popup) -->
-      <section id="receiptPageView" class="view-section">
-        <header class="section-header receipt-page-header">
-          <div class="header-left">
-            <button id="btnReceiptBackToShop" class="btn btn-secondary btn-sm" type="button" title="Back to Shop">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-              <span>&larr; Back to Shop</span>
-            </button>
-            <h1 class="view-title receipt-view-title">Sale Receipt Slip</h1>
-          </div>
-          <div class="header-right receipt-page-actions">
-            <button id="btnPrintReceiptPage" class="btn btn-primary btn-sm" type="button" title="Print this receipt slip">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                <rect x="6" y="14" width="12" height="8"></rect>
-              </svg>
-              <span>Print Slip</span>
-            </button>
-          </div>
-        </header>
-
-        <!-- Receipt Page Canvas Container -->
-        <div class="receipt-page-container">
-          <div id="receiptPageSheet" class="receipt-page-sheet">
-            <!-- Populated dynamically via JS -->
-          </div>
-        </div>
-      </section>
-
-
-
-    </main>
+      </main>
   </div>
 
   <!-- MODAL: ADD / EDIT STOCK -->
@@ -790,26 +343,17 @@
           </div>
 
           <div class="form-group">
-            <label for="stockPurchasePrice">Original Value (Vendor Cost) <span class="req">*</span></label>
-            <input type="number" id="stockPurchasePrice" min="0" step="0.01" placeholder="0.00" required>
-          </div>
-
-          <div class="form-group">
             <label for="stockWholesalePrice">Wholesale Price <span class="req">*</span></label>
             <input type="number" id="stockWholesalePrice" min="0" step="0.01" placeholder="0.00" required>
           </div>
 
-          <div class="form-group span-2">
+          <div class="form-group">
             <label for="stockIndividualPrice">Individual Price <span class="req">*</span></label>
             <input type="number" id="stockIndividualPrice" min="0" step="0.01" placeholder="0.00" required>
           </div>
 
-          <!-- Real-Time Calculated Total Prices According to Quantity and Prices -->
+          <!-- Real-Time Calculated Total Prices According to Quantity and Both Prices -->
           <div class="total-prices-banner span-2">
-            <div class="total-price-box">
-              <span class="total-price-label">Total Original Value</span>
-              <span id="summaryTotalPurchase" class="total-price-value">PKR 0.00</span>
-            </div>
             <div class="total-price-box">
               <span class="total-price-label">Total Wholesale</span>
               <span id="summaryTotalWholesale" class="total-price-value">PKR 0.00</span>
@@ -831,7 +375,7 @@
 
   <!-- MODAL: ADD / EDIT VENDOR -->
   <div id="modalVendor" class="modal-overlay hidden">
-    <div class="modal-card modal-md">
+    <div class="modal-card modal-sm">
       <div class="modal-header">
         <h2 id="modalVendorTitle" class="modal-title">Add Vendor</h2>
         <button id="btnCloseVendorModal" class="btn-close">&times;</button>
@@ -840,17 +384,12 @@
         <input type="hidden" id="vendorId">
 
         <div class="form-group">
-          <label for="vendorNameInput">Company / Vendor Name <span class="req">*</span></label>
-          <input type="text" id="vendorNameInput" placeholder="e.g. Apex Industrial Supplies" required>
+          <label for="vendorNameInput">Vendor Name <span class="req">*</span></label>
+          <input type="text" id="vendorNameInput" placeholder="Enter vendor name" required>
         </div>
 
         <div class="form-group">
-          <label for="vendorContactPersonInput">Contact Person / Rep</label>
-          <input type="text" id="vendorContactPersonInput" placeholder="e.g. Muhammad Tariq">
-        </div>
-
-        <div class="form-group">
-          <label for="vendorPhoneInput">Phone / Mobile <span class="req">*</span></label>
+          <label for="vendorPhoneInput">Phone Number <span class="req">*</span></label>
           <input type="tel" id="vendorPhoneInput" placeholder="0300-1234567" required>
         </div>
 
@@ -859,379 +398,6 @@
           <button type="submit" id="btnSaveVendor" class="btn btn-primary">Save Vendor</button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <!-- MODAL: VENDOR PURCHASE RECORD & SUPPLIER PROFILE -->
-  <div id="modalVendorProfile" class="modal-overlay hidden">
-    <div class="modal-card modal-xl vendor-profile-modal-card">
-      <div class="modal-header">
-        <div class="vp-header-info">
-          <div class="vp-avatar-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-          </div>
-          <div>
-            <div class="vp-title-row">
-              <h2 id="vpVendorName" class="modal-title">Vendor Name</h2>
-              <span id="vpContactPill" class="vp-contact-pill hidden">Contact Rep</span>
-            </div>
-          </div>
-        </div>
-        <div class="modal-actions-right">
-          <button type="button" id="btnVendorProfileAddStock" class="btn btn-primary btn-sm">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span>+ Add Stock for Vendor</span>
-          </button>
-          <button type="button" id="btnVendorProfileEdit" class="btn btn-secondary btn-sm">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-            <span>Edit Info</span>
-          </button>
-          <button id="btnCloseVendorProfileModal" class="btn-close">&times;</button>
-        </div>
-      </div>
-
-      <div class="vp-modal-body">
-        <!-- Contact Meta Strip -->
-        <div class="vp-contact-strip">
-          <div class="vp-contact-chip">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-            </svg>
-            <span id="vpPhoneText">0300-0000000</span>
-          </div>
-
-          <div class="vp-contact-chip">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span id="vpDateText">Partner since 2025</span>
-          </div>
-        </div>
-
-        <!-- Vendor Financial & Supply KPIs -->
-        <div class="vp-kpi-grid">
-          <div class="vp-kpi-card">
-            <span class="vp-kpi-label">Supplied Products</span>
-            <span id="vpTotalSkus" class="vp-kpi-val">0 SKUs</span>
-          </div>
-          <div class="vp-kpi-card">
-            <span class="vp-kpi-label">Total Units Received</span>
-            <span id="vpTotalUnits" class="vp-kpi-val">0 Units</span>
-          </div>
-          <div class="vp-kpi-card">
-            <span class="vp-kpi-label">Current Stock on Hand</span>
-            <span id="vpInStockUnits" class="vp-kpi-val text-blue">0 Units</span>
-          </div>
-          <div class="vp-kpi-card highlight-green">
-            <span class="vp-kpi-label">Total Purchase Volume</span>
-            <span id="vpTotalSpend" class="vp-kpi-val text-emerald">PKR 0.00</span>
-          </div>
-        </div>
-
-        <!-- Stock Purchase Ledger / History Table -->
-        <div class="vp-table-section">
-          <div class="section-subheading-row">
-            <h3 class="section-subheading">Stock Supply & Procurement History</h3>
-            <span id="vpItemCountSubtitle" class="text-muted-sm">0 Items recorded</span>
-          </div>
-
-          <div class="table-container vp-table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Product Name</th>
-                  <th>Date Supplied</th>
-                  <th>Units Bought</th>
-                  <th>In Stock</th>
-                  <th>Sold</th>
-                  <th>Original Cost (PKR)</th>
-                  <th>Total Cost (PKR)</th>
-                  <th>Selling Price</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="vpStockTableBody">
-                <!-- Rendered dynamically -->
-              </tbody>
-            </table>
-            <div id="vpStockEmptyState" class="empty-state hidden">
-              <span>No stock items recorded for this vendor yet</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: CREATE CUSTOMER BILL / INVOICE -->
-  <div id="modalCreateBill" class="modal-overlay hidden">
-    <div class="modal-card modal-xl create-bill-modal-card">
-      <div class="modal-header bill-modal-header">
-        <div class="bill-modal-title-wrap">
-          <div class="bill-title-icon-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-          </div>
-          <div>
-            <div class="bill-title-row">
-              <h2 class="modal-title">Create Bill / Invoice</h2>
-              <span id="billInvoiceNumberBadge" class="bill-num-badge">INV-1001</span>
-            </div>
-            <p class="modal-subtitle">Retail Point of Sale &bull; Shahzaib Traders</p>
-          </div>
-        </div>
-        <button id="btnCloseCreateBillModal" class="btn-close" type="button">&times;</button>
-      </div>
-
-      <div class="modal-body bill-modal-body">
-        <!-- Section 1: Customer Details & Bill Meta -->
-        <div class="bill-section-card">
-          <div class="bill-section-title-row">
-            <span class="bill-section-title">Customer Information</span>
-            <button type="button" id="btnBillWalkInCustomer" class="btn-walkin-pill" title="Fill with Walk-in Customer">
-              <span>Walk-in Customer</span>
-            </button>
-          </div>
-
-          <div class="bill-cust-grid">
-            <div class="form-group">
-              <label for="billCustomerName">Customer Name <span class="req">*</span></label>
-              <input type="text" id="billCustomerName" placeholder="e.g. Ali Ahmed" required autocomplete="off">
-            </div>
-
-            <div class="form-group">
-              <label for="billCustomerPhone">Customer Phone</label>
-              <input type="tel" id="billCustomerPhone" placeholder="0300-1234567" autocomplete="off">
-            </div>
-
-            <div class="form-group">
-              <label for="billDateInput">Bill Date</label>
-              <input type="date" id="billDateInput">
-            </div>
-
-            <div class="form-group">
-              <label for="billPaymentMode">Payment Method</label>
-              <select id="billPaymentMode">
-                <option value="Cash">Cash</option>
-                <option value="Online / Bank">Online / Bank Transfer</option>
-                <option value="Credit / Khata">Credit / Khata</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 2: Add Products / Line Items -->
-        <div class="bill-section-card">
-          <div class="bill-section-title-row">
-            <span class="bill-section-title">Add Items to Bill</span>
-            <span id="billItemStockCountHint" class="text-muted-xs">Select product from inventory</span>
-          </div>
-
-          <div class="bill-add-item-bar">
-            <div class="form-group bill-col-stock">
-              <label for="billStockSelect">Select Inventory Product</label>
-              <select id="billStockSelect">
-                <option value="">-- Choose Stock Item --</option>
-              </select>
-            </div>
-
-            <div class="form-group bill-col-price">
-              <div class="label-with-action">
-                <label for="billItemPrice">Unit Price (PKR)</label>
-                <div class="bill-price-pills">
-                  <button type="button" id="btnPriceRetail" class="price-pill active" title="Use Retail Price">Retail</button>
-                  <button type="button" id="btnPriceWholesale" class="price-pill" title="Use Wholesale Price">Wholesale</button>
-                </div>
-              </div>
-              <input type="number" id="billItemPrice" placeholder="0.00" min="0" step="0.01">
-            </div>
-
-            <div class="form-group bill-col-qty">
-              <div class="label-with-action">
-                <label for="billItemQty">Quantity</label>
-                <span id="billItemStockAvailableText" class="bill-avail-hint">Available: -</span>
-              </div>
-              <input type="number" id="billItemQty" value="1" min="1" step="1">
-            </div>
-
-            <div class="bill-col-btn">
-              <button type="button" id="btnAddBillItem" class="btn btn-primary btn-add-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span>Add Item</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Items Table -->
-          <div class="table-container bill-items-table-wrapper">
-            <table class="data-table" id="billItemsTable">
-              <thead>
-                <tr>
-                  <th style="width: 40px; text-align: center;">#</th>
-                  <th>Item Name</th>
-                  <th style="width: 100px; text-align: center;">In Stock</th>
-                  <th style="width: 130px; text-align: center;">Quantity</th>
-                  <th style="width: 140px; text-align: right;">Unit Price (PKR)</th>
-                  <th style="width: 150px; text-align: right;">Line Total (PKR)</th>
-                  <th style="width: 50px; text-align: center;"></th>
-                </tr>
-              </thead>
-              <tbody id="billItemsTableBody">
-                <!-- Rendered dynamically -->
-              </tbody>
-            </table>
-            <div id="billItemsEmptyPrompt" class="bill-items-empty">
-              <span>No items added yet. Choose a product above and click "Add Item".</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 3: Notes & Financial Calculation Breakdown -->
-        <div class="bill-bottom-split">
-          <div class="bill-notes-box">
-            <div class="form-group">
-              <label for="billNotesInput">Invoice Notes / Policy</label>
-              <textarea id="billNotesInput" rows="3" placeholder="Goods once sold are returnable within 3 days with receipt. Thank you for your business!"></textarea>
-            </div>
-          </div>
-
-          <div class="bill-summary-card">
-            <div class="bill-sum-row">
-              <span class="bill-sum-label">Order Total (Subtotal):</span>
-              <span id="billSubtotalDisplay" class="bill-sum-val">PKR 0.00</span>
-            </div>
-
-            <div class="bill-sum-row discount-row">
-              <label for="billDiscountInput" class="bill-sum-label">Discount (PKR):</label>
-              <div class="discount-input-wrap">
-                <input type="number" id="billDiscountInput" class="input-inline-num" min="0" step="1" value="0">
-              </div>
-            </div>
-
-            <div class="bill-sum-divider"></div>
-
-            <div class="bill-sum-row net-total-row">
-              <span class="bill-net-label">Net Grand Total:</span>
-              <span id="billGrandTotalDisplay" class="bill-net-val">PKR 0.00</span>
-            </div>
-
-            <div class="bill-sum-row cash-row">
-              <label for="billCashReceived" class="bill-sum-label">Cash Received:</label>
-              <input type="number" id="billCashReceived" class="input-inline-num" min="0" step="1" placeholder="0.00">
-            </div>
-
-            <div class="bill-sum-row change-row">
-              <span class="bill-sum-label">Change / Balance:</span>
-              <span id="billChangeDueDisplay" class="bill-change-val">PKR 0.00</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer bill-modal-footer">
-        <button type="button" id="btnCancelCreateBill" class="btn btn-secondary">Cancel</button>
-        <button type="button" id="btnSaveBillOnly" class="btn btn-secondary">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-            <polyline points="7 3 7 8 15 8"></polyline>
-          </svg>
-          <span>Save Bill</span>
-        </button>
-        <button type="button" id="btnSaveAndPrintBill" class="btn btn-primary">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-            <rect x="6" y="14" width="12" height="8"></rect>
-          </svg>
-          <span>Generate &amp; Print Bill</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: LOW STOCK STARTUP ALERT (Mandatory 5-Second Review Lock) -->
-  <div id="modalLowStockAlert" class="modal-overlay hidden" style="z-index: 1200;">
-    <div class="modal-card low-stock-modal-card">
-      <div class="low-stock-modal-header">
-        <div class="low-stock-header-title-wrap">
-          <div class="low-stock-icon-pulse">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-              <line x1="12" y1="9" x2="12" y2="13"></line>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-          </div>
-          <div>
-            <div class="low-stock-title-row">
-              <h2 class="modal-title" style="color: #92400e; font-size: 16.5px; font-weight: 700;">Low Stock Alert</h2>
-              <span id="lowStockAlertBadge" class="low-stock-badge-count">0 Items</span>
-            </div>
-            <p class="modal-subtitle">Inventory items below minimum reorder threshold (&le; 10 units)</p>
-          </div>
-        </div>
-        <button id="btnCloseLowStockModalX" class="btn-close" type="button" disabled title="Close (Available in 5s)">&times;</button>
-      </div>
-
-      <div class="low-stock-timer-bar-wrap">
-        <div id="lowStockTimerBar" class="low-stock-timer-bar"></div>
-      </div>
-
-      <div class="modal-body low-stock-modal-body">
-        <div class="low-stock-alert-notice">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="notice-info-icon">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          <span id="lowStockAlertTimerText">Please review low stock items. You can close this alert in 5 seconds.</span>
-        </div>
-
-        <div class="low-stock-items-list-container">
-          <table class="data-table low-stock-table">
-            <thead>
-              <tr>
-                <th style="width: 42%;">Product Name</th>
-                <th style="width: 26%;">Vendor</th>
-                <th style="width: 18%; text-align: center;">Stock Qty</th>
-                <th style="width: 14%; text-align: right;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="lowStockModalTableBody">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="modal-footer low-stock-modal-footer">
-        <div class="footer-timer-status">
-          <span id="lowStockCountdownLabel">Locked: 5s remaining</span>
-        </div>
-        <button type="button" id="btnDismissLowStockAlert" class="btn btn-secondary btn-dismiss-locked" disabled>
-          <span>Closing available in 5s</span>
-        </button>
-      </div>
     </div>
   </div>
 

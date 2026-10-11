@@ -17,6 +17,22 @@ if (fs.existsSync(envPath)) {
   dotenv.config();
 }
 
+// Prevent GPU/disk cache collision errors on Windows
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+
+// Ensure only one instance of the app runs at a time
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
 let mainWindow;
 
 function getDbFilePath() {
@@ -151,20 +167,7 @@ app.whenReady().then(() => {
     return db.deleteVendor(id);
   });
 
-  // ============================================
-  // INVOICE IPC HANDLERS
-  // ============================================
-  ipcMain.handle('get-invoices', async () => {
-    return db.getAllInvoices();
-  });
 
-  ipcMain.handle('create-invoice', async (event, invoice) => {
-    return db.createInvoice(invoice);
-  });
-
-  ipcMain.handle('delete-invoice', async (event, id) => {
-    return db.deleteInvoice(id);
-  });
 
   // ============================================
   // EXPORT IPC HANDLERS

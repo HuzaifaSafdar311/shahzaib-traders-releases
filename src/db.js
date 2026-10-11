@@ -15,8 +15,7 @@ let isJsonFallback = false;
 let jsonFilePath = null;
 let jsonData = {
   vendors: [],
-  inventory: [],
-  invoices: []
+  inventory: []
 };
 
 function saveJsonData() {
@@ -39,15 +38,14 @@ function initJsonFallback(dbPath) {
       const parsed = JSON.parse(fs.readFileSync(jsonFilePath, 'utf8'));
       jsonData = {
         vendors: Array.isArray(parsed.vendors) ? parsed.vendors : [],
-        inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
-        invoices: Array.isArray(parsed.invoices) ? parsed.invoices : []
+        inventory: Array.isArray(parsed.inventory) ? parsed.inventory : []
       };
     } catch (e) {
       console.warn('Failed to parse existing JSON database, re-initializing:', e);
-      jsonData = { vendors: [], inventory: [], invoices: [] };
+      jsonData = { vendors: [], inventory: [] };
     }
   } else {
-    jsonData = { vendors: [], inventory: [], invoices: [] };
+    jsonData = { vendors: [], inventory: [] };
     saveJsonData();
   }
 
@@ -96,25 +94,9 @@ function initDatabase(dbPath) {
         date TEXT NOT NULL,
         createdAt TEXT NOT NULL
       );
-
-      CREATE TABLE IF NOT EXISTS invoices (
-        id TEXT PRIMARY KEY,
-        invoiceNumber TEXT NOT NULL,
-        customerName TEXT NOT NULL,
-        customerPhone TEXT,
-        customerAddress TEXT,
-        date TEXT NOT NULL,
-        items TEXT NOT NULL,
-        subtotal REAL NOT NULL DEFAULT 0,
-        discount REAL NOT NULL DEFAULT 0,
-        totalAmount REAL NOT NULL DEFAULT 0,
-        notes TEXT,
-        status TEXT NOT NULL DEFAULT 'Paid',
-        createdAt TEXT NOT NULL
-      );
     `);
 
-    // Ensure new columns exist for existing databases
+    // Ensure columns exist for existing databases
     try { db.exec('ALTER TABLE inventory ADD COLUMN totalSell INTEGER DEFAULT 0;'); } catch (e) {}
     try { db.exec('ALTER TABLE inventory ADD COLUMN purchasePrice REAL DEFAULT 0;'); } catch (e) {}
     try { db.exec('ALTER TABLE inventory ADD COLUMN wholesalePrice REAL DEFAULT 0;'); } catch (e) {}
@@ -141,21 +123,16 @@ function getAllData() {
     const inventory = [...jsonData.inventory].sort((a, b) =>
       (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || '')
     );
-    const invoices = [...jsonData.invoices].sort((a, b) =>
-      (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || '')
-    );
-    return { vendors, inventory, invoices };
+    return { vendors, inventory };
   }
 
   if (!dbInstance) throw new Error('Database not initialized');
   const vendorsStmt = dbInstance.prepare('SELECT id, name, contactPerson, phone, email, address, notes, createdAt FROM vendors ORDER BY createdAt DESC, name ASC');
   const inventoryStmt = dbInstance.prepare('SELECT id, stockName, vendorId, vendorName, quantity, totalSell, purchasePrice, wholesalePrice, individualPrice, date, createdAt FROM inventory ORDER BY date DESC, createdAt DESC');
-  const invoicesStmt = dbInstance.prepare('SELECT id, invoiceNumber, customerName, customerPhone, customerAddress, date, items, subtotal, discount, totalAmount, notes, status, createdAt FROM invoices ORDER BY date DESC, createdAt DESC');
 
   return {
     vendors: vendorsStmt.all(),
-    inventory: inventoryStmt.all(),
-    invoices: invoicesStmt.all()
+    inventory: inventoryStmt.all()
   };
 }
 
@@ -365,151 +342,6 @@ function deleteVendor(id) {
   }
 }
 
-// ============================================
-// INVOICE FUNCTIONS
-// ============================================
-function getAllInvoices() {
-  if (isJsonFallback) {
-    return [...jsonData.invoices].sort((a, b) =>
-      (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || '')
-    );
-  }
-
-  if (!dbInstance) throw new Error('Database not initialized');
-  const stmt = dbInstance.prepare('SELECT id, invoiceNumber, customerName, customerPhone, customerAddress, date, items, subtotal, discount, totalAmount, notes, status, createdAt FROM invoices ORDER BY date DESC, createdAt DESC');
-  return stmt.all();
-}
-
-function createInvoice(invoice) {
-  const itemsJson = typeof invoice.items === 'string' ? invoice.items : JSON.stringify(invoice.items || []);
-
-  if (isJsonFallback) {
-    const newInvoice = {
-      id: invoice.id || `invc-${Date.now()}`,
-      invoiceNumber: invoice.invoiceNumber,
-      customerName: invoice.customerName,
-      customerPhone: invoice.customerPhone || '',
-      customerAddress: invoice.customerAddress || '',
-      date: invoice.date,
-      items: itemsJson,
-      subtotal: Number(invoice.subtotal) || 0,
-      discount: Number(invoice.discount) || 0,
-      totalAmount: Number(invoice.totalAmount) || 0,
-      notes: invoice.notes || '',
-      status: invoice.status || 'Paid',
-      createdAt: invoice.createdAt || new Date().toISOString()
-    };
-    // Validate stock availability before performing sale
-    const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : (invoice.items || []);
-    for (const it of items) {
-      if (it.stockId) {
-        const item = jsonData.inventory.find(s => s.id === it.stockId);
-        const available = item ? (Number(item.quantity) || 0) : 0;
-        const requested = Number(it.quantity) || 0;
-        if (requested > available) {
-          const name = (item && item.stockName) || it.stockName || 'Stock item';
-          return {
-            success: false,
-            error: `Insufficient stock! Only ${available} units of "${name}" available, cannot sell ${requested}.`
-          };
-        }
-      }
-    }
-
-    jsonData.invoices.push(newInvoice);
-
-    // Update totalSell and deduct available quantity in inventory for sold items
-    for (const it of items) {
-      if (it.stockId) {
-        const item = jsonData.inventory.find(s => s.id === it.stockId);
-        if (item) {
-          const soldQty = Number(it.quantity) || 0;
-          item.totalSell = (Number(item.totalSell) || 0) + soldQty;
-          item.quantity = Math.max(0, (Number(item.quantity) || 0) - soldQty);
-        }
-      }
-    }
-
-    saveJsonData();
-    return { success: true };
-  }
-
-  if (!dbInstance) throw new Error('Database not initialized');
-
-  // SQLite WAL: Validate stock availability and execute in a transaction
-  const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : (invoice.items || []);
-  const checkStockStmt = dbInstance.prepare('SELECT id, stockName, quantity FROM inventory WHERE id = ?');
-
-  for (const it of items) {
-    if (it.stockId) {
-      const row = checkStockStmt.get(it.stockId);
-      const available = row ? (Number(row.quantity) || 0) : 0;
-      const requested = Number(it.quantity) || 0;
-      if (requested > available) {
-        const name = (row && row.stockName) || it.stockName || 'Stock item';
-        return {
-          success: false,
-          error: `Insufficient stock! Only ${available} units of "${name}" available, cannot sell ${requested}.`
-        };
-      }
-    }
-  }
-
-  dbInstance.exec('BEGIN TRANSACTION;');
-  try {
-    const stmt = dbInstance.prepare(`
-      INSERT INTO invoices (id, invoiceNumber, customerName, customerPhone, customerAddress, date, items, subtotal, discount, totalAmount, notes, status, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      invoice.id || `invc-${Date.now()}`,
-      invoice.invoiceNumber,
-      invoice.customerName,
-      invoice.customerPhone || '',
-      invoice.customerAddress || '',
-      invoice.date,
-      itemsJson,
-      Number(invoice.subtotal) || 0,
-      Number(invoice.discount) || 0,
-      Number(invoice.totalAmount) || 0,
-      invoice.notes || '',
-      invoice.status || 'Paid',
-      invoice.createdAt || new Date().toISOString()
-    );
-
-    const updateSellStmt = dbInstance.prepare('UPDATE inventory SET totalSell = totalSell + ?, quantity = MAX(0, quantity - ?) WHERE id = ?');
-    for (const it of items) {
-      if (it.stockId) {
-        const soldQty = Number(it.quantity) || 0;
-        updateSellStmt.run(soldQty, soldQty, it.stockId);
-      }
-    }
-
-    dbInstance.exec('COMMIT;');
-    checkpoint();
-    return { success: true };
-  } catch (err) {
-    dbInstance.exec('ROLLBACK;');
-    console.error('Error creating invoice in SQLite transaction:', err);
-    return { success: false, error: err.message };
-  }
-}
-
-function deleteInvoice(id) {
-  if (isJsonFallback) {
-    jsonData.invoices = jsonData.invoices.filter(i => i.id !== id);
-    saveJsonData();
-    return { success: true };
-  }
-
-  if (!dbInstance) throw new Error('Database not initialized');
-  const stmt = dbInstance.prepare('DELETE FROM invoices WHERE id = ?');
-  stmt.run(id);
-  checkpoint();
-  return { success: true };
-}
-
 function syncAllData(data) {
   if (isJsonFallback) {
     if (data.vendors && Array.isArray(data.vendors)) {
@@ -614,8 +446,5 @@ module.exports = {
   updateVendor,
   deleteVendor,
   clearAllVendors,
-  getAllInvoices,
-  createInvoice,
-  deleteInvoice,
   syncAllData
 };
