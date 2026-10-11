@@ -8,7 +8,7 @@ const ExcelJS = require('exceljs');
  */
 function getLogoBase64() {
   try {
-    const logoPath = path.join(__dirname, 'full-logo.png');
+    const logoPath = fs.existsSync(path.join(__dirname, '..', 'assets', 'full-logo.png')) ? path.join(__dirname, '..', 'assets', 'full-logo.png') : path.join(__dirname, '..', 'full-logo.png');
     if (fs.existsSync(logoPath)) {
       const bitmap = fs.readFileSync(logoPath);
       return `data:image/png;base64,${bitmap.toString('base64')}`;

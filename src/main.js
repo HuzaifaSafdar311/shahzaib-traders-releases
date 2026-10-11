@@ -3,8 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const dotenv = require('dotenv');
-const db = require('./db');
-const exporter = require('./exporter');
+const db = require('./database/db');
+const exporter = require('./export/exporter');
 
 // Load environment variables (.env) safely based on app packaging state
 const envPath = app.isPackaged
@@ -64,7 +64,9 @@ function verifyPin(inputPin) {
 }
 
 function createWindow() {
-  const iconPath = path.join(__dirname, 'circle-logo.png');
+  const iconPath = fs.existsSync(path.join(__dirname, 'assets', 'circle-logo.png'))
+    ? path.join(__dirname, 'assets', 'circle-logo.png')
+    : path.join(__dirname, 'circle-logo.png');
   mainWindow = new BrowserWindow({
     width: 1240,
     height: 820,
@@ -96,7 +98,7 @@ function createWindow() {
   });
 
   // 1. Play splash animation
-  mainWindow.loadFile(path.join(__dirname, 'splash.html'));
+  mainWindow.loadFile(path.join(__dirname, 'splash', 'splash.html'));
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
@@ -106,7 +108,7 @@ function createWindow() {
   // 2. Transition to login screen after splash finishes
   setTimeout(() => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.loadFile(path.join(__dirname, 'login.html'));
+      mainWindow.loadFile(path.join(__dirname, 'auth', 'login.html'));
     }
   }, 4800);
 }

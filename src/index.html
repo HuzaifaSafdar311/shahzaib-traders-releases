@@ -5,9 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shahzaib Traders - Inventory Management System</title>
-  <link rel="icon" type="image/png" href="circle-logo.png">
+  <link rel="icon" type="image/png" href="assets/circle-logo.png">
 
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="shared/styles.css">
+  <link rel="stylesheet" href="inventory/inventory.css">
+  <link rel="stylesheet" href="vendors/vendors.css">
 </head>
 
 <body>
@@ -16,10 +18,10 @@
     <aside id="sidebar" class="sidebar">
       <div class="brand">
         <div class="brand-full">
-          <img src="full-logo.png" alt="Shahzaib Traders" class="brand-full-img">
+          <img src="assets/full-logo.png" alt="Shahzaib Traders" class="brand-full-img">
         </div>
         <div class="brand-mini">
-          <img src="circle-logo.png" alt="ST" class="brand-circle-img" title="Shahzaib Traders">
+          <img src="assets/circle-logo.png" alt="ST" class="brand-circle-img" title="Shahzaib Traders">
         </div>
         <button id="btnToggleSidebar" class="btn-toggle-sidebar" title="Collapse / Expand Sidebar">
           <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -428,6 +430,14 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toastContainer" class="toast-container"></div>
 
+  <!-- Shared Utilities -->
+  <script src="shared/utils.js"></script>
+
+  <!-- Feature Modules -->
+  <script src="vendors/vendors.js"></script>
+  <script src="inventory/inventory.js"></script>
+
+  <!-- Application Orchestrator -->
   <script src="renderer.js"></script>
 </body>
 
