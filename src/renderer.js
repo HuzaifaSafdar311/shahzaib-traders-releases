@@ -5,7 +5,7 @@ let appData = {
   invoices: []
 };
 
-let currentTab = 'dashboard'; // 'dashboard' | 'shop' | 'invoices' | 'inventory' | 'vendors'
+let currentTab = 'dashboard'; // 'dashboard' | 'shop' | 'inventory' | 'vendors'
 let pendingDeleteAction = null;
 let returnToStockModalAfterVendor = false;
 
@@ -17,7 +17,6 @@ let invoicePage = 1;
 function getAdaptivePageSize(tabType = 'inventory') {
   let selector = '#inventoryView .table-container';
   if (tabType === 'vendors') selector = '#vendorView .table-container';
-  if (tabType === 'invoices') selector = '#invoiceView .table-container';
 
   let container = document.querySelector(selector);
   if (!container || container.clientHeight <= 0) {
@@ -158,7 +157,11 @@ const el = {
   btnInvNextPage: document.getElementById('btnInvNextPage'),
   invPageNumbers: document.getElementById('invPageNumbers'),
 
-  // Vendor Elements
+  // Vendor Elements & Metrics
+  vendorKpiTotalVendors: document.getElementById('vendorKpiTotalVendors'),
+  vendorKpiTotalSkus: document.getElementById('vendorKpiTotalSkus'),
+  vendorKpiTotalUnits: document.getElementById('vendorKpiTotalUnits'),
+  vendorKpiTotalSpend: document.getElementById('vendorKpiTotalSpend'),
   vendorTableBody: document.getElementById('vendorTableBody'),
   vendorEmptyState: document.getElementById('vendorEmptyState'),
   vendorSearchBy: document.getElementById('vendorSearchBy'),
@@ -183,14 +186,16 @@ const el = {
   stockVendorSelect: document.getElementById('stockVendorSelect'),
   stockQtyInput: document.getElementById('stockQtyInput'),
   stockSellInput: document.getElementById('stockSellInput'),
+  stockPurchasePrice: document.getElementById('stockPurchasePrice'),
   stockWholesalePrice: document.getElementById('stockWholesalePrice'),
   stockIndividualPrice: document.getElementById('stockIndividualPrice'),
   stockDateInput: document.getElementById('stockDateInput'),
+  summaryTotalPurchase: document.getElementById('summaryTotalPurchase'),
   summaryTotalWholesale: document.getElementById('summaryTotalWholesale'),
   summaryTotalIndividual: document.getElementById('summaryTotalIndividual'),
   btnQuickAddVendor: document.getElementById('btnQuickAddVendor'),
 
-  // Vendor Modal
+  // Vendor Modal Form
   modalVendor: document.getElementById('modalVendor'),
   modalVendorTitle: document.getElementById('modalVendorTitle'),
   btnCloseVendorModal: document.getElementById('btnCloseVendorModal'),
@@ -198,56 +203,77 @@ const el = {
   vendorForm: document.getElementById('vendorForm'),
   vendorId: document.getElementById('vendorId'),
   vendorNameInput: document.getElementById('vendorNameInput'),
+  vendorContactPersonInput: document.getElementById('vendorContactPersonInput'),
   vendorPhoneInput: document.getElementById('vendorPhoneInput'),
 
-  // Shop Tab Switcher & Sub-Views
-  btnShopTabCounter: document.getElementById('btnShopTabCounter'),
-  btnShopTabHistory: document.getElementById('btnShopTabHistory'),
-  shopCounterView: document.getElementById('shopCounterView'),
-  shopHistoryView: document.getElementById('shopHistoryView'),
+  // Vendor Profile & Purchase Record Modal
+  modalVendorProfile: document.getElementById('modalVendorProfile'),
+  btnCloseVendorProfileModal: document.getElementById('btnCloseVendorProfileModal'),
+  btnVendorProfileAddStock: document.getElementById('btnVendorProfileAddStock'),
+  btnVendorProfileEdit: document.getElementById('btnVendorProfileEdit'),
+  vpVendorName: document.getElementById('vpVendorName'),
+  vpContactPill: document.getElementById('vpContactPill'),
+  vpAddressSubtitle: document.getElementById('vpAddressSubtitle'),
+  vpPhoneText: document.getElementById('vpPhoneText'),
+  vpEmailText: document.getElementById('vpEmailText'),
+  vpDateText: document.getElementById('vpDateText'),
+  vpTotalSkus: document.getElementById('vpTotalSkus'),
+  vpTotalUnits: document.getElementById('vpTotalUnits'),
+  vpInStockUnits: document.getElementById('vpInStockUnits'),
+  vpTotalSpend: document.getElementById('vpTotalSpend'),
+  vpItemCountSubtitle: document.getElementById('vpItemCountSubtitle'),
+  vpStockTableBody: document.getElementById('vpStockTableBody'),
+  vpStockEmptyState: document.getElementById('vpStockEmptyState'),
+  vpNotesCard: document.getElementById('vpNotesCard'),
+  vpNotesContent: document.getElementById('vpNotesContent'),
 
-  // Shop POS Catalog Elements
-  shopCatalogSearch: document.getElementById('shopCatalogSearch'),
-  btnClearShopSearch: document.getElementById('btnClearShopSearch'),
-  shopProductsGrid: document.getElementById('shopProductsGrid'),
-  shopProductsEmpty: document.getElementById('shopProductsEmpty'),
+  // Shop POS & Billing Elements
+  btnOpenCreateBill: document.getElementById('btnOpenCreateBill'),
+  btnShopHeaderCreateBill: document.getElementById('btnShopHeaderCreateBill'),
+  btnShopEmptyCreateBill: document.getElementById('btnShopEmptyCreateBill'),
+  shopBillsSearchInput: document.getElementById('shopBillsSearchInput'),
+  btnClearShopBillsSearch: document.getElementById('btnClearShopBillsSearch'),
+  shopBillsTableBody: document.getElementById('shopBillsTableBody'),
+  shopBillsEmptyState: document.getElementById('shopBillsEmptyState'),
+  shopBillsCountSubtitle: document.getElementById('shopBillsCountSubtitle'),
+  shopTodayBillsCount: document.getElementById('shopTodayBillsCount'),
+  shopTodayBillsSub: document.getElementById('shopTodayBillsSub'),
+  shopTodayRevenue: document.getElementById('shopTodayRevenue'),
+  shopTotalBillsCount: document.getElementById('shopTotalBillsCount'),
+  shopTotalRevenue: document.getElementById('shopTotalRevenue'),
 
-  // Shop POS Cart Elements
-  shopCartPanel: document.getElementById('shopCartPanel'),
-  cartIconBadge: document.getElementById('cartIconBadge'),
-  cartBadgeCount: document.getElementById('cartBadgeCount'),
-  cartCountBadge: document.getElementById('cartCountBadge'),
-  cartItemsSubtitle: document.getElementById('cartItemsSubtitle'),
-  btnClearCart: document.getElementById('btnClearCart'),
-  posCustomerName: document.getElementById('posCustomerName'),
-  posCustomerPhone: document.getElementById('posCustomerPhone'),
-  cartItemsList: document.getElementById('cartItemsList'),
-  cartEmptyState: document.getElementById('cartEmptyState'),
-  posSubtotal: document.getElementById('posSubtotal'),
-  posDiscountInput: document.getElementById('posDiscountInput'),
-  posGrandTotal: document.getElementById('posGrandTotal'),
-  posCashReceived: document.getElementById('posCashReceived'),
-  posChangeDue: document.getElementById('posChangeDue'),
-  btnCheckoutOrder: document.getElementById('btnCheckoutOrder'),
-  cartStepView: document.getElementById('cartStepView'),
-  receiptStepView: document.getElementById('receiptStepView'),
-  btnCartDone: document.getElementById('btnCartDone'),
-  btnBackToCart: document.getElementById('btnBackToCart'),
-  rcptItemsList: document.getElementById('rcptItemsList'),
-  rcptDate: document.getElementById('rcptDate'),
-  rcptItemCount: document.getElementById('rcptItemCount'),
-  rcptCustNameDisplay: document.getElementById('rcptCustNameDisplay'),
-  rcptCustPhoneDisplay: document.getElementById('rcptCustPhoneDisplay'),
-  rcptSubtotalDisplay: document.getElementById('rcptSubtotalDisplay'),
-  rcptDiscountDisplay: document.getElementById('rcptDiscountDisplay'),
-  rcptGrandTotalDisplay: document.getElementById('rcptGrandTotalDisplay'),
-  rcptActiveModeDisplay: document.getElementById('rcptActiveModeDisplay'),
+  // Modal Create Bill Elements
+  modalCreateBill: document.getElementById('modalCreateBill'),
+  btnCloseCreateBillModal: document.getElementById('btnCloseCreateBillModal'),
+  btnCancelCreateBill: document.getElementById('btnCancelCreateBill'),
+  btnBillWalkInCustomer: document.getElementById('btnBillWalkInCustomer'),
+  billInvoiceNumberBadge: document.getElementById('billInvoiceNumberBadge'),
+  billCustomerName: document.getElementById('billCustomerName'),
+  billCustomerPhone: document.getElementById('billCustomerPhone'),
+  billDateInput: document.getElementById('billDateInput'),
+  billPaymentMode: document.getElementById('billPaymentMode'),
+  billStockSelect: document.getElementById('billStockSelect'),
+  billItemPrice: document.getElementById('billItemPrice'),
+  btnPriceRetail: document.getElementById('btnPriceRetail'),
+  btnPriceWholesale: document.getElementById('btnPriceWholesale'),
+  billItemQty: document.getElementById('billItemQty'),
+  billItemStockAvailableText: document.getElementById('billItemStockAvailableText'),
+  btnAddBillItem: document.getElementById('btnAddBillItem'),
+  billItemsTableBody: document.getElementById('billItemsTableBody'),
+  billItemsEmptyPrompt: document.getElementById('billItemsEmptyPrompt'),
+  billNotesInput: document.getElementById('billNotesInput'),
+  billSubtotalDisplay: document.getElementById('billSubtotalDisplay'),
+  billDiscountInput: document.getElementById('billDiscountInput'),
+  billGrandTotalDisplay: document.getElementById('billGrandTotalDisplay'),
+  billCashReceived: document.getElementById('billCashReceived'),
+  billChangeDueDisplay: document.getElementById('billChangeDueDisplay'),
+  btnSaveBillOnly: document.getElementById('btnSaveBillOnly'),
+  btnSaveAndPrintBill: document.getElementById('btnSaveAndPrintBill'),
 
   // Dedicated Slip / Receipt Page Elements
   receiptPageView: document.getElementById('receiptPageView'),
   receiptPageSheet: document.getElementById('receiptPageSheet'),
   btnReceiptBackToShop: document.getElementById('btnReceiptBackToShop'),
-  btnReceiptGoToInvoices: document.getElementById('btnReceiptGoToInvoices'),
   btnPrintReceiptPage: document.getElementById('btnPrintReceiptPage'),
 
   // Invoice List Elements
@@ -297,6 +323,16 @@ const el = {
   btnCloseConfirmModal: document.getElementById('btnCloseConfirmModal'),
   btnCancelConfirm: document.getElementById('btnCancelConfirm'),
   btnExecuteConfirm: document.getElementById('btnExecuteConfirm'),
+
+  // Low Stock Startup Alert Modal
+  modalLowStockAlert: document.getElementById('modalLowStockAlert'),
+  btnCloseLowStockModalX: document.getElementById('btnCloseLowStockModalX'),
+  btnDismissLowStockAlert: document.getElementById('btnDismissLowStockAlert'),
+  lowStockAlertBadge: document.getElementById('lowStockAlertBadge'),
+  lowStockTimerBar: document.getElementById('lowStockTimerBar'),
+  lowStockAlertTimerText: document.getElementById('lowStockAlertTimerText'),
+  lowStockModalTableBody: document.getElementById('lowStockModalTableBody'),
+  lowStockCountdownLabel: document.getElementById('lowStockCountdownLabel'),
 
   // Toast
   toastContainer: document.getElementById('toastContainer')
@@ -398,28 +434,24 @@ document.addEventListener('click', closeAllActionMenus);
 
 // Tab Switching
 function switchTab(tab) {
+  if (tab === 'invoices') tab = 'dashboard';
   currentTab = tab;
   closeAllActionMenus();
 
   if (el.navDashboardBtn) el.navDashboardBtn.classList.toggle('active', tab === 'dashboard');
   if (el.navShopBtn) el.navShopBtn.classList.toggle('active', tab === 'shop');
-  if (el.navInvoiceBtn) el.navInvoiceBtn.classList.toggle('active', tab === 'invoices');
   if (el.navInventoryBtn) el.navInventoryBtn.classList.toggle('active', tab === 'inventory');
   if (el.navVendorBtn) el.navVendorBtn.classList.toggle('active', tab === 'vendors');
 
   if (el.dashboardView) el.dashboardView.classList.toggle('active', tab === 'dashboard');
   if (el.shopView) el.shopView.classList.toggle('active', tab === 'shop');
-  if (el.invoiceView) el.invoiceView.classList.toggle('active', tab === 'invoices');
   if (el.inventoryView) el.inventoryView.classList.toggle('active', tab === 'inventory');
   if (el.vendorView) el.vendorView.classList.toggle('active', tab === 'vendors');
   if (el.receiptPageView) el.receiptPageView.classList.toggle('active', tab === 'receiptPage');
 
   if (tab === 'dashboard') renderDashboard();
   else if (tab === 'shop') {
-    renderShopProducts();
-    renderPosCart();
-  } else if (tab === 'invoices') {
-    renderInvoices();
+    renderShopBills();
   } else if (tab === 'inventory') {
     renderInventory();
   } else if (tab === 'vendors') {
@@ -757,6 +789,7 @@ function renderInventory() {
   } else {
     el.inventoryEmptyState.classList.add('hidden');
     pageItems.forEach(item => {
+      const purchase = Number(item.purchasePrice || 0).toFixed(2);
       const wholesale = Number(item.wholesalePrice || 0).toFixed(2);
       const individual = Number(item.individualPrice || 0).toFixed(2);
       const sell = item.totalSell || 0;
@@ -768,6 +801,7 @@ function renderInventory() {
         <td class="col-vendor"><span class="vendor-tag">${escapeHtml(item.vendorName || 'N/A')}</span></td>
         <td class="col-stock-qty qty-val">${Number(item.quantity).toLocaleString()}</td>
         <td class="col-sell-qty sell-val">${Number(item.totalSell || 0).toLocaleString()}</td>
+        <td class="col-price price-val">PKR ${Number(purchase).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
         <td class="col-price price-val">PKR ${Number(wholesale).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
         <td class="col-price price-val">PKR ${Number(individual).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
         <td class="col-date date-val">${escapeHtml(item.date || '')}</td>
@@ -862,15 +896,20 @@ function renderInventoryPagination(total, totalPages, pageSize) {
 // VENDORS TAB LOGIC
 // ============================================
 function getFilteredVendors() {
-  let list = [...appData.vendors];
-  const query = (el.vendorSearchInput.value || '').trim().toLowerCase();
-  const searchBy = el.vendorSearchBy.value;
+  let list = [...(appData.vendors || [])];
+  const query = (el.vendorSearchInput ? el.vendorSearchInput.value : '').trim().toLowerCase();
+  const searchBy = el.vendorSearchBy ? el.vendorSearchBy.value : 'all';
 
   if (query) {
     list = list.filter(v => {
-      if (searchBy === 'name') return (v.name || '').toLowerCase().includes(query);
-      if (searchBy === 'phone') return (v.phone || '').toLowerCase().includes(query);
-      return (v.name || '').toLowerCase().includes(query) || (v.phone || '').toLowerCase().includes(query);
+      const name = (v.name || '').toLowerCase();
+      const contact = (v.contactPerson || '').toLowerCase();
+      const phone = (v.phone || '').toLowerCase();
+
+      if (searchBy === 'name') return name.includes(query);
+      if (searchBy === 'contactPerson') return contact.includes(query);
+      if (searchBy === 'phone') return phone.includes(query);
+      return name.includes(query) || contact.includes(query) || phone.includes(query);
     });
   }
 
@@ -889,6 +928,7 @@ function renderVendors() {
   const start = (vendorPage - 1) * pageSize;
   const pageItems = filtered.slice(start, start + pageSize);
 
+  const allInventory = appData.inventory || [];
   el.vendorTableBody.innerHTML = '';
 
   if (total === 0) {
@@ -896,23 +936,62 @@ function renderVendors() {
   } else {
     el.vendorEmptyState.classList.add('hidden');
     pageItems.forEach(vendor => {
+      const vItems = allInventory.filter(i => i.vendorId === vendor.id);
+      const skusCount = vItems.length;
+      const totalBoughtUnits = vItems.reduce((acc, i) => acc + (Number(i.quantity) || 0) + (Number(i.totalSell) || 0), 0);
+      const inStockUnits = vItems.reduce((acc, i) => acc + (Number(i.quantity) || 0), 0);
+      const soldUnits = vItems.reduce((acc, i) => acc + (Number(i.totalSell) || 0), 0);
+      const totalSpend = vItems.reduce((acc, i) => {
+        const initialQty = (Number(i.quantity) || 0) + (Number(i.totalSell) || 0);
+        const cost = Number(i.purchasePrice) || 0;
+        return acc + (initialQty * cost);
+      }, 0);
+
       const menuId = `menu-ven-${vendor.id}`;
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="col-vendor-name">${escapeHtml(vendor.name)}</td>
-        <td class="col-phone">${escapeHtml(vendor.phone || 'N/A')}</td>
-        <td class="col-dots-actions">
-          <div class="dots-wrapper">
-            <button class="btn-dots" onclick="toggleRowMenu(event, '${menuId}')" title="Actions" aria-label="Actions">
-              <svg class="dots-icon" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="5" r="2"></circle>
-                <circle cx="12" cy="12" r="2"></circle>
-                <circle cx="12" cy="19" r="2"></circle>
-              </svg>
+        <td class="col-vendor-company">
+          <div class="vendor-company-cell">
+            <span class="vendor-company-title">
+              ${escapeHtml(vendor.name)}
+            </span>
+            ${vendor.contactPerson ? `<span class="vendor-rep-tag">${escapeHtml(vendor.contactPerson)}</span>` : ''}
+          </div>
+        </td>
+        <td class="col-vendor-contact">
+          <div class="vendor-contact-cell">
+            <span class="vendor-phone-line">${escapeHtml(vendor.phone || 'N/A')}</span>
+          </div>
+        </td>
+        <td class="col-vendor-skus">
+          <span class="vendor-badge-pill badge-sku">${skusCount} ${skusCount === 1 ? 'Product' : 'Products'}</span>
+        </td>
+        <td class="col-vendor-units">
+          <span class="vendor-badge-pill badge-units">${totalBoughtUnits.toLocaleString()} Units</span>
+          <span class="units-subtext">${inStockUnits.toLocaleString()} in stock · ${soldUnits.toLocaleString()} sold</span>
+        </td>
+        <td class="col-vendor-spend">
+          PKR ${totalSpend.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </td>
+        <td class="col-vendor-actions">
+          <div class="vendor-action-btns">
+            <button type="button" class="btn-view-record" onclick="openVendorProfile('${vendor.id}')" title="View Full Purchase Record & Supplier Profile">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span>Record</span>
             </button>
-            <div id="${menuId}" class="action-menu hidden">
-              <button class="action-menu-item" onclick="openEditVendor('${vendor.id}')">Edit</button>
-              <button class="action-menu-item danger" onclick="confirmDeleteVendor('${vendor.id}')">Delete</button>
+            <div class="dots-wrapper">
+              <button type="button" class="btn-dots" onclick="toggleRowMenu(event, '${menuId}')" title="Actions" aria-label="Actions">
+                <svg class="dots-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="2"></circle>
+                  <circle cx="12" cy="12" r="2"></circle>
+                  <circle cx="12" cy="19" r="2"></circle>
+                </svg>
+              </button>
+              <div id="${menuId}" class="action-menu hidden">
+                <button type="button" class="action-menu-item" onclick="openVendorProfile('${vendor.id}')">View Purchase Record</button>
+                <button type="button" class="action-menu-item" onclick="openEditVendor('${vendor.id}')">Edit Vendor</button>
+                <button type="button" class="action-menu-item danger" onclick="confirmDeleteVendor('${vendor.id}')">Delete Vendor</button>
+              </div>
             </div>
           </div>
         </td>
@@ -996,419 +1075,391 @@ function triggerFlyToCartAnimation(buttonEl, itemName) {
   }, 460);
 }
 
-function renderShopProducts() {
-  if (!el.shopProductsGrid) return;
-  const query = (el.shopCatalogSearch ? el.shopCatalogSearch.value : '').trim().toLowerCase();
+// ============================================
+// SHOP POS & BILLING SYSTEM LOGIC
+// ============================================
+let activeBillItems = [];
+let selectedPriceMode = 'retail'; // 'retail' or 'wholesale'
 
-  let list = [...appData.inventory];
+function renderShopBills() {
+  const allInvoices = appData.invoices || [];
+  const todayStr = getTodayString();
 
+  // Metrics calculation
+  const todayBills = allInvoices.filter(i => (i.date || '').startsWith(todayStr) || (i.createdAt || '').startsWith(todayStr));
+  const todayRevenue = todayBills.reduce((sum, i) => sum + (Number(i.totalAmount) || 0), 0);
+  const totalBills = allInvoices.length;
+  const totalRevenue = allInvoices.reduce((sum, i) => sum + (Number(i.totalAmount) || 0), 0);
+
+  if (el.shopTodayBillsCount) el.shopTodayBillsCount.textContent = todayBills.length;
+  if (el.shopTodayBillsSub) el.shopTodayBillsSub.textContent = `${todayBills.length} sale${todayBills.length === 1 ? '' : 's'} recorded today`;
+  if (el.shopTodayRevenue) el.shopTodayRevenue.textContent = `PKR ${todayRevenue.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (el.shopTotalBillsCount) el.shopTotalBillsCount.textContent = totalBills;
+  if (el.shopTotalRevenue) el.shopTotalRevenue.textContent = `PKR ${totalRevenue.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (el.shopBillsCountSubtitle) el.shopBillsCountSubtitle.textContent = `${totalBills} invoice${totalBills === 1 ? '' : 's'} recorded`;
+
+  // Filter bills
+  const query = (el.shopBillsSearchInput ? el.shopBillsSearchInput.value : '').trim().toLowerCase();
+  let filtered = [...allInvoices];
   if (query) {
-    list = list.filter(item => {
-      const name = (item.stockName || '').toLowerCase();
-      const vendor = (item.vendorName || '').toLowerCase();
-      return name.includes(query) || vendor.includes(query);
+    filtered = filtered.filter(inv => {
+      const num = (inv.invoiceNumber || '').toLowerCase();
+      const name = (inv.customerName || '').toLowerCase();
+      const phone = (inv.customerPhone || '').toLowerCase();
+      return num.includes(query) || name.includes(query) || phone.includes(query);
     });
   }
 
-  if (posSelectedFilter === 'in-stock') {
-    list = list.filter(i => Number(i.quantity || 0) > 0);
-  } else if (posSelectedFilter === 'low-stock') {
-    list = list.filter(i => {
-      const q = Number(i.quantity || 0);
-      return q > 0 && q <= 10;
-    });
-  }
+  if (!el.shopBillsTableBody) return;
+  el.shopBillsTableBody.innerHTML = '';
 
-  el.shopProductsGrid.innerHTML = '';
-
-  if (list.length === 0) {
-    if (el.shopProductsEmpty) el.shopProductsEmpty.classList.remove('hidden');
+  if (filtered.length === 0) {
+    if (el.shopBillsEmptyState) el.shopBillsEmptyState.classList.remove('hidden');
     return;
   }
-  if (el.shopProductsEmpty) el.shopProductsEmpty.classList.add('hidden');
+  if (el.shopBillsEmptyState) el.shopBillsEmptyState.classList.add('hidden');
 
-  // Build table
-  const table = document.createElement('table');
-  table.className = 'pos-product-table';
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Item Name</th>
-        <th>Vendor</th>
-        <th>Price (PKR)</th>
-        <th>Stock</th>
-        <th>Quantity</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  `;
-  const tbody = table.querySelector('tbody');
-
-  list.forEach((item, idx) => {
-    const availableQty = Number(item.quantity || 0);
-    const retailPrice = Number(item.individualPrice || item.wholesalePrice || 0);
-
-    let badgeClass = 'in-stock';
-    let badgeText = `${availableQty} in stock`;
-    if (availableQty === 0) {
-      badgeClass = 'out-stock';
-      badgeText = 'Out of stock';
-    } else if (availableQty <= 10) {
-      badgeClass = 'low-stock';
-      badgeText = `${availableQty} low`;
+  filtered.forEach(inv => {
+    let items = [];
+    try {
+      items = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || []);
+    } catch (e) {
+      items = [];
     }
-
-    const priceFormatted = Number(retailPrice).toLocaleString('en-PK', { minimumFractionDigits: 2 });
-    const disabled = availableQty <= 0 ? 'disabled' : '';
+    const itemsCount = items.reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
+    const subtotal = Number(inv.subtotal) || 0;
+    const discount = Number(inv.discount) || 0;
+    const grandTotal = Number(inv.totalAmount) || 0;
 
     const tr = document.createElement('tr');
-    tr.className = 'pos-product-row' + (availableQty === 0 ? ' pos-row-out' : '');
     tr.innerHTML = `
-      <td class="pos-row-num">${idx + 1}</td>
-      <td class="pos-row-name" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</td>
-      <td class="pos-row-vendor">${escapeHtml(item.vendorName || 'General Stock')}</td>
-      <td class="pos-row-price">${priceFormatted}</td>
-      <td class="pos-row-stock"><span class="pos-stock-badge ${badgeClass}">${badgeText}</span></td>
-      <td class="pos-row-stepper">
-        <div class="pos-qty-stepper">
-          <button type="button" class="pos-btn-step btn-step-down" ${disabled}>-</button>
-          <input type="number" class="pos-step-input" value="1" min="1" max="${availableQty}" ${disabled}>
-          <button type="button" class="pos-btn-step btn-step-up" ${disabled}>+</button>
+      <td class="col-bill-no">
+        <div class="bill-num-cell">
+          <span class="bill-badge-pill">${escapeHtml(inv.invoiceNumber || 'INV-000')}</span>
         </div>
       </td>
-      <td class="pos-row-action">
-        <button type="button" class="btn-pos-add" ${disabled} data-id="${item.id}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          <span>Add</span>
-        </button>
+      <td class="col-bill-date bill-date-cell">${escapeHtml(inv.date || '')}</td>
+      <td class="col-bill-customer">
+        <div class="bill-cust-cell">
+          <span class="bill-cust-name">${escapeHtml(inv.customerName || 'Walk-in Customer')}</span>
+          ${inv.customerPhone ? `<span class="bill-cust-phone">${escapeHtml(inv.customerPhone)}</span>` : ''}
+        </div>
+      </td>
+      <td class="col-bill-items">
+        <span class="bill-items-badge">${itemsCount}</span>
+      </td>
+      <td class="col-bill-subtotal">PKR ${subtotal.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</td>
+      <td class="col-bill-discount ${discount > 0 ? 'discount-applied' : ''}">
+        ${discount > 0 ? `- PKR ${discount.toLocaleString('en-PK', { minimumFractionDigits: 2 })}` : '-'}
+      </td>
+      <td class="col-bill-total">
+        <span class="bill-total-cell">PKR ${grandTotal.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span>
+      </td>
+      <td class="col-bill-status">
+        <span class="status-badge status-paid">${escapeHtml(inv.status || 'Paid')}</span>
+      </td>
+      <td class="col-bill-actions">
+        <div class="bill-actions-wrap">
+          <button type="button" class="btn-bill-action btn-bill-slip" onclick="openReceiptPage('${inv.id}')" title="View & Print Slip">
+            <span>🖨️ Slip</span>
+          </button>
+          <button type="button" class="btn-bill-action btn-bill-delete" onclick="confirmDeleteInvoice('${inv.id}')" title="Delete Bill">
+            <span>🗑️</span>
+          </button>
+        </div>
       </td>
     `;
-
-    const stepInput = tr.querySelector('.pos-step-input');
-    const btnDown = tr.querySelector('.btn-step-down');
-    const btnUp = tr.querySelector('.btn-step-up');
-    const btnAdd = tr.querySelector('.btn-pos-add');
-
-    if (btnDown && stepInput) {
-      btnDown.addEventListener('click', (e) => {
-        e.stopPropagation();
-        let val = parseInt(stepInput.value, 10) || 1;
-        if (val > 1) stepInput.value = val - 1;
-      });
-    }
-
-    if (btnUp && stepInput) {
-      btnUp.addEventListener('click', (e) => {
-        e.stopPropagation();
-        let val = parseInt(stepInput.value, 10) || 1;
-        if (val < availableQty) stepInput.value = val + 1;
-      });
-    }
-
-    if (btnAdd && stepInput) {
-      btnAdd.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const qtyToAdd = parseInt(stepInput.value, 10) || 1;
-        triggerFlyToCartAnimation(btnAdd, item.stockName);
-        addToPosCart(item.id, qtyToAdd);
-      });
-    }
-
-    tbody.appendChild(tr);
+    el.shopBillsTableBody.appendChild(tr);
   });
-
-  el.shopProductsGrid.appendChild(table);
 }
 
-function addToPosCart(stockId, quantity = 1) {
-  const stock = (appData.inventory || []).find(i => i.id === stockId);
-  if (!stock) return;
+function openCreateBillModal() {
+  activeBillItems = [];
+  selectedPriceMode = 'retail';
 
-  const available = Number(stock.quantity || 0);
+  if (el.billInvoiceNumberBadge) {
+    el.billInvoiceNumberBadge.textContent = getNextInvoiceNumber();
+  }
+  if (el.billCustomerName) el.billCustomerName.value = '';
+  if (el.billCustomerPhone) el.billCustomerPhone.value = '';
+  if (el.billDateInput) el.billDateInput.value = getTodayString();
+  if (el.billPaymentMode) el.billPaymentMode.value = 'Cash';
+  if (el.billDiscountInput) el.billDiscountInput.value = '0';
+  if (el.billCashReceived) el.billCashReceived.value = '';
+  if (el.billNotesInput) el.billNotesInput.value = 'Goods once sold are returnable within 3 days with receipt. Thank you for your business!';
+
+  // Refresh price pills
+  if (el.btnPriceRetail && el.btnPriceWholesale) {
+    el.btnPriceRetail.classList.add('active');
+    el.btnPriceWholesale.classList.remove('active');
+  }
+
+  // Populate Stock Selector
+  refreshBillStockSelector();
+
+  renderBillItemsTable();
+  updateBillTotals();
+
+  if (el.modalCreateBill) el.modalCreateBill.classList.remove('hidden');
+}
+
+function closeCreateBillModal() {
+  if (el.modalCreateBill) el.modalCreateBill.classList.add('hidden');
+  activeBillItems = [];
+}
+
+function refreshBillStockSelector() {
+  if (!el.billStockSelect) return;
+  el.billStockSelect.innerHTML = '<option value="">-- Choose Stock Item --</option>';
+
+  const items = appData.inventory || [];
+  items.forEach(stk => {
+    const available = Number(stk.quantity) || 0;
+    const retail = Number(stk.individualPrice || stk.wholesalePrice || 0);
+    const opt = document.createElement('option');
+    opt.value = stk.id;
+    if (available <= 0) {
+      opt.textContent = `${stk.stockName} (OUT OF STOCK)`;
+      opt.disabled = true;
+    } else {
+      opt.textContent = `${stk.stockName} - Stock: ${available} - Rs ${retail.toLocaleString('en-PK')}`;
+    }
+    el.billStockSelect.appendChild(opt);
+  });
+
+  if (el.billItemPrice) el.billItemPrice.value = '';
+  if (el.billItemQty) el.billItemQty.value = '1';
+  if (el.billItemStockAvailableText) {
+    el.billItemStockAvailableText.textContent = 'Available: -';
+    el.billItemStockAvailableText.style.color = '#64748b';
+  }
+}
+
+function onBillStockSelected() {
+  const stockId = el.billStockSelect ? el.billStockSelect.value : '';
+  if (!stockId) {
+    if (el.billItemPrice) el.billItemPrice.value = '';
+    if (el.billItemStockAvailableText) el.billItemStockAvailableText.textContent = 'Available: -';
+    return;
+  }
+
+  const stk = (appData.inventory || []).find(i => i.id === stockId);
+  if (!stk) return;
+
+  const available = Number(stk.quantity) || 0;
+  const retail = Number(stk.individualPrice || stk.wholesalePrice || 0);
+  const wholesale = Number(stk.wholesalePrice || stk.individualPrice || 0);
+
+  if (el.billItemPrice) {
+    el.billItemPrice.value = (selectedPriceMode === 'wholesale' ? wholesale : retail) || '';
+  }
+  if (el.billItemQty) {
+    el.billItemQty.value = '1';
+    el.billItemQty.max = available;
+  }
+  if (el.billItemStockAvailableText) {
+    el.billItemStockAvailableText.textContent = `Available: ${available} units`;
+    el.billItemStockAvailableText.style.color = available <= 5 ? '#dc2626' : '#059669';
+  }
+}
+
+function setBillPriceMode(mode) {
+  selectedPriceMode = mode;
+  if (el.btnPriceRetail && el.btnPriceWholesale) {
+    el.btnPriceRetail.classList.toggle('active', mode === 'retail');
+    el.btnPriceWholesale.classList.toggle('active', mode === 'wholesale');
+  }
+
+  const stockId = el.billStockSelect ? el.billStockSelect.value : '';
+  if (stockId) {
+    const stk = (appData.inventory || []).find(i => i.id === stockId);
+    if (stk && el.billItemPrice) {
+      const retail = Number(stk.individualPrice || stk.wholesalePrice || 0);
+      const wholesale = Number(stk.wholesalePrice || stk.individualPrice || 0);
+      el.billItemPrice.value = (mode === 'wholesale' ? wholesale : retail) || '';
+    }
+  }
+}
+
+function addBillItem() {
+  const stockId = el.billStockSelect ? el.billStockSelect.value : '';
+  if (!stockId) {
+    showToast('Please select a product from the list', 'warning');
+    return;
+  }
+
+  const stk = (appData.inventory || []).find(i => i.id === stockId);
+  if (!stk) return;
+
+  const available = Number(stk.quantity) || 0;
   if (available <= 0) {
-    showToast(`"${stock.stockName}" is OUT OF STOCK! Cannot add to cart.`, 'error');
+    showToast(`"${stk.stockName}" is out of stock`, 'error');
     return;
   }
 
-  if (quantity > available) {
-    showToast(`Insufficient stock! Only ${available} units of "${stock.stockName}" available in stock, cannot sell ${quantity}.`, 'error');
+  const qty = parseInt(el.billItemQty ? el.billItemQty.value : 1, 10) || 1;
+  const price = parseFloat(el.billItemPrice ? el.billItemPrice.value : 0) || 0;
+
+  if (qty <= 0) {
+    showToast('Quantity must be at least 1', 'warning');
     return;
   }
 
-  const existing = posCart.find(i => i.stockId === stockId);
+  const existing = activeBillItems.find(it => it.stockId === stockId);
   if (existing) {
-    const newQty = existing.quantity + quantity;
+    const newQty = existing.quantity + qty;
     if (newQty > available) {
-      showToast(`Insufficient stock! Only ${available} units of "${stock.stockName}" available in stock (Cart already has ${existing.quantity}). Cannot sell more.`, 'error');
+      showToast(`Cannot add ${qty}. Only ${available} available in stock (${existing.quantity} already in bill).`, 'error');
       return;
     }
     existing.quantity = newQty;
+    existing.price = price;
   } else {
-    const price = Number(stock.individualPrice || stock.wholesalePrice || 0);
-    posCart.push({
-      stockId: stock.id,
-      stockName: stock.stockName,
-      price: price,
-      wholesalePrice: Number(stock.wholesalePrice || 0),
-      quantity: quantity,
-      maxQty: available,
-      vendorName: stock.vendorName || ''
+    if (qty > available) {
+      showToast(`Cannot add ${qty}. Only ${available} available in stock.`, 'error');
+      return;
+    }
+    activeBillItems.push({
+      stockId: stk.id,
+      stockName: stk.stockName,
+      maxAvailable: available,
+      quantity: qty,
+      price: price
     });
   }
 
-  posCurrentStep = 'cart'; // Always ensure we are in cart step when adding an item
-  renderPosCart();
-  updateBadges();
+  renderBillItemsTable();
+  updateBillTotals();
+
+  // Reset selector for next item
+  if (el.billStockSelect) el.billStockSelect.value = '';
+  if (el.billItemPrice) el.billItemPrice.value = '';
+  if (el.billItemQty) el.billItemQty.value = '1';
+  if (el.billItemStockAvailableText) el.billItemStockAvailableText.textContent = 'Available: -';
 }
 
-function updatePosCartQty(stockId, delta) {
-  const item = posCart.find(i => i.stockId === stockId);
+function updateBillItemQty(stockId, delta) {
+  const item = activeBillItems.find(it => it.stockId === stockId);
   if (!item) return;
 
-  if (delta > 0 && item.quantity + delta > item.maxQty) {
-    showToast(`Insufficient stock! Only ${item.maxQty} units of "${item.stockName}" available in stock. Cannot sell more.`, 'error');
+  const newQty = item.quantity + delta;
+  if (newQty > item.maxAvailable) {
+    showToast(`Cannot exceed ${item.maxAvailable} available units in stock`, 'warning');
     return;
   }
-
-  item.quantity += delta;
-  if (item.quantity <= 0) {
-    posCart = posCart.filter(i => i.stockId !== stockId);
-  }
-
-  renderPosCart();
-  updateBadges();
-}
-
-function removeFromPosCart(stockId) {
-  posCart = posCart.filter(i => i.stockId !== stockId);
-  renderPosCart();
-  updateBadges();
-}
-
-function clearPosCart() {
-  if (posCart.length === 0) return;
-  posCart = [];
-  posCurrentStep = 'cart';
-  renderPosCart();
-  updateBadges();
-  showToast('Cart cleared');
-}
-
-function renderPosCart() {
-  const cartPanel = el.shopCartPanel || document.getElementById('shopCartPanel');
-  const cartStepView = el.cartStepView || document.getElementById('cartStepView');
-  const receiptStepView = el.receiptStepView || document.getElementById('receiptStepView');
-  const cartList = el.cartItemsList || document.getElementById('cartItemsList');
-  const countBadge = el.cartCountBadge || document.getElementById('cartCountBadge');
-  const btnDone = el.btnCartDone || document.getElementById('btnCartDone');
-
-  const totalCount = posCart.reduce((sum, i) => sum + i.quantity, 0);
-
-  if (countBadge) {
-    countBadge.textContent = `${totalCount} item${totalCount === 1 ? '' : 's'}`;
-  }
-
-  // If cart is empty, hide right panel & reset step to 'cart'
-  if (posCart.length === 0) {
-    posCurrentStep = 'cart';
-    if (cartPanel) {
-      cartPanel.classList.remove('rcpt-panel-visible');
-      cartPanel.classList.add('rcpt-panel-hidden');
-    }
-    if (cartStepView) {
-      cartStepView.classList.remove('hidden');
-      cartStepView.classList.add('active');
-    }
-    if (receiptStepView) {
-      receiptStepView.classList.add('hidden');
-      receiptStepView.classList.remove('active');
-    }
-    if (cartList) cartList.innerHTML = '';
-    if (el.cartEmptyState) el.cartEmptyState.classList.remove('hidden');
-    if (el.posSubtotal) el.posSubtotal.textContent = 'PKR 0.00';
-    if (el.posGrandTotal) el.posGrandTotal.textContent = 'PKR 0.00';
-    if (btnDone) btnDone.disabled = true;
-    if (el.btnCheckoutOrder) el.btnCheckoutOrder.disabled = true;
-    updateBadges();
+  if (newQty <= 0) {
+    removeBillItem(stockId);
     return;
   }
+  item.quantity = newQty;
+  renderBillItemsTable();
+  updateBillTotals();
+}
 
-  // Cart has items: show right panel
-  if (cartPanel) {
-    cartPanel.classList.remove('rcpt-panel-hidden');
-    cartPanel.classList.add('rcpt-panel-visible');
+function removeBillItem(stockId) {
+  activeBillItems = activeBillItems.filter(it => it.stockId !== stockId);
+  renderBillItemsTable();
+  updateBillTotals();
+}
+
+function renderBillItemsTable() {
+  if (!el.billItemsTableBody) return;
+  el.billItemsTableBody.innerHTML = '';
+
+  if (activeBillItems.length === 0) {
+    if (el.billItemsEmptyPrompt) el.billItemsEmptyPrompt.classList.remove('hidden');
+    return;
   }
-  if (el.cartEmptyState) el.cartEmptyState.classList.add('hidden');
-  if (btnDone) btnDone.disabled = false;
+  if (el.billItemsEmptyPrompt) el.billItemsEmptyPrompt.classList.add('hidden');
 
-  // Calculate totals
-  let subtotal = 0;
-  posCart.forEach(item => {
-    subtotal += item.price * item.quantity;
+  activeBillItems.forEach((it, idx) => {
+    const lineTotal = it.price * it.quantity;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align: center; color: #64748b; font-size: 12px;">${idx + 1}</td>
+      <td><strong>${escapeHtml(it.stockName)}</strong></td>
+      <td style="text-align: center; color: #2563eb; font-weight: 600;">${it.maxAvailable}</td>
+      <td style="text-align: center;">
+        <div class="bill-qty-stepper">
+          <button type="button" class="bill-step-btn" onclick="updateBillItemQty('${it.stockId}', -1)" title="Decrease">−</button>
+          <span class="bill-step-val">${it.quantity}</span>
+          <button type="button" class="bill-step-btn" onclick="updateBillItemQty('${it.stockId}', 1)" title="Increase">+</button>
+        </div>
+      </td>
+      <td style="text-align: right;">Rs ${it.price.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</td>
+      <td style="text-align: right; font-weight: 700;">Rs ${lineTotal.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</td>
+      <td style="text-align: center;">
+        <button type="button" class="btn-bill-del-item" onclick="removeBillItem('${it.stockId}')" title="Remove item">&times;</button>
+      </td>
+    `;
+    el.billItemsTableBody.appendChild(tr);
   });
-
-  const discountVal = Number(el.posDiscountInput ? el.posDiscountInput.value : 0) || 0;
-  const grandTotal = Math.max(0, subtotal - discountVal);
-
-  if (el.posSubtotal) el.posSubtotal.textContent = `PKR ${Number(subtotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
-  if (el.posGrandTotal) el.posGrandTotal.textContent = `PKR ${Number(grandTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
-
-  // Populate Step 1: Shopping Cart Items List
-  if (cartList) {
-    cartList.innerHTML = '';
-    posCart.forEach(item => {
-      const lineTotal = item.price * item.quantity;
-      const card = document.createElement('div');
-      card.className = 'cart-item-card';
-      card.innerHTML = `
-        <div class="cart-item-card-top">
-          <span class="cart-item-card-name" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</span>
-          <span class="cart-item-card-rate">@ Rs ${Number(item.price).toLocaleString('en-PK')}</span>
-        </div>
-        <div class="cart-item-card-bottom">
-          <div class="cart-stepper">
-            <button type="button" class="btn-stepper" onclick="updatePosCartQty('${item.stockId}', -1)" title="Decrease">−</button>
-            <span class="stepper-qty">${item.quantity}</span>
-            <button type="button" class="btn-stepper" onclick="updatePosCartQty('${item.stockId}', 1)" title="Increase">+</button>
-          </div>
-          <div class="cart-item-right-group">
-            <span class="cart-item-line-total">Rs ${Number(lineTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span>
-            <button type="button" class="btn-item-del" onclick="removeFromPosCart('${item.stockId}')" title="Remove item">×</button>
-          </div>
-        </div>
-      `;
-      cartList.appendChild(card);
-    });
-  }
-
-  // Handle Step Visibility: Cart View vs Receipt View
-  if (posCurrentStep === 'cart') {
-    if (cartStepView) {
-      cartStepView.classList.remove('hidden');
-      cartStepView.classList.add('active');
-    }
-    if (receiptStepView) {
-      receiptStepView.classList.add('hidden');
-      receiptStepView.classList.remove('active');
-    }
-  } else if (posCurrentStep === 'receipt') {
-    if (cartStepView) {
-      cartStepView.classList.add('hidden');
-      cartStepView.classList.remove('active');
-    }
-    if (receiptStepView) {
-      receiptStepView.classList.remove('hidden');
-      receiptStepView.classList.add('active');
-    }
-    renderThermalReceiptView(subtotal, discountVal, grandTotal, totalCount);
-  }
-
-  if (el.btnCheckoutOrder) el.btnCheckoutOrder.disabled = false;
-  updateBadges();
 }
 
-function renderThermalReceiptView(subtotal, discountVal, grandTotal, totalCount) {
-  const rcptDate = el.rcptDate || document.getElementById('rcptDate');
-  const rcptItemCount = el.rcptItemCount || document.getElementById('rcptItemCount');
-  const rcptCustName = el.rcptCustNameDisplay || document.getElementById('rcptCustNameDisplay');
-  const rcptCustPhone = el.rcptCustPhoneDisplay || document.getElementById('rcptCustPhoneDisplay');
-  const rcptSubtotal = el.rcptSubtotalDisplay || document.getElementById('rcptSubtotalDisplay');
-  const rcptDiscount = el.rcptDiscountDisplay || document.getElementById('rcptDiscountDisplay');
-  const rcptGrandTotal = el.rcptGrandTotalDisplay || document.getElementById('rcptGrandTotalDisplay');
-  const rcptActiveMode = el.rcptActiveModeDisplay || document.getElementById('rcptActiveModeDisplay');
-  const rcptItemsList = el.rcptItemsList || document.getElementById('rcptItemsList');
+function updateBillTotals() {
+  const subtotal = activeBillItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+  const discount = parseFloat(el.billDiscountInput ? el.billDiscountInput.value : 0) || 0;
+  const grandTotal = Math.max(0, subtotal - discount);
+  const cashReceived = parseFloat(el.billCashReceived ? el.billCashReceived.value : 0) || 0;
+  const changeDue = cashReceived > 0 ? Math.max(0, cashReceived - grandTotal) : 0;
 
-  // Date and Time
-  if (rcptDate) {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
-    const timeStr = now.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true });
-    rcptDate.textContent = `${dateStr}  ${timeStr}`;
-  }
-
-  if (rcptItemCount) {
-    rcptItemCount.textContent = `${totalCount} item${totalCount === 1 ? '' : 's'}`;
-  }
-
-  const custNameVal = (el.posCustomerName && el.posCustomerName.value.trim()) ? el.posCustomerName.value.trim() : 'Walk-in Customer';
-  const custPhoneVal = (el.posCustomerPhone && el.posCustomerPhone.value.trim()) ? el.posCustomerPhone.value.trim() : '-';
-
-  if (rcptCustName) rcptCustName.textContent = custNameVal;
-  if (rcptCustPhone) rcptCustPhone.textContent = custPhoneVal;
-  if (rcptActiveMode) rcptActiveMode.textContent = posPaymentMode || 'Cash';
-
-  if (rcptSubtotal) rcptSubtotal.textContent = `PKR ${Number(subtotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
-  if (rcptDiscount) rcptDiscount.textContent = `PKR ${Number(discountVal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
-  if (rcptGrandTotal) rcptGrandTotal.textContent = `PKR ${Number(grandTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
-
-  if (rcptItemsList) {
-    rcptItemsList.innerHTML = '';
-    posCart.forEach(item => {
-      const lineTotal = item.price * item.quantity;
-      const row = document.createElement('div');
-      row.className = 'tr-receipt-item-row';
-      row.innerHTML = `
-        <div class="tr-item-top-line">
-          <span class="tr-item-title" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</span>
-          <span class="tr-item-del-btn" style="display:none;"></span>
-        </div>
-        <div class="tr-item-bottom-line">
-          <span class="tr-item-qty-rate">${item.quantity} × Rs ${Number(item.price).toLocaleString('en-PK')}</span>
-          <span class="tr-item-line-total">Rs ${Number(lineTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span>
-        </div>
-      `;
-      rcptItemsList.appendChild(row);
-    });
-  }
+  if (el.billSubtotalDisplay) el.billSubtotalDisplay.textContent = `PKR ${subtotal.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (el.billGrandTotalDisplay) el.billGrandTotalDisplay.textContent = `PKR ${grandTotal.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (el.billChangeDueDisplay) el.billChangeDueDisplay.textContent = `PKR ${changeDue.toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
 }
 
-async function checkoutPosSale() {
-  if (posCart.length === 0) {
-    showToast('Cart is empty. Add items first.', 'warning');
+async function saveCustomerBill(andPrint = false) {
+  const customerName = el.billCustomerName ? el.billCustomerName.value.trim() : '';
+  if (!customerName) {
+    showToast('Customer Name is required to generate bill', 'error');
+    if (el.billCustomerName) el.billCustomerName.focus();
     return;
   }
 
-  // Strict stock availability validation before initiating checkout
-  for (const item of posCart) {
-    const stock = (appData.inventory || []).find(i => i.id === item.stockId);
-    const available = stock ? Number(stock.quantity || 0) : 0;
-    if (item.quantity > available) {
-      showToast(`Cannot complete sale! Insufficient stock for "${item.stockName}". Available: ${available}, Requested: ${item.quantity}.`, 'error');
+  if (activeBillItems.length === 0) {
+    showToast('Please add at least one item to the bill', 'warning');
+    return;
+  }
+
+  // Stock check
+  for (const it of activeBillItems) {
+    const stk = (appData.inventory || []).find(i => i.id === it.stockId);
+    const available = stk ? Number(stk.quantity || 0) : 0;
+    if (it.quantity > available) {
+      showToast(`Insufficient stock for "${it.stockName}". Available: ${available}, Bill: ${it.quantity}.`, 'error');
       return;
     }
   }
 
-  const subtotal = posCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
-  const discount = Number(el.posDiscountInput ? el.posDiscountInput.value : 0) || 0;
+  const subtotal = activeBillItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+  const discount = parseFloat(el.billDiscountInput ? el.billDiscountInput.value : 0) || 0;
   const grandTotal = Math.max(0, subtotal - discount);
-  const customerName = (el.posCustomerName && el.posCustomerName.value.trim()) ? el.posCustomerName.value.trim() : 'Walk-in Customer';
-  const customerPhone = el.posCustomerPhone ? el.posCustomerPhone.value.trim() : '';
-  const cashReceived = Number(el.posCashReceived ? el.posCashReceived.value : 0) || grandTotal;
+  const cashReceived = parseFloat(el.billCashReceived ? el.billCashReceived.value : 0) || grandTotal;
   const changeDue = Math.max(0, cashReceived - grandTotal);
+  const paymentMode = el.billPaymentMode ? el.billPaymentMode.value : 'Cash';
+  const customerPhone = el.billCustomerPhone ? el.billCustomerPhone.value.trim() : '';
+  const billDate = el.billDateInput && el.billDateInput.value ? el.billDateInput.value : getTodayString();
+  const notes = el.billNotesInput ? el.billNotesInput.value.trim() : '';
+  const invoiceNumber = getNextInvoiceNumber();
 
   const newInvoice = {
     id: `invc-${Date.now()}`,
-    invoiceNumber: getNextInvoiceNumber(),
+    invoiceNumber: invoiceNumber,
     customerName: customerName,
     customerPhone: customerPhone,
     customerAddress: 'Counter Sale',
-    date: getTodayString(),
-    items: posCart.map(item => ({
-      stockId: item.stockId,
-      stockName: item.stockName,
-      quantity: item.quantity,
-      price: item.price,
-      total: item.price * item.quantity
+    date: billDate,
+    items: activeBillItems.map(it => ({
+      stockId: it.stockId,
+      stockName: it.stockName,
+      quantity: it.quantity,
+      price: it.price,
+      total: it.price * it.quantity
     })),
     subtotal: subtotal,
     discount: discount,
     totalAmount: grandTotal,
-    notes: `Paid via ${posPaymentMode}. Thank you for your business.`,
+    notes: notes || `Paid via ${paymentMode}`,
     status: 'Paid',
     createdAt: new Date().toISOString()
   };
@@ -1416,37 +1467,44 @@ async function checkoutPosSale() {
   try {
     const res = await api.createInvoice(newInvoice);
     if (res && res.success === false) {
-      showToast(res.error || 'Failed to complete sale', 'error');
+      showToast(res.error || 'Failed to save bill', 'error');
       return;
     }
 
     await reloadFromDatabase();
     renderDashboard();
     renderInventory();
-    renderShopProducts();
-    renderInvoices();
+    renderShopBills();
 
-    // Navigate to dedicated Slip / Receipt Page (No modal popup)
-    openReceiptPage(newInvoice.id, {
-      cashReceived: cashReceived,
-      changeDue: changeDue,
-      paymentMode: posPaymentMode
-    });
+    closeCreateBillModal();
 
-    // Reset Cart
-    posCart = [];
-    posCurrentStep = 'cart';
-    if (el.posDiscountInput) el.posDiscountInput.value = '0';
-    if (el.posCashReceived) el.posCashReceived.value = '';
-    renderPosCart();
+    if (andPrint) {
+      openReceiptPage(newInvoice.id, {
+        cashReceived: cashReceived,
+        changeDue: changeDue,
+        paymentMode: paymentMode
+      });
+    }
 
-    showToast(`Sale completed! Receipt #${newInvoice.invoiceNumber} generated.`);
+    showToast(`Bill #${newInvoice.invoiceNumber} created successfully!`);
   } catch (err) {
-    console.error('Error during sale checkout:', err);
-    showToast('Failed to save sale: ' + err.message, 'error');
+    console.error('Error saving customer bill:', err);
+    showToast('Error saving bill: ' + err.message, 'error');
   }
 }
 
+// Backward compatibility stubs
+function renderShopProducts() {}
+function renderPosCart() {}
+function addToPosCart() {}
+function updatePosCartQty() {}
+function removeFromPosCart() {}
+function clearPosCart() {}
+
+window.openCreateBillModal = openCreateBillModal;
+window.closeCreateBillModal = closeCreateBillModal;
+window.updateBillItemQty = updateBillItemQty;
+window.removeBillItem = removeBillItem;
 window.addToPosCart = addToPosCart;
 window.updatePosCartQty = updatePosCartQty;
 window.removeFromPosCart = removeFromPosCart;
@@ -1456,6 +1514,7 @@ window.clearPosCart = clearPosCart;
 // INVOICE MODULE LOGIC (Clean & Professional)
 // ============================================
 function getFilteredInvoices() {
+  if (!el.invoiceSearchInput || !el.invoiceSearchBy || !el.filterInvoiceStatus) return [];
   let list = [...(appData.invoices || [])];
   const query = (el.invoiceSearchInput.value || '').trim().toLowerCase();
   const searchBy = el.invoiceSearchBy.value;
@@ -1477,6 +1536,7 @@ function getFilteredInvoices() {
 }
 
 function renderInvoices() {
+  if (!el.invoiceTableBody) return;
   const filtered = getFilteredInvoices();
   const total = filtered.length;
   const pageSize = getAdaptivePageSize('invoices');
@@ -1538,6 +1598,7 @@ function renderInvoices() {
 }
 
 function renderInvoicePagination(total, totalPages, pageSize) {
+  if (!el.invoicePaginationInfo || !el.btnInvoicePrevPage || !el.btnInvoiceNextPage) return;
   const size = pageSize || getAdaptivePageSize('invoices');
   const start = total === 0 ? 0 : (invoicePage - 1) * size + 1;
   const end = Math.min(invoicePage * size, total);
@@ -1679,99 +1740,101 @@ function updateInvoiceCalculations() {
 }
 
 // Save Invoice
-el.invoiceForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
+if (el.invoiceForm) {
+  el.invoiceForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  const customerName = el.invCustomerNameInput.value.trim();
-  if (!customerName) {
-    showToast('Customer Name is required');
-    return;
-  }
-
-  const rows = el.invoiceItemsTableBody.querySelectorAll('.invoice-item-row');
-  if (rows.length === 0) {
-    showToast('Add at least one item to the invoice');
-    return;
-  }
-
-  const items = [];
-  let subtotal = 0;
-
-  for (const r of rows) {
-    const sel = r.querySelector('.stock-select');
-    const stockId = sel.value;
-    const stockName = sel.selectedOptions[0]?.textContent?.split(' (In Stock:')[0] || 'Custom Item';
-    const quantity = Number(r.querySelector('.qty-input').value) || 0;
-    const price = Number(r.querySelector('.price-input').value) || 0;
-
-    if (!stockId) {
-      showToast('Please select a stock item for all rows');
-      return;
-    }
-    if (quantity <= 0) {
-      showToast('Quantity must be greater than 0', 'warning');
+    const customerName = el.invCustomerNameInput.value.trim();
+    if (!customerName) {
+      showToast('Customer Name is required');
       return;
     }
 
-    const stockItem = appData.inventory.find(s => s.id === stockId);
-    const available = stockItem ? Number(stockItem.quantity || 0) : 0;
-    if (quantity > available) {
-      showToast(`Cannot create invoice! Insufficient stock for "${stockName}". Available: ${available}, Requested: ${quantity}.`, 'error');
+    const rows = el.invoiceItemsTableBody.querySelectorAll('.invoice-item-row');
+    if (rows.length === 0) {
+      showToast('Add at least one item to the invoice');
       return;
     }
 
-    const total = quantity * price;
-    subtotal += total;
+    const items = [];
+    let subtotal = 0;
 
-    items.push({
-      stockId,
-      stockName,
-      quantity,
-      price,
-      total
-    });
-  }
+    for (const r of rows) {
+      const sel = r.querySelector('.stock-select');
+      const stockId = sel.value;
+      const stockName = sel.selectedOptions[0]?.textContent?.split(' (In Stock:')[0] || 'Custom Item';
+      const quantity = Number(r.querySelector('.qty-input').value) || 0;
+      const price = Number(r.querySelector('.price-input').value) || 0;
 
-  const discount = Number(el.invDiscountInput.value) || 0;
-  const totalAmount = Math.max(0, subtotal - discount);
-
-  const newInvoice = {
-    id: `invc-${Date.now()}`,
-    invoiceNumber: el.invNumberInput.value,
-    customerName,
-    customerPhone: el.invCustomerPhoneInput.value.trim(),
-    customerAddress: el.invCustomerAddressInput.value.trim(),
-    date: el.invDateInput.value,
-    items,
-    subtotal,
-    discount,
-    totalAmount,
-    notes: el.invNotesInput.value.trim(),
-    status: el.invStatusSelect.value
-  };
-
-  try {
-    if (api.createInvoice) {
-      const res = await api.createInvoice(newInvoice);
-      if (res && res.success === false) {
-        showToast(res.error || 'Failed to save invoice', 'error');
+      if (!stockId) {
+        showToast('Please select a stock item for all rows');
         return;
       }
-    }
-    showToast('Invoice created successfully');
-    closeInvoiceModal();
-    await reloadFromDatabase();
-    renderDashboard();
-    renderInvoices();
-    renderInventory();
+      if (quantity <= 0) {
+        showToast('Quantity must be greater than 0', 'warning');
+        return;
+      }
 
-    // Immediately open clean printable preview of created invoice
-    openViewInvoice(newInvoice.id);
-  } catch (err) {
-    console.error('Error saving invoice:', err);
-    showToast('Failed to save invoice: ' + err.message, 'error');
-  }
-});
+      const stockItem = appData.inventory.find(s => s.id === stockId);
+      const available = stockItem ? Number(stockItem.quantity || 0) : 0;
+      if (quantity > available) {
+        showToast(`Cannot create invoice! Insufficient stock for "${stockName}". Available: ${available}, Requested: ${quantity}.`, 'error');
+        return;
+      }
+
+      const total = quantity * price;
+      subtotal += total;
+
+      items.push({
+        stockId,
+        stockName,
+        quantity,
+        price,
+        total
+      });
+    }
+
+    const discount = Number(el.invDiscountInput.value) || 0;
+    const totalAmount = Math.max(0, subtotal - discount);
+
+    const newInvoice = {
+      id: `invc-${Date.now()}`,
+      invoiceNumber: el.invNumberInput.value,
+      customerName,
+      customerPhone: el.invCustomerPhoneInput.value.trim(),
+      customerAddress: el.invCustomerAddressInput.value.trim(),
+      date: el.invDateInput.value,
+      items,
+      subtotal,
+      discount,
+      totalAmount,
+      notes: el.invNotesInput.value.trim(),
+      status: el.invStatusSelect.value
+    };
+
+    try {
+      if (api.createInvoice) {
+        const res = await api.createInvoice(newInvoice);
+        if (res && res.success === false) {
+          showToast(res.error || 'Failed to save invoice', 'error');
+          return;
+        }
+      }
+      showToast('Invoice created successfully');
+      closeInvoiceModal();
+      await reloadFromDatabase();
+      renderDashboard();
+      renderInvoices();
+      renderInventory();
+
+      // Immediately open clean printable preview of created invoice
+      openViewInvoice(newInvoice.id);
+    } catch (err) {
+      console.error('Error saving invoice:', err);
+      showToast('Failed to save invoice: ' + err.message, 'error');
+    }
+  });
+}
 
 // Generate Thermal Cash Receipt HTML String
 function generateReceiptPaperHtml(inv, checkoutMeta = null) {
@@ -2041,6 +2104,8 @@ window.confirmDeleteInvoice = function(invId) {
     }
     showToast('Invoice deleted');
     await reloadFromDatabase();
+    renderDashboard();
+    renderShopBills();
     renderInvoices();
   };
 
@@ -2057,6 +2122,7 @@ function openAddStock() {
   el.stockVendorSelect.value = '';
   el.stockQtyInput.value = '';
   el.stockSellInput.value = '0';
+  if (el.stockPurchasePrice) el.stockPurchasePrice.value = '';
   el.stockWholesalePrice.value = '';
   el.stockIndividualPrice.value = '';
   el.stockDateInput.value = getTodayString();
@@ -2075,6 +2141,7 @@ window.openEditStock = function(stockId) {
   el.stockVendorSelect.value = item.vendorId || '';
   el.stockQtyInput.value = item.quantity;
   el.stockSellInput.value = item.totalSell || 0;
+  if (el.stockPurchasePrice) el.stockPurchasePrice.value = item.purchasePrice || 0;
   el.stockWholesalePrice.value = item.wholesalePrice || 0;
   el.stockIndividualPrice.value = item.individualPrice || 0;
   el.stockDateInput.value = item.date || getTodayString();
@@ -2094,6 +2161,7 @@ function openAddVendor(fromStockModal = false) {
   el.modalVendorTitle.textContent = 'Add Vendor';
   el.vendorId.value = '';
   el.vendorNameInput.value = '';
+  if (el.vendorContactPersonInput) el.vendorContactPersonInput.value = '';
   el.vendorPhoneInput.value = '';
   el.modalVendor.classList.remove('hidden');
 }
@@ -2105,7 +2173,8 @@ window.openEditVendor = function(vendorId) {
 
   el.modalVendorTitle.textContent = 'Edit Vendor';
   el.vendorId.value = vendor.id;
-  el.vendorNameInput.value = vendor.name;
+  el.vendorNameInput.value = vendor.name || '';
+  if (el.vendorContactPersonInput) el.vendorContactPersonInput.value = vendor.contactPerson || '';
   el.vendorPhoneInput.value = vendor.phone || '';
   el.modalVendor.classList.remove('hidden');
 };
@@ -2117,6 +2186,104 @@ function closeVendorModal() {
     returnToStockModalAfterVendor = false;
   }
 }
+
+function closeVendorProfileModal() {
+  if (el.modalVendorProfile) el.modalVendorProfile.classList.add('hidden');
+}
+
+window.openVendorProfile = function(vendorId) {
+  closeAllActionMenus();
+  const vendor = (appData.vendors || []).find(v => v.id === vendorId);
+  if (!vendor) return;
+
+  const vItems = (appData.inventory || []).filter(i => i.vendorId === vendorId);
+  const totalBoughtUnits = vItems.reduce((acc, i) => acc + (Number(i.quantity) || 0) + (Number(i.totalSell) || 0), 0);
+  const inStockUnits = vItems.reduce((acc, i) => acc + (Number(i.quantity) || 0), 0);
+  const soldUnits = vItems.reduce((acc, i) => acc + (Number(i.totalSell) || 0), 0);
+  const totalSpend = vItems.reduce((acc, i) => {
+    const initialQty = (Number(i.quantity) || 0) + (Number(i.totalSell) || 0);
+    const cost = Number(i.purchasePrice) || 0;
+    return acc + (initialQty * cost);
+  }, 0);
+
+  if (el.vpVendorName) el.vpVendorName.textContent = vendor.name;
+  if (el.vpContactPill) {
+    if (vendor.contactPerson && vendor.contactPerson.trim()) {
+      el.vpContactPill.textContent = `Rep: ${vendor.contactPerson.trim()}`;
+      el.vpContactPill.classList.remove('hidden');
+    } else {
+      el.vpContactPill.classList.add('hidden');
+    }
+  }
+  if (el.vpPhoneText) el.vpPhoneText.textContent = vendor.phone || 'N/A';
+  if (el.vpDateText) el.vpDateText.textContent = `Partner since ${vendor.createdAt || '2025'}`;
+
+  if (el.vpTotalSkus) el.vpTotalSkus.textContent = `${vItems.length} SKUs`;
+  if (el.vpTotalUnits) el.vpTotalUnits.textContent = `${totalBoughtUnits.toLocaleString()} Units`;
+  if (el.vpInStockUnits) el.vpInStockUnits.textContent = `${inStockUnits.toLocaleString()} Units`;
+  if (el.vpTotalSpend) el.vpTotalSpend.textContent = `PKR ${totalSpend.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (el.vpItemCountSubtitle) el.vpItemCountSubtitle.textContent = `${vItems.length} product batches supplied by this vendor`;
+
+  if (el.vpStockTableBody) {
+    el.vpStockTableBody.innerHTML = '';
+    if (vItems.length === 0) {
+      if (el.vpStockEmptyState) el.vpStockEmptyState.classList.remove('hidden');
+    } else {
+      if (el.vpStockEmptyState) el.vpStockEmptyState.classList.add('hidden');
+      vItems.forEach(item => {
+        const initialQty = (Number(item.quantity) || 0) + (Number(item.totalSell) || 0);
+        const inStock = Number(item.quantity) || 0;
+        const sold = Number(item.totalSell) || 0;
+        const cost = Number(item.purchasePrice) || 0;
+        const totalBatchCost = initialQty * cost;
+        const wholesale = Number(item.wholesalePrice) || 0;
+        const retail = Number(item.individualPrice) || 0;
+
+        let statusBadge = '<span class="status-badge status-paid">In Stock</span>';
+        if (inStock === 0) {
+          statusBadge = '<span class="status-badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;">Out of Stock</span>';
+        } else if (inStock <= 15) {
+          statusBadge = '<span class="status-badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;">Low Stock</span>';
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(item.stockName)}</strong></td>
+          <td>${escapeHtml(item.date || '')}</td>
+          <td style="text-align: center; font-weight: 700;">${initialQty.toLocaleString()}</td>
+          <td style="text-align: center; color: #2563eb; font-weight: 600;">${inStock.toLocaleString()}</td>
+          <td style="text-align: center; color: #16a34a; font-weight: 600;">${sold.toLocaleString()}</td>
+          <td style="text-align: right;">PKR ${cost.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right; font-weight: 700;">PKR ${totalBatchCost.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right; font-size: 11px; color: #64748b;">
+            Wholesale: PKR ${wholesale.toLocaleString()}<br>
+            Retail: PKR ${retail.toLocaleString()}
+          </td>
+          <td style="text-align: center;">${statusBadge}</td>
+        `;
+        el.vpStockTableBody.appendChild(tr);
+      });
+    }
+  }
+
+
+  if (el.btnVendorProfileAddStock) {
+    el.btnVendorProfileAddStock.onclick = () => {
+      closeVendorProfileModal();
+      openAddStock();
+      if (el.stockVendorSelect) el.stockVendorSelect.value = vendor.id;
+    };
+  }
+
+  if (el.btnVendorProfileEdit) {
+    el.btnVendorProfileEdit.onclick = () => {
+      closeVendorProfileModal();
+      openEditVendor(vendor.id);
+    };
+  }
+
+  if (el.modalVendorProfile) el.modalVendorProfile.classList.remove('hidden');
+};
 
 function closeConfirmModal() {
   el.modalConfirm.classList.add('hidden');
@@ -2156,10 +2323,12 @@ window.confirmDeleteVendor = function(vendorId) {
 
 function updateTotalPricesSummary() {
   const qty = Number(el.stockQtyInput.value) || 0;
+  const purchase = Number(el.stockPurchasePrice ? el.stockPurchasePrice.value : 0) || 0;
   const wholesale = Number(el.stockWholesalePrice.value) || 0;
   const individual = Number(el.stockIndividualPrice.value) || 0;
-  el.summaryTotalWholesale.textContent = `$${(qty * wholesale).toFixed(2)}`;
-  el.summaryTotalIndividual.textContent = `$${(qty * individual).toFixed(2)}`;
+  if (el.summaryTotalPurchase) el.summaryTotalPurchase.textContent = `PKR ${(qty * purchase).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (el.summaryTotalWholesale) el.summaryTotalWholesale.textContent = `PKR ${(qty * wholesale).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (el.summaryTotalIndividual) el.summaryTotalIndividual.textContent = `PKR ${(qty * individual).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
 }
 
 function refreshVendorDropdowns(selectedVendorId = null) {
@@ -2183,16 +2352,17 @@ el.stockForm.addEventListener('submit', async (e) => {
   const vendorName = selectedVendor ? selectedVendor.name : '';
   const quantity = Number(el.stockQtyInput.value);
   const totalSell = Number(el.stockSellInput.value) || 0;
+  const purchasePrice = Number(el.stockPurchasePrice ? el.stockPurchasePrice.value : 0) || 0;
   const wholesalePrice = Number(el.stockWholesalePrice.value);
   const individualPrice = Number(el.stockIndividualPrice.value);
   const date = el.stockDateInput.value;
 
   if (id) {
-    const updated = { id, stockName, vendorId, vendorName, quantity, totalSell, wholesalePrice, individualPrice, date };
+    const updated = { id, stockName, vendorId, vendorName, quantity, totalSell, purchasePrice, wholesalePrice, individualPrice, date };
     if (api.updateStock) await api.updateStock(updated);
     showToast('Stock item updated');
   } else {
-    const newStock = { id: 'inv-' + Date.now(), stockName, vendorId, vendorName, quantity, totalSell, wholesalePrice, individualPrice, date };
+    const newStock = { id: 'inv-' + Date.now(), stockName, vendorId, vendorName, quantity, totalSell, purchasePrice, wholesalePrice, individualPrice, date };
     if (api.addStock) await api.addStock(newStock);
     showToast('Stock item added');
   }
@@ -2207,16 +2377,17 @@ el.vendorForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = el.vendorId.value;
   const name = el.vendorNameInput.value.trim();
+  const contactPerson = el.vendorContactPersonInput ? el.vendorContactPersonInput.value.trim() : '';
   const phone = el.vendorPhoneInput.value.trim();
 
   let createdVendorId = id;
   if (id) {
-    const updated = { id, name, phone };
+    const updated = { id, name, contactPerson, phone };
     if (api.updateVendor) await api.updateVendor(updated);
     showToast('Vendor updated');
   } else {
     createdVendorId = 'v-' + Date.now();
-    const newVendor = { id: createdVendorId, name, phone, createdAt: getTodayString() };
+    const newVendor = { id: createdVendorId, name, contactPerson, phone, createdAt: getTodayString() };
     if (api.addVendor) await api.addVendor(newVendor);
     showToast('Vendor added');
   }
@@ -2398,18 +2569,15 @@ if (el.btnExportCSV) {
 // Sidebar & Tab Event Listeners
 if (el.navDashboardBtn) el.navDashboardBtn.addEventListener('click', () => switchTab('dashboard'));
 if (el.navShopBtn) el.navShopBtn.addEventListener('click', () => switchTab('shop'));
-if (el.navInvoiceBtn) el.navInvoiceBtn.addEventListener('click', () => switchTab('invoices'));
 if (el.navInventoryBtn) el.navInventoryBtn.addEventListener('click', () => switchTab('inventory'));
 if (el.navVendorBtn) el.navVendorBtn.addEventListener('click', () => switchTab('vendors'));
 
 // Dashboard & Shop Quick Action Listeners
 if (el.btnDashQuickSale) el.btnDashQuickSale.addEventListener('click', () => switchTab('shop'));
 if (el.btnDashAddStock) el.btnDashAddStock.addEventListener('click', openAddStock);
-if (el.btnDashViewAllInvoices) el.btnDashViewAllInvoices.addEventListener('click', () => switchTab('invoices'));
 if (el.btnDismissDashAlert) el.btnDismissDashAlert.addEventListener('click', () => {
   if (el.dashAlertBanner) el.dashAlertBanner.classList.add('hidden');
 });
-if (el.btnShopGoToInvoices) el.btnShopGoToInvoices.addEventListener('click', () => switchTab('invoices'));
 
 if (el.btnOpenAddStock) el.btnOpenAddStock.addEventListener('click', openAddStock);
 if (el.btnCloseStockModal) el.btnCloseStockModal.addEventListener('click', closeStockModal);
@@ -2417,87 +2585,83 @@ if (el.btnCancelStock) el.btnCancelStock.addEventListener('click', closeStockMod
 if (el.btnQuickAddVendor) el.btnQuickAddVendor.addEventListener('click', () => openAddVendor(true));
 
 if (el.stockQtyInput) el.stockQtyInput.addEventListener('input', updateTotalPricesSummary);
+if (el.stockPurchasePrice) el.stockPurchasePrice.addEventListener('input', updateTotalPricesSummary);
 if (el.stockWholesalePrice) el.stockWholesalePrice.addEventListener('input', updateTotalPricesSummary);
 if (el.stockIndividualPrice) el.stockIndividualPrice.addEventListener('input', updateTotalPricesSummary);
 
 if (el.btnOpenAddVendor) el.btnOpenAddVendor.addEventListener('click', () => openAddVendor(false));
 if (el.btnCloseVendorModal) el.btnCloseVendorModal.addEventListener('click', closeVendorModal);
 if (el.btnCancelVendor) el.btnCancelVendor.addEventListener('click', closeVendorModal);
+if (el.btnCloseVendorProfileModal) el.btnCloseVendorProfileModal.addEventListener('click', closeVendorProfileModal);
+if (el.modalVendorProfile) {
+  el.modalVendorProfile.addEventListener('click', (e) => {
+    if (e.target === el.modalVendorProfile) closeVendorProfileModal();
+  });
+}
 
-// Shop / POS Event Listeners
+// Shop POS & Billing Event Listeners
+if (el.btnOpenCreateBill) el.btnOpenCreateBill.addEventListener('click', openCreateBillModal);
+if (el.btnShopHeaderCreateBill) el.btnShopHeaderCreateBill.addEventListener('click', openCreateBillModal);
+if (el.btnShopEmptyCreateBill) el.btnShopEmptyCreateBill.addEventListener('click', openCreateBillModal);
 
-if (el.shopCatalogSearch) {
-  el.shopCatalogSearch.addEventListener('input', (e) => {
-    if (el.btnClearShopSearch) {
-      if (e.target.value) el.btnClearShopSearch.classList.remove('hidden');
-      else el.btnClearShopSearch.classList.add('hidden');
+if (el.btnCloseCreateBillModal) el.btnCloseCreateBillModal.addEventListener('click', closeCreateBillModal);
+if (el.btnCancelCreateBill) el.btnCancelCreateBill.addEventListener('click', closeCreateBillModal);
+
+if (el.btnBillWalkInCustomer) {
+  el.btnBillWalkInCustomer.addEventListener('click', () => {
+    if (el.billCustomerName) el.billCustomerName.value = 'Walk-in Customer';
+    if (el.billCustomerPhone && !el.billCustomerPhone.value) el.billCustomerPhone.value = '0300-0000000';
+  });
+}
+
+if (el.billStockSelect) {
+  el.billStockSelect.addEventListener('change', onBillStockSelected);
+}
+if (el.btnPriceRetail) {
+  el.btnPriceRetail.addEventListener('click', () => setBillPriceMode('retail'));
+}
+if (el.btnPriceWholesale) {
+  el.btnPriceWholesale.addEventListener('click', () => setBillPriceMode('wholesale'));
+}
+if (el.btnAddBillItem) {
+  el.btnAddBillItem.addEventListener('click', addBillItem);
+}
+
+if (el.billDiscountInput) {
+  el.billDiscountInput.addEventListener('input', updateBillTotals);
+}
+if (el.billCashReceived) {
+  el.billCashReceived.addEventListener('input', updateBillTotals);
+}
+
+if (el.btnSaveBillOnly) {
+  el.btnSaveBillOnly.addEventListener('click', () => saveCustomerBill(false));
+}
+if (el.btnSaveAndPrintBill) {
+  el.btnSaveAndPrintBill.addEventListener('click', () => saveCustomerBill(true));
+}
+
+// Shop Bills Search Filter
+if (el.shopBillsSearchInput) {
+  el.shopBillsSearchInput.addEventListener('input', (e) => {
+    if (el.btnClearShopBillsSearch) {
+      if (e.target.value) el.btnClearShopBillsSearch.classList.remove('hidden');
+      else el.btnClearShopBillsSearch.classList.add('hidden');
     }
-    renderShopProducts();
+    renderShopBills();
   });
 }
-
-if (el.btnClearShopSearch) {
-  el.btnClearShopSearch.addEventListener('click', () => {
-    if (el.shopCatalogSearch) el.shopCatalogSearch.value = '';
-    el.btnClearShopSearch.classList.add('hidden');
-    renderShopProducts();
+if (el.btnClearShopBillsSearch) {
+  el.btnClearShopBillsSearch.addEventListener('click', () => {
+    if (el.shopBillsSearchInput) el.shopBillsSearchInput.value = '';
+    el.btnClearShopBillsSearch.classList.add('hidden');
+    renderShopBills();
   });
-}
-
-document.querySelectorAll('.shop-chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('.shop-chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    posSelectedFilter = chip.dataset.filter || 'all';
-    renderShopProducts();
-  });
-});
-
-document.querySelectorAll('.btn-pay-mode').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.btn-pay-mode').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    posPaymentMode = btn.dataset.mode || 'Cash';
-    const disp = document.getElementById('rcptActiveModeDisplay');
-    if (disp) disp.textContent = posPaymentMode;
-  });
-});
-
-if (el.posDiscountInput) {
-  el.posDiscountInput.addEventListener('input', () => renderPosCart());
-}
-if (el.posCashReceived) {
-  el.posCashReceived.addEventListener('input', () => renderPosCart());
-}
-if (el.btnClearCart) {
-  el.btnClearCart.addEventListener('click', clearPosCart);
-}
-if (el.btnCartDone) {
-  el.btnCartDone.addEventListener('click', () => {
-    if (posCart.length === 0) {
-      showToast('Cart is empty. Add items first.', 'warning');
-      return;
-    }
-    posCurrentStep = 'receipt';
-    renderPosCart();
-  });
-}
-if (el.btnBackToCart) {
-  el.btnBackToCart.addEventListener('click', () => {
-    posCurrentStep = 'cart';
-    renderPosCart();
-  });
-}
-if (el.btnCheckoutOrder) {
-  el.btnCheckoutOrder.addEventListener('click', checkoutPosSale);
 }
 
 // Dedicated Receipt Slip Page Toolbar Listeners
 if (el.btnReceiptBackToShop) {
   el.btnReceiptBackToShop.addEventListener('click', () => switchTab('shop'));
-}
-if (el.btnReceiptGoToInvoices) {
-  el.btnReceiptGoToInvoices.addEventListener('click', () => switchTab('invoices'));
 }
 if (el.btnPrintReceiptPage) {
   el.btnPrintReceiptPage.addEventListener('click', () => window.print());
@@ -2735,6 +2899,175 @@ try {
   }
 } catch (e) {}
 
+// ========================================================
+// LOW STOCK STARTUP ALERT POPUP (Mandatory 5-Second Review)
+// ========================================================
+let isLowStockAlertLocked = true;
+let lowStockCountdownInterval = null;
+let lowStockRemainingSeconds = 5;
+
+function openLowStockStartupAlert(items) {
+  if (!el.modalLowStockAlert || !items || items.length === 0) return;
+
+  isLowStockAlertLocked = true;
+  lowStockRemainingSeconds = 5;
+
+  if (el.lowStockAlertBadge) {
+    el.lowStockAlertBadge.textContent = `${items.length} ${items.length === 1 ? 'Item' : 'Items'}`;
+  }
+
+  if (el.lowStockModalTableBody) {
+    el.lowStockModalTableBody.innerHTML = '';
+    items.forEach(item => {
+      const q = Number(item.quantity) || 0;
+      const isOut = q === 0;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong style="color: #0f172a;">${escapeHtml(item.stockName)}</strong></td>
+        <td style="color: #64748b; font-size: 12.5px;">${escapeHtml(item.vendorName || 'General')}</td>
+        <td style="text-align: center;">
+          <span class="${isOut ? 'low-badge-out' : 'low-badge-warning'}">
+            ${isOut ? 'Out of Stock' : `${q} Units`}
+          </span>
+        </td>
+        <td style="text-align: right;">
+          <button type="button" class="btn-low-stock-restock" onclick="handleLowStockRestockClick('${item.id}')">Restock</button>
+        </td>
+      `;
+      el.lowStockModalTableBody.appendChild(tr);
+    });
+  }
+
+  // Lock dismiss buttons
+  if (el.btnCloseLowStockModalX) {
+    el.btnCloseLowStockModalX.disabled = true;
+    el.btnCloseLowStockModalX.title = 'Close (Available in 5s)';
+  }
+  if (el.btnDismissLowStockAlert) {
+    el.btnDismissLowStockAlert.disabled = true;
+    el.btnDismissLowStockAlert.className = 'btn btn-secondary btn-dismiss-locked';
+    el.btnDismissLowStockAlert.innerHTML = '<span>Closing available in 5s</span>';
+  }
+  if (el.lowStockAlertTimerText) {
+    el.lowStockAlertTimerText.textContent = 'Please review low stock items. You can close this alert in 5 seconds.';
+  }
+  if (el.lowStockCountdownLabel) {
+    el.lowStockCountdownLabel.textContent = 'Locked: 5s remaining';
+  }
+
+  // Trigger progress bar animation
+  if (el.lowStockTimerBar) {
+    el.lowStockTimerBar.style.transition = 'none';
+    el.lowStockTimerBar.style.width = '0%';
+    void el.lowStockTimerBar.offsetWidth; // Force reflow
+    el.lowStockTimerBar.style.transition = 'width 5s linear';
+    el.lowStockTimerBar.style.width = '100%';
+  }
+
+  // Show modal
+  el.modalLowStockAlert.classList.remove('hidden');
+
+  // Start 5-second countdown timer
+  if (lowStockCountdownInterval) {
+    clearInterval(lowStockCountdownInterval);
+  }
+  lowStockCountdownInterval = setInterval(() => {
+    lowStockRemainingSeconds--;
+    if (lowStockRemainingSeconds > 0) {
+      if (el.lowStockAlertTimerText) {
+        el.lowStockAlertTimerText.textContent = `Please review low stock items. You can close this alert in ${lowStockRemainingSeconds} second${lowStockRemainingSeconds === 1 ? '' : 's'}.`;
+      }
+      if (el.lowStockCountdownLabel) {
+        el.lowStockCountdownLabel.textContent = `Locked: ${lowStockRemainingSeconds}s remaining`;
+      }
+      if (el.btnDismissLowStockAlert) {
+        el.btnDismissLowStockAlert.innerHTML = `<span>Closing available in ${lowStockRemainingSeconds}s</span>`;
+      }
+    } else {
+      clearInterval(lowStockCountdownInterval);
+      lowStockCountdownInterval = null;
+      isLowStockAlertLocked = false;
+
+      if (el.btnCloseLowStockModalX) {
+        el.btnCloseLowStockModalX.disabled = false;
+        el.btnCloseLowStockModalX.title = 'Close Alert';
+      }
+      if (el.btnDismissLowStockAlert) {
+        el.btnDismissLowStockAlert.disabled = false;
+        el.btnDismissLowStockAlert.className = 'btn btn-primary';
+        el.btnDismissLowStockAlert.innerHTML = '<span>&#10003; Acknowledge &amp; Close</span>';
+      }
+      if (el.lowStockAlertTimerText) {
+        el.lowStockAlertTimerText.textContent = 'Review complete. You may now close this alert.';
+      }
+      if (el.lowStockCountdownLabel) {
+        el.lowStockCountdownLabel.textContent = 'Unlocked (Ready to close)';
+      }
+    }
+  }, 1000);
+}
+
+function closeLowStockStartupAlert() {
+  if (isLowStockAlertLocked) return;
+  if (lowStockCountdownInterval) {
+    clearInterval(lowStockCountdownInterval);
+    lowStockCountdownInterval = null;
+  }
+  if (el.modalLowStockAlert) {
+    el.modalLowStockAlert.classList.add('hidden');
+  }
+}
+
+window.handleLowStockRestockClick = function(stockId) {
+  if (lowStockCountdownInterval) {
+    clearInterval(lowStockCountdownInterval);
+    lowStockCountdownInterval = null;
+  }
+  isLowStockAlertLocked = false;
+  if (el.modalLowStockAlert) {
+    el.modalLowStockAlert.classList.add('hidden');
+  }
+  if (window.openEditStock) {
+    window.openEditStock(stockId);
+  }
+};
+
+function checkLowStockStartupAlert() {
+  const lowItems = (appData.inventory || []).filter(item => {
+    const q = Number(item.quantity) || 0;
+    return q <= 10;
+  });
+
+  if (lowItems.length > 0) {
+    setTimeout(() => {
+      openLowStockStartupAlert(lowItems);
+    }, 450);
+  }
+}
+
+if (el.btnCloseLowStockModalX) {
+  el.btnCloseLowStockModalX.addEventListener('click', closeLowStockStartupAlert);
+}
+if (el.btnDismissLowStockAlert) {
+  el.btnDismissLowStockAlert.addEventListener('click', closeLowStockStartupAlert);
+}
+if (el.modalLowStockAlert) {
+  el.modalLowStockAlert.addEventListener('click', (e) => {
+    if (e.target === el.modalLowStockAlert && !isLowStockAlertLocked) {
+      closeLowStockStartupAlert();
+    }
+  });
+}
+if (el.dashAlertBanner) {
+  el.dashAlertBanner.addEventListener('click', (e) => {
+    if (e.target.closest('.alert-card-btn') || e.target.closest('#btnDismissDashAlert')) return;
+    const lowItems = (appData.inventory || []).filter(item => (Number(item.quantity) || 0) <= 10);
+    if (lowItems.length > 0) {
+      openLowStockStartupAlert(lowItems);
+    }
+  });
+}
+
 // Initial Boot
 let isAppInitialized = false;
 async function init() {
@@ -2744,9 +3077,9 @@ async function init() {
   renderDashboard();
   renderInventory();
   renderVendors();
-  renderShopProducts();
-  renderPosCart();
+  renderShopBills();
   renderInvoices();
+  checkLowStockStartupAlert();
 }
 
 if (document.readyState === 'loading') {
@@ -2765,7 +3098,7 @@ window.addEventListener('resize', () => {
     if (currentTab === 'dashboard') {
       renderDashboard();
     } else if (currentTab === 'shop') {
-      renderShopProducts();
+      renderShopBills();
     } else if (currentTab === 'invoices') {
       renderInvoices();
     } else if (currentTab === 'inventory') {

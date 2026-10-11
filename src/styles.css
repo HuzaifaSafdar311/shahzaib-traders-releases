@@ -773,16 +773,41 @@ body {
   position: relative;
 }
 
-/* Equal Space for Vendor Columns (3 columns = 33.33% each) */
-.col-vendor-name {
-  width: 33.33%;
+/* Professional Balanced Vendor Table Columns */
+.col-vendor-company {
+  width: 25%;
   text-align: left;
   word-break: break-word;
 }
 
-.col-phone {
-  width: 33.33%;
+.col-vendor-contact {
+  width: 25%;
   text-align: left;
+}
+
+.col-vendor-skus {
+  width: 12%;
+  text-align: center !important;
+  white-space: nowrap;
+}
+
+.col-vendor-units {
+  width: 14%;
+  text-align: center !important;
+  white-space: nowrap;
+}
+
+.col-vendor-spend {
+  width: 14%;
+  text-align: right !important;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.col-vendor-actions {
+  width: 10%;
+  text-align: center !important;
   white-space: nowrap;
 }
 
@@ -1121,7 +1146,7 @@ th.col-inv-actions { text-align: center !important; }
 /* Real-Time Total Prices Banner in Modal */
 .total-prices-banner {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
   background-color: #f9fafb;
   border: 1px solid var(--border-light);
@@ -2123,6 +2148,7 @@ th.col-inv-actions { text-align: center !important; }
   min-height: 36px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -2210,6 +2236,7 @@ th.col-inv-actions { text-align: center !important; }
   color: #111827;
   outline: none;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .pos-step-input::-webkit-outer-spin-button,
@@ -3963,4 +3990,1314 @@ th.col-inv-actions { text-align: center !important; }
     transform: translateY(0);
   }
 }
+
+/* ========================================================
+   PROFESSIONAL VENDOR MODULE & PURCHASE RECORD STYLES
+   ======================================================== */
+
+.vendor-metrics-grid {
+  margin-bottom: 24px;
+}
+
+/* Vendor Table Cell Styling */
+.vendor-company-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vendor-company-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vendor-rep-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background-color: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  width: fit-content;
+  font-weight: 500;
+}
+
+.vendor-contact-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12.5px;
+}
+
+.vendor-phone-line {
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vendor-location-line {
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vendor-email-line {
+  color: #3b82f6;
+  font-size: 11.5px;
+}
+
+.vendor-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-sku {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.badge-units {
+  background-color: #f8fafc;
+  color: #1e293b;
+  border: 1px solid var(--border-light);
+}
+
+.units-subtext {
+  display: block;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.vendor-action-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-view-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-view-record:hover {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+/* Vendor Profile / Purchase Record Modal */
+.vendor-profile-modal-card {
+  max-width: 980px;
+  width: 94vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.vp-header-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.vp-avatar-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.vp-avatar-badge svg {
+  width: 26px;
+  height: 26px;
+}
+
+.vp-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vp-contact-pill {
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #f1f5f9;
+  color: #475569;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-light);
+}
+
+.vp-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.vp-modal-body {
+  padding: 20px 24px 28px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.vp-contact-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: #f8fafc;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+
+.vp-contact-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.vp-contact-chip svg {
+  width: 15px;
+  height: 15px;
+  color: #64748b;
+}
+
+.vp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.vp-kpi-card {
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.vp-kpi-card.highlight-green {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.vp-kpi-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.vp-kpi-val {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.vp-table-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vp-table-container {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+
+.vp-notes-box {
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+
+.vp-notes-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #92400e;
+  margin-bottom: 6px;
+}
+
+.vp-notes-header svg {
+  width: 16px;
+  height: 16px;
+}
+
+.vp-notes-text {
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+/* Clean Canvas Container for New Shop Section */
+.shop-clean-container {
+  min-height: calc(100vh - 160px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  gap: 20px;
+}
+
+/* ========================================================
+   SHOP POS BILLING METRICS
+   ======================================================== */
+.shop-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.shop-metric-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.shop-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+  border-color: #cbd5e1;
+}
+
+.shop-metric-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shop-metric-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.bg-emerald-subtle { background: #ecfdf5; color: #059669; }
+.bg-blue-subtle { background: #eff6ff; color: #2563eb; }
+.bg-violet-subtle { background: #f5f3ff; color: #7c3aed; }
+.bg-amber-subtle { background: #fffbeb; color: #d97706; }
+
+.shop-metric-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.shop-metric-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.shop-metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.shop-metric-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+/* ========================================================
+   SHOP SALES & CUSTOMER BILLS TABLE SECTION
+   ======================================================== */
+.shop-bills-wrapper {
+  background: #ffffff;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 12px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.shop-bills-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.shop-bills-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.shop-bills-title-group .section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.shop-bills-subtitle {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.shop-bills-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shop-search-box {
+  width: 290px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.shop-search-box .search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.shop-search-box input {
+  width: 100%;
+  height: 36px;
+  padding: 0 28px 0 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shop-search-box input:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.08);
+}
+
+.btn-create-bill-header {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Shop Bills Table Container & Column Widths */
+.shop-bills-table-container {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+#shopBillsTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* Precise Column Widths & Alignments */
+.col-bill-no {
+  width: 12%;
+  text-align: left !important;
+  padding-left: 14px !important;
+}
+
+.col-bill-date {
+  width: 12%;
+  text-align: left !important;
+}
+
+.col-bill-customer {
+  width: 22%;
+  text-align: left !important;
+}
+
+.col-bill-items {
+  width: 8%;
+  text-align: center !important;
+}
+
+.col-bill-subtotal {
+  width: 12%;
+  text-align: right !important;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+}
+
+.col-bill-discount {
+  width: 10%;
+  text-align: right !important;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+
+.col-bill-discount.discount-applied {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.col-bill-total {
+  width: 13%;
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.col-bill-status {
+  width: 8%;
+  text-align: center !important;
+}
+
+.col-bill-actions {
+  width: 11%;
+  text-align: right !important;
+  padding-right: 14px !important;
+}
+
+th.col-bill-no { text-align: left !important; padding-left: 14px !important; }
+th.col-bill-date { text-align: left !important; }
+th.col-bill-customer { text-align: left !important; }
+th.col-bill-items { text-align: center !important; }
+th.col-bill-subtotal { text-align: right !important; }
+th.col-bill-discount { text-align: right !important; }
+th.col-bill-total { text-align: right !important; }
+th.col-bill-status { text-align: center !important; }
+th.col-bill-actions { text-align: right !important; padding-right: 14px !important; }
+
+/* Item badge in table */
+.bill-items-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.bill-actions-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.bill-num-cell {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bill-badge-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.bill-date-cell {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.bill-cust-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bill-cust-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.bill-cust-phone {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.bill-total-cell {
+  font-weight: 700;
+  color: #059669;
+  font-size: 13.5px;
+}
+
+.btn-bill-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-bill-action:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.btn-bill-action.btn-bill-slip:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.btn-bill-action.btn-bill-delete {
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+.btn-bill-action.btn-bill-delete:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+/* Empty State Fix - Perfectly Stacked Vertical Column */
+#shopBillsEmptyState,
+.shop-bills-table-container .empty-state {
+  flex: 1;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 56px 20px 60px 20px !important;
+  gap: 6px !important;
+}
+
+.empty-state-icon-circle {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.empty-state-icon-circle .empty-icon {
+  width: 28px;
+  height: 28px;
+}
+
+#shopBillsEmptyState .empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.3;
+}
+
+#shopBillsEmptyState .empty-desc {
+  font-size: 13px;
+  color: #64748b;
+  max-width: 400px;
+  line-height: 1.5;
+  margin: 2px 0 14px 0;
+}
+
+#shopBillsEmptyState .btn-empty-cta {
+  height: 38px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease;
+}
+
+#shopBillsEmptyState .btn-empty-cta:hover {
+  transform: translateY(-1px);
+}
+
+/* ========================================================
+   CREATE BILL / INVOICE MODAL
+   ======================================================== */
+.create-bill-modal-card {
+  max-width: 980px;
+  width: 95%;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.22);
+}
+
+.bill-modal-header {
+  padding: 16px 22px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+}
+
+.bill-modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bill-title-icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bill-title-icon-badge svg {
+  width: 22px;
+  height: 22px;
+}
+
+.bill-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bill-num-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  letter-spacing: 0.02em;
+}
+
+.bill-modal-body {
+  padding: 20px 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: #f8fafc;
+}
+
+.bill-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.bill-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bill-section-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-walkin-pill {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-walkin-pill:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.bill-cust-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1.2fr 1fr 1.2fr;
+  gap: 14px;
+}
+
+.bill-add-item-bar {
+  display: grid;
+  grid-template-columns: 2fr 1.3fr 1fr auto;
+  gap: 12px;
+  align-items: flex-end;
+  background: #f8fafc;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.bill-price-pills {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.price-pill {
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.price-pill:hover {
+  color: #1e293b;
+  border-color: #94a3b8;
+}
+
+.price-pill.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.bill-avail-hint {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+  display: block;
+}
+
+.btn-add-item {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+}
+
+.bill-items-table-wrapper {
+  margin-top: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.bill-items-empty {
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.bill-qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.bill-step-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+}
+
+.bill-step-btn:hover {
+  background: #e2e8f0;
+}
+
+.bill-step-val {
+  min-width: 34px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.btn-bill-del-item {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background 0.12s;
+}
+
+.btn-bill-del-item:hover {
+  background: #fee2e2;
+}
+
+.bill-bottom-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.bill-notes-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.bill-summary-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bill-sum-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bill-sum-label {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.bill-sum-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.input-inline-num {
+  width: 140px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: right;
+  color: #0f172a;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-inline-num:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.08);
+}
+
+.discount-input-wrap {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bill-sum-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+
+.net-total-row {
+  padding: 8px 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+}
+
+.bill-net-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #166534;
+}
+
+.bill-net-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #15803d;
+  letter-spacing: -0.02em;
+}
+
+.cash-row .input-inline-num {
+  text-align: right;
+}
+
+.bill-items-table-wrapper #billItemsTable {
+  min-width: 100% !important;
+  width: 100% !important;
+  table-layout: fixed;
+}
+
+.change-row {
+  padding-top: 4px;
+}
+
+.bill-change-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0284c7;
+}
+
+.bill-modal-footer {
+  padding: 14px 22px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ========================================================
+   LOW STOCK STARTUP ALERT MODAL (5-Second Lock)
+   ======================================================== */
+.low-stock-modal-card {
+  width: 680px;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #fed7aa;
+  box-shadow: 0 24px 48px -12px rgba(180, 83, 9, 0.2), 0 12px 24px -8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.low-stock-modal-header {
+  padding: 16px 22px;
+  background: #fffbeb;
+  border-bottom: 1px solid #fef3c7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.low-stock-header-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.low-stock-icon-pulse {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  animation: pulseLowStock 2s infinite ease-in-out;
+}
+
+.low-stock-icon-pulse svg {
+  width: 22px;
+  height: 22px;
+}
+
+@keyframes pulseLowStock {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+}
+
+.low-stock-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.low-stock-badge-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.low-stock-timer-bar-wrap {
+  width: 100%;
+  height: 4px;
+  background: #fef3c7;
+  overflow: hidden;
+  position: relative;
+}
+
+.low-stock-timer-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  transition: width 1s linear;
+}
+
+.low-stock-modal-body {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  max-height: 52vh;
+}
+
+.low-stock-alert-notice {
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: #854d0e;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.4;
+}
+
+.notice-info-icon {
+  width: 18px;
+  height: 18px;
+  color: #ca8a04;
+  flex-shrink: 0;
+}
+
+.low-stock-items-list-container {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.low-stock-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.low-stock-table th {
+  padding: 10px 12px;
+  background: #f8fafc;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.low-stock-table td {
+  padding: 11px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.low-stock-table tbody tr:hover {
+  background-color: #fffbeb;
+}
+
+.low-badge-out {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.low-badge-warning {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.btn-low-stock-restock {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #2563eb;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-low-stock-restock:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.low-stock-modal-footer {
+  padding: 14px 22px;
+  background: #fafaf9;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-timer-status {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.btn-dismiss-locked {
+  opacity: 0.6;
+  cursor: not-allowed !important;
+  border-color: #cbd5e1;
+  color: #94a3b8 !important;
+  background: #f1f5f9 !important;
+}
+
+#btnCloseLowStockModalX:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+
 

@@ -53,6 +53,7 @@ async function exportPDF({ items = [], summary = {} }, parentWindow) {
   const tableRowsHtml = items.map(item => {
     const qty = Number(item.quantity) || 0;
     const sell = Number(item.totalSell) || 0;
+    const purPrice = Number(item.purchasePrice) || 0;
     const wsPrice = Number(item.wholesalePrice) || 0;
     const indPrice = Number(item.individualPrice) || 0;
 
@@ -65,6 +66,7 @@ async function exportPDF({ items = [], summary = {} }, parentWindow) {
         <td class="col-vendor">${escapeHtml(item.vendorName || 'N/A')}</td>
         <td class="col-qty text-center">${qty.toLocaleString()}</td>
         <td class="col-sell text-center">${sell.toLocaleString()}</td>
+        <td class="col-price text-right">${formatPKR(purPrice)}</td>
         <td class="col-price text-right">${formatPKR(wsPrice)}</td>
         <td class="col-price text-right">${formatPKR(indPrice)}</td>
         <td class="col-date text-center">${escapeHtml(item.date || '')}</td>
@@ -209,22 +211,23 @@ async function exportPDF({ items = [], summary = {} }, parentWindow) {
             <tr>
               <th style="text-align: left;">Stock Name</th>
               <th style="text-align: left;">Vendor</th>
-              <th style="width: 80px;" class="text-center">Total Stock</th>
-              <th style="width: 75px;" class="text-center">Total Sell</th>
-              <th style="width: 125px;" class="text-right">Wholesale</th>
-              <th style="width: 125px;" class="text-right">Individual</th>
-              <th style="width: 85px;" class="text-center">Date</th>
+              <th style="width: 70px;" class="text-center">Total Stock</th>
+              <th style="width: 65px;" class="text-center">Total Sell</th>
+              <th style="width: 100px;" class="text-right">Original Value</th>
+              <th style="width: 100px;" class="text-right">Wholesale</th>
+              <th style="width: 100px;" class="text-right">Individual</th>
+              <th style="width: 75px;" class="text-center">Date</th>
             </tr>
           </thead>
           <tbody>
-            ${tableRowsHtml || '<tr><td colspan="7" class="text-center" style="padding: 24px; color: #94a3b8;">No records found</td></tr>'}
+            ${tableRowsHtml || '<tr><td colspan="8" class="text-center" style="padding: 24px; color: #94a3b8;">No records found</td></tr>'}
           </tbody>
           <tfoot>
             <tr>
               <td colspan="2" style="text-align: left; font-weight: 700;">Total</td>
               <td class="text-center">${totalStock.toLocaleString()}</td>
               <td class="text-center">${totalSell.toLocaleString()}</td>
-              <td colspan="3"></td>
+              <td colspan="4"></td>
             </tr>
           </tfoot>
         </table>
@@ -304,6 +307,7 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
     'Vendor',
     'Total Stock',
     'Total Sell',
+    'Original Value (PKR)',
     'Wholesale (PKR)',
     'Individual (PKR)',
     'Date'
@@ -323,7 +327,7 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
     cell.value = h;
     cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF334155' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-    cell.alignment = { horizontal: (idx === 0 || idx === 1) ? 'left' : (idx === 4 || idx === 5) ? 'right' : 'center', vertical: 'middle' };
+    cell.alignment = { horizontal: (idx === 0 || idx === 1) ? 'left' : (idx >= 4 && idx <= 6) ? 'right' : 'center', vertical: 'middle' };
     cell.border = thinBorder;
   });
 
@@ -338,6 +342,7 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
 
     const qty = Number(item.quantity) || 0;
     const sell = Number(item.totalSell) || 0;
+    const purPrice = Number(item.purchasePrice) || 0;
     const wsPrice = Number(item.wholesalePrice) || 0;
     const indPrice = Number(item.individualPrice) || 0;
 
@@ -348,9 +353,10 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
     row.getCell(2).value = item.vendorName || 'N/A';
     row.getCell(3).value = qty;
     row.getCell(4).value = sell;
-    row.getCell(5).value = wsPrice;
-    row.getCell(6).value = indPrice;
-    row.getCell(7).value = item.date || '';
+    row.getCell(5).value = purPrice;
+    row.getCell(6).value = wsPrice;
+    row.getCell(7).value = indPrice;
+    row.getCell(8).value = item.date || '';
 
     row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
     row.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
@@ -358,15 +364,17 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
     row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
     row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
     row.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
-    row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' };
+    row.getCell(7).alignment = { horizontal: 'right', vertical: 'middle' };
+    row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
 
     row.getCell(3).numFmt = '#,##0';
     row.getCell(4).numFmt = '#,##0';
     row.getCell(5).numFmt = '"PKR " #,##0.00';
     row.getCell(6).numFmt = '"PKR " #,##0.00';
+    row.getCell(7).numFmt = '"PKR " #,##0.00';
 
     const bg = (idx % 2 === 1) ? 'FFFAFAFA' : 'FFFFFFFF';
-    for (let c = 1; c <= 7; c++) {
+    for (let c = 1; c <= 8; c++) {
       const cell = row.getCell(c);
       cell.font = { name: 'Arial', size: 9.5 };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
@@ -387,6 +395,7 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
   totalRow.getCell(5).value = '';
   totalRow.getCell(6).value = '';
   totalRow.getCell(7).value = '';
+  totalRow.getCell(8).value = '';
 
   totalRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
   totalRow.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
@@ -395,7 +404,7 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
   totalRow.getCell(3).numFmt = '#,##0';
   totalRow.getCell(4).numFmt = '#,##0';
 
-  for (let c = 1; c <= 7; c++) {
+  for (let c = 1; c <= 8; c++) {
     const cell = totalRow.getCell(c);
     cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF0F172A' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
@@ -403,7 +412,7 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
   }
 
   // Column Widths
-  const widths = [28, 24, 14, 14, 20, 20, 14];
+  const widths = [28, 24, 14, 14, 20, 20, 20, 14];
   widths.forEach((w, idx) => {
     ws.getColumn(idx + 1).width = w;
   });
@@ -429,7 +438,7 @@ async function exportCSV({ items = [] }, parentWindow) {
   }
 
   let csvContent = '\uFEFF'; // UTF-8 BOM
-  csvContent += 'Stock Name,Vendor,Total Stock,Total Sell,Wholesale (PKR),Individual (PKR),Date\r\n';
+  csvContent += 'Stock Name,Vendor,Total Stock,Total Sell,Original Value (PKR),Wholesale (PKR),Individual (PKR),Date\r\n';
 
   let totalStock = 0;
   let totalSell = 0;
@@ -437,6 +446,7 @@ async function exportCSV({ items = [] }, parentWindow) {
   items.forEach(item => {
     const qty = Number(item.quantity) || 0;
     const sell = Number(item.totalSell) || 0;
+    const pp = Number(item.purchasePrice) || 0;
     const wp = Number(item.wholesalePrice) || 0;
     const ip = Number(item.individualPrice) || 0;
 
@@ -448,6 +458,7 @@ async function exportCSV({ items = [] }, parentWindow) {
       `"${(item.vendorName || '').replace(/"/g, '""')}"`,
       qty,
       sell,
+      pp.toFixed(2),
       wp.toFixed(2),
       ip.toFixed(2),
       `"${item.date || ''}"`
