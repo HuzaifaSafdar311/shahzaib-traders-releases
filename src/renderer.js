@@ -160,6 +160,35 @@ const el = {
   vendorNameInput: document.getElementById('vendorNameInput'),
   vendorPhoneInput: document.getElementById('vendorPhoneInput'),
 
+  // Shop Tab Switcher & Sub-Views
+  btnShopTabCounter: document.getElementById('btnShopTabCounter'),
+  btnShopTabHistory: document.getElementById('btnShopTabHistory'),
+  shopCounterView: document.getElementById('shopCounterView'),
+  shopHistoryView: document.getElementById('shopHistoryView'),
+
+  // Shop POS Catalog Elements
+  shopCatalogSearch: document.getElementById('shopCatalogSearch'),
+  btnClearShopSearch: document.getElementById('btnClearShopSearch'),
+  shopProductsGrid: document.getElementById('shopProductsGrid'),
+  shopProductsEmpty: document.getElementById('shopProductsEmpty'),
+
+  // Shop POS Cart Elements
+  shopCartPanel: document.getElementById('shopCartPanel'),
+  cartIconBadge: document.getElementById('cartIconBadge'),
+  cartBadgeCount: document.getElementById('cartBadgeCount'),
+  cartItemsSubtitle: document.getElementById('cartItemsSubtitle'),
+  btnClearCart: document.getElementById('btnClearCart'),
+  posCustomerName: document.getElementById('posCustomerName'),
+  posCustomerPhone: document.getElementById('posCustomerPhone'),
+  cartItemsList: document.getElementById('cartItemsList'),
+  cartEmptyState: document.getElementById('cartEmptyState'),
+  posSubtotal: document.getElementById('posSubtotal'),
+  posDiscountInput: document.getElementById('posDiscountInput'),
+  posGrandTotal: document.getElementById('posGrandTotal'),
+  posCashReceived: document.getElementById('posCashReceived'),
+  posChangeDue: document.getElementById('posChangeDue'),
+  btnCheckoutOrder: document.getElementById('btnCheckoutOrder'),
+
   // Invoice List Elements
   invoiceTableBody: document.getElementById('invoiceTableBody'),
   invoiceEmptyState: document.getElementById('invoiceEmptyState'),
@@ -303,7 +332,11 @@ function switchTab(tab) {
 
   if (tab === 'inventory') renderInventory();
   else if (tab === 'vendors') renderVendors();
-  else if (tab === 'invoices') renderInvoices();
+  else if (tab === 'invoices') {
+    renderShopProducts();
+    renderPosCart();
+    renderInvoices();
+  }
 }
 
 // ============================================
@@ -541,6 +574,364 @@ function renderVendorPagination(total, totalPages, pageSize) {
     renderVendors();
   });
 }
+
+// ============================================
+// SHOP / POS MODULE (Real-time Point of Sale)
+// ============================================
+let posCart = []; // [{ stockId, stockName, price, wholesalePrice, quantity, maxQty, vendorName }]
+let posSelectedFilter = 'all'; // 'all' | 'in-stock' | 'low-stock'
+let posPaymentMode = 'Cash';
+let shopSubTab = 'counter'; // 'counter' | 'history'
+
+function switchShopSubTab(subTab) {
+  shopSubTab = subTab;
+  if (el.btnShopTabCounter) el.btnShopTabCounter.classList.toggle('active', subTab === 'counter');
+  if (el.btnShopTabHistory) el.btnShopTabHistory.classList.toggle('active', subTab === 'history');
+
+  if (el.shopCounterView) el.shopCounterView.classList.toggle('hidden', subTab !== 'counter');
+  if (el.shopHistoryView) el.shopHistoryView.classList.toggle('hidden', subTab !== 'history');
+
+  if (subTab === 'counter') {
+    renderShopProducts();
+    renderPosCart();
+  } else {
+    renderInvoices();
+  }
+}
+
+function triggerFlyToCartAnimation(buttonEl, itemName) {
+  const targetBadge = el.cartIconBadge || document.getElementById('cartIconBadge');
+  if (!buttonEl || !targetBadge) return;
+
+  const btnRect = buttonEl.getBoundingClientRect();
+  const targetRect = targetBadge.getBoundingClientRect();
+
+  const fly = document.createElement('div');
+  fly.className = 'flying-cart-item';
+  fly.innerHTML = `<span>+</span> <strong>${escapeHtml(itemName.substring(0, 18))}</strong>`;
+
+  fly.style.left = `${btnRect.left + btnRect.width / 2}px`;
+  fly.style.top = `${btnRect.top + btnRect.height / 2}px`;
+
+  document.body.appendChild(fly);
+
+  // Force reflow
+  void fly.offsetWidth;
+
+  const deltaX = (targetRect.left + targetRect.width / 2) - (btnRect.left + btnRect.width / 2);
+  const deltaY = (targetRect.top + targetRect.height / 2) - (btnRect.top + btnRect.height / 2);
+
+  fly.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.35)`;
+  fly.style.opacity = '0';
+
+  setTimeout(() => {
+    fly.remove();
+    targetBadge.classList.add('pulse');
+    setTimeout(() => targetBadge.classList.remove('pulse'), 400);
+  }, 460);
+}
+
+function renderShopProducts() {
+  if (!el.shopProductsGrid) return;
+  const query = (el.shopCatalogSearch ? el.shopCatalogSearch.value : '').trim().toLowerCase();
+
+  let list = [...appData.inventory];
+
+  if (query) {
+    list = list.filter(item => {
+      const name = (item.stockName || '').toLowerCase();
+      const vendor = (item.vendorName || '').toLowerCase();
+      return name.includes(query) || vendor.includes(query);
+    });
+  }
+
+  if (posSelectedFilter === 'in-stock') {
+    list = list.filter(i => Number(i.quantity || 0) > 0);
+  } else if (posSelectedFilter === 'low-stock') {
+    list = list.filter(i => {
+      const q = Number(i.quantity || 0);
+      return q > 0 && q <= 10;
+    });
+  }
+
+  el.shopProductsGrid.innerHTML = '';
+
+  if (list.length === 0) {
+    if (el.shopProductsEmpty) el.shopProductsEmpty.classList.remove('hidden');
+    return;
+  }
+  if (el.shopProductsEmpty) el.shopProductsEmpty.classList.add('hidden');
+
+  list.forEach(item => {
+    const availableQty = Number(item.quantity || 0);
+    const retailPrice = Number(item.individualPrice || item.wholesalePrice || 0);
+    const card = document.createElement('div');
+    card.className = 'pos-product-card';
+
+    let badgeClass = 'in-stock';
+    let badgeText = `${availableQty} in stock`;
+    if (availableQty === 0) {
+      badgeClass = 'out-stock';
+      badgeText = 'Out of stock';
+    } else if (availableQty <= 10) {
+      badgeClass = 'low-stock';
+      badgeText = `${availableQty} low stock`;
+    }
+
+    const priceFormatted = Number(retailPrice).toLocaleString('en-PK', { minimumFractionDigits: 2 });
+
+    card.innerHTML = `
+      <div class="pos-product-vendor">${escapeHtml(item.vendorName || 'General Stock')}</div>
+      <div class="pos-product-title" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</div>
+      <div class="pos-product-meta-row">
+        <div class="pos-product-price">PKR ${priceFormatted}</div>
+        <span class="pos-stock-badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div class="pos-card-actions">
+        <div class="pos-qty-stepper">
+          <button type="button" class="pos-btn-step btn-step-down" ${availableQty <= 0 ? 'disabled' : ''}>-</button>
+          <input type="number" class="pos-step-input" value="1" min="1" max="${availableQty}" ${availableQty <= 0 ? 'disabled' : ''}>
+          <button type="button" class="pos-btn-step btn-step-up" ${availableQty <= 0 ? 'disabled' : ''}>+</button>
+        </div>
+        <button type="button" class="btn-pos-add" ${availableQty <= 0 ? 'disabled' : ''} data-id="${item.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span>Add</span>
+        </button>
+      </div>
+    `;
+
+    const stepInput = card.querySelector('.pos-step-input');
+    const btnDown = card.querySelector('.btn-step-down');
+    const btnUp = card.querySelector('.btn-step-up');
+    const btnAdd = card.querySelector('.btn-pos-add');
+
+    if (btnDown && stepInput) {
+      btnDown.addEventListener('click', (e) => {
+        e.stopPropagation();
+        let val = parseInt(stepInput.value, 10) || 1;
+        if (val > 1) stepInput.value = val - 1;
+      });
+    }
+
+    if (btnUp && stepInput) {
+      btnUp.addEventListener('click', (e) => {
+        e.stopPropagation();
+        let val = parseInt(stepInput.value, 10) || 1;
+        if (val < availableQty) stepInput.value = val + 1;
+      });
+    }
+
+    if (btnAdd && stepInput) {
+      btnAdd.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const qtyToAdd = parseInt(stepInput.value, 10) || 1;
+        triggerFlyToCartAnimation(btnAdd, item.stockName);
+        addToPosCart(item.id, qtyToAdd);
+      });
+    }
+
+    el.shopProductsGrid.appendChild(card);
+  });
+}
+
+function addToPosCart(stockId, quantity = 1) {
+  const stock = (appData.inventory || []).find(i => i.id === stockId);
+  if (!stock) return;
+
+  const available = Number(stock.quantity || 0);
+  if (available <= 0) {
+    showToast('Item is out of stock', 'error');
+    return;
+  }
+
+  const existing = posCart.find(i => i.stockId === stockId);
+  if (existing) {
+    const newQty = existing.quantity + quantity;
+    if (newQty > available) {
+      existing.quantity = available;
+      showToast(`Maximum available stock (${available}) reached`, 'warning');
+    } else {
+      existing.quantity = newQty;
+    }
+  } else {
+    const addQty = Math.min(quantity, available);
+    const price = Number(stock.individualPrice || stock.wholesalePrice || 0);
+    posCart.push({
+      stockId: stock.id,
+      stockName: stock.stockName,
+      price: price,
+      wholesalePrice: Number(stock.wholesalePrice || 0),
+      quantity: addQty,
+      maxQty: available,
+      vendorName: stock.vendorName || ''
+    });
+  }
+
+  renderPosCart();
+}
+
+function updatePosCartQty(stockId, delta) {
+  const item = posCart.find(i => i.stockId === stockId);
+  if (!item) return;
+
+  item.quantity += delta;
+  if (item.quantity <= 0) {
+    posCart = posCart.filter(i => i.stockId !== stockId);
+  } else if (item.quantity > item.maxQty) {
+    item.quantity = item.maxQty;
+    showToast(`Maximum available stock is ${item.maxQty}`, 'warning');
+  }
+
+  renderPosCart();
+}
+
+function removeFromPosCart(stockId) {
+  posCart = posCart.filter(i => i.stockId !== stockId);
+  renderPosCart();
+}
+
+function clearPosCart() {
+  if (posCart.length === 0) return;
+  posCart = [];
+  renderPosCart();
+  showToast('Cart cleared');
+}
+
+function renderPosCart() {
+  if (!el.cartItemsList) return;
+
+  el.cartItemsList.innerHTML = '';
+  const totalCount = posCart.reduce((sum, i) => sum + i.quantity, 0);
+
+  if (el.cartBadgeCount) el.cartBadgeCount.textContent = totalCount;
+  if (el.cartItemsSubtitle) el.cartItemsSubtitle.textContent = `${totalCount} item${totalCount === 1 ? '' : 's'} in cart`;
+
+  if (posCart.length === 0) {
+    if (el.cartEmptyState) el.cartEmptyState.classList.remove('hidden');
+    if (el.posSubtotal) el.posSubtotal.textContent = 'PKR 0.00';
+    if (el.posGrandTotal) el.posGrandTotal.textContent = 'PKR 0.00';
+    if (el.posChangeDue) el.posChangeDue.textContent = 'PKR 0.00';
+    if (el.btnCheckoutOrder) el.btnCheckoutOrder.disabled = true;
+    return;
+  }
+
+  if (el.cartEmptyState) el.cartEmptyState.classList.add('hidden');
+
+  let subtotal = 0;
+
+  posCart.forEach(item => {
+    const lineTotal = item.price * item.quantity;
+    subtotal += lineTotal;
+
+    const row = document.createElement('div');
+    row.className = 'cart-item-row';
+    row.innerHTML = `
+      <div class="cart-item-info">
+        <div class="cart-item-name" title="${escapeHtml(item.stockName)}">${escapeHtml(item.stockName)}</div>
+        <div class="cart-item-rate">@ PKR ${Number(item.price).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</div>
+      </div>
+      <div class="cart-item-stepper">
+        <button type="button" class="btn-cart-step" onclick="updatePosCartQty('${item.stockId}', -1)">-</button>
+        <span class="cart-step-val">${item.quantity}</span>
+        <button type="button" class="btn-cart-step" onclick="updatePosCartQty('${item.stockId}', 1)">+</button>
+      </div>
+      <div class="cart-item-amount">Rs ${Number(lineTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</div>
+      <button type="button" class="btn-cart-del" onclick="removeFromPosCart('${item.stockId}')" title="Remove">&times;</button>
+    `;
+    el.cartItemsList.appendChild(row);
+  });
+
+  const discountVal = Number(el.posDiscountInput ? el.posDiscountInput.value : 0) || 0;
+  const grandTotal = Math.max(0, subtotal - discountVal);
+
+  if (el.posSubtotal) el.posSubtotal.textContent = `PKR ${Number(subtotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  if (el.posGrandTotal) el.posGrandTotal.textContent = `PKR ${Number(grandTotal).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+
+  const cashReceived = Number(el.posCashReceived ? el.posCashReceived.value : 0) || 0;
+  const changeDue = cashReceived > grandTotal ? (cashReceived - grandTotal) : 0;
+  if (el.posChangeDue) {
+    el.posChangeDue.textContent = `PKR ${Number(changeDue).toLocaleString('en-PK', { minimumFractionDigits: 2 })}`;
+  }
+
+  if (el.btnCheckoutOrder) el.btnCheckoutOrder.disabled = false;
+}
+
+async function checkoutPosSale() {
+  if (posCart.length === 0) {
+    showToast('Cart is empty. Add items first.', 'warning');
+    return;
+  }
+
+  const subtotal = posCart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+  const discount = Number(el.posDiscountInput ? el.posDiscountInput.value : 0) || 0;
+  const grandTotal = Math.max(0, subtotal - discount);
+  const customerName = (el.posCustomerName && el.posCustomerName.value.trim()) ? el.posCustomerName.value.trim() : 'Walk-in Customer';
+  const customerPhone = el.posCustomerPhone ? el.posCustomerPhone.value.trim() : '';
+  const cashReceived = Number(el.posCashReceived ? el.posCashReceived.value : 0) || grandTotal;
+  const changeDue = Math.max(0, cashReceived - grandTotal);
+
+  const newInvoice = {
+    id: `invc-${Date.now()}`,
+    invoiceNumber: getNextInvoiceNumber(),
+    customerName: customerName,
+    customerPhone: customerPhone,
+    customerAddress: 'Counter Sale',
+    date: getTodayString(),
+    items: posCart.map(item => ({
+      stockId: item.stockId,
+      stockName: item.stockName,
+      quantity: item.quantity,
+      price: item.price,
+      total: item.price * item.quantity
+    })),
+    subtotal: subtotal,
+    discount: discount,
+    totalAmount: grandTotal,
+    notes: `Paid via ${posPaymentMode}. Thank you for your business.`,
+    status: 'Paid',
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    const res = await api.createInvoice(newInvoice);
+    if (res && res.success === false) {
+      showToast('Failed to complete sale: ' + (res.error || 'Unknown error'), 'error');
+      return;
+    }
+
+    await reloadFromDatabase();
+    renderInventory();
+    renderShopProducts();
+    renderInvoices();
+
+    // Open Realistic Thermal Cash Receipt matching reference image
+    openViewInvoice(newInvoice.id, {
+      cashReceived: cashReceived,
+      changeDue: changeDue,
+      paymentMode: posPaymentMode
+    });
+
+    // Reset Cart
+    posCart = [];
+    if (el.posDiscountInput) el.posDiscountInput.value = '0';
+    if (el.posCashReceived) el.posCashReceived.value = '';
+    renderPosCart();
+
+    showToast(`Sale completed! Receipt #${newInvoice.invoiceNumber} generated.`);
+  } catch (err) {
+    console.error('Error during sale checkout:', err);
+    showToast('Failed to save sale: ' + err.message, 'error');
+  }
+}
+
+window.addToPosCart = addToPosCart;
+window.updatePosCartQty = updatePosCartQty;
+window.removeFromPosCart = removeFromPosCart;
+window.clearPosCart = clearPosCart;
 
 // ============================================
 // INVOICE MODULE LOGIC (Clean & Professional)
@@ -851,8 +1242,8 @@ el.invoiceForm.addEventListener('submit', async (e) => {
   }
 });
 
-// View and Print Invoice Sheet
-window.openViewInvoice = function(invId) {
+// View and Print Thermal Cash Receipt Sheet (Matching Reference Design)
+window.openViewInvoice = function(invId, checkoutMeta = null) {
   closeAllActionMenus();
   const inv = (appData.invoices || []).find(i => i.id === invId);
   if (!inv) return;
@@ -862,14 +1253,23 @@ window.openViewInvoice = function(invId) {
     items = typeof inv.items === 'string' ? JSON.parse(inv.items) : (inv.items || []);
   } catch (e) {}
 
-  let itemsHtml = '';
-  items.forEach((it, index) => {
-    itemsHtml += `
+  let totalQtyCount = 0;
+  let receiptItemsHtml = '';
+  items.forEach((it) => {
+    const qty = Number(it.quantity) || 0;
+    totalQtyCount += qty;
+    const priceFormatted = Number(it.price || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 });
+    const lineTotalFormatted = Number(it.total || (qty * (it.price || 0))).toLocaleString('en-PK', { minimumFractionDigits: 2 });
+
+    receiptItemsHtml += `
       <tr>
-        <td><strong>${index + 1}.</strong> ${escapeHtml(it.stockName)}</td>
-        <td>${it.quantity}</td>
-        <td>Rs ${Number(it.price || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</td>
-        <td>Rs ${Number(it.total || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</td>
+        <td class="tr-item-desc" colspan="4">${escapeHtml(it.stockName)}</td>
+      </tr>
+      <tr>
+        <td style="color: #6b7280; font-size: 10.5px;">&nbsp;&nbsp;Code: ${escapeHtml((it.stockId || '').substring(0, 8))}</td>
+        <td style="text-align: center;">${qty}</td>
+        <td style="text-align: right;">${priceFormatted}</td>
+        <td style="text-align: right; font-weight: 700;">${lineTotalFormatted}</td>
       </tr>
     `;
   });
@@ -877,76 +1277,192 @@ window.openViewInvoice = function(invId) {
   const subtotalFormatted = Number(inv.subtotal || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 });
   const discountFormatted = Number(inv.discount || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 });
   const totalFormatted = Number(inv.totalAmount || 0).toLocaleString('en-PK', { minimumFractionDigits: 2 });
-  const statusColor = (inv.status === 'Paid') ? '#065f46' : '#92400e';
+
+  const cashPaid = checkoutMeta && checkoutMeta.cashReceived ? Number(checkoutMeta.cashReceived) : Number(inv.totalAmount || 0);
+  const changeDue = checkoutMeta && checkoutMeta.changeDue ? Number(checkoutMeta.changeDue) : 0;
+  const paymentMode = checkoutMeta && checkoutMeta.paymentMode ? checkoutMeta.paymentMode : (inv.status === 'Paid' ? 'CASH' : 'PENDING');
+
+  const barcodeNumber = String(inv.invoiceNumber || 'INV-1001').replace(/[^a-zA-Z0-9]/g, '');
 
   el.printableInvoiceSheet.innerHTML = `
-    <div class="print-header">
-      <div class="print-brand">
-        <img src="full-logo.png" alt="Shahzaib Traders" class="print-logo">
-        <div class="print-company-name">SHAHZAIB TRADERS</div>
-        <div class="print-company-sub">Wholesale & Industrial Hardware Distribution</div>
-        <div class="print-company-sub">Phone: +92 300 0000000 | Email: sales@shahzaibtraders.com</div>
+    <div class="thermal-receipt-paper">
+      <!-- Store Header -->
+      <div class="tr-store-header">
+        <div class="tr-store-name">SHAHZAIB TRADERS</div>
+        <div class="tr-store-sub">Wholesale & Industrial Hardware Distribution</div>
+        <div class="tr-store-sub">Circular Road, Badami Bagh, Lahore</div>
+        <div class="tr-store-sub">Tel: +92 300 1234567 | NTN: 829104-5</div>
       </div>
-      <div class="print-meta-right">
-        <div class="print-invoice-title">INVOICE</div>
-        <div class="print-meta-line"><strong>Invoice No:</strong> ${escapeHtml(inv.invoiceNumber)}</div>
-        <div class="print-meta-line"><strong>Date:</strong> ${escapeHtml(inv.date)}</div>
-        <div class="print-meta-line"><strong>Status:</strong> <span style="font-weight: 700; color: ${statusColor};">${escapeHtml(inv.status || 'Paid')}</span></div>
-      </div>
-    </div>
 
-    <div class="print-parties-grid">
-      <div class="party-box">
-        <div class="party-box-title">Billed To (Customer)</div>
-        <div class="party-name">${escapeHtml(inv.customerName)}</div>
-        <div class="party-detail"><strong>Phone:</strong> ${escapeHtml(inv.customerPhone || 'N/A')}</div>
-        <div class="party-detail"><strong>Address:</strong> ${escapeHtml(inv.customerAddress || 'N/A')}</div>
+      <!-- Top Barcode (matches reference image receipts 1, 3) -->
+      <div class="tr-barcode-box">
+        <svg class="tr-barcode-svg" viewBox="0 0 160 30" preserveAspectRatio="none">
+          <rect x="0" y="0" width="3" height="30" fill="#111827"/>
+          <rect x="5" y="0" width="1" height="30" fill="#111827"/>
+          <rect x="8" y="0" width="4" height="30" fill="#111827"/>
+          <rect x="14" y="0" width="2" height="30" fill="#111827"/>
+          <rect x="18" y="0" width="1" height="30" fill="#111827"/>
+          <rect x="22" y="0" width="5" height="30" fill="#111827"/>
+          <rect x="29" y="0" width="2" height="30" fill="#111827"/>
+          <rect x="33" y="0" width="3" height="30" fill="#111827"/>
+          <rect x="38" y="0" width="1" height="30" fill="#111827"/>
+          <rect x="42" y="0" width="4" height="30" fill="#111827"/>
+          <rect x="48" y="0" width="2" height="30" fill="#111827"/>
+          <rect x="52" y="0" width="1" height="30" fill="#111827"/>
+          <rect x="56" y="0" width="3" height="30" fill="#111827"/>
+          <rect x="61" y="0" width="5" height="30" fill="#111827"/>
+          <rect x="68" y="0" width="2" height="30" fill="#111827"/>
+          <rect x="73" y="0" width="4" height="30" fill="#111827"/>
+          <rect x="79" y="0" width="1" height="30" fill="#111827"/>
+          <rect x="83" y="0" width="3" height="30" fill="#111827"/>
+          <rect x="88" y="0" width="2" height="30" fill="#111827"/>
+          <rect x="92" y="0" width="4" height="30" fill="#111827"/>
+          <rect x="98" y="0" width="1" height="30" fill="#111827"/>
+          <rect x="102" y="0" width="3" height="30" fill="#111827"/>
+          <rect x="107" y="0" width="5" height="30" fill="#111827"/>
+          <rect x="114" y="0" width="2" height="30" fill="#111827"/>
+          <rect x="118" y="0" width="4" height="30" fill="#111827"/>
+          <rect x="124" y="0" width="1" height="30" fill="#111827"/>
+          <rect x="128" y="0" width="3" height="30" fill="#111827"/>
+          <rect x="133" y="0" width="2" height="30" fill="#111827"/>
+          <rect x="137" y="0" width="5" height="30" fill="#111827"/>
+          <rect x="144" y="0" width="2" height="30" fill="#111827"/>
+          <rect x="148" y="0" width="4" height="30" fill="#111827"/>
+          <rect x="154" y="0" width="2" height="30" fill="#111827"/>
+          <rect x="158" y="0" width="2" height="30" fill="#111827"/>
+        </svg>
+        <span class="tr-barcode-code">* ${escapeHtml(barcodeNumber)} *</span>
       </div>
-      <div class="party-box">
-        <div class="party-box-title">Payment & Shipment</div>
-        <div class="party-detail"><strong>Payment Mode:</strong> Cash / Bank Transfer</div>
-        <div class="party-detail"><strong>Issued By:</strong> Shahzaib Traders Sales Counter</div>
-      </div>
-    </div>
 
-    <table class="print-table">
-      <thead>
+      <div class="tr-title-pill">*** CASH RECEIPT ***</div>
+
+      <!-- Receipt Metadata -->
+      <table class="tr-meta-table">
         <tr>
-          <th>Item Description</th>
-          <th style="width: 15%;">Qty</th>
-          <th style="width: 20%;">Rate</th>
-          <th style="width: 20%;">Amount</th>
+          <td class="tr-meta-label">RECEIPT #:</td>
+          <td class="tr-meta-val">${escapeHtml(inv.invoiceNumber)}</td>
         </tr>
-      </thead>
-      <tbody>
-        ${itemsHtml}
-      </tbody>
-    </table>
+        <tr>
+          <td class="tr-meta-label">DATE/TIME:</td>
+          <td class="tr-meta-val">${escapeHtml(inv.date)}</td>
+        </tr>
+        <tr>
+          <td class="tr-meta-label">CUSTOMER:</td>
+          <td class="tr-meta-val">${escapeHtml(inv.customerName || 'Walk-in Customer')}</td>
+        </tr>
+        ${inv.customerPhone ? `<tr><td class="tr-meta-label">PHONE:</td><td class="tr-meta-val">${escapeHtml(inv.customerPhone)}</td></tr>` : ''}
+        <tr>
+          <td class="tr-meta-label">PAYMENT:</td>
+          <td class="tr-meta-val">${escapeHtml(paymentMode)}</td>
+        </tr>
+        <tr>
+          <td class="tr-meta-label">OPERATOR:</td>
+          <td class="tr-meta-val">Counter #1 (Admin)</td>
+        </tr>
+      </table>
 
-    <div class="print-footer-grid">
-      <div class="print-notes-box">
-        <div class="print-notes-title">Terms & Notes</div>
-        <div class="print-notes-text">${escapeHtml(inv.notes || 'Goods sold in sound condition. Thank you for doing business with Shahzaib Traders.')}</div>
-      </div>
-      <div class="print-totals-box">
-        <div class="print-total-row">
-          <span>Subtotal:</span>
-          <span>Rs ${subtotalFormatted}</span>
-        </div>
-        <div class="print-total-row">
-          <span>Discount:</span>
-          <span>Rs ${discountFormatted}</span>
-        </div>
-        <div class="print-total-row print-grand-total">
-          <span>Grand Total:</span>
-          <span>Rs ${totalFormatted}</span>
-        </div>
-      </div>
-    </div>
+      <div class="tr-dashed-divider"></div>
 
-    <div class="print-signature-area">
-      <div class="signature-line">Customer Signature</div>
-      <div class="signature-line">Authorized Signatory & Stamp</div>
+      <!-- Line Items Table -->
+      <table class="tr-items-table">
+        <thead>
+          <tr>
+            <th style="text-align: left; width: 44%;">ITEM</th>
+            <th style="text-align: center; width: 14%;">QTY</th>
+            <th style="text-align: right; width: 21%;">RATE</th>
+            <th style="text-align: right; width: 21%;">AMOUNT</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${receiptItemsHtml}
+        </tbody>
+      </table>
+
+      <div class="tr-dashed-divider"></div>
+
+      <!-- Summary Table -->
+      <table class="tr-summary-table">
+        <tr>
+          <td>TOTAL ITEMS:</td>
+          <td style="text-align: right; font-weight: 700;">${totalQtyCount}</td>
+        </tr>
+        <tr>
+          <td>SUBTOTAL:</td>
+          <td style="text-align: right;">PKR ${subtotalFormatted}</td>
+        </tr>
+        ${Number(inv.discount || 0) > 0 ? `
+        <tr>
+          <td>DISCOUNT:</td>
+          <td style="text-align: right; color: #dc2626;">- PKR ${discountFormatted}</td>
+        </tr>` : ''}
+        <tr>
+          <td>TAX (0%):</td>
+          <td style="text-align: right;">PKR 0.00</td>
+        </tr>
+        <tr class="tr-grand-total-row">
+          <td colspan="2"><div class="tr-heavy-divider"></div></td>
+        </tr>
+        <tr class="tr-grand-total-row">
+          <td>GRAND TOTAL:</td>
+          <td style="text-align: right;">PKR ${totalFormatted}</td>
+        </tr>
+        <tr class="tr-grand-total-row">
+          <td colspan="2"><div class="tr-heavy-divider"></div></td>
+        </tr>
+        ${cashPaid > 0 ? `
+        <tr>
+          <td>CASH PAID:</td>
+          <td style="text-align: right; font-weight: 600;">PKR ${Number(cashPaid).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</td>
+        </tr>
+        <tr>
+          <td>CHANGE DUE:</td>
+          <td style="text-align: right; font-weight: 700; color: #059669;">PKR ${Number(changeDue).toLocaleString('en-PK', { minimumFractionDigits: 2 })}</td>
+        </tr>` : ''}
+      </table>
+
+      <div class="tr-dashed-divider"></div>
+
+      <!-- QR Code & Footer (matches reference image receipts 4, 5, 8) -->
+      <div class="tr-footer-section">
+        <svg class="tr-qr-svg" viewBox="0 0 100 100" fill="#111827">
+          <rect x="5" y="5" width="28" height="28" fill="#111827"/>
+          <rect x="9" y="9" width="20" height="20" fill="#ffffff"/>
+          <rect x="13" y="13" width="12" height="12" fill="#111827"/>
+          <rect x="67" y="5" width="28" height="28" fill="#111827"/>
+          <rect x="71" y="9" width="20" height="20" fill="#ffffff"/>
+          <rect x="75" y="13" width="12" height="12" fill="#111827"/>
+          <rect x="5" y="67" width="28" height="28" fill="#111827"/>
+          <rect x="9" y="71" width="20" height="20" fill="#ffffff"/>
+          <rect x="13" y="75" width="12" height="12" fill="#111827"/>
+          <rect x="40" y="8" width="5" height="5"/>
+          <rect x="49" y="8" width="5" height="5"/>
+          <rect x="58" y="8" width="5" height="5"/>
+          <rect x="8" y="40" width="5" height="5"/>
+          <rect x="8" y="49" width="5" height="5"/>
+          <rect x="8" y="58" width="5" height="5"/>
+          <rect x="40" y="40" width="6" height="6"/>
+          <rect x="50" y="40" width="6" height="6"/>
+          <rect x="40" y="50" width="6" height="6"/>
+          <rect x="50" y="50" width="6" height="6"/>
+          <rect x="60" y="40" width="6" height="6"/>
+          <rect x="40" y="60" width="6" height="6"/>
+          <rect x="50" y="60" width="6" height="6"/>
+          <rect x="60" y="60" width="6" height="6"/>
+          <rect x="72" y="40" width="5" height="5"/>
+          <rect x="82" y="45" width="5" height="5"/>
+          <rect x="72" y="55" width="5" height="5"/>
+          <rect x="82" y="65" width="5" height="5"/>
+          <rect x="40" y="72" width="5" height="5"/>
+          <rect x="45" y="82" width="5" height="5"/>
+          <rect x="55" y="72" width="5" height="5"/>
+          <rect x="65" y="82" width="5" height="5"/>
+          <rect x="75" y="75" width="5" height="5"/>
+          <rect x="85" y="85" width="5" height="5"/>
+        </svg>
+        <div class="tr-thank-you">THANK YOU FOR YOUR PURCHASE!</div>
+        <div class="tr-notice">Please retain receipt for exchange within 3 days.</div>
+        <div class="tr-notice">Software by Shahzaib Traders POS</div>
+      </div>
     </div>
   `;
 
@@ -1344,6 +1860,62 @@ if (el.btnOpenAddVendor) el.btnOpenAddVendor.addEventListener('click', () => ope
 if (el.btnCloseVendorModal) el.btnCloseVendorModal.addEventListener('click', closeVendorModal);
 if (el.btnCancelVendor) el.btnCancelVendor.addEventListener('click', closeVendorModal);
 
+// Shop / POS Event Listeners
+if (el.btnShopTabCounter) {
+  el.btnShopTabCounter.addEventListener('click', () => switchShopSubTab('counter'));
+}
+if (el.btnShopTabHistory) {
+  el.btnShopTabHistory.addEventListener('click', () => switchShopSubTab('history'));
+}
+
+if (el.shopCatalogSearch) {
+  el.shopCatalogSearch.addEventListener('input', (e) => {
+    if (el.btnClearShopSearch) {
+      if (e.target.value) el.btnClearShopSearch.classList.remove('hidden');
+      else el.btnClearShopSearch.classList.add('hidden');
+    }
+    renderShopProducts();
+  });
+}
+
+if (el.btnClearShopSearch) {
+  el.btnClearShopSearch.addEventListener('click', () => {
+    if (el.shopCatalogSearch) el.shopCatalogSearch.value = '';
+    el.btnClearShopSearch.classList.add('hidden');
+    renderShopProducts();
+  });
+}
+
+document.querySelectorAll('.shop-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.shop-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    posSelectedFilter = chip.dataset.filter || 'all';
+    renderShopProducts();
+  });
+});
+
+document.querySelectorAll('.btn-pay-mode').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.btn-pay-mode').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    posPaymentMode = btn.dataset.mode || 'Cash';
+  });
+});
+
+if (el.posDiscountInput) {
+  el.posDiscountInput.addEventListener('input', () => renderPosCart());
+}
+if (el.posCashReceived) {
+  el.posCashReceived.addEventListener('input', () => renderPosCart());
+}
+if (el.btnClearCart) {
+  el.btnClearCart.addEventListener('click', clearPosCart);
+}
+if (el.btnCheckoutOrder) {
+  el.btnCheckoutOrder.addEventListener('click', checkoutPosSale);
+}
+
 // Invoice Event Listeners
 if (el.btnOpenCreateInvoice) el.btnOpenCreateInvoice.addEventListener('click', openCreateInvoiceModal);
 if (el.btnCloseInvoiceModal) el.btnCloseInvoiceModal.addEventListener('click', closeInvoiceModal);
@@ -1584,6 +2156,8 @@ async function init() {
   await reloadFromDatabase();
   renderInventory();
   renderVendors();
+  renderShopProducts();
+  renderPosCart();
   renderInvoices();
 }
 
@@ -1605,6 +2179,7 @@ window.addEventListener('resize', () => {
     } else if (currentTab === 'vendors') {
       renderVendors();
     } else if (currentTab === 'invoices') {
+      renderShopProducts();
       renderInvoices();
     }
   }, 120);

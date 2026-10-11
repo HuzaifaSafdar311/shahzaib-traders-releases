@@ -486,14 +486,16 @@ function createInvoice(invoice) {
     };
     jsonData.invoices.push(newInvoice);
 
-    // Update totalSell in inventory for sold items
+    // Update totalSell and deduct available quantity in inventory for sold items
     try {
       const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : (invoice.items || []);
       for (const it of items) {
         if (it.stockId) {
           const item = jsonData.inventory.find(s => s.id === it.stockId);
           if (item) {
-            item.totalSell = (Number(item.totalSell) || 0) + (Number(it.quantity) || 0);
+            const soldQty = Number(it.quantity) || 0;
+            item.totalSell = (Number(item.totalSell) || 0) + soldQty;
+            item.quantity = Math.max(0, (Number(item.quantity) || 0) - soldQty);
           }
         }
       }
@@ -527,15 +529,17 @@ function createInvoice(invoice) {
     invoice.createdAt || new Date().toISOString()
   );
 
-  // Update totalSell in inventory for sold items
+  // Update totalSell and deduct available quantity in inventory for sold items
   try {
     const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : (invoice.items || []);
-    const updateSellStmt = dbInstance.prepare('UPDATE inventory SET totalSell = totalSell + ? WHERE id = ?');
+    const updateSellStmt = dbInstance.prepare('UPDATE inventory SET totalSell = totalSell + ?, quantity = MAX(0, quantity - ?) WHERE id = ?');
     for (const it of items) {
       if (it.stockId) {
-        updateSellStmt.run(Number(it.quantity) || 0, it.stockId);
+        const soldQty = Number(it.quantity) || 0;
+        updateSellStmt.run(soldQty, soldQty, it.stockId);
       }
     }
+    checkpoint();
   } catch (err) {
     console.error('Error updating stock sell on invoice create:', err);
   }
