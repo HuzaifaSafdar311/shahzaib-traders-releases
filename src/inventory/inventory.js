@@ -26,7 +26,6 @@ const inv = {
   inventoryFlyoutMenu: document.getElementById('inventoryFlyoutMenu'),
 
   // Badge Counters
-  badgeVendorCount: document.getElementById('badgeVendorCount'),
   badgeProductsCount: document.getElementById('badgeProductsCount'),
 
   // 1. Unit Info
@@ -59,23 +58,7 @@ const inv = {
   btnCloseProductTypeModal: document.getElementById('btnCloseProductTypeModal'),
   btnCancelProductType: document.getElementById('btnCancelProductType'),
 
-  // 3. Product Group
-  productGroupTableBody: document.getElementById('productGroupTableBody'),
-  productGroupEmptyState: document.getElementById('productGroupEmptyState'),
-  productGroupSearchInput: document.getElementById('productGroupSearchInput'),
-  btnClearProductGroupSearch: document.getElementById('btnClearProductGroupSearch'),
-  btnOpenAddProductGroup: document.getElementById('btnOpenAddProductGroup'),
-  modalProductGroup: document.getElementById('modalProductGroup'),
-  modalProductGroupTitle: document.getElementById('modalProductGroupTitle'),
-  productGroupForm: document.getElementById('productGroupForm'),
-  productGroupId: document.getElementById('productGroupId'),
-  productGroupNameInput: document.getElementById('productGroupNameInput'),
-  productGroupCodeInput: document.getElementById('productGroupCodeInput'),
-  productGroupNotesInput: document.getElementById('productGroupNotesInput'),
-  btnCloseProductGroupModal: document.getElementById('btnCloseProductGroupModal'),
-  btnCancelProductGroup: document.getElementById('btnCancelProductGroup'),
-
-  // 4. Product Category
+  // 3. Product Category
   badgeCategoryCount: document.getElementById('badgeCategoryCount'),
   categoryTableBody: document.getElementById('categoryTableBody'),
   categoryEmptyState: document.getElementById('categoryEmptyState'),
@@ -261,11 +244,9 @@ function switchSubTab(subtab) {
   const viewMap = {
     'unit-info': 'viewUnitInfo',
     'product-type': 'viewProductType',
-    'product-group': 'viewProductGroup',
     'product-category': 'viewProductCategory',
     'product-categories': 'viewProductCategory',
     'product-sub-category': 'viewProductSubCategory',
-    'vendor': 'viewVendor',
     'purchase': 'viewPurchase',
     'product-info': 'viewProductInfo'
   };
@@ -279,10 +260,8 @@ function switchSubTab(subtab) {
   // Lifecycle updates for active view
   if (subtab === 'unit-info') renderUnits();
   if (subtab === 'product-type') renderProductTypes();
-  if (subtab === 'product-group') renderProductGroups();
   if (subtab === 'product-category' || subtab === 'product-categories') renderProductCategories();
   if (subtab === 'product-sub-category') renderProductSubCategories();
-  if (subtab === 'vendor' && window.renderVendors) window.renderVendors();
   if (subtab === 'purchase') initPurchaseView();
   if (subtab === 'product-info') initProductInfoView();
 }
@@ -546,130 +525,7 @@ if (inv.productTypeForm) inv.productTypeForm.addEventListener('submit', handleSa
 if (inv.productTypeSearchInput) inv.productTypeSearchInput.addEventListener('input', renderProductTypes);
 
 // ========================================================
-// 3. PRODUCT GROUP MODULE
-// ========================================================
-function renderProductGroups() {
-  const groups = window.appData?.product_groups || [];
-  const q = (inv.productGroupSearchInput?.value || '').trim().toLowerCase();
-  const filtered = groups.filter(g => !q || g.name.toLowerCase().includes(q) || (g.code || '').toLowerCase().includes(q));
-
-  if (!inv.productGroupTableBody) return;
-  inv.productGroupTableBody.innerHTML = '';
-
-  if (filtered.length === 0) {
-    if (inv.productGroupEmptyState) inv.productGroupEmptyState.classList.remove('hidden');
-    return;
-  }
-  if (inv.productGroupEmptyState) inv.productGroupEmptyState.classList.add('hidden');
-
-  filtered.forEach((grp, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
-      <td class="font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(grp.name)}</td>
-      <td style="text-align: center;"><span class="code-pill">${window.escapeHtml(grp.code || '-')}</span></td>
-      <td class="text-secondary" style="text-align: center;">${window.escapeHtml(grp.notes || '-')}</td>
-      <td class="col-dots-actions text-center">
-        <div class="dots-wrapper">
-          <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'pgMenu_${grp.id}')" title="Actions">
-            <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="1.5"></circle>
-              <circle cx="12" cy="5" r="1.5"></circle>
-              <circle cx="12" cy="19" r="1.5"></circle>
-            </svg>
-          </button>
-          <div id="pgMenu_${grp.id}" class="action-menu hidden">
-            <button type="button" class="action-menu-item" onclick="window.openEditProductGroup('${grp.id}')">
-              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
-              <span>Edit</span>
-            </button>
-            <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteProductGroup('${grp.id}')">
-              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
-      </td>
-    `;
-    inv.productGroupTableBody.appendChild(tr);
-  });
-}
-
-function openAddProductGroup() {
-  if (inv.modalProductGroupTitle) inv.modalProductGroupTitle.textContent = 'Add Product Group';
-  if (inv.productGroupId) inv.productGroupId.value = '';
-  if (inv.productGroupNameInput) inv.productGroupNameInput.value = '';
-  if (inv.productGroupCodeInput) inv.productGroupCodeInput.value = '';
-  if (inv.productGroupNotesInput) inv.productGroupNotesInput.value = '';
-  if (inv.modalProductGroup) inv.modalProductGroup.classList.remove('hidden');
-}
-
-function openEditProductGroup(id) {
-  const grp = (window.appData?.product_groups || []).find(g => g.id === id);
-  if (!grp) return;
-  if (inv.modalProductGroupTitle) inv.modalProductGroupTitle.textContent = 'Edit Product Group';
-  if (inv.productGroupId) inv.productGroupId.value = grp.id;
-  if (inv.productGroupNameInput) inv.productGroupNameInput.value = grp.name;
-  if (inv.productGroupCodeInput) inv.productGroupCodeInput.value = grp.code || '';
-  if (inv.productGroupNotesInput) inv.productGroupNotesInput.value = grp.notes || '';
-  if (inv.modalProductGroup) inv.modalProductGroup.classList.remove('hidden');
-}
-
-function closeProductGroupModal() {
-  if (inv.modalProductGroup) inv.modalProductGroup.classList.add('hidden');
-}
-
-async function handleSaveProductGroup(e) {
-  if (e) e.preventDefault();
-  const name = inv.productGroupNameInput?.value.trim();
-  if (!name) return;
-  const item = {
-    id: inv.productGroupId?.value || undefined,
-    name,
-    code: inv.productGroupCodeInput?.value.trim() || '',
-    notes: inv.productGroupNotesInput?.value.trim() || ''
-  };
-
-  try {
-    if (window.api?.saveProductGroup) await window.api.saveProductGroup(item);
-    await window.reloadFromDatabase();
-    closeProductGroupModal();
-    renderProductGroups();
-  } catch (err) {
-    console.error('Save product group failed:', err);
-  }
-}
-
-function confirmDeleteProductGroup(id) {
-  window.openConfirmModal({
-    title: 'Delete Product Group',
-    message: 'Are you sure you want to delete this product group / brand?',
-    onConfirm: async () => {
-      try {
-        if (window.api?.deleteProductGroup) await window.api.deleteProductGroup(id);
-        await window.reloadFromDatabase();
-        renderProductGroups();
-      } catch (err) {
-        console.error('Delete product group failed:', err);
-      }
-    }
-  });
-}
-
-if (inv.btnOpenAddProductGroup) inv.btnOpenAddProductGroup.addEventListener('click', openAddProductGroup);
-if (inv.btnCloseProductGroupModal) inv.btnCloseProductGroupModal.addEventListener('click', closeProductGroupModal);
-if (inv.btnCancelProductGroup) inv.btnCancelProductGroup.addEventListener('click', closeProductGroupModal);
-if (inv.productGroupForm) inv.productGroupForm.addEventListener('submit', handleSaveProductGroup);
-if (inv.productGroupSearchInput) inv.productGroupSearchInput.addEventListener('input', renderProductGroups);
-
-// ========================================================
-// 4. PRODUCT CATEGORY MODULE
+// 3. PRODUCT CATEGORY MODULE
 // ========================================================
 function renderProductCategories() {
   const categories = window.appData?.product_categories || [];
@@ -1015,26 +871,22 @@ if (inv.btnClearProductTypeSearch && inv.productTypeSearchInput) {
     renderProductTypes();
   });
 }
-if (inv.btnClearProductGroupSearch && inv.productGroupSearchInput) {
-  inv.productGroupSearchInput.addEventListener('input', () => {
-    inv.btnClearProductGroupSearch.classList.toggle('hidden', !inv.productGroupSearchInput.value);
-  });
-  inv.btnClearProductGroupSearch.addEventListener('click', () => {
-    inv.productGroupSearchInput.value = '';
-    inv.btnClearProductGroupSearch.classList.add('hidden');
-    renderProductGroups();
-  });
-}
-
 // ========================================================
-// 6. PURCHASE VOUCHER MODULE (LEGACY REPLICA)
+// 5. PURCHASE VOUCHER MODULE (ENTERPRISE)
 // ========================================================
 async function initPurchaseView() {
-  // Populate Parties / Vendors Dropdown
-  const vendors = window.appData?.vendors || [];
+  // Populate Parties Dropdown from General Info Parties
   if (inv.purPartySelect) {
+    let parties = [];
+    try {
+      if (window.generalInfoAPI && window.generalInfoAPI.getParties) {
+        parties = await window.generalInfoAPI.getParties();
+      }
+    } catch (e) {
+      console.warn('Failed to load parties for purchase voucher:', e);
+    }
     inv.purPartySelect.innerHTML = '<option value="">-- Please Select Party Title --</option>' +
-      vendors.map(v => `<option value="${v.id}" data-contact="${window.escapeHtml(v.contactPerson || '')}">${window.escapeHtml(v.name)}</option>`).join('');
+      parties.map(p => `<option value="${p.id}" data-contact="${window.escapeHtml(p.contactPerson || '')}">${window.escapeHtml(p.name)} (${window.escapeHtml(p.partyTypeName || 'Party')})</option>`).join('');
   }
 
   // Populate Products Dropdown
@@ -1418,13 +1270,6 @@ async function initProductInfoView() {
 }
 
 function populateProductInfoDropdowns() {
-  // Groups
-  const groups = window.appData?.product_groups || [];
-  if (inv.piGroupSelect) {
-    inv.piGroupSelect.innerHTML = '<option value="">-- Select Product Group --</option>' +
-      groups.map(g => `<option value="${g.id}">${window.escapeHtml(g.name)}</option>`).join('');
-  }
-
   // Categories
   const cats = window.appData?.product_categories || [];
   if (inv.piCategorySelect) {
@@ -1500,7 +1345,6 @@ function loadProductRecord(p) {
   if (inv.piCode) inv.piCode.value = p.code || '';
   if (inv.piBarcode) inv.piBarcode.value = p.barcode || '';
   if (inv.piAdditionalCode) inv.piAdditionalCode.value = p.additionalCode || '';
-  if (inv.piGroupSelect) inv.piGroupSelect.value = p.groupId || '';
   if (inv.piCategorySelect) {
     inv.piCategorySelect.value = p.categoryId || '';
     updateProductSubCategoryDropdown();
@@ -1520,7 +1364,6 @@ function loadProductRecord(p) {
   if (inv.piReorderLevel) inv.piReorderLevel.value = p.reorderLevel || 0;
   if (inv.piStockQty) inv.piStockQty.value = p.stockQty || 0;
   if (inv.piLocation) inv.piLocation.value = p.location || '';
-  if (inv.piGroupType) inv.piGroupType.value = p.productGroupType || '';
   if (inv.piTypeSelect) inv.piTypeSelect.value = p.productType || 'Both';
   if (inv.piTaxPercent) inv.piTaxPercent.value = p.taxPercent || 0;
   if (inv.piShortCode) inv.piShortCode.value = p.shortCode || '';
@@ -1557,8 +1400,6 @@ async function saveProductRecord() {
     return;
   }
 
-  const grpSelect = inv.piGroupSelect;
-  const groupName = grpSelect?.options[grpSelect.selectedIndex]?.text || '';
   const catSelect = inv.piCategorySelect;
   const categoryName = catSelect?.options[catSelect.selectedIndex]?.text || '';
   const subSelect = inv.piSubCategorySelect;
@@ -1570,8 +1411,6 @@ async function saveProductRecord() {
     code: inv.piCode?.value.trim(),
     barcode: inv.piBarcode?.value.trim() || '',
     additionalCode: inv.piAdditionalCode?.value.trim() || '',
-    groupId: inv.piGroupSelect?.value || '',
-    groupName,
     categoryId: inv.piCategorySelect?.value || '',
     categoryName,
     subCategoryId: inv.piSubCategorySelect?.value || '',
@@ -1591,7 +1430,6 @@ async function saveProductRecord() {
     reorderLevel: Number(inv.piReorderLevel?.value) || 0,
     stockQty: Number(inv.piStockQty?.value) || 0,
     location: inv.piLocation?.value.trim() || '',
-    productGroupType: inv.piGroupType?.value.trim() || '',
     productType: inv.piTypeSelect?.value || 'Both',
     taxPercent: Number(inv.piTaxPercent?.value) || 0,
     shortCode: inv.piShortCode?.value.trim() || '',
@@ -1746,17 +1584,15 @@ window.addEventListener('keydown', (e) => {
 // Exports to window
 window.renderUnits = renderUnits;
 window.renderProductTypes = renderProductTypes;
-window.renderProductGroups = renderProductGroups;
 window.renderProductCategories = renderProductCategories;
 window.renderProductSubCategories = renderProductSubCategories;
 window.openEditUnit = openEditUnit;
 window.confirmDeleteUnit = confirmDeleteUnit;
 window.openEditProductType = openEditProductType;
 window.confirmDeleteProductType = confirmDeleteProductType;
-window.openEditProductGroup = openEditProductGroup;
-window.confirmDeleteProductGroup = confirmDeleteProductGroup;
 window.openEditCategory = openEditCategory;
 window.confirmDeleteCategory = confirmDeleteCategory;
 window.openEditSubCategory = openEditSubCategory;
 window.confirmDeleteSubCategory = confirmDeleteSubCategory;
 window.removePurchaseLineItem = removePurchaseLineItem;
+

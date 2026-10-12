@@ -6,16 +6,9 @@ contextBridge.exposeInMainWorld('authAPI', {
   loginSuccess: () => ipcRenderer.send('login-success')
 });
 
-// Expose Electron API for Inventory, Sub-modules, Vendors, and Exports
+// Expose Electron API for Enterprise Inventory, Products, Purchases, and Exports
 contextBridge.exposeInMainWorld('electronAPI', {
   getData: () => ipcRenderer.invoke('get-data'),
-  saveData: (data) => ipcRenderer.invoke('save-data', data),
-  addStock: (item) => ipcRenderer.invoke('add-stock', item),
-  updateStock: (item) => ipcRenderer.invoke('update-stock', item),
-  deleteStock: (id) => ipcRenderer.invoke('delete-stock', id),
-  addVendor: (vendor) => ipcRenderer.invoke('add-vendor', vendor),
-  updateVendor: (vendor) => ipcRenderer.invoke('update-vendor', vendor),
-  deleteVendor: (id) => ipcRenderer.invoke('delete-vendor', id),
 
   // Units
   getUnits: () => ipcRenderer.invoke('get-units'),
@@ -27,11 +20,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveProductType: (pt) => ipcRenderer.invoke('save-product-type', pt),
   deleteProductType: (id) => ipcRenderer.invoke('delete-product-type', id),
 
-  // Product Groups
-  getProductGroups: () => ipcRenderer.invoke('get-product-groups'),
-  saveProductGroup: (pg) => ipcRenderer.invoke('save-product-group', pg),
-  deleteProductGroup: (id) => ipcRenderer.invoke('delete-product-group', id),
-
   // Product Categories & Sub-Categories
   getProductCategories: () => ipcRenderer.invoke('get-product-categories'),
   saveProductCategory: (cat) => ipcRenderer.invoke('save-product-category', cat),
@@ -40,7 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveProductSubCategory: (sub) => ipcRenderer.invoke('save-product-sub-category', sub),
   deleteProductSubCategory: (id) => ipcRenderer.invoke('delete-product-sub-category', id),
 
-  // Products (Product Info)
+  // Products (Product Catalog)
   getProducts: () => ipcRenderer.invoke('get-products'),
   getProduct: (id) => ipcRenderer.invoke('get-product', id),
   getProductByCode: (code) => ipcRenderer.invoke('get-product-by-code', code),
@@ -48,7 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveProduct: (prod) => ipcRenderer.invoke('save-product', prod),
   deleteProduct: (id) => ipcRenderer.invoke('delete-product', id),
 
-  // Purchases
+  // Purchases (Vouchers)
   getPurchases: () => ipcRenderer.invoke('get-purchases'),
   getPurchase: (id) => ipcRenderer.invoke('get-purchase', id),
   getNextPurchaseVoucherNo: () => ipcRenderer.invoke('get-next-purchase-voucher-no'),
@@ -61,7 +49,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportCSV: (data) => ipcRenderer.invoke('export-csv', data)
 });
 
-// Expose General Info API for Company Info, Province, Area, Party Type
+// Expose General Info API for Company Info, Provinces, Areas, Party Types, and Parties
 contextBridge.exposeInMainWorld('generalInfoAPI', {
   getGeneralInfo: () => ipcRenderer.invoke('get-general-info'),
   saveCompanyInfo: (info) => ipcRenderer.invoke('save-company-info', info),
@@ -79,4 +67,3 @@ contextBridge.exposeInMainWorld('generalInfoAPI', {
   updateParty: (p) => ipcRenderer.invoke('update-party', p),
   deleteParty: (id) => ipcRenderer.invoke('delete-party', id)
 });
-

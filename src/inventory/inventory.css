@@ -760,48 +760,6 @@ textarea.form-control-sm {
   position: relative;
 }
 
-/* Product Group Table - Balanced Equal Alignment */
-.table-product-group {
-  width: 100% !important;
-  min-width: 100% !important;
-  table-layout: fixed !important;
-}
-
-.table-product-group th,
-.table-product-group td {
-  padding: 12px 14px;
-  vertical-align: middle;
-  border: none !important;
-  background: transparent !important;
-}
-
-.table-product-group .col-pg-sr {
-  width: 10% !important;
-  text-align: left !important;
-  padding-left: 24px !important;
-}
-
-.table-product-group .col-pg-name {
-  width: 35% !important;
-  text-align: left !important;
-  padding-left: 16px !important;
-}
-
-.table-product-group .col-pg-code {
-  width: 20% !important;
-  text-align: center !important;
-}
-
-.table-product-group .col-pg-notes {
-  width: 20% !important;
-  text-align: center !important;
-}
-
-.table-product-group .col-pg-actions {
-  width: 15% !important;
-  text-align: center !important;
-  position: relative;
-}
 
 /* Product Category Table */
 .table-product-category {

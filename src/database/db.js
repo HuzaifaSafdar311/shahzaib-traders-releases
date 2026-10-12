@@ -15,14 +15,11 @@ let jsonFilePath = null;
 let jsonData = {
   units: [],
   product_types: [],
-  product_groups: [],
   product_categories: [],
   product_sub_categories: [],
-  vendors: [],
   products: [],
   purchases: [],
-  purchase_items: [],
-  inventory: []
+  purchase_items: []
 };
 
 function saveJsonData() {
@@ -46,21 +43,18 @@ function initJsonFallback(dbPath) {
       jsonData = {
         units: Array.isArray(parsed.units) ? parsed.units : [],
         product_types: Array.isArray(parsed.product_types) ? parsed.product_types : [],
-        product_groups: Array.isArray(parsed.product_groups) ? parsed.product_groups : [],
         product_categories: Array.isArray(parsed.product_categories) ? parsed.product_categories : [],
         product_sub_categories: Array.isArray(parsed.product_sub_categories) ? parsed.product_sub_categories : [],
-        vendors: Array.isArray(parsed.vendors) ? parsed.vendors : [],
         products: Array.isArray(parsed.products) ? parsed.products : [],
         purchases: Array.isArray(parsed.purchases) ? parsed.purchases : [],
-        purchase_items: Array.isArray(parsed.purchase_items) ? parsed.purchase_items : [],
-        inventory: Array.isArray(parsed.inventory) ? parsed.inventory : []
+        purchase_items: Array.isArray(parsed.purchase_items) ? parsed.purchase_items : []
       };
     } catch (e) {
       console.warn('Failed to parse existing JSON database, re-initializing:', e);
-      jsonData = { units: [], product_types: [], product_groups: [], product_categories: [], product_sub_categories: [], vendors: [], products: [], purchases: [], purchase_items: [], inventory: [] };
+      jsonData = { units: [], product_types: [], product_categories: [], product_sub_categories: [], products: [], purchases: [], purchase_items: [] };
     }
   } else {
-    jsonData = { units: [], product_types: [], product_groups: [], product_categories: [], product_sub_categories: [], vendors: [], products: [], purchases: [], purchase_items: [], inventory: [] };
+    jsonData = { units: [], product_types: [], product_categories: [], product_sub_categories: [], products: [], purchases: [], purchase_items: [] };
     saveJsonData();
   }
 
@@ -106,18 +100,7 @@ function initDatabase(dbPath) {
       );
     `);
 
-    // 3. Product Groups
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS product_groups (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        code TEXT DEFAULT '',
-        notes TEXT DEFAULT '',
-        createdAt TEXT NOT NULL
-      );
-    `);
-
-    // 4. Product Categories
+    // 3. Product Categories
     db.exec(`
       CREATE TABLE IF NOT EXISTS product_categories (
         id TEXT PRIMARY KEY,
@@ -127,7 +110,7 @@ function initDatabase(dbPath) {
       );
     `);
 
-    // 5. Product Sub Categories
+    // 4. Product Sub Categories
     db.exec(`
       CREATE TABLE IF NOT EXISTS product_sub_categories (
         id TEXT PRIMARY KEY,
@@ -138,46 +121,13 @@ function initDatabase(dbPath) {
       );
     `);
 
-    // 6. Vendors
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS vendors (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        contactPerson TEXT DEFAULT '',
-        phone TEXT NOT NULL,
-        email TEXT DEFAULT '',
-        address TEXT DEFAULT '',
-        notes TEXT DEFAULT '',
-        createdAt TEXT NOT NULL
-      );
-    `);
-
-    // 7. Legacy Inventory table for backwards compatibility
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS inventory (
-        id TEXT PRIMARY KEY,
-        stockName TEXT NOT NULL,
-        vendorId TEXT,
-        vendorName TEXT NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT 0,
-        totalSell INTEGER NOT NULL DEFAULT 0,
-        purchasePrice REAL NOT NULL DEFAULT 0,
-        wholesalePrice REAL NOT NULL DEFAULT 0,
-        individualPrice REAL NOT NULL DEFAULT 0,
-        date TEXT NOT NULL,
-        createdAt TEXT NOT NULL
-      );
-    `);
-
-    // 8. Products (Master Product Info matching legacy UI)
+    // 5. Products (Master Product Catalog)
     db.exec(`
       CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY,
         code TEXT UNIQUE NOT NULL,
         barcode TEXT DEFAULT '',
         additionalCode TEXT DEFAULT '',
-        groupId TEXT DEFAULT '',
-        groupName TEXT DEFAULT '',
         categoryId TEXT DEFAULT '',
         categoryName TEXT DEFAULT '',
         subCategoryId TEXT DEFAULT '',
@@ -197,7 +147,6 @@ function initDatabase(dbPath) {
         reorderLevel REAL DEFAULT 0,
         stockQty REAL DEFAULT 0,
         location TEXT DEFAULT '',
-        productGroupType TEXT DEFAULT '',
         productType TEXT DEFAULT 'Both',
         taxPercent REAL DEFAULT 0,
         shortCode TEXT DEFAULT '',
@@ -211,7 +160,7 @@ function initDatabase(dbPath) {
       );
     `);
 
-    // 9. Purchases (Header)
+    // 6. Purchases (Header)
     db.exec(`
       CREATE TABLE IF NOT EXISTS purchases (
         id TEXT PRIMARY KEY,
@@ -237,7 +186,7 @@ function initDatabase(dbPath) {
       );
     `);
 
-    // 10. Purchase Items (Line Items)
+    // 7. Purchase Items (Line Items)
     db.exec(`
       CREATE TABLE IF NOT EXISTS purchase_items (
         id TEXT PRIMARY KEY,
@@ -357,49 +306,6 @@ function deleteProductType(id) {
 }
 
 // ============================================
-// PRODUCT GROUPS CRUD
-// ============================================
-function getAllProductGroups() {
-  if (isJsonFallback) return [...jsonData.product_groups].sort((a, b) => a.name.localeCompare(b.name));
-  if (!dbInstance) throw new Error('DB not initialized');
-  return dbInstance.prepare('SELECT * FROM product_groups ORDER BY name ASC').all();
-}
-
-function saveProductGroup(pg) {
-  const id = pg.id || `pg-${Date.now()}`;
-  const now = new Date().toISOString();
-  if (isJsonFallback) {
-    const idx = jsonData.product_groups.findIndex(p => p.id === id);
-    if (idx !== -1) {
-      jsonData.product_groups[idx] = { ...jsonData.product_groups[idx], name: pg.name, code: pg.code || '', notes: pg.notes || '' };
-    } else {
-      jsonData.product_groups.push({ id, name: pg.name, code: pg.code || '', notes: pg.notes || '', createdAt: now });
-    }
-    saveJsonData();
-    return { success: true, id };
-  }
-  const existing = dbInstance.prepare('SELECT id FROM product_groups WHERE id = ?').get(id);
-  if (existing) {
-    dbInstance.prepare('UPDATE product_groups SET name = ?, code = ?, notes = ? WHERE id = ?').run(pg.name, pg.code || '', pg.notes || '', id);
-  } else {
-    dbInstance.prepare('INSERT INTO product_groups (id, name, code, notes, createdAt) VALUES (?, ?, ?, ?, ?)').run(id, pg.name, pg.code || '', pg.notes || '', now);
-  }
-  checkpoint();
-  return { success: true, id };
-}
-
-function deleteProductGroup(id) {
-  if (isJsonFallback) {
-    jsonData.product_groups = jsonData.product_groups.filter(p => p.id !== id);
-    saveJsonData();
-    return { success: true };
-  }
-  dbInstance.prepare('DELETE FROM product_groups WHERE id = ?').run(id);
-  checkpoint();
-  return { success: true };
-}
-
-// ============================================
 // PRODUCT CATEGORIES & SUB-CATEGORIES CRUD
 // ============================================
 function getAllProductCategories() {
@@ -438,24 +344,17 @@ function deleteProductCategory(id) {
     saveJsonData();
     return { success: true };
   }
-  dbInstance.exec('BEGIN TRANSACTION;');
-  try {
-    dbInstance.prepare('DELETE FROM product_sub_categories WHERE categoryId = ?').run(id);
-    dbInstance.prepare('DELETE FROM product_categories WHERE id = ?').run(id);
-    dbInstance.exec('COMMIT;');
-    checkpoint();
-    return { success: true };
-  } catch (err) {
-    dbInstance.exec('ROLLBACK;');
-    throw err;
-  }
+  dbInstance.prepare('DELETE FROM product_categories WHERE id = ?').run(id);
+  dbInstance.prepare('DELETE FROM product_sub_categories WHERE categoryId = ?').run(id);
+  checkpoint();
+  return { success: true };
 }
 
-function getSubCategoriesByCategory(categoryId) {
+function getSubCategoriesByCategory(categoryId = null) {
   if (isJsonFallback) {
-    return jsonData.product_sub_categories
-      .filter(s => !categoryId || s.categoryId === categoryId)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    let list = [...jsonData.product_sub_categories];
+    if (categoryId) list = list.filter(s => s.categoryId === categoryId);
+    return list.sort((a, b) => a.name.localeCompare(b.name));
   }
   if (!dbInstance) throw new Error('DB not initialized');
   if (categoryId) {
@@ -490,11 +389,9 @@ function saveProductSubCategory(sub) {
   }
   const existing = dbInstance.prepare('SELECT id FROM product_sub_categories WHERE id = ?').get(id);
   if (existing) {
-    dbInstance.prepare('UPDATE product_sub_categories SET categoryId = ?, name = ?, code = ? WHERE id = ?')
-      .run(sub.categoryId, sub.name, sub.code || '', id);
+    dbInstance.prepare('UPDATE product_sub_categories SET categoryId = ?, name = ?, code = ? WHERE id = ?').run(sub.categoryId, sub.name, sub.code || '', id);
   } else {
-    dbInstance.prepare('INSERT INTO product_sub_categories (id, categoryId, name, code, createdAt) VALUES (?, ?, ?, ?, ?)')
-      .run(id, sub.categoryId, sub.name, sub.code || '', now);
+    dbInstance.prepare('INSERT INTO product_sub_categories (id, categoryId, name, code, createdAt) VALUES (?, ?, ?, ?, ?)').run(id, sub.categoryId, sub.name, sub.code || '', now);
   }
   checkpoint();
   return { success: true, id };
@@ -515,54 +412,44 @@ function deleteProductSubCategory(id) {
 // PRODUCTS (PRODUCT INFO) CRUD
 // ============================================
 function getAllProducts() {
-  if (isJsonFallback) {
-    return [...jsonData.products].sort((a, b) => (Number(a.code) || 0) - (Number(b.code) || 0));
-  }
+  if (isJsonFallback) return [...jsonData.products].sort((a, b) => a.code.localeCompare(b.code));
   if (!dbInstance) throw new Error('DB not initialized');
   return dbInstance.prepare('SELECT * FROM products ORDER BY CAST(code AS INTEGER) ASC, code ASC').all();
 }
 
 function getProductById(id) {
   if (isJsonFallback) return jsonData.products.find(p => p.id === id) || null;
-  if (!dbInstance) throw new Error('DB not initialized');
   return dbInstance.prepare('SELECT * FROM products WHERE id = ?').get(id) || null;
 }
 
 function getProductByCode(code) {
-  if (isJsonFallback) return jsonData.products.find(p => String(p.code).trim() === String(code).trim()) || null;
-  if (!dbInstance) throw new Error('DB not initialized');
-  return dbInstance.prepare('SELECT * FROM products WHERE code = ?').get(String(code).trim()) || null;
+  if (isJsonFallback) return jsonData.products.find(p => p.code === code) || null;
+  return dbInstance.prepare('SELECT * FROM products WHERE code = ?').get(code) || null;
 }
 
 function getNextProductCode() {
-  if (isJsonFallback) {
-    let max = 0;
-    jsonData.products.forEach(p => {
-      const num = parseInt(p.code, 10);
-      if (!isNaN(num) && num > max) max = num;
-    });
-    return String(max + 1);
-  }
-  if (!dbInstance) throw new Error('DB not initialized');
-  const res = dbInstance.prepare('SELECT MAX(CAST(code AS INTEGER)) as maxCode FROM products').get();
-  const max = (res && res.maxCode) ? Number(res.maxCode) : 100;
+  const prods = getAllProducts();
+  if (!prods || prods.length === 0) return '101';
+  const numericCodes = prods
+    .map(p => parseInt(p.code, 10))
+    .filter(n => !isNaN(n) && n >= 100);
+  if (numericCodes.length === 0) return '101';
+  const max = Math.max(...numericCodes);
   return String(max + 1);
 }
 
 function saveProduct(p) {
   const id = p.id || `prod-${Date.now()}`;
-  const now = new Date().toISOString();
   const code = String(p.code || '').trim() || getNextProductCode();
+  const now = new Date().toISOString();
 
   if (isJsonFallback) {
-    const idx = jsonData.products.findIndex(item => item.id === id || String(item.code) === code);
+    const idx = jsonData.products.findIndex(pr => pr.id === id || pr.code === code);
     const updatedRecord = {
       id,
       code,
       barcode: p.barcode || '',
       additionalCode: p.additionalCode || '',
-      groupId: p.groupId || '',
-      groupName: p.groupName || '',
       categoryId: p.categoryId || '',
       categoryName: p.categoryName || '',
       subCategoryId: p.subCategoryId || '',
@@ -582,7 +469,6 @@ function saveProduct(p) {
       reorderLevel: Number(p.reorderLevel) || 0,
       stockQty: Number(p.stockQty) || 0,
       location: p.location || '',
-      productGroupType: p.productGroupType || '',
       productType: p.productType || 'Both',
       taxPercent: Number(p.taxPercent) || 0,
       shortCode: p.shortCode || '',
@@ -608,42 +494,42 @@ function saveProduct(p) {
   if (existing) {
     const stmt = dbInstance.prepare(`
       UPDATE products SET
-        code = ?, barcode = ?, additionalCode = ?, groupId = ?, groupName = ?, categoryId = ?, categoryName = ?,
+        code = ?, barcode = ?, additionalCode = ?, categoryId = ?, categoryName = ?,
         subCategoryId = ?, subCategoryName = ?, titleEng = ?, titleUrdu = ?, packingType = ?, unitId = ?, unitName = ?,
         packSize = ?, purchasePrice = ?, profitMargin = ?, retailPrice = ?, wholesalePrice = ?, averageCost = ?,
-        minStock = ?, reorderLevel = ?, stockQty = ?, location = ?, productGroupType = ?, productType = ?, taxPercent = ?,
+        minStock = ?, reorderLevel = ?, stockQty = ?, location = ?, productType = ?, taxPercent = ?,
         shortCode = ?, shortLabel = ?, description = ?, useBatchExpiry = ?, loosePackSize = ?, inActive = ?, updatedAt = ?
       WHERE id = ?
     `);
     stmt.run(
-      code, p.barcode || '', p.additionalCode || '', p.groupId || '', p.groupName || '', p.categoryId || '', p.categoryName || '',
+      code, p.barcode || '', p.additionalCode || '', p.categoryId || '', p.categoryName || '',
       p.subCategoryId || '', p.subCategoryName || '', p.titleEng || '', p.titleUrdu || '', p.packingType || 'Piece', p.unitId || '', p.unitName || '',
       Number(p.packSize) || 1, Number(p.purchasePrice) || 0, Number(p.profitMargin) || 0, Number(p.retailPrice) || 0, Number(p.wholesalePrice) || 0, Number(p.averageCost) || 0,
-      Number(p.minStock) || 0, Number(p.reorderLevel) || 0, Number(p.stockQty) || 0, p.location || '', p.productGroupType || '', p.productType || 'Both', Number(p.taxPercent) || 0,
+      Number(p.minStock) || 0, Number(p.reorderLevel) || 0, Number(p.stockQty) || 0, p.location || '', p.productType || 'Both', Number(p.taxPercent) || 0,
       p.shortCode || '', p.shortLabel || '', p.description || '', p.useBatchExpiry ? 1 : 0, p.loosePackSize ? 1 : 0, p.inActive ? 1 : 0, now,
       existing.id
     );
   } else {
     const stmt = dbInstance.prepare(`
       INSERT INTO products (
-        id, code, barcode, additionalCode, groupId, groupName, categoryId, categoryName,
+        id, code, barcode, additionalCode, categoryId, categoryName,
         subCategoryId, subCategoryName, titleEng, titleUrdu, packingType, unitId, unitName,
         packSize, purchasePrice, profitMargin, retailPrice, wholesalePrice, averageCost,
-        minStock, reorderLevel, stockQty, location, productGroupType, productType, taxPercent,
+        minStock, reorderLevel, stockQty, location, productType, taxPercent,
         shortCode, shortLabel, description, useBatchExpiry, loosePackSize, inActive, createdAt, updatedAt
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?
       )
     `);
     stmt.run(
-      id, code, p.barcode || '', p.additionalCode || '', p.groupId || '', p.groupName || '', p.categoryId || '', p.categoryName || '',
+      id, code, p.barcode || '', p.additionalCode || '', p.categoryId || '', p.categoryName || '',
       p.subCategoryId || '', p.subCategoryName || '', p.titleEng || '', p.titleUrdu || '', p.packingType || 'Piece', p.unitId || '', p.unitName || '',
       Number(p.packSize) || 1, Number(p.purchasePrice) || 0, Number(p.profitMargin) || 0, Number(p.retailPrice) || 0, Number(p.wholesalePrice) || 0, Number(p.averageCost) || 0,
-      Number(p.minStock) || 0, Number(p.reorderLevel) || 0, Number(p.stockQty) || 0, p.location || '', p.productGroupType || '', p.productType || 'Both', Number(p.taxPercent) || 0,
+      Number(p.minStock) || 0, Number(p.reorderLevel) || 0, Number(p.stockQty) || 0, p.location || '', p.productType || 'Both', Number(p.taxPercent) || 0,
       p.shortCode || '', p.shortLabel || '', p.description || '', p.useBatchExpiry ? 1 : 0, p.loosePackSize ? 1 : 0, p.inActive ? 1 : 0, now, now
     );
   }
@@ -674,36 +560,38 @@ function getAllPurchases() {
 }
 
 function getPurchaseById(id) {
-  if (isJsonFallback) return jsonData.purchases.find(p => p.id === id || p.voucherNo === id) || null;
-  if (!dbInstance) throw new Error('DB not initialized');
-  return dbInstance.prepare('SELECT * FROM purchases WHERE id = ? OR voucherNo = ?').get(id, id) || null;
+  if (isJsonFallback) {
+    const p = jsonData.purchases.find(pr => pr.id === id || pr.voucherNo === id);
+    if (!p) return null;
+    const items = jsonData.purchase_items.filter(it => it.purchaseId === p.id);
+    return { ...p, items };
+  }
+  const p = dbInstance.prepare('SELECT * FROM purchases WHERE id = ? OR voucherNo = ?').get(id, id);
+  if (!p) return null;
+  const items = dbInstance.prepare('SELECT * FROM purchase_items WHERE purchaseId = ? ORDER BY srNo ASC').all(p.id);
+  return { ...p, items };
 }
 
 function getNextPurchaseVoucherNo() {
-  if (isJsonFallback) {
-    let max = 100;
-    jsonData.purchases.forEach(p => {
-      const num = parseInt(p.voucherNo, 10);
-      if (!isNaN(num) && num > max) max = num;
-    });
-    return String(max + 1);
-  }
-  if (!dbInstance) throw new Error('DB not initialized');
-  const res = dbInstance.prepare('SELECT MAX(CAST(voucherNo AS INTEGER)) as maxVoucher FROM purchases').get();
-  const max = (res && res.maxVoucher) ? Number(res.maxVoucher) : 108;
+  const purchases = getAllPurchases();
+  if (!purchases || purchases.length === 0) return '109';
+  const numericNos = purchases
+    .map(p => parseInt(p.voucherNo, 10))
+    .filter(n => !isNaN(n) && n >= 100);
+  if (numericNos.length === 0) return '109';
+  const max = Math.max(...numericNos);
   return String(max + 1);
 }
 
-function savePurchase(purchaseData, itemsList) {
+function savePurchase(purchaseData, items = []) {
   const id = purchaseData.id || `pur-${Date.now()}`;
-  const now = new Date().toISOString();
   const voucherNo = String(purchaseData.voucherNo || '').trim() || getNextPurchaseVoucherNo();
-  const items = Array.isArray(itemsList) ? itemsList : [];
+  const now = new Date().toISOString();
   const itemsJson = JSON.stringify(items);
 
   if (isJsonFallback) {
-    const idx = jsonData.purchases.findIndex(p => p.id === id || p.voucherNo === voucherNo);
-    const record = {
+    const pIdx = jsonData.purchases.findIndex(p => p.id === id || p.voucherNo === voucherNo);
+    const purchaseRecord = {
       id,
       voucherNo,
       manualNo: purchaseData.manualNo || '',
@@ -723,38 +611,61 @@ function savePurchase(purchaseData, itemsList) {
       extraCharges: Number(purchaseData.extraCharges) || 0,
       grandTotal: Number(purchaseData.grandTotal) || 0,
       itemsJson,
-      createdAt: idx !== -1 ? jsonData.purchases[idx].createdAt : now
+      createdAt: pIdx !== -1 ? jsonData.purchases[pIdx].createdAt : now
     };
 
-    if (idx !== -1) {
-      jsonData.purchases[idx] = record;
+    if (pIdx !== -1) {
+      jsonData.purchases[pIdx] = purchaseRecord;
     } else {
-      jsonData.purchases.push(record);
+      jsonData.purchases.push(purchaseRecord);
     }
 
-    // Update Product Stock quantities
+    jsonData.purchase_items = jsonData.purchase_items.filter(pi => pi.purchaseId !== id);
+    let sr = 1;
     for (const item of items) {
-      const prodCode = String(item.productCode || item.code || '').trim();
-      const pIdx = jsonData.products.findIndex(p => String(p.code) === prodCode || p.id === item.productId);
+      const code = String(item.productCode || item.code || '').trim();
+      const tp = Number(item.tradePrice || item.tp || 0);
       let packSize = Number(item.packSize) || 0;
-      if (packSize <= 0 && pIdx !== -1) {
-        packSize = Number(jsonData.products[pIdx].packSize) || 1;
+      if (packSize <= 0 && code) {
+        const pRec = jsonData.products.find(p => p.code === code || p.id === item.productId);
+        if (pRec && pRec.packSize > 0) packSize = Number(pRec.packSize);
       }
       if (packSize <= 0) packSize = 1;
       const incomingQty = (Number(item.packQty || item.pQty || 0) * packSize) + Number(item.unitQty || item.uQty || 0) + Number(item.bonus || 0);
-      if (pIdx !== -1 && incomingQty > 0) {
-        jsonData.products[pIdx].stockQty = (Number(jsonData.products[pIdx].stockQty) || 0) + incomingQty;
-        if (Number(item.tradePrice || item.tp || 0) > 0) {
-          jsonData.products[pIdx].purchasePrice = Number(item.tradePrice || item.tp);
+
+      jsonData.purchase_items.push({
+        id: `pi-${Date.now()}-${sr}`,
+        purchaseId: id,
+        srNo: sr,
+        productId: item.productId || '',
+        productCode: code,
+        productTitle: item.productTitle || '',
+        packQty: Number(item.packQty || item.pQty || 0),
+        unitQty: Number(item.unitQty || item.uQty || 0),
+        bonus: Number(item.bonus || 0),
+        tradePrice: tp,
+        profitMargin: Number(item.profitMargin || item.proPercent || 0),
+        retailPrice: Number(item.retailPrice || item.rp || 0),
+        wholesalePrice: Number(item.wholesalePrice || item.wp || 0),
+        tradeOffer: Number(item.tradeOffer || item.to || 0),
+        discountPercent: Number(item.discountPercent || item.discPercent || 0),
+        netAmount: Number(item.netAmount || 0)
+      });
+
+      if (incomingQty > 0 && code) {
+        const prod = jsonData.products.find(p => p.code === code || p.id === item.productId);
+        if (prod) {
+          prod.stockQty = (Number(prod.stockQty) || 0) + incomingQty;
+          if (tp > 0) prod.purchasePrice = tp;
         }
       }
+      sr++;
     }
 
     saveJsonData();
     return { success: true, id, voucherNo };
   }
 
-  if (!dbInstance) throw new Error('DB not initialized');
   dbInstance.exec('BEGIN TRANSACTION;');
   try {
     const existing = dbInstance.prepare('SELECT id FROM purchases WHERE id = ? OR voucherNo = ?').get(id, voucherNo);
@@ -797,7 +708,6 @@ function savePurchase(purchaseData, itemsList) {
       );
     }
 
-    // Insert purchase items and update stock
     const insertItem = dbInstance.prepare(`
       INSERT INTO purchase_items (
         id, purchaseId, srNo, productId, productCode, productTitle,
@@ -859,8 +769,11 @@ function deletePurchase(id) {
   }
   dbInstance.exec('BEGIN TRANSACTION;');
   try {
-    dbInstance.prepare('DELETE FROM purchase_items WHERE purchaseId = ?').run(id);
-    dbInstance.prepare('DELETE FROM purchases WHERE id = ? OR voucherNo = ?').run(id, id);
+    const p = dbInstance.prepare('SELECT id FROM purchases WHERE id = ? OR voucherNo = ?').get(id, id);
+    if (p) {
+      dbInstance.prepare('DELETE FROM purchase_items WHERE purchaseId = ?').run(p.id);
+      dbInstance.prepare('DELETE FROM purchases WHERE id = ?').run(p.id);
+    }
     dbInstance.exec('COMMIT;');
     checkpoint();
     return { success: true };
@@ -870,171 +783,16 @@ function deletePurchase(id) {
   }
 }
 
-// ============================================
-// VENDORS CRUD
-// ============================================
-function getAllVendors() {
-  if (isJsonFallback) return [...jsonData.vendors].sort((a, b) => a.name.localeCompare(b.name));
-  if (!dbInstance) throw new Error('DB not initialized');
-  return dbInstance.prepare('SELECT * FROM vendors ORDER BY name ASC').all();
-}
-
-function addVendor(vendor) {
-  const id = vendor.id || `ven-${Date.now()}`;
-  const now = new Date().toISOString();
-  if (isJsonFallback) {
-    jsonData.vendors.push({
-      id,
-      name: vendor.name,
-      contactPerson: vendor.contactPerson || '',
-      phone: vendor.phone || '',
-      email: vendor.email || '',
-      address: vendor.address || '',
-      notes: vendor.notes || '',
-      createdAt: vendor.createdAt || now
-    });
-    saveJsonData();
-    return { success: true, id };
-  }
-  const stmt = dbInstance.prepare(`
-    INSERT INTO vendors (id, name, contactPerson, phone, email, address, notes, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  stmt.run(
-    id, vendor.name, vendor.contactPerson || '', vendor.phone || '',
-    vendor.email || '', vendor.address || '', vendor.notes || '', vendor.createdAt || now
-  );
-  checkpoint();
-  return { success: true, id };
-}
-
-function updateVendor(vendor) {
-  if (isJsonFallback) {
-    const idx = jsonData.vendors.findIndex(v => v.id === vendor.id);
-    if (idx !== -1) {
-      jsonData.vendors[idx] = {
-        ...jsonData.vendors[idx],
-        name: vendor.name,
-        contactPerson: vendor.contactPerson || '',
-        phone: vendor.phone || '',
-        email: vendor.email || '',
-        address: vendor.address || '',
-        notes: vendor.notes || ''
-      };
-      saveJsonData();
-    }
-    return { success: true };
-  }
-  const stmt = dbInstance.prepare(`
-    UPDATE vendors
-    SET name = ?, contactPerson = ?, phone = ?, email = ?, address = ?, notes = ?
-    WHERE id = ?
-  `);
-  stmt.run(
-    vendor.name, vendor.contactPerson || '', vendor.phone || '',
-    vendor.email || '', vendor.address || '', vendor.notes || '', vendor.id
-  );
-  checkpoint();
-  return { success: true };
-}
-
-function deleteVendor(id) {
-  if (isJsonFallback) {
-    jsonData.vendors = jsonData.vendors.filter(v => v.id !== id);
-    saveJsonData();
-    return { success: true };
-  }
-  dbInstance.prepare('DELETE FROM vendors WHERE id = ?').run(id);
-  checkpoint();
-  return { success: true };
-}
-
-// Legacy inventory compatibility
+// Enterprise All-Data Fetcher
 function getAllData() {
-  if (isJsonFallback) {
-    return {
-      vendors: getAllVendors(),
-      inventory: jsonData.inventory || [],
-      products: getAllProducts(),
-      units: getAllUnits(),
-      product_types: getAllProductTypes(),
-      product_groups: getAllProductGroups(),
-      product_categories: getAllProductCategories(),
-      product_sub_categories: getSubCategoriesByCategory(),
-      purchases: getAllPurchases()
-    };
-  }
   return {
-    vendors: getAllVendors(),
-    inventory: dbInstance.prepare('SELECT * FROM inventory ORDER BY date DESC, createdAt DESC').all(),
-    products: getAllProducts(),
     units: getAllUnits(),
     product_types: getAllProductTypes(),
-    product_groups: getAllProductGroups(),
     product_categories: getAllProductCategories(),
     product_sub_categories: getSubCategoriesByCategory(),
+    products: getAllProducts(),
     purchases: getAllPurchases()
   };
-}
-
-function addStock(item) {
-  if (isJsonFallback) {
-    jsonData.inventory.push({ ...item, createdAt: item.createdAt || new Date().toISOString() });
-    saveJsonData();
-    return { success: true };
-  }
-  const stmt = dbInstance.prepare(`
-    INSERT INTO inventory (id, stockName, vendorId, vendorName, quantity, totalSell, purchasePrice, wholesalePrice, individualPrice, date, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  stmt.run(
-    item.id, item.stockName, item.vendorId || '', item.vendorName || '',
-    Number(item.quantity) || 0, Number(item.totalSell) || 0, Number(item.purchasePrice) || 0,
-    Number(item.wholesalePrice) || 0, Number(item.individualPrice) || 0, item.date, item.createdAt || new Date().toISOString()
-  );
-  checkpoint();
-  return { success: true };
-}
-
-function updateStock(item) {
-  if (isJsonFallback) {
-    const idx = jsonData.inventory.findIndex(i => i.id === item.id);
-    if (idx !== -1) {
-      jsonData.inventory[idx] = { ...jsonData.inventory[idx], ...item };
-      saveJsonData();
-    }
-    return { success: true };
-  }
-  const stmt = dbInstance.prepare(`
-    UPDATE inventory
-    SET stockName = ?, vendorId = ?, vendorName = ?, quantity = ?, totalSell = ?, purchasePrice = ?, wholesalePrice = ?, individualPrice = ?, date = ?
-    WHERE id = ?
-  `);
-  stmt.run(
-    item.stockName, item.vendorId || '', item.vendorName || '',
-    Number(item.quantity) || 0, Number(item.totalSell) || 0, Number(item.purchasePrice) || 0,
-    Number(item.wholesalePrice) || 0, Number(item.individualPrice) || 0, item.date, item.id
-  );
-  checkpoint();
-  return { success: true };
-}
-
-function deleteStock(id) {
-  if (isJsonFallback) {
-    jsonData.inventory = jsonData.inventory.filter(i => i.id !== id);
-    saveJsonData();
-    return { success: true };
-  }
-  dbInstance.prepare('DELETE FROM inventory WHERE id = ?').run(id);
-  checkpoint();
-  return { success: true };
-}
-
-function syncAllData(data) {
-  if (data.vendors) {
-    for (const v of data.vendors) addVendor(v);
-  }
-  return { success: true };
 }
 
 function checkpoint() {
@@ -1060,10 +818,6 @@ module.exports = {
   closeDatabase,
   checkpoint,
   getAllData,
-  addStock,
-  updateStock,
-  deleteStock,
-  syncAllData,
 
   // Units
   getAllUnits,
@@ -1074,11 +828,6 @@ module.exports = {
   getAllProductTypes,
   saveProductType,
   deleteProductType,
-
-  // Product Groups
-  getAllProductGroups,
-  saveProductGroup,
-  deleteProductGroup,
 
   // Product Categories & Sub-Categories
   getAllProductCategories,
@@ -1103,13 +852,7 @@ module.exports = {
   savePurchase,
   deletePurchase,
 
-  // Vendors
-  getAllVendors,
-  addVendor,
-  updateVendor,
-  deleteVendor,
-
-  // General Info Module
+  // General Info Module (Company, Provinces, Areas, Party Types, Parties)
   getCompanyInfo: generalInfoDb.getCompanyInfo,
   saveCompanyInfo: generalInfoDb.saveCompanyInfo,
   getProvinces: generalInfoDb.getProvinces,
@@ -1130,4 +873,3 @@ module.exports = {
   deleteParty: generalInfoDb.deleteParty,
   getAllGeneralInfo: generalInfoDb.getAllGeneralInfo
 };
-

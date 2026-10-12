@@ -9,7 +9,6 @@
 
   <link rel="stylesheet" href="shared/styles.css">
   <link rel="stylesheet" href="inventory/inventory.css">
-  <link rel="stylesheet" href="vendors/vendors.css">
   <link rel="stylesheet" href="Genral info/general-info.css">
 </head>
 
@@ -95,16 +94,6 @@
               <span>Product Type</span>
             </button>
 
-            <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="product-group" id="invTabBtnProductGroup">
-              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-              <span>Product Group</span>
-            </button>
-
             <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="product-category" id="invTabBtnProductCategory">
               <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="8" y1="6" x2="21" y2="6"></line>
@@ -124,17 +113,6 @@
               </svg>
               <span>Sub Category</span>
               <span class="gi-tab-badge" id="badgeSubCategoryCount">0</span>
-            </button>
-
-            <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="vendor" id="invTabBtnVendor">
-              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span>Vendor</span>
-              <span class="gi-tab-badge" id="badgeVendorCount">0</span>
             </button>
 
             <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="purchase" id="invTabBtnPurchase">
@@ -257,54 +235,6 @@
         </div>
       </section>
 
-      <!-- ======================================================== -->
-      <!-- TAB 3: PRODUCT GROUP                                     -->
-      <!-- ======================================================== -->
-      <section id="viewProductGroup" class="subview-section">
-        <header class="section-header">
-          <div class="header-left">
-            <h1 class="view-title">Product Group</h1>
-          </div>
-          <div class="header-right">
-            <button id="btnOpenAddProductGroup" class="btn btn-primary">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>Add Product Group</span>
-            </button>
-          </div>
-        </header>
-
-        <div class="toolbar toolbar-left-aligned">
-          <div class="search-box">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="productGroupSearchInput" placeholder="Search product groups / brands..." autocomplete="off">
-            <button id="btnClearProductGroupSearch" class="btn-clear hidden">&times;</button>
-          </div>
-        </div>
-
-        <div class="table-container">
-          <table class="data-table table-product-group">
-            <thead>
-              <tr>
-                <th class="col-pg-sr" style="width: 100px; text-align: left; padding-left: 24px;">SR #</th>
-                <th class="col-pg-name" style="text-align: left; padding-left: 16px;">Group / Brand Name</th>
-                <th class="col-pg-code" style="width: 180px; text-align: center;">Code / Prefix</th>
-                <th class="col-pg-notes" style="text-align: center;">Notes</th>
-                <th class="col-pg-actions" style="width: 100px; text-align: center;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="productGroupTableBody"></tbody>
-          </table>
-          <div id="productGroupEmptyState" class="empty-state hidden">
-            <span>No product groups found</span>
-          </div>
-        </div>
-      </section>
 
       <!-- ======================================================== -->
       <!-- TAB 4: PRODUCT CATEGORY                                  -->
@@ -409,64 +339,6 @@
         </div>
       </section>
 
-      <!-- ======================================================== -->
-      <!-- TAB 5: VENDOR (INTEGRATED)                                -->
-      <!-- ======================================================== -->
-      <section id="viewVendor" class="subview-section">
-        <header class="section-header">
-          <div class="header-left">
-            <h1 class="view-title">Vendor</h1>
-          </div>
-          <div class="header-right">
-            <button id="btnOpenAddVendor" class="btn btn-primary">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              <span>Add Vendor</span>
-            </button>
-          </div>
-        </header>
-
-        <div class="toolbar toolbar-left-aligned">
-          <div class="search-box-group">
-            <div class="search-by-wrapper">
-              <label for="vendorSearchBy" class="search-by-label">Search by</label>
-              <select id="vendorSearchBy" class="search-by-select">
-                <option value="all">All</option>
-                <option value="name">Name</option>
-                <option value="phone">Phone</option>
-              </select>
-            </div>
-            <div class="search-box">
-              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input type="text" id="vendorSearchInput" placeholder="Search vendors..." autocomplete="off">
-              <button id="btnClearVendorSearch" class="btn-clear hidden">&times;</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th class="col-vendor-name">Vendor Name</th>
-                <th class="col-phone">Phone</th>
-                <th>Contact Person</th>
-                <th>Address</th>
-                <th class="col-dots-actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="vendorTableBody"></tbody>
-          </table>
-          <div id="vendorEmptyState" class="empty-state hidden">
-            <span>No vendors found</span>
-          </div>
-        </div>
-      </section>
 
       <!-- ======================================================== -->
       <!-- TAB 6: PURCHASE (LEGACY DESKTOP REPLICA)                 -->
@@ -757,14 +629,8 @@
               </div>
             </div>
 
-            <!-- Row 2: Group & Category -->
+            <!-- Row 2: Category & Sub Category -->
             <div class="pi-row">
-              <div class="pi-field flex-1">
-                <label>Product Group</label>
-                <select id="piGroupSelect" class="form-control form-control-sm">
-                  <option value="">-- Select Product Group --</option>
-                </select>
-              </div>
               <div class="pi-field flex-1">
                 <label>Product Category</label>
                 <select id="piCategorySelect" class="form-control form-control-sm">
@@ -841,7 +707,7 @@
               </div>
             </div>
 
-            <!-- Row 6: Minimum Stock, ReOrder Level, Product Group Type, Product Type -->
+            <!-- Row 6: Minimum Stock, ReOrder Level, Product Type -->
             <div class="pi-row">
               <div class="pi-field flex-1">
                 <label>Minimum Stock Level</label>
@@ -850,10 +716,6 @@
               <div class="pi-field flex-1">
                 <label>ReOrder Level</label>
                 <input type="number" id="piReorderLevel" class="form-control form-control-sm font-num" min="0" value="0">
-              </div>
-              <div class="pi-field flex-1">
-                <label>Product Group Type</label>
-                <input type="text" id="piGroupType" class="form-control form-control-sm" placeholder="e.g. Electrical / Hardware">
               </div>
               <div class="pi-field flex-1">
                 <label>Product Type</label>
@@ -1380,34 +1242,6 @@
     </div>
   </div>
 
-  <!-- Modal: Product Group -->
-  <div id="modalProductGroup" class="modal-overlay hidden">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2 id="modalProductGroupTitle" class="modal-title">Add Product Group</h2>
-        <button id="btnCloseProductGroupModal" class="modal-close-btn">&times;</button>
-      </div>
-      <form id="productGroupForm" class="modal-body" onsubmit="return false;">
-        <input type="hidden" id="productGroupId">
-        <div class="form-group">
-          <label for="productGroupNameInput" class="required-label">Group / Brand Name</label>
-          <input type="text" id="productGroupNameInput" class="form-control" placeholder="e.g. Shahzaib Traders, Pak Fan" required>
-        </div>
-        <div class="form-group">
-          <label for="productGroupCodeInput">Code / Short</label>
-          <input type="text" id="productGroupCodeInput" class="form-control" placeholder="e.g. ST, PF">
-        </div>
-        <div class="form-group">
-          <label for="productGroupNotesInput">Notes</label>
-          <input type="text" id="productGroupNotesInput" class="form-control" placeholder="Optional notes">
-        </div>
-        <div class="modal-footer">
-          <button type="button" id="btnCancelProductGroup" class="btn btn-secondary">Cancel</button>
-          <button type="submit" id="btnSaveProductGroup" class="btn btn-primary">Save Product Group</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <!-- Modal: Product Category -->
   <div id="modalCategory" class="modal-overlay hidden">
@@ -1463,46 +1297,6 @@
     </div>
   </div>
 
-  <!-- Modal: Vendor -->
-  <div id="modalVendor" class="modal-overlay hidden">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2 id="modalVendorTitle" class="modal-title">Add Vendor</h2>
-        <button id="btnCloseVendorModal" class="modal-close-btn">&times;</button>
-      </div>
-      <form id="vendorForm" class="modal-body" onsubmit="return false;">
-        <input type="hidden" id="vendorId">
-        <div class="form-group">
-          <label for="vendorNameInput" class="required-label">Company / Vendor Name</label>
-          <input type="text" id="vendorNameInput" class="form-control" placeholder="e.g. Abid Trading Company" required>
-        </div>
-        <div class="form-group">
-          <label for="vendorPhoneInput" class="required-label">Phone</label>
-          <input type="text" id="vendorPhoneInput" class="form-control" placeholder="e.g. 0300-1234567" required>
-        </div>
-        <div class="form-group">
-          <label for="vendorContactPersonInput">Contact Person</label>
-          <input type="text" id="vendorContactPersonInput" class="form-control" placeholder="e.g. Muhammad Abid">
-        </div>
-        <div class="form-group">
-          <label for="vendorEmailInput">Email</label>
-          <input type="email" id="vendorEmailInput" class="form-control" placeholder="e.g. vendor@example.com">
-        </div>
-        <div class="form-group">
-          <label for="vendorAddressInput">Address</label>
-          <input type="text" id="vendorAddressInput" class="form-control" placeholder="e.g. Wah Cantt, Punjab">
-        </div>
-        <div class="form-group">
-          <label for="vendorNotesInput">Notes</label>
-          <textarea id="vendorNotesInput" class="form-control" rows="2" placeholder="Optional notes"></textarea>
-        </div>
-        <div class="modal-footer">
-          <button type="button" id="btnCancelVendor" class="btn btn-secondary">Cancel</button>
-          <button type="submit" id="btnSaveVendor" class="btn btn-primary">Save Vendor</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <!-- Modal: Product Search (F1 Find) -->
   <div id="modalProductSearch" class="modal-overlay hidden">
@@ -1851,10 +1645,9 @@
 
   <!-- App Scripts -->
   <script src="shared/utils.js"></script>
-  <script src="vendors/vendors.js"></script>
+  <script src="renderer.js"></script>
   <script src="inventory/inventory.js"></script>
   <script src="Genral info/general-info.js"></script>
-  <script src="renderer.js"></script>
 </body>
 
 </html>

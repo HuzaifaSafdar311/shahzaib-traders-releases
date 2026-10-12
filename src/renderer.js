@@ -1,16 +1,13 @@
 // Shahzaib Traders - Main Application Orchestrator
 
-// Global Application State
+// Global Application State (Enterprise Model)
 window.appData = {
   units: [],
   product_types: [],
-  product_groups: [],
   product_categories: [],
   product_sub_categories: [],
-  vendors: [],
   products: [],
-  purchases: [],
-  inventory: []
+  purchases: []
 };
 
 // API Storage Bridge (Electron IPC with local storage fallback)
@@ -18,18 +15,11 @@ window.api = window.electronAPI || {
   getData: async () => ({
     units: [],
     product_types: [],
-    product_groups: [],
     product_categories: [],
     product_sub_categories: [],
-    vendors: [],
     products: [],
-    purchases: [],
-    inventory: []
-  }),
-  saveData: async () => ({ success: true }),
-  addVendor: async () => ({ success: true }),
-  updateVendor: async () => ({ success: true }),
-  deleteVendor: async () => ({ success: true })
+    purchases: []
+  })
 };
 
 // DOM References
@@ -38,7 +28,6 @@ const appEl = {
   navGeneralInfoBtn: document.getElementById('navGeneralInfoBtn'),
   inventoryView: document.getElementById('inventoryView'),
   generalInfoView: document.getElementById('generalInfoView'),
-  badgeVendorCount: document.getElementById('badgeVendorCount'),
   badgeProductsCount: document.getElementById('badgeProductsCount'),
   badgeCategoryCount: document.getElementById('badgeCategoryCount'),
   badgeSubCategoryCount: document.getElementById('badgeSubCategoryCount'),
@@ -111,13 +100,12 @@ window.switchTab = switchTab;
 
 if (appEl.navGeneralInfoBtn) appEl.navGeneralInfoBtn.addEventListener('click', () => switchTab('general-info'));
 if (appEl.navInventoryMainBtn) appEl.navInventoryMainBtn.addEventListener('click', () => switchTab('inventory'));
+
 // Badges Update
 function updateBadges() {
-  const venCount = (window.appData && window.appData.vendors ? window.appData.vendors.length : 0);
   const prodCount = (window.appData && window.appData.products ? window.appData.products.length : 0);
   const catCount = (window.appData && window.appData.product_categories ? window.appData.product_categories.length : 0);
   const subCatCount = (window.appData && window.appData.product_sub_categories ? window.appData.product_sub_categories.length : 0);
-  if (appEl.badgeVendorCount) appEl.badgeVendorCount.textContent = venCount;
   if (appEl.badgeProductsCount) appEl.badgeProductsCount.textContent = prodCount;
   if (appEl.badgeCategoryCount) appEl.badgeCategoryCount.textContent = catCount;
   if (appEl.badgeSubCategoryCount) appEl.badgeSubCategoryCount.textContent = subCatCount;
@@ -133,13 +121,10 @@ async function reloadFromDatabase() {
       window.appData = {
         units: Array.isArray(data.units) ? data.units : [],
         product_types: Array.isArray(data.product_types) ? data.product_types : [],
-        product_groups: Array.isArray(data.product_groups) ? data.product_groups : [],
         product_categories: Array.isArray(data.product_categories) ? data.product_categories : [],
         product_sub_categories: Array.isArray(data.product_sub_categories) ? data.product_sub_categories : [],
-        vendors: Array.isArray(data.vendors) ? data.vendors : [],
         products: Array.isArray(data.products) ? data.products : [],
-        purchases: Array.isArray(data.purchases) ? data.purchases : [],
-        inventory: Array.isArray(data.inventory) ? data.inventory : []
+        purchases: Array.isArray(data.purchases) ? data.purchases : []
       };
     }
   } catch (err) {
@@ -151,10 +136,8 @@ async function reloadFromDatabase() {
   // Refresh active views
   if (window.renderUnits) window.renderUnits();
   if (window.renderProductTypes) window.renderProductTypes();
-  if (window.renderProductGroups) window.renderProductGroups();
   if (window.renderProductCategories) window.renderProductCategories();
   if (window.renderProductSubCategories) window.renderProductSubCategories();
-  if (window.renderVendors) window.renderVendors();
 }
 
 window.reloadFromDatabase = reloadFromDatabase;

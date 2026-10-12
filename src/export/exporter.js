@@ -8,7 +8,9 @@ const ExcelJS = require('exceljs');
  */
 function getLogoBase64() {
   try {
-    const logoPath = fs.existsSync(path.join(__dirname, '..', 'assets', 'full-logo.png')) ? path.join(__dirname, '..', 'assets', 'full-logo.png') : path.join(__dirname, '..', 'full-logo.png');
+    const logoPath = fs.existsSync(path.join(__dirname, '..', 'assets', 'full-logo.png'))
+      ? path.join(__dirname, '..', 'assets', 'full-logo.png')
+      : path.join(__dirname, '..', 'full-logo.png');
     if (fs.existsSync(logoPath)) {
       const bitmap = fs.readFileSync(logoPath);
       return `data:image/png;base64,${bitmap.toString('base64')}`;
@@ -28,7 +30,7 @@ function formatPKR(val) {
 }
 
 /**
- * Export Inventory Report as Clean & Simple PDF (Matching Frontend Table)
+ * Export Product Catalog & Inventory Report as Clean & Simple PDF
  */
 async function exportPDF({ items = [], summary = {} }, parentWindow) {
   const defaultFilename = `Shahzaib_Traders_Inventory_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -46,30 +48,32 @@ async function exportPDF({ items = [], summary = {} }, parentWindow) {
   const logoBase64 = getLogoBase64();
   const dateStr = summary.dateGenerated || new Date().toISOString().split('T')[0];
 
-  // Calculate totals for simple bottom row
-  let totalStock = 0;
-  let totalSell = 0;
+  let totalQty = 0;
+  let totalVal = 0;
 
   const tableRowsHtml = items.map(item => {
-    const qty = Number(item.quantity) || 0;
-    const sell = Number(item.totalSell) || 0;
+    const code = item.code || '';
+    const title = item.titleEng || item.stockName || '';
+    const unit = item.unitName || item.packingType || 'Piece';
+    const qty = Number(item.stockQty ?? item.quantity) || 0;
     const purPrice = Number(item.purchasePrice) || 0;
     const wsPrice = Number(item.wholesalePrice) || 0;
-    const indPrice = Number(item.individualPrice) || 0;
+    const retPrice = Number(item.retailPrice ?? item.individualPrice) || 0;
+    const val = qty * purPrice;
 
-    totalStock += qty;
-    totalSell += sell;
+    totalQty += qty;
+    totalVal += val;
 
     return `
       <tr>
-        <td class="col-stock">${escapeHtml(item.stockName)}</td>
-        <td class="col-vendor">${escapeHtml(item.vendorName || 'N/A')}</td>
-        <td class="col-qty text-center">${qty.toLocaleString()}</td>
-        <td class="col-sell text-center">${sell.toLocaleString()}</td>
+        <td class="col-code text-center font-num">${escapeHtml(code)}</td>
+        <td class="col-title">${escapeHtml(title)}</td>
+        <td class="col-unit text-center">${escapeHtml(unit)}</td>
+        <td class="col-qty text-center font-bold">${qty.toLocaleString()}</td>
         <td class="col-price text-right">${formatPKR(purPrice)}</td>
         <td class="col-price text-right">${formatPKR(wsPrice)}</td>
-        <td class="col-price text-right">${formatPKR(indPrice)}</td>
-        <td class="col-date text-center">${escapeHtml(item.date || '')}</td>
+        <td class="col-price text-right">${formatPKR(retPrice)}</td>
+        <td class="col-price text-right font-bold">${formatPKR(val)}</td>
       </tr>
     `;
   }).join('');
@@ -83,124 +87,109 @@ async function exportPDF({ items = [], summary = {} }, parentWindow) {
       <style>
         @page {
           size: A4 portrait;
-          margin: 14mm 14mm 14mm 14mm;
+          margin: 12mm 12mm 12mm 12mm;
         }
-        * {
-          box-sizing: border-box;
-          margin: 0;
-          padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
           color: #1e293b;
           background-color: #ffffff;
-          font-size: 11px;
+          font-size: 10px;
           line-height: 1.4;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
-
-        /* Clean Top Header */
         .page-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding-bottom: 14px;
+          padding-bottom: 12px;
           border-bottom: 1px solid #e2e8f0;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
         }
-        .header-logo {
-          height: 38px;
-          object-fit: contain;
-          display: block;
-        }
-        .header-info {
-          text-align: right;
-        }
-        .report-title {
-          font-size: 15px;
+        .logo-wrap img { height: 38px; width: auto; object-fit: contain; }
+        .company-title { font-size: 15px; font-weight: 700; color: #0f172a; }
+        .company-sub { font-size: 9.5px; color: #64748b; margin-top: 1px; }
+        .report-meta { text-align: right; }
+        .report-badge {
+          display: inline-block;
+          font-size: 11px;
           font-weight: 700;
           color: #0f172a;
-          margin-bottom: 2px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
-        .report-date {
-          font-size: 11px;
-          color: #64748b;
-        }
-
-        /* Simple Clean Data Table Matching Frontend */
+        .report-date { font-size: 9.5px; color: #64748b; margin-top: 2px; }
         .table-container {
           width: 100%;
           border: 1px solid #e2e8f0;
           border-radius: 4px;
           overflow: hidden;
         }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 10.5px;
-        }
+        table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
         thead th {
           background-color: #f8fafc;
           color: #475569;
           font-weight: 600;
-          font-size: 10px;
+          font-size: 9px;
           text-transform: uppercase;
           letter-spacing: 0.3px;
-          padding: 9px 10px;
+          padding: 7px 8px;
           border-bottom: 1px solid #e2e8f0;
           border-right: 1px solid #f1f5f9;
         }
-        thead th:last-child {
-          border-right: none;
-        }
-        tbody tr {
-          border-bottom: 1px solid #f1f5f9;
-        }
-        tbody tr:nth-child(even) {
-          background-color: #fafbfd;
-        }
+        thead th:last-child { border-right: none; }
+        tbody tr { border-bottom: 1px solid #f1f5f9; }
+        tbody tr:nth-child(even) { background-color: #fafbfd; }
         tbody td {
-          padding: 8px 10px;
+          padding: 6px 8px;
           border-right: 1px solid #f1f5f9;
           vertical-align: middle;
           color: #1e293b;
         }
-        tbody td:last-child {
-          border-right: none;
-        }
-        .col-stock {
-          font-weight: 600;
-          color: #0f172a;
-        }
-        .col-vendor {
-          color: #475569;
-        }
-
-        /* Simple Bottom Total Row */
+        tbody td:last-child { border-right: none; }
+        .col-code { font-weight: 700; color: #3b82f6; width: 60px; }
+        .col-title { font-weight: 600; color: #0f172a; }
+        .col-unit { width: 70px; color: #64748b; }
+        .col-qty { width: 65px; }
+        .col-price { width: 90px; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-num { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+        .font-bold { font-weight: 700; }
         tfoot tr {
           background-color: #f8fafc;
           border-top: 1.5px solid #cbd5e1;
           font-weight: 700;
         }
         tfoot td {
-          padding: 9px 10px;
+          padding: 8px 8px;
           color: #0f172a;
           border-right: 1px solid #f1f5f9;
         }
-        tfoot td:last-child {
-          border-right: none;
+        tfoot td:last-child { border-right: none; }
+        .page-footer {
+          margin-top: 14px;
+          display: flex;
+          justify-content: space-between;
+          font-size: 8.5px;
+          color: #94a3b8;
+          padding-top: 8px;
+          border-top: 1px solid #f1f5f9;
         }
-
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
       </style>
     </head>
     <body>
       <header class="page-header">
-        ${logoBase64 ? `<img src="${logoBase64}" alt="Shahzaib Traders" class="header-logo">` : '<h2 style="font-size: 16px; font-weight: 700;">Shahzaib Traders</h2>'}
-        <div class="header-info">
-          <div class="report-title">Inventory Report</div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          ${logoBase64 ? `<div class="logo-wrap"><img src="${logoBase64}" alt="Logo"></div>` : ''}
+          <div>
+            <div class="company-title">Shahzaib Traders</div>
+            <div class="company-sub">Wholesale & Retail Trading Solutions</div>
+          </div>
+        </div>
+        <div class="report-meta">
+          <div class="report-badge">Inventory Stock Report</div>
           <div class="report-date">Date: ${escapeHtml(dateStr)}</div>
         </div>
       </header>
@@ -209,54 +198,50 @@ async function exportPDF({ items = [], summary = {} }, parentWindow) {
         <table>
           <thead>
             <tr>
-              <th style="text-align: left;">Stock Name</th>
-              <th style="text-align: left;">Vendor</th>
-              <th style="width: 70px;" class="text-center">Total Stock</th>
-              <th style="width: 65px;" class="text-center">Total Sell</th>
-              <th style="width: 100px;" class="text-right">Original Value</th>
-              <th style="width: 100px;" class="text-right">Wholesale</th>
-              <th style="width: 100px;" class="text-right">Individual</th>
-              <th style="width: 75px;" class="text-center">Date</th>
+              <th class="text-center" style="width: 55px;">Code</th>
+              <th>Product Title</th>
+              <th class="text-center" style="width: 65px;">Unit</th>
+              <th class="text-center" style="width: 60px;">Stock</th>
+              <th class="text-right" style="width: 80px;">Cost (PKR)</th>
+              <th class="text-right" style="width: 80px;">Wholesale</th>
+              <th class="text-right" style="width: 80px;">Retail</th>
+              <th class="text-right" style="width: 90px;">Stock Value</th>
             </tr>
           </thead>
           <tbody>
-            ${tableRowsHtml || '<tr><td colspan="8" class="text-center" style="padding: 24px; color: #94a3b8;">No records found</td></tr>'}
+            ${tableRowsHtml}
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="2" style="text-align: left; font-weight: 700;">Total</td>
-              <td class="text-center">${totalStock.toLocaleString()}</td>
-              <td class="text-center">${totalSell.toLocaleString()}</td>
-              <td colspan="4"></td>
+              <td colspan="3" class="font-bold">Total (${items.length} Products)</td>
+              <td class="text-center font-bold">${totalQty.toLocaleString()}</td>
+              <td colspan="3"></td>
+              <td class="text-right font-bold">${formatPKR(totalVal)}</td>
             </tr>
           </tfoot>
         </table>
       </div>
+
+      <footer class="page-footer">
+        <div>Shahzaib Traders - Enterprise Inventory System</div>
+        <div>Generated on ${new Date().toLocaleString()}</div>
+      </footer>
     </body>
     </html>
   `;
 
   const printWin = new BrowserWindow({
     show: false,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true
-    }
+    webPreferences: { nodeIntegration: false }
   });
 
   await printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
-  await new Promise(r => setTimeout(r, 180));
 
   const pdfBuffer = await printWin.webContents.printToPDF({
     pageSize: 'A4',
     landscape: false,
     printBackground: true,
-    margins: {
-      top: 0.4,
-      bottom: 0.4,
-      left: 0.4,
-      right: 0.4
-    }
+    margins: { top: 0.3, bottom: 0.3, left: 0.3, right: 0.3 }
   });
 
   printWin.close();
@@ -265,7 +250,7 @@ async function exportPDF({ items = [], summary = {} }, parentWindow) {
 }
 
 /**
- * Export Inventory Report as Simple Clean Excel Spreadsheet (.xlsx)
+ * Export Product Catalog as Excel Spreadsheet (.xlsx)
  */
 async function exportExcel({ items = [], summary = {} }, parentWindow) {
   const defaultFilename = `Shahzaib_Traders_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -284,14 +269,10 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
   wb.creator = 'Shahzaib Traders';
   wb.created = new Date();
 
-  const ws = wb.addWorksheet('Inventory', {
-    views: [{ showGridLines: true }]
-  });
-
+  const ws = wb.addWorksheet('Inventory', { views: [{ showGridLines: true }] });
   const dateStr = summary.dateGenerated || new Date().toISOString().split('T')[0];
 
-  // Simple Header
-  ws.getCell('A1').value = 'Shahzaib Traders - Inventory Report';
+  ws.getCell('A1').value = 'Shahzaib Traders - Inventory Stock Report';
   ws.getCell('A1').font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FF0F172A' } };
 
   ws.getCell('A2').value = `Date: ${dateStr}`;
@@ -301,16 +282,15 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
   ws.getRow(2).height = 16;
   ws.getRow(3).height = 10;
 
-  // Table Column Headers (Row 4) matching frontend
   const headers = [
-    'Stock Name',
-    'Vendor',
-    'Total Stock',
-    'Total Sell',
-    'Original Value (PKR)',
+    'Code',
+    'Product Title',
+    'Unit',
+    'Stock Qty',
+    'Purchase Cost (PKR)',
     'Wholesale (PKR)',
-    'Individual (PKR)',
-    'Date'
+    'Retail (PKR)',
+    'Stock Value (PKR)'
   ];
 
   const thinBorder = {
@@ -327,51 +307,53 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
     cell.value = h;
     cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF334155' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-    cell.alignment = { horizontal: (idx === 0 || idx === 1) ? 'left' : (idx >= 4 && idx <= 6) ? 'right' : 'center', vertical: 'middle' };
+    cell.alignment = { horizontal: (idx === 1) ? 'left' : (idx >= 4) ? 'right' : 'center', vertical: 'middle' };
     cell.border = thinBorder;
   });
 
-  // Data Rows
   let currentRow = 5;
-  let totalStock = 0;
-  let totalSell = 0;
+  let totalQty = 0;
+  let totalVal = 0;
 
   items.forEach((item, idx) => {
     const row = ws.getRow(currentRow);
     row.height = 20;
 
-    const qty = Number(item.quantity) || 0;
-    const sell = Number(item.totalSell) || 0;
+    const code = item.code || '';
+    const title = item.titleEng || item.stockName || '';
+    const unit = item.unitName || item.packingType || 'Piece';
+    const qty = Number(item.stockQty ?? item.quantity) || 0;
     const purPrice = Number(item.purchasePrice) || 0;
     const wsPrice = Number(item.wholesalePrice) || 0;
-    const indPrice = Number(item.individualPrice) || 0;
+    const retPrice = Number(item.retailPrice ?? item.individualPrice) || 0;
+    const val = qty * purPrice;
 
-    totalStock += qty;
-    totalSell += sell;
+    totalQty += qty;
+    totalVal += val;
 
-    row.getCell(1).value = item.stockName || '';
-    row.getCell(2).value = item.vendorName || 'N/A';
-    row.getCell(3).value = qty;
-    row.getCell(4).value = sell;
+    row.getCell(1).value = code;
+    row.getCell(2).value = title;
+    row.getCell(3).value = unit;
+    row.getCell(4).value = qty;
     row.getCell(5).value = purPrice;
     row.getCell(6).value = wsPrice;
-    row.getCell(7).value = indPrice;
-    row.getCell(8).value = item.date || '';
+    row.getCell(7).value = retPrice;
+    row.getCell(8).value = val;
 
-    row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+    row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
     row.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
     row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
     row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
     row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
     row.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
     row.getCell(7).alignment = { horizontal: 'right', vertical: 'middle' };
-    row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
+    row.getCell(8).alignment = { horizontal: 'right', vertical: 'middle' };
 
-    row.getCell(3).numFmt = '#,##0';
     row.getCell(4).numFmt = '#,##0';
     row.getCell(5).numFmt = '"PKR " #,##0.00';
     row.getCell(6).numFmt = '"PKR " #,##0.00';
     row.getCell(7).numFmt = '"PKR " #,##0.00';
+    row.getCell(8).numFmt = '"PKR " #,##0.00';
 
     const bg = (idx % 2 === 1) ? 'FFFAFAFA' : 'FFFFFFFF';
     for (let c = 1; c <= 8; c++) {
@@ -384,25 +366,22 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
     currentRow++;
   });
 
-  // Total Bottom Row
   const totalRow = ws.getRow(currentRow);
   totalRow.height = 22;
-
   totalRow.getCell(1).value = 'Total';
-  totalRow.getCell(2).value = '';
-  totalRow.getCell(3).value = totalStock;
-  totalRow.getCell(4).value = totalSell;
+  totalRow.getCell(2).value = `${items.length} Products`;
+  totalRow.getCell(3).value = '';
+  totalRow.getCell(4).value = totalQty;
   totalRow.getCell(5).value = '';
   totalRow.getCell(6).value = '';
   totalRow.getCell(7).value = '';
-  totalRow.getCell(8).value = '';
+  totalRow.getCell(8).value = totalVal;
 
   totalRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
-  totalRow.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
   totalRow.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
-
-  totalRow.getCell(3).numFmt = '#,##0';
+  totalRow.getCell(8).alignment = { horizontal: 'right', vertical: 'middle' };
   totalRow.getCell(4).numFmt = '#,##0';
+  totalRow.getCell(8).numFmt = '"PKR " #,##0.00';
 
   for (let c = 1; c <= 8; c++) {
     const cell = totalRow.getCell(c);
@@ -411,8 +390,7 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
     cell.border = thinBorder;
   }
 
-  // Column Widths
-  const widths = [28, 24, 14, 14, 20, 20, 20, 14];
+  const widths = [12, 34, 14, 14, 18, 18, 18, 20];
   widths.forEach((w, idx) => {
     ws.getColumn(idx + 1).width = w;
   });
@@ -422,7 +400,7 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
 }
 
 /**
- * Export Inventory Report as Clean CSV
+ * Export Product Catalog as Clean CSV
  */
 async function exportCSV({ items = [] }, parentWindow) {
   const defaultFilename = `Shahzaib_Traders_Inventory_${new Date().toISOString().split('T')[0]}.csv`;
@@ -438,35 +416,38 @@ async function exportCSV({ items = [] }, parentWindow) {
   }
 
   let csvContent = '\uFEFF'; // UTF-8 BOM
-  csvContent += 'Stock Name,Vendor,Total Stock,Total Sell,Original Value (PKR),Wholesale (PKR),Individual (PKR),Date\r\n';
+  csvContent += 'Code,Product Title,Unit,Stock Qty,Purchase Cost (PKR),Wholesale (PKR),Retail (PKR),Stock Value (PKR)\r\n';
 
-  let totalStock = 0;
-  let totalSell = 0;
+  let totalQty = 0;
+  let totalVal = 0;
 
   items.forEach(item => {
-    const qty = Number(item.quantity) || 0;
-    const sell = Number(item.totalSell) || 0;
-    const pp = Number(item.purchasePrice) || 0;
-    const wp = Number(item.wholesalePrice) || 0;
-    const ip = Number(item.individualPrice) || 0;
+    const code = item.code || '';
+    const title = item.titleEng || item.stockName || '';
+    const unit = item.unitName || item.packingType || 'Piece';
+    const qty = Number(item.stockQty ?? item.quantity) || 0;
+    const purPrice = Number(item.purchasePrice) || 0;
+    const wsPrice = Number(item.wholesalePrice) || 0;
+    const retPrice = Number(item.retailPrice ?? item.individualPrice) || 0;
+    const val = qty * purPrice;
 
-    totalStock += qty;
-    totalSell += sell;
+    totalQty += qty;
+    totalVal += val;
 
     const row = [
-      `"${(item.stockName || '').replace(/"/g, '""')}"`,
-      `"${(item.vendorName || '').replace(/"/g, '""')}"`,
+      `"${code.replace(/"/g, '""')}"`,
+      `"${title.replace(/"/g, '""')}"`,
+      `"${unit.replace(/"/g, '""')}"`,
       qty,
-      sell,
-      pp.toFixed(2),
-      wp.toFixed(2),
-      ip.toFixed(2),
-      `"${item.date || ''}"`
+      purPrice.toFixed(2),
+      wsPrice.toFixed(2),
+      retPrice.toFixed(2),
+      val.toFixed(2)
     ];
     csvContent += row.join(',') + '\r\n';
   });
 
-  csvContent += `Total,,${totalStock},${totalSell},,,\r\n`;
+  csvContent += `Total,,,"${totalQty}",,,,"${totalVal.toFixed(2)}"\r\n`;
 
   fs.writeFileSync(filePath, csvContent, 'utf-8');
   return { success: true, filePath };
