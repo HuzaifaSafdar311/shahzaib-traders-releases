@@ -17,7 +17,7 @@ let loadedPurchases = [];
 const inv = {
   // Tabs
   sidebarItems: document.querySelectorAll('.flyout-sub-item[data-subtab], .nav-item[data-subtab]'),
-  subtabBtns: document.querySelectorAll('.subtab-btn[data-subtab]'),
+  subtabBtns: document.querySelectorAll('.inv-tab-btn[data-subtab], .subtab-btn[data-subtab]'),
   subviews: document.querySelectorAll('.subview-section'),
 
   // Dropdown / Flyout
@@ -75,17 +75,13 @@ const inv = {
   btnCloseProductGroupModal: document.getElementById('btnCloseProductGroupModal'),
   btnCancelProductGroup: document.getElementById('btnCancelProductGroup'),
 
-  // 4. Product Categories & Sub-Categories
-  categoryListUl: document.getElementById('categoryListUl'),
-  categoryCountLabel: document.getElementById('categoryCountLabel'),
+  // 4. Product Category
+  badgeCategoryCount: document.getElementById('badgeCategoryCount'),
+  categoryTableBody: document.getElementById('categoryTableBody'),
+  categoryEmptyState: document.getElementById('categoryEmptyState'),
   categorySearchInput: document.getElementById('categorySearchInput'),
+  btnClearCategorySearch: document.getElementById('btnClearCategorySearch'),
   btnOpenAddCategory: document.getElementById('btnOpenAddCategory'),
-  activeCategoryNamePill: document.getElementById('activeCategoryNamePill'),
-  subCategoryTableBody: document.getElementById('subCategoryTableBody'),
-  subCategoryEmptyState: document.getElementById('subCategoryEmptyState'),
-  subCategoryCountLabel: document.getElementById('subCategoryCountLabel'),
-  subCategorySearchInput: document.getElementById('subCategorySearchInput'),
-  btnOpenAddSubCategory: document.getElementById('btnOpenAddSubCategory'),
 
   modalCategory: document.getElementById('modalCategory'),
   modalCategoryTitle: document.getElementById('modalCategoryTitle'),
@@ -95,6 +91,15 @@ const inv = {
   categoryCodeInput: document.getElementById('categoryCodeInput'),
   btnCloseCategoryModal: document.getElementById('btnCloseCategoryModal'),
   btnCancelCategory: document.getElementById('btnCancelCategory'),
+
+  // 5. Product Sub Category
+  badgeSubCategoryCount: document.getElementById('badgeSubCategoryCount'),
+  subCategoryTableBody: document.getElementById('subCategoryTableBody'),
+  subCategoryEmptyState: document.getElementById('subCategoryEmptyState'),
+  subCategorySearchInput: document.getElementById('subCategorySearchInput'),
+  btnClearSubCategorySearch: document.getElementById('btnClearSubCategorySearch'),
+  subCategoryParentFilter: document.getElementById('subCategoryParentFilter'),
+  btnOpenAddSubCategory: document.getElementById('btnOpenAddSubCategory'),
 
   modalSubCategory: document.getElementById('modalSubCategory'),
   modalSubCategoryTitle: document.getElementById('modalSubCategoryTitle'),
@@ -235,21 +240,20 @@ if (inv.btnOkAlert) inv.btnOkAlert.addEventListener('click', closeAlert);
 // ========================================================
 function switchSubTab(subtab) {
   currentSubTab = subtab;
+  window.currentSubTab = subtab;
 
-  // Ensure General Info view is deactivated
+  // Ensure Inventory view is active and General Info is inactive
+  const invView = document.getElementById('inventoryView');
   const giView = document.getElementById('generalInfoView');
   const giBtn = document.getElementById('navGeneralInfoBtn');
+  const invBtn = document.getElementById('navInventoryMainBtn');
+  if (invView) invView.classList.add('active');
   if (giView) giView.classList.remove('active');
   if (giBtn) giBtn.classList.remove('active');
-  if (inv.navInventoryMainBtn) inv.navInventoryMainBtn.classList.add('active');
-
-  // Sync sidebar active state
-  inv.sidebarItems.forEach(item => {
-    item.classList.toggle('active', item.dataset.subtab === subtab);
-  });
+  if (invBtn) invBtn.classList.add('active');
 
   // Sync horizontal tabs active state
-  inv.subtabBtns.forEach(btn => {
+  document.querySelectorAll('.inv-tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.subtab === subtab);
   });
 
@@ -258,14 +262,17 @@ function switchSubTab(subtab) {
     'unit-info': 'viewUnitInfo',
     'product-type': 'viewProductType',
     'product-group': 'viewProductGroup',
-    'product-categories': 'viewProductCategories',
+    'product-category': 'viewProductCategory',
+    'product-categories': 'viewProductCategory',
+    'product-sub-category': 'viewProductSubCategory',
     'vendor': 'viewVendor',
     'purchase': 'viewPurchase',
     'product-info': 'viewProductInfo'
   };
 
   const targetId = viewMap[subtab] || 'viewUnitInfo';
-  inv.subviews.forEach(section => {
+  const allSubviews = document.querySelectorAll('.subview-section');
+  allSubviews.forEach(section => {
     section.classList.toggle('active', section.id === targetId);
   });
 
@@ -273,7 +280,8 @@ function switchSubTab(subtab) {
   if (subtab === 'unit-info') renderUnits();
   if (subtab === 'product-type') renderProductTypes();
   if (subtab === 'product-group') renderProductGroups();
-  if (subtab === 'product-categories') renderProductCategories();
+  if (subtab === 'product-category' || subtab === 'product-categories') renderProductCategories();
+  if (subtab === 'product-sub-category') renderProductSubCategories();
   if (subtab === 'vendor' && window.renderVendors) window.renderVendors();
   if (subtab === 'purchase') initPurchaseView();
   if (subtab === 'product-info') initProductInfoView();
@@ -282,32 +290,20 @@ function switchSubTab(subtab) {
 window.switchSubTab = switchSubTab;
 
 // Bind Tab Clicks
-inv.sidebarItems.forEach(item => {
-  item.addEventListener('click', () => {
-    switchSubTab(item.dataset.subtab);
-    if (inv.navInventoryDropdown) inv.navInventoryDropdown.classList.remove('show-flyout');
-  });
+document.querySelectorAll('.inv-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchSubTab(btn.dataset.subtab));
 });
 
-// Click on Inventory button toggles flyout / activates current tab
+// Click on Inventory button activates inventory and active subtab
 if (inv.navInventoryMainBtn) {
-  inv.navInventoryMainBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (inv.navInventoryDropdown) {
-      inv.navInventoryDropdown.classList.toggle('show-flyout');
+  inv.navInventoryMainBtn.addEventListener('click', () => {
+    if (window.switchTab) {
+      window.switchTab('inventory');
+    } else {
+      switchSubTab(currentSubTab || 'unit-info');
     }
   });
 }
-
-// Close flyout on outside click
-document.addEventListener('click', (e) => {
-  if (inv.navInventoryDropdown && !inv.navInventoryDropdown.contains(e.target)) {
-    inv.navInventoryDropdown.classList.remove('show-flyout');
-  }
-});
-inv.subtabBtns.forEach(btn => {
-  btn.addEventListener('click', () => switchSubTab(btn.dataset.subtab));
-});
 
 // ========================================================
 // 1. UNIT INFO MODULE
@@ -329,9 +325,9 @@ function renderUnits() {
   filtered.forEach((unit, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="col-unit-sr font-num text-center">${idx + 1}</td>
-      <td class="col-unit-name font-bold">${window.escapeHtml(unit.name)}</td>
-      <td class="col-unit-symbol"><span class="badge font-num">${window.escapeHtml(unit.symbol || '-')}</span></td>
+      <td class="col-unit-sr font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
+      <td class="col-unit-name font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(unit.name)}</td>
+      <td class="col-unit-symbol" style="text-align: center;"><span class="code-pill">${window.escapeHtml(unit.symbol || '-')}</span></td>
       <td class="col-unit-actions text-center">
         <div class="dots-wrapper">
           <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'unitMenu_${unit.id}')" title="Actions">
@@ -450,12 +446,35 @@ function renderProductTypes() {
   filtered.forEach((type, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="font-num text-center">${idx + 1}</td>
-      <td class="font-bold">${window.escapeHtml(type.name)}</td>
-      <td class="text-secondary">${window.escapeHtml(type.description || '-')}</td>
-      <td class="col-dots-actions">
-        <button class="btn btn-sm btn-secondary" onclick="openEditProductType('${type.id}')" title="Edit">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="confirmDeleteProductType('${type.id}')" title="Delete">🗑️</button>
+      <td class="font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
+      <td class="font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(type.name)}</td>
+      <td class="text-secondary" style="text-align: center;">${window.escapeHtml(type.description || '-')}</td>
+      <td class="col-dots-actions text-center">
+        <div class="dots-wrapper">
+          <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'ptMenu_${type.id}')" title="Actions">
+            <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="1.5"></circle>
+              <circle cx="12" cy="5" r="1.5"></circle>
+              <circle cx="12" cy="19" r="1.5"></circle>
+            </svg>
+          </button>
+          <div id="ptMenu_${type.id}" class="action-menu hidden">
+            <button type="button" class="action-menu-item" onclick="window.openEditProductType('${type.id}')">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              <span>Edit</span>
+            </button>
+            <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteProductType('${type.id}')">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
       </td>
     `;
     inv.productTypeTableBody.appendChild(tr);
@@ -546,13 +565,36 @@ function renderProductGroups() {
   filtered.forEach((grp, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="font-num text-center">${idx + 1}</td>
-      <td class="font-bold">${window.escapeHtml(grp.name)}</td>
-      <td><span class="badge font-num">${window.escapeHtml(grp.code || '-')}</span></td>
-      <td class="text-secondary">${window.escapeHtml(grp.notes || '-')}</td>
-      <td class="col-dots-actions">
-        <button class="btn btn-sm btn-secondary" onclick="openEditProductGroup('${grp.id}')" title="Edit">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="confirmDeleteProductGroup('${grp.id}')" title="Delete">🗑️</button>
+      <td class="font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
+      <td class="font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(grp.name)}</td>
+      <td style="text-align: center;"><span class="code-pill">${window.escapeHtml(grp.code || '-')}</span></td>
+      <td class="text-secondary" style="text-align: center;">${window.escapeHtml(grp.notes || '-')}</td>
+      <td class="col-dots-actions text-center">
+        <div class="dots-wrapper">
+          <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'pgMenu_${grp.id}')" title="Actions">
+            <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="1.5"></circle>
+              <circle cx="12" cy="5" r="1.5"></circle>
+              <circle cx="12" cy="19" r="1.5"></circle>
+            </svg>
+          </button>
+          <div id="pgMenu_${grp.id}" class="action-menu hidden">
+            <button type="button" class="action-menu-item" onclick="window.openEditProductGroup('${grp.id}')">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              <span>Edit</span>
+            </button>
+            <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteProductGroup('${grp.id}')">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
       </td>
     `;
     inv.productGroupTableBody.appendChild(tr);
@@ -627,88 +669,64 @@ if (inv.productGroupForm) inv.productGroupForm.addEventListener('submit', handle
 if (inv.productGroupSearchInput) inv.productGroupSearchInput.addEventListener('input', renderProductGroups);
 
 // ========================================================
-// 4. PRODUCT CATEGORIES (WITH NESTED SUB CATEGORIES)
+// 4. PRODUCT CATEGORY MODULE
 // ========================================================
 function renderProductCategories() {
   const categories = window.appData?.product_categories || [];
-  const q = (inv.categorySearchInput?.value || '').trim().toLowerCase();
-  const filtered = categories.filter(c => !q || c.name.toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q));
-
-  if (inv.categoryCountLabel) inv.categoryCountLabel.textContent = categories.length;
-  if (!inv.categoryListUl) return;
-  inv.categoryListUl.innerHTML = '';
-
-  if (filtered.length > 0 && !activeCategoryId) {
-    activeCategoryId = filtered[0].id;
-  }
-
-  filtered.forEach(cat => {
-    const li = document.createElement('li');
-    li.className = `category-list-item ${cat.id === activeCategoryId ? 'active' : ''}`;
-    li.innerHTML = `
-      <div class="cat-item-main">
-        <span>${window.escapeHtml(cat.name)}</span>
-        ${cat.code ? `<small class="badge" style="margin-left:6px;">${window.escapeHtml(cat.code)}</small>` : ''}
-      </div>
-      <div class="category-item-actions">
-        <button class="btn-icon-xs" onclick="event.stopPropagation(); openEditCategory('${cat.id}')" title="Edit Category">✏️</button>
-        <button class="btn-icon-xs" onclick="event.stopPropagation(); confirmDeleteCategory('${cat.id}')" title="Delete Category">🗑️</button>
-      </div>
-    `;
-    li.addEventListener('click', () => {
-      activeCategoryId = cat.id;
-      renderProductCategories();
-    });
-    inv.categoryListUl.appendChild(li);
-  });
-
-  renderSubCategories();
-}
-
-function renderSubCategories() {
   const allSubs = window.appData?.product_sub_categories || [];
-  const categories = window.appData?.product_categories || [];
-  const activeCat = categories.find(c => c.id === activeCategoryId);
+  const q = (inv.categorySearchInput?.value || '').trim().toLowerCase();
+  const filtered = categories.filter(c => !q || (c.name || '').toLowerCase().includes(q) || (c.code || '').toLowerCase().includes(q));
 
-  if (inv.activeCategoryNamePill) {
-    inv.activeCategoryNamePill.textContent = activeCat ? `${activeCat.name}` : 'All Sub Categories';
-  }
-
-  const q = (inv.subCategorySearchInput?.value || '').trim().toLowerCase();
-  const filtered = allSubs.filter(s => {
-    const matchesCat = activeCategoryId ? s.categoryId === activeCategoryId : true;
-    const matchesQuery = !q || s.name.toLowerCase().includes(q) || (s.code || '').toLowerCase().includes(q);
-    return matchesCat && matchesQuery;
-  });
-
-  if (inv.subCategoryCountLabel) inv.subCategoryCountLabel.textContent = filtered.length;
-  if (!inv.subCategoryTableBody) return;
-  inv.subCategoryTableBody.innerHTML = '';
+  if (inv.badgeCategoryCount) inv.badgeCategoryCount.textContent = categories.length;
+  if (!inv.categoryTableBody) return;
+  inv.categoryTableBody.innerHTML = '';
 
   if (filtered.length === 0) {
-    if (inv.subCategoryEmptyState) inv.subCategoryEmptyState.classList.remove('hidden');
+    if (inv.categoryEmptyState) inv.categoryEmptyState.classList.remove('hidden');
     return;
   }
-  if (inv.subCategoryEmptyState) inv.subCategoryEmptyState.classList.add('hidden');
+  if (inv.categoryEmptyState) inv.categoryEmptyState.classList.add('hidden');
 
-  filtered.forEach((sub, idx) => {
-    const parentCat = categories.find(c => c.id === sub.categoryId);
+  filtered.forEach((cat, idx) => {
+    const subCount = allSubs.filter(s => s.categoryId === cat.id).length;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="font-num text-center">${idx + 1}</td>
-      <td class="font-bold">${window.escapeHtml(sub.name)}</td>
-      <td><span class="badge font-num">${window.escapeHtml(sub.code || '-')}</span></td>
-      <td>${window.escapeHtml(parentCat?.name || '-')}</td>
-      <td class="col-dots-actions">
-        <button class="btn btn-sm btn-secondary" onclick="openEditSubCategory('${sub.id}')" title="Edit">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="confirmDeleteSubCategory('${sub.id}')" title="Delete">🗑️</button>
+      <td class="font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
+      <td class="font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(cat.name)}</td>
+      <td style="text-align: center;"><span class="code-pill">${window.escapeHtml(cat.code || '-')}</span></td>
+      <td style="text-align: center;"><span class="badge-tag">${subCount} Sub Categor${subCount === 1 ? 'y' : 'ies'}</span></td>
+      <td class="col-dots-actions text-center">
+        <div class="dots-wrapper">
+          <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'catMenu_${cat.id}')" title="Actions">
+            <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="1.5"></circle>
+              <circle cx="12" cy="5" r="1.5"></circle>
+              <circle cx="12" cy="19" r="1.5"></circle>
+            </svg>
+          </button>
+          <div id="catMenu_${cat.id}" class="action-menu hidden">
+            <button type="button" class="action-menu-item" onclick="window.openEditCategory('${cat.id}')">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              <span>Edit</span>
+            </button>
+            <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteCategory('${cat.id}')">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
       </td>
     `;
-    inv.subCategoryTableBody.appendChild(tr);
+    inv.categoryTableBody.appendChild(tr);
   });
 }
 
-// Category Modal Actions
 function openAddCategory() {
   if (inv.modalCategoryTitle) inv.modalCategoryTitle.textContent = 'Add Category';
   if (inv.categoryId) inv.categoryId.value = '';
@@ -746,6 +764,7 @@ async function handleSaveCategory(e) {
     await window.reloadFromDatabase();
     closeCategoryModal();
     renderProductCategories();
+    renderProductSubCategories();
   } catch (err) {
     console.error('Save category failed:', err);
   }
@@ -758,9 +777,9 @@ function confirmDeleteCategory(id) {
     onConfirm: async () => {
       try {
         if (window.api?.deleteProductCategory) await window.api.deleteProductCategory(id);
-        if (activeCategoryId === id) activeCategoryId = null;
         await window.reloadFromDatabase();
         renderProductCategories();
+        renderProductSubCategories();
       } catch (err) {
         console.error('Delete category failed:', err);
       }
@@ -768,7 +787,84 @@ function confirmDeleteCategory(id) {
   });
 }
 
-// Sub Category Modal Actions
+// ========================================================
+// 5. PRODUCT SUB CATEGORY MODULE
+// ========================================================
+function renderProductSubCategories() {
+  const allSubs = window.appData?.product_sub_categories || [];
+  const categories = window.appData?.product_categories || [];
+
+  if (inv.subCategoryParentFilter) {
+    const currentVal = inv.subCategoryParentFilter.value;
+    const catOptions = ['<option value="">All Categories</option>'];
+    categories.forEach(c => {
+      catOptions.push(`<option value="${c.id}">${window.escapeHtml(c.name)}</option>`);
+    });
+    inv.subCategoryParentFilter.innerHTML = catOptions.join('');
+    if (currentVal && categories.some(c => c.id === currentVal)) {
+      inv.subCategoryParentFilter.value = currentVal;
+    }
+  }
+
+  const selectedCatId = inv.subCategoryParentFilter ? inv.subCategoryParentFilter.value : '';
+  const q = (inv.subCategorySearchInput?.value || '').trim().toLowerCase();
+
+  const filtered = allSubs.filter(s => {
+    const matchesCat = selectedCatId ? s.categoryId === selectedCatId : true;
+    const matchesQuery = !q || (s.name || '').toLowerCase().includes(q) || (s.code || '').toLowerCase().includes(q);
+    return matchesCat && matchesQuery;
+  });
+
+  if (inv.badgeSubCategoryCount) inv.badgeSubCategoryCount.textContent = allSubs.length;
+  if (!inv.subCategoryTableBody) return;
+  inv.subCategoryTableBody.innerHTML = '';
+
+  if (filtered.length === 0) {
+    if (inv.subCategoryEmptyState) inv.subCategoryEmptyState.classList.remove('hidden');
+    return;
+  }
+  if (inv.subCategoryEmptyState) inv.subCategoryEmptyState.classList.add('hidden');
+
+  filtered.forEach((sub, idx) => {
+    const parentCat = categories.find(c => c.id === sub.categoryId);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
+      <td class="font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(sub.name)}</td>
+      <td style="text-align: center;"><span class="code-pill">${window.escapeHtml(sub.code || '-')}</span></td>
+      <td style="text-align: center;"><span class="badge-tag">${window.escapeHtml(parentCat?.name || '-')}</span></td>
+      <td class="col-dots-actions text-center">
+        <div class="dots-wrapper">
+          <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'subCatMenu_${sub.id}')" title="Actions">
+            <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="1.5"></circle>
+              <circle cx="12" cy="5" r="1.5"></circle>
+              <circle cx="12" cy="19" r="1.5"></circle>
+            </svg>
+          </button>
+          <div id="subCatMenu_${sub.id}" class="action-menu hidden">
+            <button type="button" class="action-menu-item" onclick="window.openEditSubCategory('${sub.id}')">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              <span>Edit</span>
+            </button>
+            <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteSubCategory('${sub.id}')">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+      </td>
+    `;
+    inv.subCategoryTableBody.appendChild(tr);
+  });
+}
+
 function openAddSubCategory() {
   const cats = window.appData?.product_categories || [];
   if (cats.length === 0) {
@@ -776,9 +872,11 @@ function openAddSubCategory() {
     return;
   }
 
+  const selectedFilterCat = inv.subCategoryParentFilter ? inv.subCategoryParentFilter.value : '';
+
   if (inv.subCategoryParentSelect) {
     inv.subCategoryParentSelect.innerHTML = cats.map(c =>
-      `<option value="${c.id}" ${c.id === activeCategoryId ? 'selected' : ''}>${window.escapeHtml(c.name)}</option>`
+      `<option value="${c.id}" ${c.id === selectedFilterCat ? 'selected' : ''}>${window.escapeHtml(c.name)}</option>`
     ).join('');
   }
 
@@ -828,7 +926,8 @@ async function handleSaveSubCategory(e) {
     if (window.api?.saveProductSubCategory) await window.api.saveProductSubCategory(item);
     await window.reloadFromDatabase();
     closeSubCategoryModal();
-    renderSubCategories();
+    renderProductCategories();
+    renderProductSubCategories();
   } catch (err) {
     console.error('Save sub category failed:', err);
   }
@@ -842,7 +941,8 @@ function confirmDeleteSubCategory(id) {
       try {
         if (window.api?.deleteProductSubCategory) await window.api.deleteProductSubCategory(id);
         await window.reloadFromDatabase();
-        renderSubCategories();
+        renderProductCategories();
+        renderProductSubCategories();
       } catch (err) {
         console.error('Delete sub category failed:', err);
       }
@@ -850,17 +950,81 @@ function confirmDeleteSubCategory(id) {
   });
 }
 
+// Category & Sub Category Bindings
 if (inv.btnOpenAddCategory) inv.btnOpenAddCategory.addEventListener('click', openAddCategory);
 if (inv.btnCloseCategoryModal) inv.btnCloseCategoryModal.addEventListener('click', closeCategoryModal);
 if (inv.btnCancelCategory) inv.btnCancelCategory.addEventListener('click', closeCategoryModal);
 if (inv.categoryForm) inv.categoryForm.addEventListener('submit', handleSaveCategory);
-if (inv.categorySearchInput) inv.categorySearchInput.addEventListener('input', renderProductCategories);
+if (inv.categorySearchInput) {
+  inv.categorySearchInput.addEventListener('input', () => {
+    if (inv.btnClearCategorySearch) {
+      inv.btnClearCategorySearch.classList.toggle('hidden', !inv.categorySearchInput.value);
+    }
+    renderProductCategories();
+  });
+}
+if (inv.btnClearCategorySearch && inv.categorySearchInput) {
+  inv.btnClearCategorySearch.addEventListener('click', () => {
+    inv.categorySearchInput.value = '';
+    inv.btnClearCategorySearch.classList.add('hidden');
+    renderProductCategories();
+  });
+}
 
 if (inv.btnOpenAddSubCategory) inv.btnOpenAddSubCategory.addEventListener('click', openAddSubCategory);
 if (inv.btnCloseSubCategoryModal) inv.btnCloseSubCategoryModal.addEventListener('click', closeSubCategoryModal);
 if (inv.btnCancelSubCategory) inv.btnCancelSubCategory.addEventListener('click', closeSubCategoryModal);
 if (inv.subCategoryForm) inv.subCategoryForm.addEventListener('submit', handleSaveSubCategory);
-if (inv.subCategorySearchInput) inv.subCategorySearchInput.addEventListener('input', renderSubCategories);
+if (inv.subCategorySearchInput) {
+  inv.subCategorySearchInput.addEventListener('input', () => {
+    if (inv.btnClearSubCategorySearch) {
+      inv.btnClearSubCategorySearch.classList.toggle('hidden', !inv.subCategorySearchInput.value);
+    }
+    renderProductSubCategories();
+  });
+}
+if (inv.btnClearSubCategorySearch && inv.subCategorySearchInput) {
+  inv.btnClearSubCategorySearch.addEventListener('click', () => {
+    inv.subCategorySearchInput.value = '';
+    inv.btnClearSubCategorySearch.classList.add('hidden');
+    renderProductSubCategories();
+  });
+}
+if (inv.subCategoryParentFilter) {
+  inv.subCategoryParentFilter.addEventListener('change', renderProductSubCategories);
+}
+
+// Unit, Product Type & Product Group Clear Search Buttons
+if (inv.btnClearUnitSearch && inv.unitSearchInput) {
+  inv.unitSearchInput.addEventListener('input', () => {
+    inv.btnClearUnitSearch.classList.toggle('hidden', !inv.unitSearchInput.value);
+  });
+  inv.btnClearUnitSearch.addEventListener('click', () => {
+    inv.unitSearchInput.value = '';
+    inv.btnClearUnitSearch.classList.add('hidden');
+    renderUnits();
+  });
+}
+if (inv.btnClearProductTypeSearch && inv.productTypeSearchInput) {
+  inv.productTypeSearchInput.addEventListener('input', () => {
+    inv.btnClearProductTypeSearch.classList.toggle('hidden', !inv.productTypeSearchInput.value);
+  });
+  inv.btnClearProductTypeSearch.addEventListener('click', () => {
+    inv.productTypeSearchInput.value = '';
+    inv.btnClearProductTypeSearch.classList.add('hidden');
+    renderProductTypes();
+  });
+}
+if (inv.btnClearProductGroupSearch && inv.productGroupSearchInput) {
+  inv.productGroupSearchInput.addEventListener('input', () => {
+    inv.btnClearProductGroupSearch.classList.toggle('hidden', !inv.productGroupSearchInput.value);
+  });
+  inv.btnClearProductGroupSearch.addEventListener('click', () => {
+    inv.productGroupSearchInput.value = '';
+    inv.btnClearProductGroupSearch.classList.add('hidden');
+    renderProductGroups();
+  });
+}
 
 // ========================================================
 // 6. PURCHASE VOUCHER MODULE (LEGACY REPLICA)
@@ -1584,6 +1748,7 @@ window.renderUnits = renderUnits;
 window.renderProductTypes = renderProductTypes;
 window.renderProductGroups = renderProductGroups;
 window.renderProductCategories = renderProductCategories;
+window.renderProductSubCategories = renderProductSubCategories;
 window.openEditUnit = openEditUnit;
 window.confirmDeleteUnit = confirmDeleteUnit;
 window.openEditProductType = openEditProductType;

@@ -2,28 +2,45 @@
    INVENTORY MODULE & SUB-MODULES COMPLETE STYLES
    ======================================================== */
 
-/* Sidebar Nav Item Dropdown & Floating Hover Flyout Menu */
-.nav-item-dropdown {
-  position: relative;
-  width: 100%;
-}
-
-.nav-chevron-arrow {
-  width: 14px;
-  height: 14px;
-  margin-left: auto;
-  color: var(--text-muted, #9ca3af);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
-  flex-shrink: 0;
-}
-
-.sidebar.collapsed .nav-chevron-arrow {
+/* Main Inventory View Shell */
+#inventoryView {
   display: none;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--bg-app, #ffffff);
 }
 
-.nav-item-dropdown:hover .nav-chevron-arrow {
-  transform: translateX(3px);
-  color: var(--text-primary, #111827);
+#inventoryView.active {
+  display: flex;
+}
+
+.inv-content-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.inv-content-area .subview-section {
+  display: none;
+  height: 100%;
+  width: 100%;
+  flex-direction: column;
+}
+
+.inv-content-area .subview-section.active {
+  display: flex;
+}
+
+/* Hide legacy sidebar flyout menu & arrows */
+.sidebar-flyout-menu,
+.nav-chevron-arrow {
+  display: none !important;
 }
 
 /* Floating Hover Flyout Menu */
@@ -678,21 +695,25 @@ textarea.form-control-sm {
 .table-unit-info td {
   padding: 12px 14px;
   vertical-align: middle;
+  border: none !important;
+  background: transparent !important;
 }
 
 .table-unit-info .col-unit-sr {
   width: 10% !important;
-  text-align: center !important;
+  text-align: left !important;
+  padding-left: 24px !important;
 }
 
 .table-unit-info .col-unit-name {
   width: 45% !important;
   text-align: left !important;
+  padding-left: 16px !important;
 }
 
 .table-unit-info .col-unit-symbol {
   width: 30% !important;
-  text-align: left !important;
+  text-align: center !important;
 }
 
 .table-unit-info .col-unit-actions {
@@ -712,21 +733,25 @@ textarea.form-control-sm {
 .table-product-type td {
   padding: 12px 14px;
   vertical-align: middle;
+  border: none !important;
+  background: transparent !important;
 }
 
 .table-product-type .col-pt-sr {
   width: 10% !important;
-  text-align: center !important;
+  text-align: left !important;
+  padding-left: 24px !important;
 }
 
 .table-product-type .col-pt-name {
   width: 45% !important;
   text-align: left !important;
+  padding-left: 16px !important;
 }
 
 .table-product-type .col-pt-desc {
   width: 30% !important;
-  text-align: left !important;
+  text-align: center !important;
 }
 
 .table-product-type .col-pt-actions {
@@ -746,30 +771,120 @@ textarea.form-control-sm {
 .table-product-group td {
   padding: 12px 14px;
   vertical-align: middle;
+  border: none !important;
+  background: transparent !important;
 }
 
 .table-product-group .col-pg-sr {
   width: 10% !important;
-  text-align: center !important;
+  text-align: left !important;
+  padding-left: 24px !important;
 }
 
 .table-product-group .col-pg-name {
   width: 35% !important;
   text-align: left !important;
+  padding-left: 16px !important;
 }
 
 .table-product-group .col-pg-code {
   width: 20% !important;
-  text-align: left !important;
+  text-align: center !important;
 }
 
 .table-product-group .col-pg-notes {
   width: 20% !important;
-  text-align: left !important;
+  text-align: center !important;
 }
 
 .table-product-group .col-pg-actions {
   width: 15% !important;
+  text-align: center !important;
+  position: relative;
+}
+
+/* Product Category Table */
+.table-product-category {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.table-product-category th,
+.table-product-category td {
+  padding: 12px 14px;
+  vertical-align: middle;
+  border: none !important;
+  background: transparent !important;
+}
+
+.table-product-category .col-cat-sr {
+  width: 10% !important;
+  text-align: left !important;
+  padding-left: 24px !important;
+}
+
+.table-product-category .col-cat-name {
+  width: 40% !important;
+  text-align: left !important;
+  padding-left: 16px !important;
+}
+
+.table-product-category .col-cat-code {
+  width: 20% !important;
+  text-align: center !important;
+}
+
+.table-product-category .col-cat-subs {
+  width: 20% !important;
+  text-align: center !important;
+}
+
+.table-product-category .col-cat-actions {
+  width: 10% !important;
+  text-align: center !important;
+  position: relative;
+}
+
+/* Product Sub Category Table */
+.table-product-sub-category {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.table-product-sub-category th,
+.table-product-sub-category td {
+  padding: 12px 14px;
+  vertical-align: middle;
+  border: none !important;
+  background: transparent !important;
+}
+
+.table-product-sub-category .col-sub-sr {
+  width: 10% !important;
+  text-align: left !important;
+  padding-left: 24px !important;
+}
+
+.table-product-sub-category .col-sub-name {
+  width: 35% !important;
+  text-align: left !important;
+  padding-left: 16px !important;
+}
+
+.table-product-sub-category .col-sub-code {
+  width: 15% !important;
+  text-align: center !important;
+}
+
+.table-product-sub-category .col-sub-parent {
+  width: 28% !important;
+  text-align: center !important;
+}
+
+.table-product-sub-category .col-sub-actions {
+  width: 12% !important;
   text-align: center !important;
   position: relative;
 }

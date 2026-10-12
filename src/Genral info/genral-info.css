@@ -317,7 +317,7 @@
 .gi-table-wrapper {
   flex: 1;
   overflow: auto;
-  padding: 0;
+  padding: 0 0 60px 0;
   background-color: #ffffff;
 }
 
@@ -328,6 +328,26 @@
   text-align: left;
 }
 
+.gi-table-equal {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.gi-table-equal thead th,
+.gi-table-equal tbody td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Starting / First column always aligned to the left */
+.gi-table-equal thead th:first-child,
+.gi-table-equal tbody td:first-child,
+.gi-data-table thead th:first-child,
+.gi-data-table tbody td:first-child {
+  text-align: left !important;
+  padding-left: 24px !important;
+}
+
 .gi-data-table thead th {
   background-color: #f8fafc;
   color: #475569;
@@ -335,59 +355,86 @@
   font-size: 11.5px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  padding: 10px 16px;
+  padding: 11px 16px;
   border-bottom: 1px solid #e2e8f0;
   white-space: nowrap;
 }
 
 .gi-data-table tbody tr {
   border-bottom: 1px solid #f1f5f9;
+  background: transparent !important;
   transition: background-color 0.12s ease;
 }
 
 .gi-data-table tbody tr:hover {
-  background-color: #f8fafc;
+  background-color: #f8fafc !important;
 }
 
 .gi-data-table tbody td {
-  padding: 11px 16px;
+  padding: 12px 16px;
   color: #1e293b;
   vertical-align: middle;
+  border: none !important;
+  background: transparent !important;
 }
 
-/* Code Pills & Status Badges */
+/* Remove border and background color from table data tags/badges/pills across every table */
+.gi-data-table .code-pill,
 .code-pill {
   display: inline-block;
-  padding: 2px 7px;
-  font-size: 11.5px;
+  padding: 0;
+  font-size: 13px;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-weight: 600;
-  background-color: #f1f5f9;
+  background: transparent !important;
+  background-color: transparent !important;
   color: #334155;
-  border-radius: 4px;
-  border: 1px solid #e2e8f0;
+  border: none !important;
+  box-shadow: none !important;
 }
 
+.gi-data-table .badge-tag,
+.badge-tag {
+  display: inline-block;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: #475569;
+  box-shadow: none !important;
+}
+
+.gi-data-table .status-badge,
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2.5px 8px;
-  border-radius: 12px;
-  font-size: 11.5px;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  font-size: 13px;
   font-weight: 600;
+  box-shadow: none !important;
 }
 
-.status-badge.active {
-  background-color: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
+.gi-data-table .status-badge.active,
+.status-badge.active,
+.status-badge.status-active {
+  background: transparent !important;
+  border: none !important;
+  color: #059669;
 }
 
-.status-badge.inactive {
-  background-color: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
+.gi-data-table .status-badge.inactive,
+.status-badge.inactive,
+.status-badge.status-inactive {
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8;
 }
 
 .status-dot {
@@ -397,46 +444,37 @@
   background-color: currentColor;
 }
 
-.badge-tag {
+.badge-party-type {
   display: inline-block;
-  padding: 2px 8px;
-  font-size: 11.5px;
+  padding: 0;
+  font-size: 13px;
   font-weight: 500;
-  border-radius: 4px;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  background: transparent !important;
+  border: none !important;
+  color: #4f46e5;
+  box-shadow: none !important;
+}
+
+.party-mini-avatar {
+  display: none !important;
 }
 
 .gi-actions-cell {
-  width: 110px;
-  text-align: right;
+  width: 90px;
+  text-align: center !important;
   white-space: nowrap;
 }
 
-.btn-icon-action {
-  background: transparent;
-  border: 1px solid transparent;
-  padding: 5px 8px;
-  border-radius: 4px;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.dots-wrapper {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-.btn-icon-action:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
-  border-color: #e2e8f0;
-}
-
-.btn-icon-action.danger:hover {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border-color: #fecaca;
+.dots-wrapper.drop-up .action-menu {
+  top: auto;
+  bottom: calc(100% + 4px);
 }
 
 /* Empty States */

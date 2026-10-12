@@ -108,6 +108,15 @@ window.toggleRowMenu = function(e, menuId) {
 
   if (targetMenu && !isCurrentlyOpen) {
     targetMenu.classList.remove('hidden');
+    const wrapper = targetMenu.closest('.dots-wrapper');
+    if (wrapper) {
+      const rect = wrapper.getBoundingClientRect();
+      if (window.innerHeight - rect.bottom < 140) {
+        wrapper.classList.add('drop-up');
+      } else {
+        wrapper.classList.remove('drop-up');
+      }
+    }
     const btn = targetMenu.previousElementSibling;
     if (btn) btn.classList.add('active');
   }
@@ -116,6 +125,7 @@ window.toggleRowMenu = function(e, menuId) {
 function closeAllActionMenus() {
   document.querySelectorAll('.action-menu').forEach(m => m.classList.add('hidden'));
   document.querySelectorAll('.btn-dots').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.dots-wrapper.drop-up').forEach(w => w.classList.remove('drop-up'));
 }
 
 document.addEventListener('click', closeAllActionMenus);

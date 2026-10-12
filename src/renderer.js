@@ -36,9 +36,12 @@ window.api = window.electronAPI || {
 const appEl = {
   navInventoryMainBtn: document.getElementById('navInventoryMainBtn'),
   navGeneralInfoBtn: document.getElementById('navGeneralInfoBtn'),
+  inventoryView: document.getElementById('inventoryView'),
   generalInfoView: document.getElementById('generalInfoView'),
   badgeVendorCount: document.getElementById('badgeVendorCount'),
   badgeProductsCount: document.getElementById('badgeProductsCount'),
+  badgeCategoryCount: document.getElementById('badgeCategoryCount'),
+  badgeSubCategoryCount: document.getElementById('badgeSubCategoryCount'),
 
   // Confirm Modal
   modalConfirm: document.getElementById('modalConfirm'),
@@ -91,9 +94,9 @@ function switchTab(tab) {
   if (appEl.navGeneralInfoBtn) appEl.navGeneralInfoBtn.classList.toggle('active', isGi);
   if (appEl.navInventoryMainBtn) appEl.navInventoryMainBtn.classList.toggle('active', !isGi);
   if (appEl.generalInfoView) appEl.generalInfoView.classList.toggle('active', isGi);
+  if (appEl.inventoryView) appEl.inventoryView.classList.toggle('active', !isGi);
 
   if (isGi) {
-    document.querySelectorAll('.subview-section').forEach(s => s.classList.remove('active'));
     if (window.GeneralInfoModule && window.GeneralInfoModule.onActivate) {
       window.GeneralInfoModule.onActivate();
     }
@@ -112,8 +115,12 @@ if (appEl.navInventoryMainBtn) appEl.navInventoryMainBtn.addEventListener('click
 function updateBadges() {
   const venCount = (window.appData && window.appData.vendors ? window.appData.vendors.length : 0);
   const prodCount = (window.appData && window.appData.products ? window.appData.products.length : 0);
+  const catCount = (window.appData && window.appData.product_categories ? window.appData.product_categories.length : 0);
+  const subCatCount = (window.appData && window.appData.product_sub_categories ? window.appData.product_sub_categories.length : 0);
   if (appEl.badgeVendorCount) appEl.badgeVendorCount.textContent = venCount;
   if (appEl.badgeProductsCount) appEl.badgeProductsCount.textContent = prodCount;
+  if (appEl.badgeCategoryCount) appEl.badgeCategoryCount.textContent = catCount;
+  if (appEl.badgeSubCategoryCount) appEl.badgeSubCategoryCount.textContent = subCatCount;
 }
 
 window.updateBadges = updateBadges;
@@ -146,6 +153,7 @@ async function reloadFromDatabase() {
   if (window.renderProductTypes) window.renderProductTypes();
   if (window.renderProductGroups) window.renderProductGroups();
   if (window.renderProductCategories) window.renderProductCategories();
+  if (window.renderProductSubCategories) window.renderProductSubCategories();
   if (window.renderVendors) window.renderVendors();
 }
 

@@ -32,94 +32,15 @@
       </div>
 
       <nav class="nav-menu">
-        <!-- Primary Inventory Menu with Hover Flyout Submenu -->
-        <div class="nav-item-dropdown" id="navInventoryDropdown">
-          <button id="navInventoryMainBtn" class="nav-item active" title="Inventory">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
-            <span class="nav-label">Inventory</span>
-            <svg class="nav-chevron-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </button>
+        <button id="navInventoryMainBtn" class="nav-item active" title="Inventory">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <span class="nav-label">Inventory</span>
+        </button>
 
-          <!-- Floating Hover Flyout Sub-Menu -->
-          <div class="sidebar-flyout-menu" id="inventoryFlyoutMenu">
-            <div class="flyout-header-tag">Inventory Sub-Menu</div>
-            <div class="flyout-items-list">
-              <button class="flyout-sub-item active" data-subtab="unit-info" title="Unit Info">
-                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 7V4h16v3M9 20h6M12 4v16"></path>
-                </svg>
-                <span class="flyout-label">Unit Info</span>
-              </button>
-
-              <button class="flyout-sub-item" data-subtab="product-type" title="Product Type">
-                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                  <polyline points="2 17 12 22 22 17"></polyline>
-                  <polyline points="2 12 12 17 22 12"></polyline>
-                </svg>
-                <span class="flyout-label">Product Type</span>
-              </button>
-
-              <button class="flyout-sub-item" data-subtab="product-group" title="Product Group">
-                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="14" width="7" height="7"></rect>
-                  <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-                <span class="flyout-label">Product Group</span>
-              </button>
-
-              <button class="flyout-sub-item" data-subtab="product-categories" title="Product Categories">
-                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="8" y1="6" x2="21" y2="6"></line>
-                  <line x1="8" y1="12" x2="21" y2="12"></line>
-                  <line x1="8" y1="18" x2="21" y2="18"></line>
-                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                </svg>
-                <span class="flyout-label">Product Categories</span>
-              </button>
-
-              <button class="flyout-sub-item" data-subtab="vendor" title="Vendor">
-                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                <span class="flyout-label">Vendor</span>
-                <span id="badgeVendorCount" class="badge">0</span>
-              </button>
-
-              <button class="flyout-sub-item" data-subtab="purchase" title="Purchase">
-                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-                <span class="flyout-label">Purchase</span>
-              </button>
-
-              <button class="flyout-sub-item" data-subtab="product-info" title="Product Info">
-                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                  <line x1="8" y1="21" x2="16" y2="21"></line>
-                  <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
-                <span class="flyout-label">Product Info</span>
-                <span id="badgeProductsCount" class="badge">0</span>
-              </button>
-            </div>
-          </div>
-        </div>
         <button id="navGeneralInfoBtn" class="nav-item" title="General Info">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
@@ -138,6 +59,107 @@
 
     <!-- Main Content Area -->
     <main class="main-content">
+
+      <!-- ======================================================== -->
+      <!-- INVENTORY MAIN VIEW                                      -->
+      <!-- ======================================================== -->
+      <section id="inventoryView" class="view-section active">
+        <!-- Inventory Top Header & Sub-Tabs Navigation (exact match to General Info style) -->
+        <header class="gi-header inv-header">
+          <div class="gi-header-top">
+            <div class="gi-main-title">
+              <svg class="gi-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              <span>Inventory</span>
+            </div>
+          </div>
+
+          <!-- 7 Sub-Section Tabs -->
+          <nav class="gi-sub-tabs inv-sub-tabs" role="tablist" aria-label="Inventory Navigation">
+            <button type="button" class="gi-tab-btn inv-tab-btn active" data-subtab="unit-info" id="invTabBtnUnitInfo">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 7V4h16v3M9 20h6M12 4v16"></path>
+              </svg>
+              <span>Unit Info</span>
+            </button>
+
+            <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="product-type" id="invTabBtnProductType">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+              <span>Product Type</span>
+            </button>
+
+            <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="product-group" id="invTabBtnProductGroup">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Product Group</span>
+            </button>
+
+            <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="product-category" id="invTabBtnProductCategory">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              <span>Product Category</span>
+              <span class="gi-tab-badge" id="badgeCategoryCount">0</span>
+            </button>
+
+            <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="product-sub-category" id="invTabBtnProductSubCategory">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+              <span>Sub Category</span>
+              <span class="gi-tab-badge" id="badgeSubCategoryCount">0</span>
+            </button>
+
+            <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="vendor" id="invTabBtnVendor">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span>Vendor</span>
+              <span class="gi-tab-badge" id="badgeVendorCount">0</span>
+            </button>
+
+            <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="purchase" id="invTabBtnPurchase">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              <span>Purchase</span>
+            </button>
+
+            <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="product-info" id="invTabBtnProductInfo">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              <span>Product Info</span>
+              <span class="gi-tab-badge" id="badgeProductsCount">0</span>
+            </button>
+          </nav>
+        </header>
+
+        <!-- Sub-Views Content Area -->
+        <div class="gi-content-area inv-content-area">
 
       <!-- ======================================================== -->
       <!-- TAB 1: UNIT INFO                                         -->
@@ -173,10 +195,10 @@
           <table class="data-table table-unit-info">
             <thead>
               <tr>
-                <th class="col-unit-sr">SR #</th>
-                <th class="col-unit-name">Unit Name</th>
-                <th class="col-unit-symbol">Symbol</th>
-                <th class="col-unit-actions">Action</th>
+                <th class="col-unit-sr" style="width: 100px; text-align: left; padding-left: 24px;">SR #</th>
+                <th class="col-unit-name" style="text-align: left; padding-left: 16px;">Unit Name</th>
+                <th class="col-unit-symbol" style="width: 180px; text-align: center;">Symbol</th>
+                <th class="col-unit-actions" style="width: 100px; text-align: center;">Action</th>
               </tr>
             </thead>
             <tbody id="unitTableBody"></tbody>
@@ -221,10 +243,10 @@
           <table class="data-table table-product-type">
             <thead>
               <tr>
-                <th class="col-pt-sr">SR #</th>
-                <th class="col-pt-name">Product Type</th>
-                <th class="col-pt-desc">Description</th>
-                <th class="col-pt-actions">Action</th>
+                <th class="col-pt-sr" style="width: 100px; text-align: left; padding-left: 24px;">SR #</th>
+                <th class="col-pt-name" style="text-align: left; padding-left: 16px;">Product Type</th>
+                <th class="col-pt-desc" style="text-align: center;">Description</th>
+                <th class="col-pt-actions" style="width: 100px; text-align: center;">Action</th>
               </tr>
             </thead>
             <tbody id="productTypeTableBody"></tbody>
@@ -269,11 +291,11 @@
           <table class="data-table table-product-group">
             <thead>
               <tr>
-                <th class="col-pg-sr">SR #</th>
-                <th class="col-pg-name">Group / Brand Name</th>
-                <th class="col-pg-code">Code / Prefix</th>
-                <th class="col-pg-notes">Notes</th>
-                <th class="col-pg-actions">Action</th>
+                <th class="col-pg-sr" style="width: 100px; text-align: left; padding-left: 24px;">SR #</th>
+                <th class="col-pg-name" style="text-align: left; padding-left: 16px;">Group / Brand Name</th>
+                <th class="col-pg-code" style="width: 180px; text-align: center;">Code / Prefix</th>
+                <th class="col-pg-notes" style="text-align: center;">Notes</th>
+                <th class="col-pg-actions" style="width: 100px; text-align: center;">Action</th>
               </tr>
             </thead>
             <tbody id="productGroupTableBody"></tbody>
@@ -285,12 +307,12 @@
       </section>
 
       <!-- ======================================================== -->
-      <!-- TAB 4: PRODUCT CATEGORIES (WITH NESTED SUB CATEGORIES)   -->
+      <!-- TAB 4: PRODUCT CATEGORY                                  -->
       <!-- ======================================================== -->
-      <section id="viewProductCategories" class="subview-section">
+      <section id="viewProductCategory" class="subview-section">
         <header class="section-header">
           <div class="header-left">
-            <h1 class="view-title">Product Categories</h1>
+            <h1 class="view-title">Product Category</h1>
           </div>
           <div class="header-right">
             <button id="btnOpenAddCategory" class="btn btn-primary">
@@ -300,7 +322,49 @@
               </svg>
               <span>Add Category</span>
             </button>
-            <button id="btnOpenAddSubCategory" class="btn btn-secondary">
+          </div>
+        </header>
+
+        <div class="toolbar toolbar-left-aligned">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="categorySearchInput" placeholder="Search categories..." autocomplete="off">
+            <button id="btnClearCategorySearch" class="btn-clear hidden">&times;</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table table-product-category">
+            <thead>
+              <tr>
+                <th class="col-cat-sr" style="width: 100px; text-align: left; padding-left: 24px;">SR #</th>
+                <th class="col-cat-name" style="text-align: left; padding-left: 16px;">Category Name</th>
+                <th class="col-cat-code" style="width: 180px; text-align: center;">Code</th>
+                <th class="col-cat-subs" style="width: 200px; text-align: center;">Sub Categories</th>
+                <th class="col-cat-actions col-dots-actions" style="width: 100px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="categoryTableBody"></tbody>
+          </table>
+          <div id="categoryEmptyState" class="empty-state hidden">
+            <span>No product categories found</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- TAB 5: PRODUCT SUB CATEGORY                              -->
+      <!-- ======================================================== -->
+      <section id="viewProductSubCategory" class="subview-section">
+        <header class="section-header">
+          <div class="header-left">
+            <h1 class="view-title">Sub Category</h1>
+          </div>
+          <div class="header-right">
+            <button id="btnOpenAddSubCategory" class="btn btn-primary">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -310,51 +374,37 @@
           </div>
         </header>
 
-        <!-- Two-Panel Grid: Categories on Left, Sub Categories on Right -->
-        <div class="category-split-layout">
-          <!-- Left Panel: Categories -->
-          <div class="category-panel card">
-            <div class="panel-header">
-              <h3 class="panel-title">Categories</h3>
-              <span id="categoryCountLabel" class="panel-badge">0</span>
-            </div>
-            <div class="panel-search">
-              <input type="text" id="categorySearchInput" placeholder="Filter categories..." class="form-control form-control-sm">
-            </div>
-            <div class="category-list-scroll">
-              <ul id="categoryListUl" class="category-selectable-list"></ul>
-            </div>
+        <div class="toolbar toolbar-left-aligned">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="subCategorySearchInput" placeholder="Search sub categories..." autocomplete="off">
+            <button id="btnClearSubCategorySearch" class="btn-clear hidden">&times;</button>
           </div>
+          <div class="filter-group" style="margin-left: 12px;">
+            <select id="subCategoryParentFilter" class="form-control" style="min-width: 220px; height: 38px; border-radius: 8px;">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+        </div>
 
-          <!-- Right Panel: Sub Categories for Selected Category -->
-          <div class="sub-category-panel card">
-            <div class="panel-header">
-              <div class="subcat-header-info">
-                <h3 class="panel-title">Sub Categories</h3>
-                <span id="activeCategoryNamePill" class="category-pill-badge">All Sub Categories</span>
-              </div>
-              <span id="subCategoryCountLabel" class="panel-badge">0</span>
-            </div>
-            <div class="panel-search">
-              <input type="text" id="subCategorySearchInput" placeholder="Filter sub categories..." class="form-control form-control-sm">
-            </div>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th style="width: 70px;">Sr #</th>
-                    <th>Sub Category Name</th>
-                    <th>Code</th>
-                    <th>Parent Category</th>
-                    <th class="col-dots-actions" style="width: 100px;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="subCategoryTableBody"></tbody>
-              </table>
-              <div id="subCategoryEmptyState" class="empty-state hidden">
-                <span>No sub categories found for this category</span>
-              </div>
-            </div>
+        <div class="table-container">
+          <table class="data-table table-product-sub-category">
+            <thead>
+              <tr>
+                <th class="col-sub-sr" style="width: 100px; text-align: left; padding-left: 24px;">SR #</th>
+                <th class="col-sub-name" style="text-align: left; padding-left: 16px;">Sub Category Name</th>
+                <th class="col-sub-code" style="width: 180px; text-align: center;">Code</th>
+                <th class="col-sub-parent" style="width: 220px; text-align: center;">Parent Category</th>
+                <th class="col-sub-actions col-dots-actions" style="width: 100px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="subCategoryTableBody"></tbody>
+          </table>
+          <div id="subCategoryEmptyState" class="empty-state hidden">
+            <span>No sub categories found</span>
           </div>
         </div>
       </section>
@@ -866,6 +916,9 @@
 
       </section>
 
+              </div>
+      </section>
+
       <!-- ======================================================== -->
       <!-- TAB: GENERAL INFO                                     -->
       <!-- ======================================================== -->
@@ -1063,14 +1116,14 @@
       </div>
 
       <div class="gi-table-wrapper">
-        <table class="gi-data-table">
+        <table class="gi-data-table gi-table-equal table-province">
           <thead>
             <tr>
-              <th style="min-width: 200px;">Province Name</th>
-              <th style="width: 120px;">Code</th>
-              <th style="width: 140px;">Status</th>
-              <th style="width: 150px;">Associated Areas</th>
-              <th class="gi-actions-cell">Actions</th>
+              <th style="width: 25%; text-align: left; padding-left: 24px;">Province Name</th>
+              <th style="width: 15%;">Code</th>
+              <th style="width: 20%;">Status</th>
+              <th style="width: 25%;">Associated Areas</th>
+              <th class="gi-actions-cell" style="width: 15%;">Actions</th>
             </tr>
           </thead>
           <tbody id="provinceTableBody">
@@ -1119,15 +1172,15 @@
       </div>
 
       <div class="gi-table-wrapper">
-        <table class="gi-data-table">
+        <table class="gi-data-table gi-table-equal table-area">
           <thead>
             <tr>
-              <th style="min-width: 180px;">Area Name</th>
-              <th style="min-width: 140px;">City</th>
-              <th style="min-width: 160px;">Province</th>
-              <th style="width: 120px;">Postal / Code</th>
-              <th style="width: 130px;">Status</th>
-              <th class="gi-actions-cell">Actions</th>
+              <th style="width: 20%; text-align: left; padding-left: 24px;">Area Name</th>
+              <th style="width: 16%;">City</th>
+              <th style="width: 20%;">Province</th>
+              <th style="width: 16%;">Postal / Code</th>
+              <th style="width: 16%;">Status</th>
+              <th class="gi-actions-cell" style="width: 12%;">Actions</th>
             </tr>
           </thead>
           <tbody id="areaTableBody">
@@ -1172,14 +1225,14 @@
       </div>
 
       <div class="gi-table-wrapper">
-        <table class="gi-data-table">
+        <table class="gi-data-table gi-table-equal table-party-type">
           <thead>
             <tr>
-              <th style="min-width: 180px;">Party Type Name</th>
-              <th style="width: 120px;">Code</th>
-              <th style="min-width: 220px;">Description / Notes</th>
-              <th style="width: 130px;">Status</th>
-              <th class="gi-actions-cell">Actions</th>
+              <th style="width: 25%; text-align: left; padding-left: 24px;">Party Type Name</th>
+              <th style="width: 15%;">Code</th>
+              <th style="width: 30%;">Description / Notes</th>
+              <th style="width: 18%;">Status</th>
+              <th class="gi-actions-cell" style="width: 12%;">Actions</th>
             </tr>
           </thead>
           <tbody id="partyTypeTableBody">
@@ -1233,18 +1286,19 @@
       </div>
 
       <div class="gi-table-wrapper">
-        <table class="gi-data-table">
+        <table class="gi-data-table table-party-info">
           <thead>
             <tr>
-              <th style="min-width: 200px;">Party / Business Name</th>
-              <th style="width: 140px;">Party Type</th>
-              <th style="min-width: 150px;">Contact Person</th>
-              <th style="min-width: 150px;">Phone / Email</th>
-              <th style="min-width: 160px;">Location / Area</th>
-              <th style="width: 120px;">NTN #</th>
+              <th style="width: 120px; text-align: left; padding-left: 24px;">NTN #</th>
+              <th style="min-width: 180px;">Party / Business Name</th>
+              <th style="width: 120px; text-align: center;">Party Type</th>
+              <th style="min-width: 140px;">Contact Person</th>
+              <th style="width: 130px;">Phone</th>
+              <th style="width: 160px;">Email</th>
+              <th style="min-width: 150px;">Location / Area</th>
               <th style="width: 130px; text-align: right;">Opening Bal.</th>
-              <th style="width: 110px;">Status</th>
-              <th class="gi-actions-cell">Actions</th>
+              <th style="width: 100px; text-align: center;">Status</th>
+              <th class="gi-actions-cell" style="width: 80px; text-align: center;">Actions</th>
             </tr>
           </thead>
           <tbody id="partyTableBody">

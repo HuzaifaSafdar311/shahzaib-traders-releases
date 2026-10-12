@@ -306,28 +306,41 @@
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="font-weight: 600; color: #0f172a;">${escapeHtml(p.name)}</td>
-        <td><span class="code-pill">${escapeHtml(p.code || '-')}</span></td>
-        <td>
+        <td style="font-weight: 600; color: #0f172a; text-align: left; padding-left: 24px;">${escapeHtml(p.name)}</td>
+        <td style="text-align: center;"><span class="code-pill">${escapeHtml(p.code || '-')}</span></td>
+        <td style="text-align: center;">
           <span class="status-badge ${isActive ? 'active' : 'inactive'}">
             <span class="status-dot"></span>
             ${escapeHtml(p.status || 'Active')}
           </span>
         </td>
-        <td><span class="badge-tag">${areaCount} Area${areaCount === 1 ? '' : 's'}</span></td>
-        <td class="gi-actions-cell">
-          <button class="btn-icon-action" onclick="window.GeneralInfoModule.openEditProvince('${p.id}')" title="Edit Province">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-          </button>
-          <button class="btn-icon-action danger" onclick="window.GeneralInfoModule.confirmDeleteProvince('${p.id}')" title="Delete Province">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
+        <td style="text-align: center;"><span class="badge-tag">${areaCount} Area${areaCount === 1 ? '' : 's'}</span></td>
+        <td class="gi-actions-cell" style="text-align: center;">
+          <div class="dots-wrapper">
+            <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'provMenu_${p.id}')" title="Actions">
+              <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="1.5"></circle>
+                <circle cx="12" cy="5" r="1.5"></circle>
+                <circle cx="12" cy="19" r="1.5"></circle>
+              </svg>
+            </button>
+            <div id="provMenu_${p.id}" class="action-menu hidden">
+              <button type="button" class="action-menu-item" onclick="window.GeneralInfoModule.openEditProvince('${p.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+                <span>Edit</span>
+              </button>
+              <button type="button" class="action-menu-item text-danger" onclick="window.GeneralInfoModule.confirmDeleteProvince('${p.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
@@ -455,8 +468,8 @@
       if (!q) return true;
       return (a.name || '').toLowerCase().includes(q) ||
              (a.city || '').toLowerCase().includes(q) ||
-             (a.provinceName || '').toLowerCase().includes(q) ||
-             (a.code || '').toLowerCase().includes(q);
+             (a.code || '').toLowerCase().includes(q) ||
+             (a.provinceName || '').toLowerCase().includes(q);
     });
 
     if (footerCount) {
@@ -474,31 +487,44 @@
       const isActive = (a.status || 'Active').toLowerCase() === 'active';
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="font-weight: 600; color: #0f172a;">${escapeHtml(a.name)}</td>
-        <td>${escapeHtml(a.city || '-')}</td>
-        <td>
+        <td style="font-weight: 600; color: #0f172a; text-align: left; padding-left: 24px;">${escapeHtml(a.name)}</td>
+        <td style="text-align: center;">${escapeHtml(a.city || '-')}</td>
+        <td style="text-align: center;">
           <span class="badge-tag">${escapeHtml(a.provinceName || 'Unassigned')}</span>
         </td>
-        <td><span class="code-pill">${escapeHtml(a.code || '-')}</span></td>
-        <td>
+        <td style="text-align: center;"><span class="code-pill">${escapeHtml(a.code || '-')}</span></td>
+        <td style="text-align: center;">
           <span class="status-badge ${isActive ? 'active' : 'inactive'}">
             <span class="status-dot"></span>
             ${escapeHtml(a.status || 'Active')}
           </span>
         </td>
-        <td class="gi-actions-cell">
-          <button class="btn-icon-action" onclick="window.GeneralInfoModule.openEditArea('${a.id}')" title="Edit Area">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-          </button>
-          <button class="btn-icon-action danger" onclick="window.GeneralInfoModule.confirmDeleteArea('${a.id}')" title="Delete Area">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
+        <td class="gi-actions-cell" style="text-align: center;">
+          <div class="dots-wrapper">
+            <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'areaMenu_${a.id}')" title="Actions">
+              <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="1.5"></circle>
+                <circle cx="12" cy="5" r="1.5"></circle>
+                <circle cx="12" cy="19" r="1.5"></circle>
+              </svg>
+            </button>
+            <div id="areaMenu_${a.id}" class="action-menu hidden">
+              <button type="button" class="action-menu-item" onclick="window.GeneralInfoModule.openEditArea('${a.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+                <span>Edit</span>
+              </button>
+              <button type="button" class="action-menu-item text-danger" onclick="window.GeneralInfoModule.confirmDeleteArea('${a.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
@@ -620,28 +646,41 @@
       const isActive = (pt.status || 'Active').toLowerCase() === 'active';
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="font-weight: 600; color: #0f172a;">${escapeHtml(pt.name)}</td>
-        <td><span class="code-pill">${escapeHtml(pt.code || '-')}</span></td>
-        <td style="color: #64748b; font-size: 12.5px;">${escapeHtml(pt.description || '-')}</td>
-        <td>
+        <td style="font-weight: 600; color: #0f172a; text-align: left; padding-left: 24px;">${escapeHtml(pt.name)}</td>
+        <td style="text-align: center;"><span class="code-pill">${escapeHtml(pt.code || '-')}</span></td>
+        <td style="color: #64748b; font-size: 13px; text-align: center;">${escapeHtml(pt.description || '-')}</td>
+        <td style="text-align: center;">
           <span class="status-badge ${isActive ? 'active' : 'inactive'}">
             <span class="status-dot"></span>
             ${escapeHtml(pt.status || 'Active')}
           </span>
         </td>
-        <td class="gi-actions-cell">
-          <button class="btn-icon-action" onclick="window.GeneralInfoModule.openEditPartyType('${pt.id}')" title="Edit Party Type">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-          </button>
-          <button class="btn-icon-action danger" onclick="window.GeneralInfoModule.confirmDeletePartyType('${pt.id}')" title="Delete Party Type">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
+        <td class="gi-actions-cell" style="text-align: center;">
+          <div class="dots-wrapper">
+            <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'ptMenu_${pt.id}')" title="Actions">
+              <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="1.5"></circle>
+                <circle cx="12" cy="5" r="1.5"></circle>
+                <circle cx="12" cy="19" r="1.5"></circle>
+              </svg>
+            </button>
+            <div id="ptMenu_${pt.id}" class="action-menu hidden">
+              <button type="button" class="action-menu-item" onclick="window.GeneralInfoModule.openEditPartyType('${pt.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+                <span>Edit</span>
+              </button>
+              <button type="button" class="action-menu-item text-danger" onclick="window.GeneralInfoModule.confirmDeletePartyType('${pt.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
@@ -839,61 +878,72 @@
 
     list.forEach(p => {
       const tr = document.createElement('tr');
-      const initials = (p.name || 'PT').substring(0, 2).toUpperCase();
       const balance = Number(p.openingBalance) || 0;
       const formattedBalance = 'PKR ' + balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const locationParts = [p.areaName, p.city, p.provinceName].filter(Boolean);
       const locationStr = locationParts.join(', ') || '-';
+      const isActive = (p.status || 'Active').toLowerCase() === 'active';
 
       tr.innerHTML = `
+        <td class="font-mono" style="font-size: 12.5px; text-align: left; padding-left: 24px;">${escapeHtml(p.ntn || '-')}</td>
         <td>
           <div class="party-info-cell">
-            <div class="party-mini-avatar">${escapeHtml(initials)}</div>
             <div class="party-name-block">
-              <span class="cell-title">${escapeHtml(p.name)}</span>
-              ${p.address ? `<span class="cell-subtitle" title="${escapeHtml(p.address)}">${escapeHtml(p.address)}</span>` : ''}
+              <span class="cell-title font-bold" style="color: #0f172a;">${escapeHtml(p.name)}</span>
+              ${p.address ? `<div class="cell-subtitle" style="color: #64748b; font-size: 11.5px; margin-top: 2px;" title="${escapeHtml(p.address)}">${escapeHtml(p.address)}</div>` : ''}
             </div>
           </div>
         </td>
-        <td>
+        <td style="text-align: center;">
           <span class="badge-party-type">${escapeHtml(p.partyTypeName || 'Standard')}</span>
         </td>
         <td>
           <span class="font-medium">${escapeHtml(p.contactPerson || '-')}</span>
         </td>
         <td>
-          <div class="contact-sub-cell">
-            <span class="font-mono text-xs">${escapeHtml(p.phone || '-')}</span>
-            ${p.email ? `<span class="cell-subtitle">${escapeHtml(p.email)}</span>` : ''}
-          </div>
+          <span class="font-mono text-xs">${escapeHtml(p.phone || '-')}</span>
         </td>
         <td>
-          <span class="location-text">${escapeHtml(locationStr)}</span>
+          <span style="font-size: 12.5px; color: #475569;">${escapeHtml(p.email || '-')}</span>
         </td>
         <td>
-          <span class="font-mono text-xs">${escapeHtml(p.ntn || '-')}</span>
+          <span class="location-text" style="font-size: 12.5px;">${escapeHtml(locationStr)}</span>
         </td>
         <td style="text-align: right;">
           <span class="font-mono ${balance > 0 ? 'text-balance-pos' : balance < 0 ? 'text-balance-neg' : 'text-muted'}">${formattedBalance}</span>
         </td>
-        <td>
-          <span class="status-badge ${p.status === 'Active' ? 'status-active' : 'status-inactive'}">
+        <td style="text-align: center;">
+          <span class="status-badge ${isActive ? 'active' : 'inactive'}">
+            <span class="status-dot"></span>
             ${escapeHtml(p.status || 'Active')}
           </span>
         </td>
-        <td class="gi-actions-cell">
-          <button class="btn-icon-action" onclick="window.GeneralInfoModule.openEditParty('${p.id}')" title="Edit Party">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-          </button>
-          <button class="btn-icon-action danger" onclick="window.GeneralInfoModule.confirmDeleteParty('${p.id}')" title="Delete Party">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
+        <td class="gi-actions-cell" style="text-align: center;">
+          <div class="dots-wrapper">
+            <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'partyMenu_${p.id}')" title="Actions">
+              <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="1.5"></circle>
+                <circle cx="12" cy="5" r="1.5"></circle>
+                <circle cx="12" cy="19" r="1.5"></circle>
+              </svg>
+            </button>
+            <div id="partyMenu_${p.id}" class="action-menu hidden">
+              <button type="button" class="action-menu-item" onclick="window.GeneralInfoModule.openEditParty('${p.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+                <span>Edit</span>
+              </button>
+              <button type="button" class="action-menu-item text-danger" onclick="window.GeneralInfoModule.confirmDeleteParty('${p.id}')">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
