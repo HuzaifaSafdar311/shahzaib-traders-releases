@@ -80,3 +80,16 @@ contextBridge.exposeInMainWorld('generalInfoAPI', {
   deleteParty: (id) => ipcRenderer.invoke('delete-party', id)
 });
 
+// Expose Find Product Window API for dedicated OS window
+contextBridge.exposeInMainWorld('findProductAPI', {
+  openWindow: (context) => ipcRenderer.send('open-find-product-window', context),
+  closeWindow: () => ipcRenderer.send('close-find-product-window'),
+  selectProduct: (product) => ipcRenderer.send('select-find-product', product),
+  onProductSelected: (callback) => {
+    ipcRenderer.on('product-selected-from-window', (_event, product) => callback(product));
+  },
+  onRefreshProducts: (callback) => {
+    ipcRenderer.on('refresh-products', () => callback());
+  }
+});
+

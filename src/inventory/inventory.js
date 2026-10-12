@@ -1674,9 +1674,13 @@ if (inv.btnPiLast) {
 }
 
 // ========================================================
-// GLOBAL F1 / QUICK PRODUCT SEARCH MODAL
+// GLOBAL F1 / QUICK PRODUCT SEARCH (DEDICATED WINDOW & FALLBACK MODAL)
 // ========================================================
 function openProductSearchModal() {
+  if (window.findProductAPI?.openWindow) {
+    window.findProductAPI.openWindow();
+    return;
+  }
   if (!inv.modalProductSearch) return;
   inv.modalProductSearch.classList.remove('hidden');
   renderF1ProductSearch();
@@ -1685,6 +1689,19 @@ function openProductSearchModal() {
 
 function closeProductSearchModal() {
   if (inv.modalProductSearch) inv.modalProductSearch.classList.add('hidden');
+}
+
+// Listener for product selected from the dedicated OS Find Product window
+if (window.findProductAPI?.onProductSelected) {
+  window.findProductAPI.onProductSelected((p) => {
+    if (!p) return;
+    if (currentSubTab === 'purchase') {
+      selectProductForPurchase(p);
+    } else {
+      switchSubTab('product-info');
+      loadProductRecord(p);
+    }
+  });
 }
 
 function renderF1ProductSearch() {
