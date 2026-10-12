@@ -136,31 +136,31 @@ function renderTable() {
     }
 
     tr.innerHTML = `
-      <td class="col-f1-code" style="width: 8%; text-align: left; padding-left: 20px;">
-        <span class="code-pill">${escapeHtml(p.code)}</span>
+      <td class="col-f1-code font-num font-bold" style="width: 7%; text-align: left; padding-left: 20px;">
+        ${escapeHtml(p.code)}
       </td>
-      <td class="col-f1-title font-bold" style="width: 27%; text-align: left; padding-left: 14px;" title="${escapeHtml(p.titleEng)}">
+      <td class="col-f1-title font-bold" style="width: 32%; text-align: left; padding-left: 14px;" title="${escapeHtml(p.titleEng)}">
         ${escapeHtml(p.titleEng)}
       </td>
-      <td class="col-f1-category" style="width: 13%; text-align: center;">
-        <span class="badge-tag">${escapeHtml(p.categoryName || '-')}</span>
+      <td class="col-f1-category" style="width: 16%; text-align: center;">
+        ${escapeHtml(p.categoryName || '-')}
       </td>
-      <td class="col-f1-group text-secondary" style="width: 13%; text-align: center;">
+      <td class="col-f1-group text-secondary" style="width: 15%; text-align: center;">
         ${escapeHtml(p.groupName || '-')}
       </td>
-      <td class="col-f1-pack font-num" style="width: 6%; text-align: center;">
+      <td class="col-f1-pack font-num" style="width: 5%; text-align: center;">
         ${p.packSize || 1}
       </td>
-      <td class="col-f1-purchase font-num" style="width: 9%; text-align: center;">
+      <td class="col-f1-purchase font-num" style="width: 7%; text-align: center;">
         ${Number(p.purchasePrice || 0).toFixed(2)}
       </td>
-      <td class="col-f1-retail font-num font-bold text-warning" style="width: 9%; text-align: center;">
+      <td class="col-f1-retail font-num font-bold text-warning" style="width: 7%; text-align: center;">
         ${Number(p.retailPrice || 0).toFixed(2)}
       </td>
-      <td class="col-f1-wholesale font-num font-bold" style="width: 8%; text-align: center;">
+      <td class="col-f1-wholesale font-num font-bold" style="width: 6%; text-align: center;">
         ${Number(p.wholesalePrice || 0).toFixed(2)}
       </td>
-      <td class="col-f1-stock font-num font-bold text-accent" style="width: 7%; text-align: center;">
+      <td class="col-f1-stock font-num font-bold text-accent" style="width: 5%; text-align: center;">
         ${p.stockQty || 0}
       </td>
     `;

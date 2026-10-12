@@ -49,10 +49,10 @@ function openFindProductWindow() {
     : path.join(__dirname, 'circle-logo.png');
 
   findProductWindow = new BrowserWindow({
-    width: 1140,
-    height: 720,
-    minWidth: 850,
-    minHeight: 520,
+    width: 1260,
+    height: 780,
+    minWidth: 920,
+    minHeight: 560,
     center: true,
     backgroundColor: '#ffffff',
     title: 'Find Product (F1) - Shahzaib Traders',
