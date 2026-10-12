@@ -216,6 +216,22 @@ app.whenReady().then(() => {
     return db.deletePartyType(id);
   });
 
+  ipcMain.handle('get-parties', async () => {
+    return db.getParties();
+  });
+
+  ipcMain.handle('add-party', async (event, party) => {
+    return db.addParty(party);
+  });
+
+  ipcMain.handle('update-party', async (event, party) => {
+    return db.updateParty(party);
+  });
+
+  ipcMain.handle('delete-party', async (event, id) => {
+    return db.deleteParty(id);
+  });
+
 
 
   // ============================================

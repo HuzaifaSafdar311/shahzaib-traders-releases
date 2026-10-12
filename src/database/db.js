@@ -470,5 +470,10 @@ module.exports = {
   addPartyType: generalInfoDb.addPartyType,
   updatePartyType: generalInfoDb.updatePartyType,
   deletePartyType: generalInfoDb.deletePartyType,
+  getParties: generalInfoDb.getParties,
+  addParty: generalInfoDb.addParty,
+  updateParty: generalInfoDb.updateParty,
+  deleteParty: generalInfoDb.deleteParty,
   getAllGeneralInfo: generalInfoDb.getAllGeneralInfo
 };
+

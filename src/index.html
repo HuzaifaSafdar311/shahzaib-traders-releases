@@ -368,6 +368,17 @@
               <span>Party Type</span>
               <span class="gi-tab-badge" id="badgeGiPartyTypes">0</span>
             </button>
+
+            <button type="button" class="gi-tab-btn" data-tab="parties" id="giTabBtnParties">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span>Party Info</span>
+              <span class="gi-tab-badge" id="badgeGiParties">0</span>
+            </button>
           </nav>
         </header>
 
@@ -632,6 +643,72 @@
 
             <div class="gi-table-footer">
               <span id="partyTypeFooterCount">Total: 0 party types</span>
+            </div>
+          </div>
+
+          <!-- SUB-VIEW 5: PARTY INFO -->
+          <div id="giView-parties" class="gi-sub-view">
+            <div class="gi-toolbar">
+              <div class="gi-toolbar-left">
+                <div class="gi-search-box">
+                  <svg class="gi-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input type="text" id="partySearchInput" class="gi-search-input" placeholder="Search parties by name, phone..." autocomplete="off">
+                </div>
+                <div class="gi-filter-group">
+                  <select id="partyTypeFilterSelect" class="gi-select-filter">
+                    <option value="">All Party Types</option>
+                  </select>
+                  <select id="partyProvinceFilterSelect" class="gi-select-filter">
+                    <option value="">All Provinces</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <button type="button" id="btnOpenAddParty" class="btn btn-primary">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Add Party</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="gi-table-wrapper">
+              <table class="gi-data-table">
+                <thead>
+                  <tr>
+                    <th style="min-width: 200px;">Party / Business Name</th>
+                    <th style="width: 140px;">Party Type</th>
+                    <th style="min-width: 150px;">Contact Person</th>
+                    <th style="min-width: 150px;">Phone / Email</th>
+                    <th style="min-width: 160px;">Location / Area</th>
+                    <th style="width: 120px;">NTN #</th>
+                    <th style="width: 130px; text-align: right;">Opening Bal.</th>
+                    <th style="width: 110px;">Status</th>
+                    <th class="gi-actions-cell">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="partyTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+              <div id="partyEmptyState" class="gi-empty-state hidden">
+                <svg class="gi-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span class="gi-empty-text">No parties found</span>
+              </div>
+            </div>
+
+            <div class="gi-table-footer">
+              <span id="partyFooterCount">Total: 0 parties</span>
             </div>
           </div>
 
@@ -937,6 +1014,95 @@
         <div class="modal-footer">
           <button type="button" id="btnCancelPartyType" class="btn btn-secondary">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Party Type</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT PARTY -->
+  <div id="modalParty" class="modal-overlay hidden">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h2 id="modalPartyTitle" class="modal-title">Add Party</h2>
+        <button type="button" id="btnClosePartyModal" class="btn-close">&times;</button>
+      </div>
+      <form id="partyForm" class="modal-form">
+        <input type="hidden" id="partyId">
+
+        <div class="form-grid-equal">
+          <div class="form-group span-2">
+            <label for="partyNameInput">Party / Business Name <span class="req">*</span></label>
+            <input type="text" id="partyNameInput" placeholder="e.g. Al-Madina Traders, Tariq Corporation" required>
+          </div>
+
+          <div class="form-group">
+            <label for="partyTypeSelect">Party Type <span class="req">*</span></label>
+            <select id="partyTypeSelect" required>
+              <option value="">Select Party Type</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="partyStatusSelect">Status</label>
+            <select id="partyStatusSelect">
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="partyContactPersonInput">Contact Person</label>
+            <input type="text" id="partyContactPersonInput" placeholder="e.g. Muhammad Tariq">
+          </div>
+
+          <div class="form-group">
+            <label for="partyPhoneInput">Phone / Mobile <span class="req">*</span></label>
+            <input type="text" id="partyPhoneInput" placeholder="e.g. 0300-1234567" required>
+          </div>
+
+          <div class="form-group">
+            <label for="partyEmailInput">Email Address</label>
+            <input type="email" id="partyEmailInput" placeholder="e.g. contact@party.com">
+          </div>
+
+          <div class="form-group">
+            <label for="partyNtnInput">NTN Number</label>
+            <input type="text" id="partyNtnInput" placeholder="e.g. 1234567-8">
+          </div>
+
+          <div class="form-group">
+            <label for="partyProvinceSelect">Province</label>
+            <select id="partyProvinceSelect">
+              <option value="">Select Province</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="partyAreaSelect">Area</label>
+            <select id="partyAreaSelect">
+              <option value="">Select Area</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="partyCityInput">City</label>
+            <input type="text" id="partyCityInput" placeholder="e.g. Lahore, Karachi">
+          </div>
+
+          <div class="form-group">
+            <label for="partyOpeningBalanceInput">Opening Balance (PKR)</label>
+            <input type="number" id="partyOpeningBalanceInput" step="0.01" placeholder="0.00" value="0">
+          </div>
+
+          <div class="form-group span-2">
+            <label for="partyAddressInput">Full Address</label>
+            <textarea id="partyAddressInput" rows="2" placeholder="e.g. Shop #5, Commercial Wholesale Market"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btnCancelParty" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Party</button>
         </div>
       </form>
     </div>

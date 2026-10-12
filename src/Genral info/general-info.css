@@ -474,6 +474,88 @@
   flex-shrink: 0;
 }
 
+/* Party Info Specific Styles */
+.party-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.party-mini-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  color: #1e293b;
+  font-size: 11.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid #cbd5e1;
+}
+
+.party-name-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.contact-sub-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.location-text {
+  font-size: 12.5px;
+  color: #334155;
+}
+
+.badge-party-type {
+  display: inline-block;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 12px;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #dbeafe;
+}
+
+.text-balance-pos {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.text-balance-neg {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.gi-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gi-select-filter {
+  padding: 7px 12px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.gi-select-filter:focus {
+  border-color: #0f172a;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .company-grid {

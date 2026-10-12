@@ -27,6 +27,9 @@ function initGeneralInfo(dbInstance, isFallback, jsonData, saveJsonCallback, che
     if (!Array.isArray(jsonStore.partyTypes)) {
       jsonStore.partyTypes = getDefaultPartyTypes();
     }
+    if (!Array.isArray(jsonStore.parties)) {
+      jsonStore.parties = getDefaultParties();
+    }
     if (saveJsonFn) saveJsonFn();
     return;
   }
@@ -79,6 +82,26 @@ function initGeneralInfo(dbInstance, isFallback, jsonData, saveJsonCallback, che
       status TEXT DEFAULT 'Active',
       createdAt TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS parties (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      partyTypeId TEXT DEFAULT '',
+      partyTypeName TEXT DEFAULT '',
+      contactPerson TEXT DEFAULT '',
+      phone TEXT NOT NULL,
+      email TEXT DEFAULT '',
+      provinceId TEXT DEFAULT '',
+      provinceName TEXT DEFAULT '',
+      areaId TEXT DEFAULT '',
+      areaName TEXT DEFAULT '',
+      city TEXT DEFAULT '',
+      address TEXT DEFAULT '',
+      ntn TEXT DEFAULT '',
+      openingBalance REAL DEFAULT 0,
+      status TEXT DEFAULT 'Active',
+      createdAt TEXT NOT NULL
+    );
   `);
 
   // Seed default company info if not present
@@ -124,6 +147,24 @@ function initGeneralInfo(dbInstance, isFallback, jsonData, saveJsonCallback, che
     const insertPt = db.prepare('INSERT INTO party_types (id, name, code, description, status, createdAt) VALUES (?, ?, ?, ?, ?, ?)');
     for (const pt of defPts) {
       insertPt.run(pt.id, pt.name, pt.code, pt.description, pt.status, pt.createdAt);
+    }
+  }
+
+  // Seed default parties if not present
+  const checkParty = db.prepare('SELECT COUNT(*) as count FROM parties').get();
+  if (!checkParty || checkParty.count === 0) {
+    const defParties = getDefaultParties();
+    const insertParty = db.prepare(`
+      INSERT INTO parties (id, name, partyTypeId, partyTypeName, contactPerson, phone, email, provinceId, provinceName, areaId, areaName, city, address, ntn, openingBalance, status, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const p of defParties) {
+      insertParty.run(
+        p.id, p.name, p.partyTypeId, p.partyTypeName, p.contactPerson,
+        p.phone, p.email, p.provinceId, p.provinceName, p.areaId,
+        p.areaName, p.city, p.address, p.ntn, p.openingBalance,
+        p.status, p.createdAt
+      );
     }
   }
 
@@ -183,6 +224,69 @@ function getDefaultPartyTypes() {
     { id: 'pt-3', name: 'Wholesaler', code: 'WHL', description: 'Bulk quantity trade partner', status: 'Active', createdAt: now },
     { id: 'pt-4', name: 'Retailer', code: 'RET', description: 'Small to mid volume store merchant', status: 'Active', createdAt: now },
     { id: 'pt-5', name: 'Distributor', code: 'DIST', description: 'Regional authorized distributor', status: 'Active', createdAt: now }
+  ];
+}
+
+function getDefaultParties() {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: 'party-1',
+      name: 'Al-Madina Traders',
+      partyTypeId: 'pt-3',
+      partyTypeName: 'Wholesaler',
+      contactPerson: 'Haji Muhammad Usman',
+      phone: '0300-7654321',
+      email: 'almadina.traders@gmail.com',
+      provinceId: 'prov-punjab',
+      provinceName: 'Punjab',
+      areaId: 'area-1',
+      areaName: 'Badami Bagh',
+      city: 'Lahore',
+      address: 'Shop 12, Main Steel Market, Badami Bagh',
+      ntn: '3216549-8',
+      openingBalance: 0,
+      status: 'Active',
+      createdAt: now
+    },
+    {
+      id: 'party-2',
+      name: 'Karachi Central Mart',
+      partyTypeId: 'pt-4',
+      partyTypeName: 'Retailer',
+      contactPerson: 'Tariq Mehmood',
+      phone: '0321-9876543',
+      email: 'centralmart.khi@gmail.com',
+      provinceId: 'prov-sindh',
+      provinceName: 'Sindh',
+      areaId: 'area-4',
+      areaName: 'Saddar',
+      city: 'Karachi',
+      address: 'Shop 45, Saddar Bazaar Commercial Area',
+      ntn: '7891234-5',
+      openingBalance: 0,
+      status: 'Active',
+      createdAt: now
+    },
+    {
+      id: 'party-3',
+      name: 'Peshawar Trade House',
+      partyTypeId: 'pt-5',
+      partyTypeName: 'Distributor',
+      contactPerson: 'Khan Bahadur',
+      phone: '0333-1122334',
+      email: 'peshawar.trade@gmail.com',
+      provinceId: 'prov-kpk',
+      provinceName: 'Khyber Pakhtunkhwa',
+      areaId: 'area-7',
+      areaName: 'Qissa Khwani',
+      city: 'Peshawar',
+      address: 'Plaza 3, Qissa Khwani Bazaar',
+      ntn: '9876543-2',
+      openingBalance: 0,
+      status: 'Active',
+      createdAt: now
+    }
   ];
 }
 
@@ -528,12 +632,126 @@ function deletePartyType(id) {
   return { success: true };
 }
 
+// ----------------------------------------------------
+// Party Info Methods
+// ----------------------------------------------------
+function getParties() {
+  if (isJson) {
+    return [...(jsonStore.parties || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }
+  if (!db) throw new Error('Database not initialized');
+  return db.prepare('SELECT * FROM parties ORDER BY name ASC').all();
+}
+
+function addParty(party) {
+  const record = {
+    id: party.id || 'party-' + Date.now(),
+    name: (party.name || '').trim(),
+    partyTypeId: party.partyTypeId || '',
+    partyTypeName: (party.partyTypeName || '').trim(),
+    contactPerson: (party.contactPerson || '').trim(),
+    phone: (party.phone || '').trim(),
+    email: (party.email || '').trim(),
+    provinceId: party.provinceId || '',
+    provinceName: (party.provinceName || '').trim(),
+    areaId: party.areaId || '',
+    areaName: (party.areaName || '').trim(),
+    city: (party.city || '').trim(),
+    address: (party.address || '').trim(),
+    ntn: (party.ntn || '').trim(),
+    openingBalance: Number(party.openingBalance) || 0,
+    status: party.status || 'Active',
+    createdAt: party.createdAt || new Date().toISOString()
+  };
+
+  if (isJson) {
+    jsonStore.parties.push(record);
+    if (saveJsonFn) saveJsonFn();
+    return { success: true, data: record };
+  }
+
+  if (!db) throw new Error('Database not initialized');
+  const stmt = db.prepare(`
+    INSERT INTO parties (id, name, partyTypeId, partyTypeName, contactPerson, phone, email, provinceId, provinceName, areaId, areaName, city, address, ntn, openingBalance, status, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  stmt.run(
+    record.id, record.name, record.partyTypeId, record.partyTypeName,
+    record.contactPerson, record.phone, record.email, record.provinceId,
+    record.provinceName, record.areaId, record.areaName, record.city,
+    record.address, record.ntn, record.openingBalance, record.status, record.createdAt
+  );
+  if (checkpointFn) checkpointFn();
+  return { success: true, data: record };
+}
+
+function updateParty(party) {
+  const updated = {
+    id: party.id,
+    name: (party.name || '').trim(),
+    partyTypeId: party.partyTypeId || '',
+    partyTypeName: (party.partyTypeName || '').trim(),
+    contactPerson: (party.contactPerson || '').trim(),
+    phone: (party.phone || '').trim(),
+    email: (party.email || '').trim(),
+    provinceId: party.provinceId || '',
+    provinceName: (party.provinceName || '').trim(),
+    areaId: party.areaId || '',
+    areaName: (party.areaName || '').trim(),
+    city: (party.city || '').trim(),
+    address: (party.address || '').trim(),
+    ntn: (party.ntn || '').trim(),
+    openingBalance: Number(party.openingBalance) || 0,
+    status: party.status || 'Active'
+  };
+
+  if (isJson) {
+    const idx = jsonStore.parties.findIndex(p => p.id === updated.id);
+    if (idx !== -1) {
+      jsonStore.parties[idx] = { ...jsonStore.parties[idx], ...updated };
+      if (saveJsonFn) saveJsonFn();
+    }
+    return { success: true, data: updated };
+  }
+
+  if (!db) throw new Error('Database not initialized');
+  const stmt = db.prepare(`
+    UPDATE parties
+    SET name = ?, partyTypeId = ?, partyTypeName = ?, contactPerson = ?, phone = ?, email = ?, provinceId = ?, provinceName = ?, areaId = ?, areaName = ?, city = ?, address = ?, ntn = ?, openingBalance = ?, status = ?
+    WHERE id = ?
+  `);
+  stmt.run(
+    updated.name, updated.partyTypeId, updated.partyTypeName,
+    updated.contactPerson, updated.phone, updated.email,
+    updated.provinceId, updated.provinceName, updated.areaId,
+    updated.areaName, updated.city, updated.address, updated.ntn,
+    updated.openingBalance, updated.status, updated.id
+  );
+  if (checkpointFn) checkpointFn();
+  return { success: true, data: updated };
+}
+
+function deleteParty(id) {
+  if (isJson) {
+    jsonStore.parties = (jsonStore.parties || []).filter(p => p.id !== id);
+    if (saveJsonFn) saveJsonFn();
+    return { success: true };
+  }
+
+  if (!db) throw new Error('Database not initialized');
+  const stmt = db.prepare('DELETE FROM parties WHERE id = ?');
+  stmt.run(id);
+  if (checkpointFn) checkpointFn();
+  return { success: true };
+}
+
 function getAllGeneralInfo() {
   return {
     companyInfo: getCompanyInfo(),
     provinces: getProvinces(),
     areas: getAreas(),
-    partyTypes: getPartyTypes()
+    partyTypes: getPartyTypes(),
+    parties: getParties()
   };
 }
 
@@ -553,5 +771,9 @@ module.exports = {
   addPartyType,
   updatePartyType,
   deletePartyType,
+  getParties,
+  addParty,
+  updateParty,
+  deleteParty,
   getAllGeneralInfo
 };

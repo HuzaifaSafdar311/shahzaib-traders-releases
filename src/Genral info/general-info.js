@@ -46,6 +46,10 @@
           { id: 'pt-2', name: 'Vendor / Supplier', code: 'VEND', description: 'Goods supplier and manufacturer', status: 'Active', createdAt: new Date().toISOString() },
           { id: 'pt-3', name: 'Wholesaler', code: 'WHL', description: 'Bulk quantity trade partner', status: 'Active', createdAt: new Date().toISOString() },
           { id: 'pt-4', name: 'Retailer', code: 'RET', description: 'Small to mid volume store merchant', status: 'Active', createdAt: new Date().toISOString() }
+        ],
+        parties: [
+          { id: 'party-1', name: 'Al-Madina Traders', partyTypeId: 'pt-1', partyTypeName: 'Customer', contactPerson: 'Haji Aslam', phone: '0300-9876543', email: 'aslam@almadina.com', provinceId: 'prov-punjab', provinceName: 'Punjab', areaId: 'area-1', areaName: 'Badami Bagh', city: 'Lahore', address: 'Shop #12, Wholesale Market', ntn: '1234567-8', openingBalance: 15000, status: 'Active', createdAt: new Date().toISOString() },
+          { id: 'party-2', name: 'Tariq Corporation', partyTypeId: 'pt-2', partyTypeName: 'Vendor / Supplier', contactPerson: 'Tariq Mehmood', phone: '0321-4567890', email: 'tariq@corp.pk', provinceId: 'prov-punjab', provinceName: 'Punjab', areaId: 'area-2', areaName: 'Shah Alam Market', city: 'Lahore', address: 'Plot 45, Industrial Zone', ntn: '8765432-1', openingBalance: 0, status: 'Active', createdAt: new Date().toISOString() }
         ]
       };
     },
@@ -58,20 +62,28 @@
     deleteArea: async (id) => ({ success: true }),
     addPartyType: async (pt) => ({ success: true, data: pt }),
     updatePartyType: async (pt) => ({ success: true, data: pt }),
-    deletePartyType: async (id) => ({ success: true })
+    deletePartyType: async (id) => ({ success: true }),
+    getParties: async () => [],
+    addParty: async (p) => ({ success: true, data: p }),
+    updateParty: async (p) => ({ success: true, data: p }),
+    deleteParty: async (id) => ({ success: true })
   };
 
   let state = {
-    activeSubTab: 'company', // 'company' | 'provinces' | 'areas' | 'party-types'
+    activeSubTab: 'company', // 'company' | 'provinces' | 'areas' | 'party-types' | 'parties'
     companyInfo: {},
     provinces: [],
     areas: [],
     partyTypes: [],
+    parties: [],
     filters: {
       provinceSearch: '',
       areaSearch: '',
       areaProvinceFilter: '',
-      partyTypeSearch: ''
+      partyTypeSearch: '',
+      partySearch: '',
+      partyTypeFilter: '',
+      partyProvinceFilter: ''
     }
   };
 
@@ -103,6 +115,7 @@
         state.provinces = Array.isArray(res.provinces) ? res.provinces : [];
         state.areas = Array.isArray(res.areas) ? res.areas : [];
         state.partyTypes = Array.isArray(res.partyTypes) ? res.partyTypes : [];
+        state.parties = Array.isArray(res.parties) ? res.parties : [];
 
         try {
           localStorage.setItem('gi_data_backup', JSON.stringify(res));
@@ -118,10 +131,12 @@
     const badgeProv = document.getElementById('badgeGiProvinces');
     const badgeArea = document.getElementById('badgeGiAreas');
     const badgePt = document.getElementById('badgeGiPartyTypes');
+    const badgeParty = document.getElementById('badgeGiParties');
 
     if (badgeProv) badgeProv.textContent = state.provinces.length;
     if (badgeArea) badgeArea.textContent = state.areas.length;
     if (badgePt) badgePt.textContent = state.partyTypes.length;
+    if (badgeParty) badgeParty.textContent = state.parties.length;
   }
 
   // Switch Sub-Tabs
@@ -154,6 +169,9 @@
         break;
       case 'party-types':
         renderPartyTypes();
+        break;
+      case 'parties':
+        renderParties();
         break;
     }
   }
@@ -705,6 +723,310 @@
   }
 
   // --------------------------------------------------------------------------
+  // Sub-Section 5: Party Info
+  // --------------------------------------------------------------------------
+  function populatePartyDropdowns() {
+    // Toolbar Party Type filter
+    const filterPt = document.getElementById('partyTypeFilterSelect');
+    if (filterPt) {
+      const curr = state.filters.partyTypeFilter;
+      filterPt.innerHTML = '<option value="">All Party Types</option>';
+      state.partyTypes.forEach(pt => {
+        const opt = document.createElement('option');
+        opt.value = pt.id;
+        opt.textContent = pt.name;
+        if (pt.id === curr) opt.selected = true;
+        filterPt.appendChild(opt);
+      });
+    }
+
+    // Toolbar Province filter
+    const filterProv = document.getElementById('partyProvinceFilterSelect');
+    if (filterProv) {
+      const curr = state.filters.partyProvinceFilter;
+      filterProv.innerHTML = '<option value="">All Provinces</option>';
+      state.provinces.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        if (p.id === curr) opt.selected = true;
+        filterProv.appendChild(opt);
+      });
+    }
+
+    // Modal Party Type select
+    const modalPt = document.getElementById('partyTypeSelect');
+    if (modalPt) {
+      modalPt.innerHTML = '<option value="">Select Party Type</option>';
+      state.partyTypes.forEach(pt => {
+        const opt = document.createElement('option');
+        opt.value = pt.id;
+        opt.textContent = pt.name;
+        modalPt.appendChild(opt);
+      });
+    }
+
+    // Modal Province select
+    const modalProv = document.getElementById('partyProvinceSelect');
+    if (modalProv) {
+      modalProv.innerHTML = '<option value="">Select Province</option>';
+      state.provinces.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        modalProv.appendChild(opt);
+      });
+    }
+  }
+
+  function updateModalPartyAreaDropdown(selectedAreaId = '') {
+    const modalProv = document.getElementById('partyProvinceSelect');
+    const modalArea = document.getElementById('partyAreaSelect');
+    if (!modalArea) return;
+
+    const provId = modalProv ? modalProv.value : '';
+    modalArea.innerHTML = '<option value="">Select Area</option>';
+
+    const relevantAreas = provId
+      ? state.areas.filter(a => a.provinceId === provId)
+      : state.areas;
+
+    relevantAreas.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `${a.name}${a.city ? ' (' + a.city + ')' : ''}`;
+      if (a.id === selectedAreaId) opt.selected = true;
+      modalArea.appendChild(opt);
+    });
+  }
+
+  function renderParties() {
+    populatePartyDropdowns();
+
+    const tbody = document.getElementById('partyTableBody');
+    const emptyState = document.getElementById('partyEmptyState');
+    const footerCount = document.getElementById('partyFooterCount');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    const q = (state.filters.partySearch || '').toLowerCase().trim();
+    const ptFilter = state.filters.partyTypeFilter;
+    const provFilter = state.filters.partyProvinceFilter;
+
+    const list = state.parties.filter(p => {
+      if (ptFilter && p.partyTypeId !== ptFilter) return false;
+      if (provFilter && p.provinceId !== provFilter) return false;
+      if (!q) return true;
+      return (p.name || '').toLowerCase().includes(q) ||
+             (p.contactPerson || '').toLowerCase().includes(q) ||
+             (p.phone || '').toLowerCase().includes(q) ||
+             (p.email || '').toLowerCase().includes(q) ||
+             (p.ntn || '').toLowerCase().includes(q) ||
+             (p.city || '').toLowerCase().includes(q) ||
+             (p.areaName || '').toLowerCase().includes(q) ||
+             (p.address || '').toLowerCase().includes(q);
+    });
+
+    if (footerCount) {
+      footerCount.textContent = `Total: ${list.length} part${list.length === 1 ? 'y' : 'ies'}`;
+    }
+
+    if (list.length === 0) {
+      if (emptyState) emptyState.classList.remove('hidden');
+      return;
+    }
+    if (emptyState) emptyState.classList.add('hidden');
+
+    list.forEach(p => {
+      const tr = document.createElement('tr');
+      const initials = (p.name || 'PT').substring(0, 2).toUpperCase();
+      const balance = Number(p.openingBalance) || 0;
+      const formattedBalance = 'PKR ' + balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const locationParts = [p.areaName, p.city, p.provinceName].filter(Boolean);
+      const locationStr = locationParts.join(', ') || '-';
+
+      tr.innerHTML = `
+        <td>
+          <div class="party-info-cell">
+            <div class="party-mini-avatar">${escapeHtml(initials)}</div>
+            <div class="party-name-block">
+              <span class="cell-title">${escapeHtml(p.name)}</span>
+              ${p.address ? `<span class="cell-subtitle" title="${escapeHtml(p.address)}">${escapeHtml(p.address)}</span>` : ''}
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="badge-party-type">${escapeHtml(p.partyTypeName || 'Standard')}</span>
+        </td>
+        <td>
+          <span class="font-medium">${escapeHtml(p.contactPerson || '-')}</span>
+        </td>
+        <td>
+          <div class="contact-sub-cell">
+            <span class="font-mono text-xs">${escapeHtml(p.phone || '-')}</span>
+            ${p.email ? `<span class="cell-subtitle">${escapeHtml(p.email)}</span>` : ''}
+          </div>
+        </td>
+        <td>
+          <span class="location-text">${escapeHtml(locationStr)}</span>
+        </td>
+        <td>
+          <span class="font-mono text-xs">${escapeHtml(p.ntn || '-')}</span>
+        </td>
+        <td style="text-align: right;">
+          <span class="font-mono ${balance > 0 ? 'text-balance-pos' : balance < 0 ? 'text-balance-neg' : 'text-muted'}">${formattedBalance}</span>
+        </td>
+        <td>
+          <span class="status-badge ${p.status === 'Active' ? 'status-active' : 'status-inactive'}">
+            ${escapeHtml(p.status || 'Active')}
+          </span>
+        </td>
+        <td class="gi-actions-cell">
+          <button class="btn-icon-action" onclick="window.GeneralInfoModule.openEditParty('${p.id}')" title="Edit Party">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          <button class="btn-icon-action danger" onclick="window.GeneralInfoModule.confirmDeleteParty('${p.id}')" title="Delete Party">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function openAddParty() {
+    populatePartyDropdowns();
+    const modal = document.getElementById('modalParty');
+    if (!modal) return;
+    document.getElementById('modalPartyTitle').textContent = 'Add Party';
+    document.getElementById('partyId').value = '';
+    document.getElementById('partyNameInput').value = '';
+    document.getElementById('partyTypeSelect').value = '';
+    document.getElementById('partyStatusSelect').value = 'Active';
+    document.getElementById('partyContactPersonInput').value = '';
+    document.getElementById('partyPhoneInput').value = '';
+    document.getElementById('partyEmailInput').value = '';
+    document.getElementById('partyNtnInput').value = '';
+    document.getElementById('partyProvinceSelect').value = '';
+    updateModalPartyAreaDropdown('');
+    document.getElementById('partyCityInput').value = '';
+    document.getElementById('partyOpeningBalanceInput').value = '0';
+    document.getElementById('partyAddressInput').value = '';
+    modal.classList.remove('hidden');
+  }
+
+  function openEditParty(id) {
+    populatePartyDropdowns();
+    const p = state.parties.find(x => x.id === id);
+    if (!p) return;
+    const modal = document.getElementById('modalParty');
+    if (!modal) return;
+    document.getElementById('modalPartyTitle').textContent = 'Edit Party';
+    document.getElementById('partyId').value = p.id;
+    document.getElementById('partyNameInput').value = p.name || '';
+    document.getElementById('partyTypeSelect').value = p.partyTypeId || '';
+    document.getElementById('partyStatusSelect').value = p.status || 'Active';
+    document.getElementById('partyContactPersonInput').value = p.contactPerson || '';
+    document.getElementById('partyPhoneInput').value = p.phone || '';
+    document.getElementById('partyEmailInput').value = p.email || '';
+    document.getElementById('partyNtnInput').value = p.ntn || '';
+    document.getElementById('partyProvinceSelect').value = p.provinceId || '';
+    updateModalPartyAreaDropdown(p.areaId || '');
+    document.getElementById('partyCityInput').value = p.city || '';
+    document.getElementById('partyOpeningBalanceInput').value = p.openingBalance ?? 0;
+    document.getElementById('partyAddressInput').value = p.address || '';
+    modal.classList.remove('hidden');
+  }
+
+  function closePartyModal() {
+    const modal = document.getElementById('modalParty');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  async function handlePartyFormSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('partyId').value;
+    const name = document.getElementById('partyNameInput').value.trim();
+    const partyTypeId = document.getElementById('partyTypeSelect').value;
+    const status = document.getElementById('partyStatusSelect').value;
+    const contactPerson = document.getElementById('partyContactPersonInput').value.trim();
+    const phone = document.getElementById('partyPhoneInput').value.trim();
+    const email = document.getElementById('partyEmailInput').value.trim();
+    const ntn = document.getElementById('partyNtnInput').value.trim();
+    const provinceId = document.getElementById('partyProvinceSelect').value;
+    const areaId = document.getElementById('partyAreaSelect').value;
+    const city = document.getElementById('partyCityInput').value.trim();
+    const openingBalance = parseFloat(document.getElementById('partyOpeningBalanceInput').value) || 0;
+    const address = document.getElementById('partyAddressInput').value.trim();
+
+    if (!name || !phone) return;
+
+    const ptObj = state.partyTypes.find(t => t.id === partyTypeId);
+    const partyTypeName = ptObj ? ptObj.name : '';
+    const provObj = state.provinces.find(pr => pr.id === provinceId);
+    const provinceName = provObj ? provObj.name : '';
+    const areaObj = state.areas.find(ar => ar.id === areaId);
+    const areaName = areaObj ? areaObj.name : '';
+
+    const partyData = {
+      name,
+      partyTypeId,
+      partyTypeName,
+      contactPerson,
+      phone,
+      email,
+      provinceId,
+      provinceName,
+      areaId,
+      areaName,
+      city: city || (areaObj ? areaObj.city : ''),
+      address,
+      ntn,
+      openingBalance,
+      status
+    };
+
+    try {
+      if (id) {
+        partyData.id = id;
+        await api.updateParty(partyData);
+        showToast('Party updated');
+      } else {
+        await api.addParty(partyData);
+        showToast('Party added');
+      }
+      closePartyModal();
+      await loadData();
+      renderParties();
+    } catch (err) {
+      console.error('Party save error:', err);
+      showToast('Error saving party', 'error');
+    }
+  }
+
+  async function confirmDeleteParty(id) {
+    const p = state.parties.find(x => x.id === id);
+    const name = p ? p.name : 'this party';
+    if (!confirm(`Are you sure you want to delete party "${name}"?`)) return;
+
+    try {
+      await api.deleteParty(id);
+      showToast('Party deleted');
+      await loadData();
+      renderParties();
+    } catch (err) {
+      console.error('Delete party error:', err);
+      showToast('Error deleting party', 'error');
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // Event Bindings
   // --------------------------------------------------------------------------
   function setupEventListeners() {
@@ -799,6 +1121,61 @@
         renderPartyTypes();
       });
     }
+
+    // Party Info actions
+    const btnOpenAddParty = document.getElementById('btnOpenAddParty');
+    if (btnOpenAddParty) btnOpenAddParty.addEventListener('click', openAddParty);
+
+    const btnClosePartyModal = document.getElementById('btnClosePartyModal');
+    if (btnClosePartyModal) btnClosePartyModal.addEventListener('click', closePartyModal);
+
+    const btnCancelParty = document.getElementById('btnCancelParty');
+    if (btnCancelParty) btnCancelParty.addEventListener('click', closePartyModal);
+
+    const formParty = document.getElementById('partyForm');
+    if (formParty) formParty.addEventListener('submit', handlePartyFormSubmit);
+
+    const partySearchInput = document.getElementById('partySearchInput');
+    if (partySearchInput) {
+      partySearchInput.addEventListener('input', (e) => {
+        state.filters.partySearch = e.target.value;
+        renderParties();
+      });
+    }
+
+    const partyTypeFilterSelect = document.getElementById('partyTypeFilterSelect');
+    if (partyTypeFilterSelect) {
+      partyTypeFilterSelect.addEventListener('change', (e) => {
+        state.filters.partyTypeFilter = e.target.value;
+        renderParties();
+      });
+    }
+
+    const partyProvinceFilterSelect = document.getElementById('partyProvinceFilterSelect');
+    if (partyProvinceFilterSelect) {
+      partyProvinceFilterSelect.addEventListener('change', (e) => {
+        state.filters.partyProvinceFilter = e.target.value;
+        renderParties();
+      });
+    }
+
+    const modalPartyProv = document.getElementById('partyProvinceSelect');
+    if (modalPartyProv) {
+      modalPartyProv.addEventListener('change', () => {
+        updateModalPartyAreaDropdown();
+      });
+    }
+
+    const modalPartyArea = document.getElementById('partyAreaSelect');
+    if (modalPartyArea) {
+      modalPartyArea.addEventListener('change', (e) => {
+        const selArea = state.areas.find(a => a.id === e.target.value);
+        const cityInput = document.getElementById('partyCityInput');
+        if (selArea && selArea.city && cityInput && !cityInput.value) {
+          cityInput.value = selArea.city;
+        }
+      });
+    }
   }
 
   // Public module API
@@ -822,7 +1199,10 @@
     confirmDeleteArea: confirmDeleteArea,
     openAddPartyType: openAddPartyType,
     openEditPartyType: openEditPartyType,
-    confirmDeletePartyType: confirmDeletePartyType
+    confirmDeletePartyType: confirmDeletePartyType,
+    openAddParty: openAddParty,
+    openEditParty: openEditParty,
+    confirmDeleteParty: confirmDeleteParty
   };
 
 })();
