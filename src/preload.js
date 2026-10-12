@@ -22,3 +22,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportExcel: (data) => ipcRenderer.invoke('export-excel', data),
   exportCSV: (data) => ipcRenderer.invoke('export-csv', data)
 });
+
+// Expose General Info API for Company Info, Province, Area, Party Type
+contextBridge.exposeInMainWorld('generalInfoAPI', {
+  getGeneralInfo: () => ipcRenderer.invoke('get-general-info'),
+  saveCompanyInfo: (info) => ipcRenderer.invoke('save-company-info', info),
+  addProvince: (p) => ipcRenderer.invoke('add-province', p),
+  updateProvince: (p) => ipcRenderer.invoke('update-province', p),
+  deleteProvince: (id) => ipcRenderer.invoke('delete-province', id),
+  addArea: (a) => ipcRenderer.invoke('add-area', a),
+  updateArea: (a) => ipcRenderer.invoke('update-area', a),
+  deleteArea: (id) => ipcRenderer.invoke('delete-area', id),
+  addPartyType: (pt) => ipcRenderer.invoke('add-party-type', pt),
+  updatePartyType: (pt) => ipcRenderer.invoke('update-party-type', pt),
+  deletePartyType: (id) => ipcRenderer.invoke('delete-party-type', id)
+});
+

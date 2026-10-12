@@ -1,0 +1,504 @@
+<!-- GENERAL INFO MAIN SECTION -->
+<section id="generalInfoView" class="view-section general-info-section">
+  <!-- General Info Top Header & Sub-Tabs Navigation -->
+  <header class="gi-header">
+    <div class="gi-header-top">
+      <div class="gi-main-title">
+        <svg class="gi-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>General Info</span>
+      </div>
+    </div>
+
+    <!-- 4 Sub-Section Tabs -->
+    <nav class="gi-sub-tabs" role="tablist" aria-label="General Info Navigation">
+      <button type="button" class="gi-tab-btn active" data-tab="company" id="giTabBtnCompany">
+        <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="3" y1="9" x2="21" y2="9"></line>
+          <line x1="9" y1="21" x2="9" y2="9"></line>
+        </svg>
+        <span>Company Info</span>
+      </button>
+
+      <button type="button" class="gi-tab-btn" data-tab="provinces" id="giTabBtnProvinces">
+        <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+          <line x1="8" y1="2" x2="8" y2="18"></line>
+          <line x1="16" y1="6" x2="16" y2="22"></line>
+        </svg>
+        <span>Province Info</span>
+        <span class="gi-tab-badge" id="badgeGiProvinces">0</span>
+      </button>
+
+      <button type="button" class="gi-tab-btn" data-tab="areas" id="giTabBtnAreas">
+        <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+        <span>Area Info</span>
+        <span class="gi-tab-badge" id="badgeGiAreas">0</span>
+      </button>
+
+      <button type="button" class="gi-tab-btn" data-tab="party-types" id="giTabBtnPartyTypes">
+        <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span>Party Type</span>
+        <span class="gi-tab-badge" id="badgeGiPartyTypes">0</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Sub-Views Content Area -->
+  <div class="gi-content-area">
+    
+    <!-- SUB-VIEW 1: COMPANY INFO -->
+    <div id="giView-company" class="gi-sub-view active">
+      <div class="company-info-container">
+        <div class="company-card">
+          <div class="company-card-header">
+            <div class="company-card-branding">
+              <div class="company-avatar" id="ciAvatarInitials">ST</div>
+              <div class="company-title-area">
+                <h2 id="ciDisplayName">Shahzaib Traders</h2>
+                <p id="ciDisplayTagline">Wholesale & Retail Trading Solutions</p>
+              </div>
+            </div>
+            <button type="button" id="btnEditCompany" class="btn btn-secondary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <span>Edit Company Info</span>
+            </button>
+          </div>
+
+          <div class="company-grid">
+            <!-- Contact & Ownership -->
+            <div class="company-info-block">
+              <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Contact & Ownership
+              </h3>
+              <div class="info-item">
+                <span class="info-label">Contact Person / Owner</span>
+                <span class="info-val" id="ciDisplayPerson">-</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Primary Mobile / Phone</span>
+                <span class="info-val font-mono" id="ciDisplayPhone">-</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Alternate Landline</span>
+                <span class="info-val font-mono" id="ciDisplayAltPhone">-</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Official Email</span>
+                <span class="info-val" id="ciDisplayEmail">-</span>
+              </div>
+            </div>
+
+            <!-- Location & Address -->
+            <div class="company-info-block">
+              <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                Location & Office
+              </h3>
+              <div class="info-item">
+                <span class="info-label">Full Business Address</span>
+                <span class="info-val" id="ciDisplayAddress">-</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Website / Online Portal</span>
+                <span class="info-val" id="ciDisplayWebsite">-</span>
+              </div>
+            </div>
+
+            <!-- Tax, Currency & Notes -->
+            <div class="company-info-block">
+              <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                  <line x1="2" y1="10" x2="22" y2="10"></line>
+                </svg>
+                Registration & Details
+              </h3>
+              <div class="info-item">
+                <span class="info-label">National Tax Number (NTN)</span>
+                <span class="info-val font-mono" id="ciDisplayNtn">-</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Sales Tax Registration (STRN)</span>
+                <span class="info-val font-mono" id="ciDisplayStrn">-</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Standard Base Currency</span>
+                <span class="info-val font-mono" id="ciDisplayCurrency">PKR</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Business Notes</span>
+                <span class="info-val" id="ciDisplayNotes" style="font-weight: 400; font-size: 12.5px; color: #64748b;">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-VIEW 2: PROVINCE INFO -->
+    <div id="giView-provinces" class="gi-sub-view">
+      <div class="gi-toolbar">
+        <div class="gi-toolbar-left">
+          <div class="gi-search-box">
+            <svg class="gi-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="provinceSearchInput" class="gi-search-input" placeholder="Search provinces..." autocomplete="off">
+          </div>
+        </div>
+        <div>
+          <button type="button" id="btnOpenAddProvince" class="btn btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Add Province</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="gi-table-wrapper">
+        <table class="gi-data-table">
+          <thead>
+            <tr>
+              <th style="min-width: 200px;">Province Name</th>
+              <th style="width: 120px;">Code</th>
+              <th style="width: 140px;">Status</th>
+              <th style="width: 150px;">Associated Areas</th>
+              <th class="gi-actions-cell">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="provinceTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+        <div id="provinceEmptyState" class="gi-empty-state hidden">
+          <svg class="gi-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+            <line x1="8" y1="2" x2="8" y2="18"></line>
+            <line x1="16" y1="6" x2="16" y2="22"></line>
+          </svg>
+          <span class="gi-empty-text">No provinces found</span>
+        </div>
+      </div>
+
+      <div class="gi-table-footer">
+        <span id="provinceFooterCount">Total: 0 provinces</span>
+      </div>
+    </div>
+
+    <!-- SUB-VIEW 3: AREA INFO -->
+    <div id="giView-areas" class="gi-sub-view">
+      <div class="gi-toolbar">
+        <div class="gi-toolbar-left">
+          <div class="gi-search-box">
+            <svg class="gi-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="areaSearchInput" class="gi-search-input" placeholder="Search areas by name or city..." autocomplete="off">
+          </div>
+          <select id="areaProvinceFilter" class="gi-filter-select">
+            <option value="">All Provinces</option>
+          </select>
+        </div>
+        <div>
+          <button type="button" id="btnOpenAddArea" class="btn btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Add Area</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="gi-table-wrapper">
+        <table class="gi-data-table">
+          <thead>
+            <tr>
+              <th style="min-width: 180px;">Area Name</th>
+              <th style="min-width: 140px;">City</th>
+              <th style="min-width: 160px;">Province</th>
+              <th style="width: 120px;">Postal / Code</th>
+              <th style="width: 130px;">Status</th>
+              <th class="gi-actions-cell">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="areaTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+        <div id="areaEmptyState" class="gi-empty-state hidden">
+          <svg class="gi-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <span class="gi-empty-text">No areas found</span>
+        </div>
+      </div>
+
+      <div class="gi-table-footer">
+        <span id="areaFooterCount">Total: 0 areas</span>
+      </div>
+    </div>
+
+    <!-- SUB-VIEW 4: PARTY TYPE -->
+    <div id="giView-party-types" class="gi-sub-view">
+      <div class="gi-toolbar">
+        <div class="gi-toolbar-left">
+          <div class="gi-search-box">
+            <svg class="gi-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="partyTypeSearchInput" class="gi-search-input" placeholder="Search party types..." autocomplete="off">
+          </div>
+        </div>
+        <div>
+          <button type="button" id="btnOpenAddPartyType" class="btn btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Add Party Type</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="gi-table-wrapper">
+        <table class="gi-data-table">
+          <thead>
+            <tr>
+              <th style="min-width: 180px;">Party Type Name</th>
+              <th style="width: 120px;">Code</th>
+              <th style="min-width: 220px;">Description / Notes</th>
+              <th style="width: 130px;">Status</th>
+              <th class="gi-actions-cell">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="partyTypeTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+        <div id="partyTypeEmptyState" class="gi-empty-state hidden">
+          <svg class="gi-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          </svg>
+          <span class="gi-empty-text">No party types found</span>
+        </div>
+      </div>
+
+      <div class="gi-table-footer">
+        <span id="partyTypeFooterCount">Total: 0 party types</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ========================================================================
+     MODALS FOR GENERAL INFO SUB-SECTIONS
+     ======================================================================== -->
+
+<!-- MODAL: EDIT COMPANY INFO -->
+<div id="modalEditCompany" class="modal-overlay hidden">
+  <div class="modal-card modal-lg">
+    <div class="modal-header">
+      <h2 class="modal-title">Edit Company Information</h2>
+      <button type="button" id="btnCloseCompanyModal" class="btn-close">&times;</button>
+    </div>
+    <form id="companyEditForm" class="modal-form">
+      <div class="form-grid-equal">
+        <div class="form-group span-2">
+          <label for="ciInputName">Company Name <span class="req">*</span></label>
+          <input type="text" id="ciInputName" placeholder="Shahzaib Traders" required>
+        </div>
+        <div class="form-group span-2">
+          <label for="ciInputTagline">Tagline / Business Nature</label>
+          <input type="text" id="ciInputTagline" placeholder="Wholesale & Retail Trading Solutions">
+        </div>
+        <div class="form-group">
+          <label for="ciInputPerson">Contact Person / Owner</label>
+          <input type="text" id="ciInputPerson" placeholder="Shahzaib Ali">
+        </div>
+        <div class="form-group">
+          <label for="ciInputPhone">Primary Phone <span class="req">*</span></label>
+          <input type="tel" id="ciInputPhone" placeholder="0300-1234567" required>
+        </div>
+        <div class="form-group">
+          <label for="ciInputAltPhone">Alternate Phone / Landline</label>
+          <input type="tel" id="ciInputAltPhone" placeholder="042-37654321">
+        </div>
+        <div class="form-group">
+          <label for="ciInputEmail">Email Address</label>
+          <input type="email" id="ciInputEmail" placeholder="info@shahzaibtraders.com">
+        </div>
+        <div class="form-group span-2">
+          <label for="ciInputAddress">Address / Location</label>
+          <input type="text" id="ciInputAddress" placeholder="Shop #14, Main Wholesale Commercial Market, Lahore">
+        </div>
+        <div class="form-group">
+          <label for="ciInputNtn">NTN Number</label>
+          <input type="text" id="ciInputNtn" placeholder="4567890-1">
+        </div>
+        <div class="form-group">
+          <label for="ciInputStrn">STRN Number</label>
+          <input type="text" id="ciInputStrn" placeholder="STRN-789654-2">
+        </div>
+        <div class="form-group">
+          <label for="ciInputCurrency">Currency</label>
+          <input type="text" id="ciInputCurrency" value="PKR">
+        </div>
+        <div class="form-group">
+          <label for="ciInputWebsite">Website</label>
+          <input type="text" id="ciInputWebsite" placeholder="www.shahzaibtraders.com">
+        </div>
+        <div class="form-group span-2">
+          <label for="ciInputNotes">Business Notes / Footer Notice</label>
+          <textarea id="ciInputNotes" rows="2" style="width: 100%; padding: 8px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; font-family: inherit;" placeholder="Notes or remarks..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnCancelCompany" class="btn btn-secondary">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Company Info</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: ADD / EDIT PROVINCE -->
+<div id="modalProvince" class="modal-overlay hidden">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <h2 id="modalProvinceTitle" class="modal-title">Add Province</h2>
+      <button type="button" id="btnCloseProvinceModal" class="btn-close">&times;</button>
+    </div>
+    <form id="provinceForm" class="modal-form">
+      <input type="hidden" id="provinceId">
+      <div class="form-group">
+        <label for="provinceNameInput">Province Name <span class="req">*</span></label>
+        <input type="text" id="provinceNameInput" placeholder="e.g. Punjab, Sindh" required>
+      </div>
+      <div class="form-group">
+        <label for="provinceCodeInput">Province Code</label>
+        <input type="text" id="provinceCodeInput" placeholder="e.g. PB, SD, KP" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label for="provinceStatusSelect">Status</label>
+        <select id="provinceStatusSelect">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnCancelProvince" class="btn btn-secondary">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Province</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: ADD / EDIT AREA -->
+<div id="modalArea" class="modal-overlay hidden">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <h2 id="modalAreaTitle" class="modal-title">Add Area</h2>
+      <button type="button" id="btnCloseAreaModal" class="btn-close">&times;</button>
+    </div>
+    <form id="areaForm" class="modal-form">
+      <input type="hidden" id="areaId">
+      <div class="form-group">
+        <label for="areaNameInput">Area Name <span class="req">*</span></label>
+        <input type="text" id="areaNameInput" placeholder="e.g. Badami Bagh, Saddar" required>
+      </div>
+      <div class="form-group">
+        <label for="areaCityInput">City</label>
+        <input type="text" id="areaCityInput" placeholder="e.g. Lahore, Karachi, Rawalpindi">
+      </div>
+      <div class="form-group">
+        <label for="areaProvinceSelect">Province</label>
+        <select id="areaProvinceSelect">
+          <option value="">Select Province</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="areaCodeInput">Postal Code / Area Code</label>
+        <input type="text" id="areaCodeInput" placeholder="e.g. 54000">
+      </div>
+      <div class="form-group">
+        <label for="areaStatusSelect">Status</label>
+        <select id="areaStatusSelect">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnCancelArea" class="btn btn-secondary">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Area</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: ADD / EDIT PARTY TYPE -->
+<div id="modalPartyType" class="modal-overlay hidden">
+  <div class="modal-card modal-sm">
+    <div class="modal-header">
+      <h2 id="modalPartyTypeTitle" class="modal-title">Add Party Type</h2>
+      <button type="button" id="btnClosePartyTypeModal" class="btn-close">&times;</button>
+    </div>
+    <form id="partyTypeForm" class="modal-form">
+      <input type="hidden" id="partyTypeId">
+      <div class="form-group">
+        <label for="partyTypeNameInput">Party Type Name <span class="req">*</span></label>
+        <input type="text" id="partyTypeNameInput" placeholder="e.g. Customer, Wholesaler, Retailer" required>
+      </div>
+      <div class="form-group">
+        <label for="partyTypeCodeInput">Code</label>
+        <input type="text" id="partyTypeCodeInput" placeholder="e.g. CUST, WHL, RET" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label for="partyTypeDescInput">Description</label>
+        <input type="text" id="partyTypeDescInput" placeholder="Brief note or description">
+      </div>
+      <div class="form-group">
+        <label for="partyTypeStatusSelect">Status</label>
+        <select id="partyTypeStatusSelect">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnCancelPartyType" class="btn btn-secondary">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Party Type</button>
+      </div>
+    </form>
+  </div>
+</div>

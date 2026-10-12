@@ -36,8 +36,10 @@ window.api = window.electronAPI || {
 const appEl = {
   navInventoryBtn: document.getElementById('navInventoryBtn'),
   navVendorBtn: document.getElementById('navVendorBtn'),
+  navGeneralInfoBtn: document.getElementById('navGeneralInfoBtn'),
   inventoryView: document.getElementById('inventoryView'),
   vendorView: document.getElementById('vendorView'),
+  generalInfoView: document.getElementById('generalInfoView'),
   badgeInventoryCount: document.getElementById('badgeInventoryCount'),
   badgeVendorCount: document.getElementById('badgeVendorCount'),
 
@@ -91,14 +93,18 @@ function switchTab(tab) {
 
   if (appEl.navInventoryBtn) appEl.navInventoryBtn.classList.toggle('active', tab === 'inventory');
   if (appEl.navVendorBtn) appEl.navVendorBtn.classList.toggle('active', tab === 'vendors');
+  if (appEl.navGeneralInfoBtn) appEl.navGeneralInfoBtn.classList.toggle('active', tab === 'general-info');
 
   if (appEl.inventoryView) appEl.inventoryView.classList.toggle('active', tab === 'inventory');
   if (appEl.vendorView) appEl.vendorView.classList.toggle('active', tab === 'vendors');
+  if (appEl.generalInfoView) appEl.generalInfoView.classList.toggle('active', tab === 'general-info');
 
   if (tab === 'inventory' && window.renderInventory) {
     window.renderInventory();
   } else if (tab === 'vendors' && window.renderVendors) {
     window.renderVendors();
+  } else if (tab === 'general-info' && window.GeneralInfoModule) {
+    window.GeneralInfoModule.onActivate();
   }
 }
 
@@ -106,6 +112,7 @@ window.switchTab = switchTab;
 
 if (appEl.navInventoryBtn) appEl.navInventoryBtn.addEventListener('click', () => switchTab('inventory'));
 if (appEl.navVendorBtn) appEl.navVendorBtn.addEventListener('click', () => switchTab('vendors'));
+if (appEl.navGeneralInfoBtn) appEl.navGeneralInfoBtn.addEventListener('click', () => switchTab('general-info'));
 
 // Badges Update
 function updateBadges() {
@@ -214,6 +221,9 @@ async function init() {
   if (isAppInitialized) return;
   isAppInitialized = true;
   await reloadFromDatabase();
+  if (window.GeneralInfoModule) {
+    await window.GeneralInfoModule.init();
+  }
 }
 
 if (document.readyState === 'loading') {

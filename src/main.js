@@ -169,6 +169,53 @@ app.whenReady().then(() => {
     return db.deleteVendor(id);
   });
 
+  // ============================================
+  // GENERAL INFO IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-general-info', async () => {
+    return db.getAllGeneralInfo();
+  });
+
+  ipcMain.handle('save-company-info', async (event, info) => {
+    return db.saveCompanyInfo(info);
+  });
+
+  ipcMain.handle('add-province', async (event, province) => {
+    return db.addProvince(province);
+  });
+
+  ipcMain.handle('update-province', async (event, province) => {
+    return db.updateProvince(province);
+  });
+
+  ipcMain.handle('delete-province', async (event, id) => {
+    return db.deleteProvince(id);
+  });
+
+  ipcMain.handle('add-area', async (event, area) => {
+    return db.addArea(area);
+  });
+
+  ipcMain.handle('update-area', async (event, area) => {
+    return db.updateArea(area);
+  });
+
+  ipcMain.handle('delete-area', async (event, id) => {
+    return db.deleteArea(id);
+  });
+
+  ipcMain.handle('add-party-type', async (event, partyType) => {
+    return db.addPartyType(partyType);
+  });
+
+  ipcMain.handle('update-party-type', async (event, partyType) => {
+    return db.updatePartyType(partyType);
+  });
+
+  ipcMain.handle('delete-party-type', async (event, id) => {
+    return db.deletePartyType(id);
+  });
+
 
 
   // ============================================

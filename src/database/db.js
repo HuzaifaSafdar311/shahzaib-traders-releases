@@ -53,12 +53,16 @@ function initJsonFallback(dbPath) {
   return dbInstance;
 }
 
+const generalInfoDb = require('../Genral info/general-info-db');
+
 function initDatabase(dbPath) {
   if (dbInstance) return dbInstance;
 
   if (!DatabaseSync) {
     console.log('node:sqlite not available in this Node/Electron version. Using robust JSON database fallback.');
-    return initJsonFallback(dbPath);
+    const res = initJsonFallback(dbPath);
+    generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
+    return res;
   }
 
   try {
@@ -108,10 +112,13 @@ function initDatabase(dbPath) {
     try { db.exec("ALTER TABLE vendors ADD COLUMN notes TEXT DEFAULT '';"); } catch (e) {}
 
     dbInstance = db;
+    generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
     return dbInstance;
   } catch (err) {
     console.warn('SQLite init failed, falling back to JSON database:', err);
-    return initJsonFallback(dbPath);
+    const res = initJsonFallback(dbPath);
+    generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
+    return res;
   }
 }
 
@@ -446,5 +453,22 @@ module.exports = {
   updateVendor,
   deleteVendor,
   clearAllVendors,
-  syncAllData
+  syncAllData,
+
+  // General Info Module
+  getCompanyInfo: generalInfoDb.getCompanyInfo,
+  saveCompanyInfo: generalInfoDb.saveCompanyInfo,
+  getProvinces: generalInfoDb.getProvinces,
+  addProvince: generalInfoDb.addProvince,
+  updateProvince: generalInfoDb.updateProvince,
+  deleteProvince: generalInfoDb.deleteProvince,
+  getAreas: generalInfoDb.getAreas,
+  addArea: generalInfoDb.addArea,
+  updateArea: generalInfoDb.updateArea,
+  deleteArea: generalInfoDb.deleteArea,
+  getPartyTypes: generalInfoDb.getPartyTypes,
+  addPartyType: generalInfoDb.addPartyType,
+  updatePartyType: generalInfoDb.updatePartyType,
+  deletePartyType: generalInfoDb.deletePartyType,
+  getAllGeneralInfo: generalInfoDb.getAllGeneralInfo
 };
