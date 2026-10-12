@@ -236,6 +236,13 @@ if (inv.btnOkAlert) inv.btnOkAlert.addEventListener('click', closeAlert);
 function switchSubTab(subtab) {
   currentSubTab = subtab;
 
+  // Ensure General Info view is deactivated
+  const giView = document.getElementById('generalInfoView');
+  const giBtn = document.getElementById('navGeneralInfoBtn');
+  if (giView) giView.classList.remove('active');
+  if (giBtn) giBtn.classList.remove('active');
+  if (inv.navInventoryMainBtn) inv.navInventoryMainBtn.classList.add('active');
+
   // Sync sidebar active state
   inv.sidebarItems.forEach(item => {
     item.classList.toggle('active', item.dataset.subtab === subtab);

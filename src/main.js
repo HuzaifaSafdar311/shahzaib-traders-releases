@@ -180,6 +180,70 @@ app.whenReady().then(() => {
   ipcMain.handle('delete-product-type', async (_event, id) => db.deleteProductType(id));
 
   // ============================================
+  // GENERAL INFO IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-general-info', async () => {
+    return db.getAllGeneralInfo();
+  });
+
+  ipcMain.handle('save-company-info', async (event, info) => {
+    return db.saveCompanyInfo(info);
+  });
+
+  ipcMain.handle('add-province', async (event, province) => {
+    return db.addProvince(province);
+  });
+
+  ipcMain.handle('update-province', async (event, province) => {
+    return db.updateProvince(province);
+  });
+
+  ipcMain.handle('delete-province', async (event, id) => {
+    return db.deleteProvince(id);
+  });
+
+  ipcMain.handle('add-area', async (event, area) => {
+    return db.addArea(area);
+  });
+
+  ipcMain.handle('update-area', async (event, area) => {
+    return db.updateArea(area);
+  });
+
+  ipcMain.handle('delete-area', async (event, id) => {
+    return db.deleteArea(id);
+  });
+
+  ipcMain.handle('add-party-type', async (event, partyType) => {
+    return db.addPartyType(partyType);
+  });
+
+  ipcMain.handle('update-party-type', async (event, partyType) => {
+    return db.updatePartyType(partyType);
+  });
+
+  ipcMain.handle('delete-party-type', async (event, id) => {
+    return db.deletePartyType(id);
+  });
+
+  ipcMain.handle('get-parties', async () => {
+    return db.getParties();
+  });
+
+  ipcMain.handle('add-party', async (event, party) => {
+    return db.addParty(party);
+  });
+
+  ipcMain.handle('update-party', async (event, party) => {
+    return db.updateParty(party);
+  });
+
+  ipcMain.handle('delete-party', async (event, id) => {
+    return db.deleteParty(id);
+  });
+
+
+  // ============================================
   // PRODUCT GROUPS IPC HANDLERS
   // ============================================
   ipcMain.handle('get-product-groups', async () => db.getAllProductGroups());

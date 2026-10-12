@@ -34,6 +34,9 @@ window.api = window.electronAPI || {
 
 // DOM References
 const appEl = {
+  navInventoryMainBtn: document.getElementById('navInventoryMainBtn'),
+  navGeneralInfoBtn: document.getElementById('navGeneralInfoBtn'),
+  generalInfoView: document.getElementById('generalInfoView'),
   badgeVendorCount: document.getElementById('badgeVendorCount'),
   badgeProductsCount: document.getElementById('badgeProductsCount'),
 
@@ -80,6 +83,31 @@ if (appEl.btnExecuteConfirm) {
 window.openConfirmModal = openConfirmModal;
 window.closeConfirmModal = closeConfirmModal;
 
+// Tab Switching
+function switchTab(tab) {
+  window.currentTab = tab;
+  const isGi = (tab === 'general-info');
+
+  if (appEl.navGeneralInfoBtn) appEl.navGeneralInfoBtn.classList.toggle('active', isGi);
+  if (appEl.navInventoryMainBtn) appEl.navInventoryMainBtn.classList.toggle('active', !isGi);
+  if (appEl.generalInfoView) appEl.generalInfoView.classList.toggle('active', isGi);
+
+  if (isGi) {
+    document.querySelectorAll('.subview-section').forEach(s => s.classList.remove('active'));
+    if (window.GeneralInfoModule && window.GeneralInfoModule.onActivate) {
+      window.GeneralInfoModule.onActivate();
+    }
+  } else {
+    if (window.switchSubTab) {
+      window.switchSubTab(window.currentSubTab || 'unit-info');
+    }
+  }
+}
+
+window.switchTab = switchTab;
+
+if (appEl.navGeneralInfoBtn) appEl.navGeneralInfoBtn.addEventListener('click', () => switchTab('general-info'));
+if (appEl.navInventoryMainBtn) appEl.navInventoryMainBtn.addEventListener('click', () => switchTab('inventory'));
 // Badges Update
 function updateBadges() {
   const venCount = (window.appData && window.appData.vendors ? window.appData.vendors.length : 0);
@@ -185,6 +213,9 @@ async function init() {
   if (isAppInitialized) return;
   isAppInitialized = true;
   await reloadFromDatabase();
+  if (window.GeneralInfoModule) {
+    await window.GeneralInfoModule.init();
+  }
 
   // Initial tab setup
   if (window.switchSubTab) {

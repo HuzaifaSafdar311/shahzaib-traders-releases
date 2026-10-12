@@ -1,0 +1,571 @@
+/* ==========================================================================
+   Shahzaib Traders - General Info Module Stylesheet
+   Sub-sections: Company Info, Province Info, Area Info, Party Type
+   ========================================================================== */
+
+/* Main General Info Shell */
+.general-info-section {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--bg-app, #ffffff);
+}
+
+.general-info-section.active {
+  display: flex;
+}
+
+/* Header & Sub-Navigation Tabs */
+.gi-header {
+  padding: 16px 24px 0 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--border-light, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.gi-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.gi-main-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gi-title-icon {
+  width: 22px;
+  height: 22px;
+  color: #111827;
+}
+
+.gi-sub-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.gi-sub-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.gi-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.gi-tab-btn:hover {
+  color: #0f172a;
+  background-color: #f8fafc;
+  border-radius: 6px 6px 0 0;
+}
+
+.gi-tab-btn.active {
+  color: #0f172a;
+  font-weight: 600;
+  border-bottom-color: #0f172a;
+}
+
+.gi-tab-icon {
+  width: 17px;
+  height: 17px;
+  opacity: 0.8;
+}
+
+.gi-tab-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.gi-tab-btn.active .gi-tab-badge {
+  background-color: #0f172a;
+  color: #ffffff;
+}
+
+/* Sub-View Content Containers */
+.gi-content-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.gi-sub-view {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.gi-sub-view.active {
+  display: flex;
+}
+
+/* ==========================================================================
+   1. Company Info View Styles
+   ========================================================================== */
+.company-info-container {
+  padding: 24px;
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.company-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.company-card-header {
+  padding: 20px 24px;
+  background: linear-gradient(to right, #f8fafc, #ffffff);
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.company-card-branding {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.company-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e3d139;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+}
+
+.company-title-area h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.company-title-area p {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.company-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 24px;
+}
+
+.company-info-block {
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.company-info-block h3 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-item .info-label {
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.info-item .info-val {
+  font-size: 13.5px;
+  color: #1e293b;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.info-item .info-val.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* ==========================================================================
+   2. Tables & Toolbars for Provinces, Areas & Party Types
+   ========================================================================== */
+.gi-toolbar {
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.gi-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gi-search-box {
+  position: relative;
+  width: 280px;
+}
+
+.gi-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.gi-search-input {
+  width: 100%;
+  padding: 7px 32px 7px 34px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.gi-search-input:focus {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 1px #0f172a;
+}
+
+.gi-filter-select {
+  padding: 7px 12px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.gi-filter-select:focus {
+  border-color: #0f172a;
+}
+
+/* Table Area */
+.gi-table-wrapper {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+  background-color: #ffffff;
+}
+
+.gi-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.gi-data-table thead th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.gi-data-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.12s ease;
+}
+
+.gi-data-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.gi-data-table tbody td {
+  padding: 11px 16px;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+/* Code Pills & Status Badges */
+.code-pill {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 11.5px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-weight: 600;
+  background-color: #f1f5f9;
+  color: #334155;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 8px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.status-badge.active {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.status-badge.inactive {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.badge-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: 4px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.gi-actions-cell {
+  width: 110px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.btn-icon-action {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 5px 8px;
+  border-radius: 4px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon-action:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #e2e8f0;
+}
+
+.btn-icon-action.danger:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+/* Empty States */
+.gi-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 54px 20px;
+  color: #94a3b8;
+  gap: 12px;
+}
+
+.gi-empty-icon {
+  width: 38px;
+  height: 38px;
+  color: #cbd5e1;
+}
+
+.gi-empty-text {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+/* Footer / Stats bar */
+.gi-table-footer {
+  padding: 10px 24px;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+/* Party Info Specific Styles */
+.party-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.party-mini-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  color: #1e293b;
+  font-size: 11.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid #cbd5e1;
+}
+
+.party-name-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.contact-sub-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.location-text {
+  font-size: 12.5px;
+  color: #334155;
+}
+
+.badge-party-type {
+  display: inline-block;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 12px;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #dbeafe;
+}
+
+.text-balance-pos {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.text-balance-neg {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.gi-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gi-select-filter {
+  padding: 7px 12px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.gi-select-filter:focus {
+  border-color: #0f172a;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .company-grid {
+    grid-template-columns: 1fr;
+  }
+  .gi-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .gi-search-box {
+    width: 100%;
+  }
+}
