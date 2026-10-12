@@ -54,21 +54,40 @@ function renderVendors() {
   }
   if (vendorEl.vendorEmptyState) vendorEl.vendorEmptyState.classList.add('hidden');
 
-  filtered.forEach((vendor) => {
+  filtered.forEach((vendor, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="col-vendor-name">
-        <div class="vendor-avatar-row">
-          <div class="vendor-avatar">${window.escapeHtml((vendor.name || 'V').substring(0, 2).toUpperCase())}</div>
-          <span class="vendor-name-text font-bold">${window.escapeHtml(vendor.name)}</span>
+      <td class="col-ven-sr font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
+      <td class="col-ven-name font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(vendor.name)}</td>
+      <td class="col-ven-contact" style="text-align: center;">${window.escapeHtml(vendor.contactPerson || '-')}</td>
+      <td class="col-ven-phone font-mono" style="text-align: center;"><span class="code-pill">${window.escapeHtml(vendor.phone || '-')}</span></td>
+      <td class="col-ven-address text-secondary" style="text-align: center;">${window.escapeHtml(vendor.address || '-')}</td>
+      <td class="col-ven-actions col-dots-actions text-center">
+        <div class="dots-wrapper">
+          <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'venMenu_${vendor.id}')" title="Actions">
+            <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="1.5"></circle>
+              <circle cx="12" cy="5" r="1.5"></circle>
+              <circle cx="12" cy="19" r="1.5"></circle>
+            </svg>
+          </button>
+          <div id="venMenu_${vendor.id}" class="action-menu hidden">
+            <button type="button" class="action-menu-item" onclick="window.openEditVendor('${vendor.id}')">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              <span>Edit</span>
+            </button>
+            <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteVendor('${vendor.id}')">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
         </div>
-      </td>
-      <td class="col-phone font-num">${window.escapeHtml(vendor.phone || '-')}</td>
-      <td>${window.escapeHtml(vendor.contactPerson || '-')}</td>
-      <td class="text-secondary">${window.escapeHtml(vendor.address || '-')}</td>
-      <td class="col-dots-actions">
-        <button class="btn btn-sm btn-secondary" onclick="openEditVendor('${vendor.id}')" title="Edit Vendor">✏️</button>
-        <button class="btn btn-sm btn-danger" onclick="confirmDeleteVendor('${vendor.id}')" title="Delete Vendor">🗑️</button>
       </td>
     `;
     vendorEl.vendorTableBody.appendChild(tr);

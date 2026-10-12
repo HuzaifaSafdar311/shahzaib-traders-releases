@@ -774,18 +774,7 @@ body {
   position: relative;
 }
 
-/* Equal Space for Vendor Columns (3 columns = 33.33% each) */
-.col-vendor-name {
-  width: 33.33%;
-  text-align: left;
-  word-break: break-word;
-}
 
-.col-phone {
-  width: 33.33%;
-  text-align: left;
-  white-space: nowrap;
-}
 
 /* Equal, Balanced Invoices Table Columns (8 columns = 100%) */
 .col-inv-no {

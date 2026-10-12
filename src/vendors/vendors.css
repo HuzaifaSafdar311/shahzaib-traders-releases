@@ -1,40 +1,61 @@
 /* ========================================================
-   VENDORS MODULE SPECIFIC STYLES
+   VENDORS MODULE SPECIFIC STYLES - BALANCED EQUAL TABLE
    ======================================================== */
 
-.col-vendor-name {
-  width: 45%;
-  text-align: left;
-  word-break: break-word;
+.table-vendor {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
 }
 
-.col-phone {
-  width: 45%;
-  text-align: left;
-  white-space: nowrap;
+.table-vendor th,
+.table-vendor td {
+  padding: 12px 14px !important;
+  vertical-align: middle !important;
+  border: none !important;
+  background: transparent !important;
 }
 
-.vendor-avatar-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.table-vendor .col-ven-sr {
+  width: 8% !important;
+  text-align: left !important;
+  padding-left: 24px !important;
 }
 
-.vendor-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #e0f2fe;
-  color: #0369a1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
+.table-vendor .col-ven-name {
+  width: 28% !important;
+  text-align: left !important;
+  padding-left: 16px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
-.vendor-name-text {
-  font-weight: 600;
-  color: #0f172a;
+.table-vendor .col-ven-contact {
+  width: 20% !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.table-vendor .col-ven-phone {
+  width: 18% !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.table-vendor .col-ven-address {
+  width: 16% !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.table-vendor .col-ven-actions {
+  width: 10% !important;
+  text-align: center !important;
+  position: relative !important;
 }
