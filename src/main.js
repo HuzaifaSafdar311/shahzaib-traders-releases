@@ -165,12 +165,55 @@ app.whenReady().then(() => {
     return db.updateVendor(vendor);
   });
 
-  ipcMain.handle('delete-vendor', async (event, id) => {
-    return db.deleteVendor(id);
-  });
+  // ============================================
+  // UNITS IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-units', async () => db.getAllUnits());
+  ipcMain.handle('save-unit', async (_event, unit) => db.saveUnit(unit));
+  ipcMain.handle('delete-unit', async (_event, id) => db.deleteUnit(id));
 
+  // ============================================
+  // PRODUCT TYPES IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-product-types', async () => db.getAllProductTypes());
+  ipcMain.handle('save-product-type', async (_event, pt) => db.saveProductType(pt));
+  ipcMain.handle('delete-product-type', async (_event, id) => db.deleteProductType(id));
 
+  // ============================================
+  // PRODUCT GROUPS IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-product-groups', async () => db.getAllProductGroups());
+  ipcMain.handle('save-product-group', async (_event, pg) => db.saveProductGroup(pg));
+  ipcMain.handle('delete-product-group', async (_event, id) => db.deleteProductGroup(id));
 
+  // ============================================
+  // PRODUCT CATEGORIES & SUB-CATEGORIES IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-product-categories', async () => db.getAllProductCategories());
+  ipcMain.handle('save-product-category', async (_event, cat) => db.saveProductCategory(cat));
+  ipcMain.handle('delete-product-category', async (_event, id) => db.deleteProductCategory(id));
+  ipcMain.handle('get-product-sub-categories', async (_event, catId) => db.getSubCategoriesByCategory(catId));
+  ipcMain.handle('save-product-sub-category', async (_event, sub) => db.saveProductSubCategory(sub));
+  ipcMain.handle('delete-product-sub-category', async (_event, id) => db.deleteProductSubCategory(id));
+
+  // ============================================
+  // PRODUCTS (PRODUCT INFO) IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-products', async () => db.getAllProducts());
+  ipcMain.handle('get-product', async (_event, id) => db.getProductById(id));
+  ipcMain.handle('get-product-by-code', async (_event, code) => db.getProductByCode(code));
+  ipcMain.handle('get-next-product-code', async () => db.getNextProductCode());
+  ipcMain.handle('save-product', async (_event, prod) => db.saveProduct(prod));
+  ipcMain.handle('delete-product', async (_event, id) => db.deleteProduct(id));
+
+  // ============================================
+  // PURCHASES IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-purchases', async () => db.getAllPurchases());
+  ipcMain.handle('get-purchase', async (_event, id) => db.getPurchaseById(id));
+  ipcMain.handle('get-next-purchase-voucher-no', async () => db.getNextPurchaseVoucherNo());
+  ipcMain.handle('save-purchase', async (_event, purchaseData, items) => db.savePurchase(purchaseData, items));
+  ipcMain.handle('delete-purchase', async (_event, id) => db.deletePurchase(id));
   // ============================================
   // EXPORT IPC HANDLERS
   // ============================================

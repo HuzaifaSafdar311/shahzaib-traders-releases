@@ -14,7 +14,7 @@
 
 <body>
   <div class="app-container">
-    <!-- Sidebar (Full Open or Half-Closed Mini) -->
+    <!-- Sidebar -->
     <aside id="sidebar" class="sidebar">
       <div class="brand">
         <div class="brand-full">
@@ -31,26 +31,94 @@
       </div>
 
       <nav class="nav-menu">
-        <button id="navInventoryBtn" class="nav-item active" title="Inventory">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-            <line x1="8" y1="21" x2="16" y2="21"></line>
-            <line x1="12" y1="17" x2="12" y2="21"></line>
-          </svg>
-          <span class="nav-label">Inventory</span>
-          <span id="badgeInventoryCount" class="badge">0</span>
-        </button>
+        <!-- Primary Inventory Menu with Hover Flyout Submenu -->
+        <div class="nav-item-dropdown" id="navInventoryDropdown">
+          <button id="navInventoryMainBtn" class="nav-item active" title="Inventory">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            <span class="nav-label">Inventory</span>
+            <svg class="nav-chevron-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
 
-        <button id="navVendorBtn" class="nav-item" title="Vendors">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-          <span class="nav-label">Vendors</span>
-          <span id="badgeVendorCount" class="badge">0</span>
-        </button>
+          <!-- Floating Hover Flyout Sub-Menu -->
+          <div class="sidebar-flyout-menu" id="inventoryFlyoutMenu">
+            <div class="flyout-header-tag">Inventory Sub-Menu</div>
+            <div class="flyout-items-list">
+              <button class="flyout-sub-item active" data-subtab="unit-info" title="Unit Info">
+                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 7V4h16v3M9 20h6M12 4v16"></path>
+                </svg>
+                <span class="flyout-label">Unit Info</span>
+              </button>
+
+              <button class="flyout-sub-item" data-subtab="product-type" title="Product Type">
+                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+                <span class="flyout-label">Product Type</span>
+              </button>
+
+              <button class="flyout-sub-item" data-subtab="product-group" title="Product Group">
+                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span class="flyout-label">Product Group</span>
+              </button>
+
+              <button class="flyout-sub-item" data-subtab="product-categories" title="Product Categories">
+                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                <span class="flyout-label">Product Categories</span>
+              </button>
+
+              <button class="flyout-sub-item" data-subtab="vendor" title="Vendor">
+                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span class="flyout-label">Vendor</span>
+                <span id="badgeVendorCount" class="badge">0</span>
+              </button>
+
+              <button class="flyout-sub-item" data-subtab="purchase" title="Purchase">
+                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <span class="flyout-label">Purchase</span>
+              </button>
+
+              <button class="flyout-sub-item" data-subtab="product-info" title="Product Info">
+                <svg class="flyout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <span class="flyout-label">Product Info</span>
+                <span id="badgeProductsCount" class="badge">0</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
@@ -61,174 +129,234 @@
 
     <!-- Main Content Area -->
     <main class="main-content">
-      <!-- INVENTORY VIEW -->
-      <section id="inventoryView" class="view-section active">
+
+      <!-- ======================================================== -->
+      <!-- TAB 1: UNIT INFO                                         -->
+      <!-- ======================================================== -->
+      <section id="viewUnitInfo" class="subview-section active">
         <header class="section-header">
           <div class="header-left">
-            <h1 class="view-title">Inventory</h1>
+            <h1 class="view-title">Unit Info</h1>
           </div>
           <div class="header-right">
-            <!-- Circular Radial Speed-Dial Export Menu -->
-            <div class="radial-export-widget" id="radialExportWidget">
-              <button id="btnExportToggle" class="btn btn-secondary btn-export-toggle" type="button"
-                aria-expanded="false" title="Export Inventory Data">
-                <svg class="btn-icon export-icon-main" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span>Export</span>
-                <svg class="chevron-export-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.2">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-
-              <!-- Radial Nodes Floating Overlay Container -->
-              <div id="radialNodesPanel" class="radial-nodes-panel hidden" aria-hidden="true">
-                <div class="radial-backdrop" id="radialBackdrop"></div>
-
-                <!-- Left-Bottom Speed-Dial Arc (3 Floating Circular Nodes) -->
-                <div class="radial-nodes-arc">
-                  <!-- Node 1: PDF -->
-                  <div class="radial-node-item node-arc-pdf">
-                    <button type="button" class="radial-node-btn btn-node-pdf" id="btnExportPDF"
-                      title="Export as PDF Document">
-                      <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <path d="M9 15h6"></path>
-                        <path d="M9 11h2"></path>
-                      </svg>
-                      <span class="node-badge">PDF</span>
-                    </button>
-                    <span class="node-label">PDF</span>
-                  </div>
-
-                  <!-- Node 2: Excel -->
-                  <div class="radial-node-item node-arc-excel">
-                    <button type="button" class="radial-node-btn btn-node-excel" id="btnExportExcel"
-                      title="Export as Excel Sheet (.xlsx)">
-                      <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="3" y1="9" x2="21" y2="9"></line>
-                        <line x1="3" y1="15" x2="21" y2="15"></line>
-                        <line x1="9" y1="3" x2="9" y2="21"></line>
-                        <line x1="15" y1="3" x2="15" y2="21"></line>
-                      </svg>
-                      <span class="node-badge">XLS</span>
-                    </button>
-                    <span class="node-label">Excel</span>
-                  </div>
-
-                  <!-- Node 3: CSV -->
-                  <div class="radial-node-item node-arc-csv">
-                    <button type="button" class="radial-node-btn btn-node-csv" id="btnExportCSV"
-                      title="Export as CSV File">
-                      <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="8" y1="13" x2="16" y2="13"></line>
-                        <line x1="8" y1="17" x2="16" y2="17"></line>
-                      </svg>
-                      <span class="node-badge">CSV</span>
-                    </button>
-                    <span class="node-label">CSV</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button id="btnOpenAddStock" class="btn btn-primary">
+            <button id="btnOpenAddUnit" class="btn btn-primary">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              <span>Add Stock</span>
+              <span>Add Unit</span>
             </button>
           </div>
         </header>
 
-        <!-- Search and Filters Bar (Left Aligned Together) -->
         <div class="toolbar toolbar-left-aligned">
-          <div class="search-box-group">
-            <div class="search-by-wrapper">
-              <label for="inventorySearchBy" class="search-by-label">Search by</label>
-              <select id="inventorySearchBy" class="search-by-select">
-                <option value="all">All</option>
-                <option value="stockName">Stock Name</option>
-                <option value="vendorName">Vendor</option>
-              </select>
-            </div>
-            <div class="search-box">
-              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input type="text" id="inventorySearchInput" placeholder="Search inventory..." autocomplete="off">
-              <button id="btnClearInventorySearch" class="btn-clear hidden">&times;</button>
-            </div>
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="unitSearchInput" placeholder="Search units..." autocomplete="off">
+            <button id="btnClearUnitSearch" class="btn-clear hidden">&times;</button>
           </div>
-
-          <!-- Stock Filter (Nearest Quantity Closeness) -->
-          <div class="filter-item user-stock-filter">
-            <label for="filterStockLevelInput">Stock</label>
-            <input type="number" id="filterStockLevelInput" placeholder="Enter qty" min="0" class="filter-num-input">
-          </div>
-
-          <button id="btnResetInventoryFilters" class="btn btn-text">Reset</button>
         </div>
 
-        <!-- Inventory Table -->
         <div class="table-container">
-          <table class="data-table">
+          <table class="data-table table-unit-info">
             <thead>
               <tr>
-                <th class="col-stock-name">Stock Name</th>
-                <th class="col-vendor">Vendor</th>
-                <th class="col-stock-qty">Total Stock</th>
-                <th class="col-sell-qty">Total Sell</th>
-                <th class="col-price">Wholesale</th>
-                <th class="col-price">Individual</th>
-                <th class="col-date">Date</th>
-                <th class="col-dots-actions">Actions</th>
+                <th class="col-unit-sr">SR #</th>
+                <th class="col-unit-name">Unit Name</th>
+                <th class="col-unit-symbol">Symbol</th>
+                <th class="col-unit-actions">Action</th>
               </tr>
             </thead>
-            <tbody id="inventoryTableBody">
-              <!-- Rendered via JS -->
-            </tbody>
+            <tbody id="unitTableBody"></tbody>
           </table>
-          <div id="inventoryEmptyState" class="empty-state hidden">
-            <span>No stock records found</span>
-          </div>
-        </div>
-
-        <!-- Inventory Pagination Controls Bottom Right -->
-        <div class="table-footer">
-          <div id="inventoryPaginationInfo" class="pagination-info">Showing 0-0 of 0 items</div>
-          <div class="pagination-controls">
-            <button id="btnInvPrevPage" class="btn-page btn-page-nav" disabled title="Previous page">
-              <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-              <span>Prev</span>
-            </button>
-            <div id="invPageNumbers" class="page-numbers"></div>
-            <button id="btnInvNextPage" class="btn-page btn-page-nav" title="Next page">
-              <span>Next</span>
-              <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
+          <div id="unitEmptyState" class="empty-state hidden">
+            <span>No measuring units found</span>
           </div>
         </div>
       </section>
 
-      <!-- VENDORS VIEW -->
-      <section id="vendorView" class="view-section">
+      <!-- ======================================================== -->
+      <!-- TAB 2: PRODUCT TYPE                                      -->
+      <!-- ======================================================== -->
+      <section id="viewProductType" class="subview-section">
         <header class="section-header">
           <div class="header-left">
-            <h1 class="view-title">Vendors</h1>
+            <h1 class="view-title">Product Type</h1>
+          </div>
+          <div class="header-right">
+            <button id="btnOpenAddProductType" class="btn btn-primary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Add Product Type</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="toolbar toolbar-left-aligned">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="productTypeSearchInput" placeholder="Search product types..." autocomplete="off">
+            <button id="btnClearProductTypeSearch" class="btn-clear hidden">&times;</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table table-product-type">
+            <thead>
+              <tr>
+                <th class="col-pt-sr">SR #</th>
+                <th class="col-pt-name">Product Type</th>
+                <th class="col-pt-desc">Description</th>
+                <th class="col-pt-actions">Action</th>
+              </tr>
+            </thead>
+            <tbody id="productTypeTableBody"></tbody>
+          </table>
+          <div id="productTypeEmptyState" class="empty-state hidden">
+            <span>No product types found</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- TAB 3: PRODUCT GROUP                                     -->
+      <!-- ======================================================== -->
+      <section id="viewProductGroup" class="subview-section">
+        <header class="section-header">
+          <div class="header-left">
+            <h1 class="view-title">Product Group</h1>
+          </div>
+          <div class="header-right">
+            <button id="btnOpenAddProductGroup" class="btn btn-primary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Add Product Group</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="toolbar toolbar-left-aligned">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="productGroupSearchInput" placeholder="Search product groups / brands..." autocomplete="off">
+            <button id="btnClearProductGroupSearch" class="btn-clear hidden">&times;</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table table-product-group">
+            <thead>
+              <tr>
+                <th class="col-pg-sr">SR #</th>
+                <th class="col-pg-name">Group / Brand Name</th>
+                <th class="col-pg-code">Code / Prefix</th>
+                <th class="col-pg-notes">Notes</th>
+                <th class="col-pg-actions">Action</th>
+              </tr>
+            </thead>
+            <tbody id="productGroupTableBody"></tbody>
+          </table>
+          <div id="productGroupEmptyState" class="empty-state hidden">
+            <span>No product groups found</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- TAB 4: PRODUCT CATEGORIES (WITH NESTED SUB CATEGORIES)   -->
+      <!-- ======================================================== -->
+      <section id="viewProductCategories" class="subview-section">
+        <header class="section-header">
+          <div class="header-left">
+            <h1 class="view-title">Product Categories</h1>
+          </div>
+          <div class="header-right">
+            <button id="btnOpenAddCategory" class="btn btn-primary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Add Category</span>
+            </button>
+            <button id="btnOpenAddSubCategory" class="btn btn-secondary">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Add Sub Category</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Two-Panel Grid: Categories on Left, Sub Categories on Right -->
+        <div class="category-split-layout">
+          <!-- Left Panel: Categories -->
+          <div class="category-panel card">
+            <div class="panel-header">
+              <h3 class="panel-title">Categories</h3>
+              <span id="categoryCountLabel" class="panel-badge">0</span>
+            </div>
+            <div class="panel-search">
+              <input type="text" id="categorySearchInput" placeholder="Filter categories..." class="form-control form-control-sm">
+            </div>
+            <div class="category-list-scroll">
+              <ul id="categoryListUl" class="category-selectable-list"></ul>
+            </div>
+          </div>
+
+          <!-- Right Panel: Sub Categories for Selected Category -->
+          <div class="sub-category-panel card">
+            <div class="panel-header">
+              <div class="subcat-header-info">
+                <h3 class="panel-title">Sub Categories</h3>
+                <span id="activeCategoryNamePill" class="category-pill-badge">All Sub Categories</span>
+              </div>
+              <span id="subCategoryCountLabel" class="panel-badge">0</span>
+            </div>
+            <div class="panel-search">
+              <input type="text" id="subCategorySearchInput" placeholder="Filter sub categories..." class="form-control form-control-sm">
+            </div>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 70px;">Sr #</th>
+                    <th>Sub Category Name</th>
+                    <th>Code</th>
+                    <th>Parent Category</th>
+                    <th class="col-dots-actions" style="width: 100px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="subCategoryTableBody"></tbody>
+              </table>
+              <div id="subCategoryEmptyState" class="empty-state hidden">
+                <span>No sub categories found for this category</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- TAB 5: VENDOR (INTEGRATED)                                -->
+      <!-- ======================================================== -->
+      <section id="viewVendor" class="subview-section">
+        <header class="section-header">
+          <div class="header-left">
+            <h1 class="view-title">Vendor</h1>
           </div>
           <div class="header-right">
             <button id="btnOpenAddVendor" class="btn btn-primary">
@@ -241,15 +369,14 @@
           </div>
         </header>
 
-        <!-- Vendor Toolbar -->
         <div class="toolbar toolbar-left-aligned">
           <div class="search-box-group">
             <div class="search-by-wrapper">
               <label for="vendorSearchBy" class="search-by-label">Search by</label>
               <select id="vendorSearchBy" class="search-by-select">
                 <option value="all">All</option>
-                <option value="name">Vendor Name</option>
-                <option value="phone">Phone Number</option>
+                <option value="name">Name</option>
+                <option value="phone">Phone</option>
               </select>
             </div>
             <div class="search-box">
@@ -263,138 +390,645 @@
           </div>
         </div>
 
-        <!-- Vendor Table -->
         <div class="table-container">
           <table class="data-table">
             <thead>
               <tr>
                 <th class="col-vendor-name">Vendor Name</th>
-                <th class="col-phone">Phone Number</th>
+                <th class="col-phone">Phone</th>
+                <th>Contact Person</th>
+                <th>Address</th>
                 <th class="col-dots-actions">Actions</th>
               </tr>
             </thead>
-            <tbody id="vendorTableBody">
-              <!-- Rendered via JS -->
-            </tbody>
+            <tbody id="vendorTableBody"></tbody>
           </table>
           <div id="vendorEmptyState" class="empty-state hidden">
-            <span>No vendor records found</span>
-          </div>
-        </div>
-
-        <!-- Vendor Pagination Controls Bottom Right -->
-        <div class="table-footer">
-          <div id="vendorPaginationInfo" class="pagination-info">Showing 0-0 of 0 items</div>
-          <div class="pagination-controls">
-            <button id="btnVendorPrevPage" class="btn-page btn-page-nav" disabled title="Previous page">
-              <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-              <span>Prev</span>
-            </button>
-            <div id="vendorPageNumbers" class="page-numbers"></div>
-            <button id="btnVendorNextPage" class="btn-page btn-page-nav" title="Next page">
-              <span>Next</span>
-              <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
+            <span>No vendors found</span>
           </div>
         </div>
       </section>
 
-      </main>
-  </div>
-
-  <!-- MODAL: ADD / EDIT STOCK -->
-  <div id="modalStock" class="modal-overlay hidden">
-    <div class="modal-card modal-lg">
-      <div class="modal-header">
-        <h2 id="modalStockTitle" class="modal-title">Add Stock</h2>
-        <button id="btnCloseStockModal" class="btn-close">&times;</button>
-      </div>
-      <form id="stockForm" class="modal-form">
-        <input type="hidden" id="stockId">
-
-        <div class="form-grid-equal">
-          <div class="form-group span-2">
-            <label for="stockNameInput">Stock Name <span class="req">*</span></label>
-            <input type="text" id="stockNameInput" placeholder="Enter stock item name" required>
-          </div>
-
-          <div class="form-group span-2">
-            <div class="label-with-action">
-              <label for="stockVendorSelect">Vendor <span class="req">*</span></label>
-              <button type="button" id="btnQuickAddVendor" class="link-btn">+ New Vendor</button>
+      <!-- ======================================================== -->
+      <!-- TAB 6: PURCHASE (LEGACY DESKTOP REPLICA)                 -->
+      <!-- ======================================================== -->
+      <section id="viewPurchase" class="subview-section">
+        <header class="voucher-top-bar">
+          <div class="voucher-header-title-actions">
+            <div class="voucher-title-wrap">
+              <h1 class="view-title">Purchase</h1>
             </div>
-            <select id="stockVendorSelect" required>
-              <option value="">Select Vendor</option>
+            <div class="voucher-actions-bar">
+              <div class="header-nav-btn-group">
+                <button type="button" id="btnPurFirst" class="btn btn-secondary btn-icon-only" title="First Voucher">|&lt;</button>
+                <button type="button" id="btnPurPrev" class="btn btn-secondary btn-icon-only" title="Previous Voucher">&lt;&lt;</button>
+                <button type="button" id="btnPurNext" class="btn btn-secondary btn-icon-only" title="Next Voucher">&gt;&gt;</button>
+                <button type="button" id="btnPurLast" class="btn btn-secondary btn-icon-only" title="Last Voucher">&gt;|</button>
+              </div>
+              <button type="button" id="btnPurRefresh" class="btn btn-secondary" title="New / Reset Voucher">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                <span>New</span>
+              </button>
+              <button type="button" id="btnPurPrint" class="btn btn-secondary" title="Print Voucher">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print</span>
+              </button>
+              <button type="button" id="btnPurDelete" class="btn btn-danger" title="Delete Voucher">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Delete</span>
+              </button>
+              <button type="button" id="btnPurSave" class="btn btn-primary" title="Save Purchase Voucher">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>Save Voucher</span>
+              </button>
+            </div>
+          </div>
+          <div class="voucher-meta-row">
+            <div class="meta-field">
+              <label>Entry Date</label>
+              <input type="date" id="purEntryDate" class="form-control form-control-sm">
+            </div>
+            <div class="meta-field">
+              <label>Voucher No</label>
+              <input type="text" id="purVoucherNo" class="form-control form-control-sm font-num font-bold" readonly>
+            </div>
+            <div class="meta-field">
+              <label>Manual No</label>
+              <input type="text" id="purManualNo" class="form-control form-control-sm" placeholder="Manual ref">
+            </div>
+            <div class="meta-field meta-field-party">
+              <label class="required-label">Party Title (Supplier)</label>
+              <select id="purPartySelect" class="form-control form-control-sm required-input">
+                <option value="">-- Please Select Party Title --</option>
+              </select>
+            </div>
+          </div>
+        </header>
+
+        <!-- Secondary Header Fields -->
+        <div class="voucher-secondary-bar">
+          <div class="form-group flex-2">
+            <label>Description</label>
+            <input type="text" id="purDescription" class="form-control form-control-sm" placeholder="Enter purchase voucher notes / details">
+          </div>
+          <div class="form-group flex-1">
+            <label>Store Title</label>
+            <input type="text" id="purStoreTitle" class="form-control form-control-sm" value="Main Store">
+          </div>
+          <div class="form-group flex-1">
+            <label>Receivable</label>
+            <input type="number" id="purReceivable" class="form-control form-control-sm font-num" value="0.00" readonly>
+          </div>
+          <div class="form-group flex-1">
+            <label>Contact Person</label>
+            <input type="text" id="purContactPerson" class="form-control form-control-sm" placeholder="Contact person">
+          </div>
+          <div class="form-group flex-1">
+            <label>Payment Due Date</label>
+            <input type="date" id="purDueDate" class="form-control form-control-sm">
+          </div>
+        </div>
+
+        <!-- Line Item Entry Single Row (Matching User Screenshot) -->
+        <div class="voucher-item-entry-row card">
+          <div class="entry-col entry-code">
+            <label>Code <span class="hotkey-hint">(F1)</span></label>
+            <div class="input-with-btn">
+              <input type="text" id="pieCode" class="form-control form-control-sm font-num" placeholder="Code">
+              <button type="button" id="btnPieFind" class="btn btn-sm btn-secondary" title="Search Product (F1)">🔍</button>
+            </div>
+          </div>
+          <div class="entry-col entry-title">
+            <label>Product Title</label>
+            <select id="pieProductSelect" class="form-control form-control-sm">
+              <option value="">-- Select Product --</option>
             </select>
           </div>
-
-          <input type="hidden" id="stockSellInput" value="0">
-
-          <div class="form-group">
-            <label for="stockQtyInput">Total Stock <span class="req">*</span></label>
-            <input type="number" id="stockQtyInput" min="0" step="1" placeholder="0" required>
+          <div class="entry-col entry-sm">
+            <label>P.Qty</label>
+            <input type="number" id="piePackQty" class="form-control form-control-sm font-num" min="0" value="0">
           </div>
-
-          <div class="form-group">
-            <label for="stockDateInput">Date <span class="req">*</span></label>
-            <input type="date" id="stockDateInput" required>
+          <div class="entry-col entry-sm">
+            <label>U.Qty</label>
+            <input type="number" id="pieUnitQty" class="form-control form-control-sm font-num" min="0" value="0">
           </div>
-
-          <div class="form-group">
-            <label for="stockWholesalePrice">Wholesale Price <span class="req">*</span></label>
-            <input type="number" id="stockWholesalePrice" min="0" step="0.01" placeholder="0.00" required>
+          <div class="entry-col entry-sm">
+            <label>Bonus</label>
+            <input type="number" id="pieBonus" class="form-control form-control-sm font-num" min="0" value="0">
           </div>
-
-          <div class="form-group">
-            <label for="stockIndividualPrice">Individual Price <span class="req">*</span></label>
-            <input type="number" id="stockIndividualPrice" min="0" step="0.01" placeholder="0.00" required>
+          <div class="entry-col entry-price">
+            <label>T.Price</label>
+            <input type="number" id="pieTradePrice" class="form-control form-control-sm font-num" min="0" step="0.01" value="0.00">
           </div>
+          <div class="entry-col entry-pill">
+            <label>R.Price</label>
+            <span id="pieRetailPricePill" class="badge-price-pill bg-green-pill font-num">0.00</span>
+          </div>
+          <div class="entry-col entry-pill">
+            <label>W.Price</label>
+            <span id="pieWholesalePricePill" class="badge-price-pill bg-green-pill font-num">0.00</span>
+          </div>
+          <div class="entry-col entry-sm">
+            <label>Offer</label>
+            <input type="number" id="pieTradeOffer" class="form-control form-control-sm font-num" min="0" step="0.01" value="0.00">
+          </div>
+          <div class="entry-col entry-sm">
+            <label>Disc %</label>
+            <input type="number" id="pieDiscPercent" class="form-control form-control-sm font-num" min="0" max="100" step="0.1" value="0.0">
+          </div>
+          <div class="entry-col entry-btn">
+            <label>&nbsp;</label>
+            <button type="button" id="btnAddPurchaseItem" class="btn btn-sm btn-primary btn-add-item">
+              <span>+ Add</span>
+            </button>
+          </div>
+        </div>
 
-          <!-- Real-Time Calculated Total Prices According to Quantity and Both Prices -->
-          <div class="total-prices-banner span-2">
-            <div class="total-price-box">
-              <span class="total-price-label">Total Wholesale</span>
-              <span id="summaryTotalWholesale" class="total-price-value">PKR 0.00</span>
+        <!-- Line Items Grid Table -->
+        <div class="table-container voucher-grid-container">
+          <table class="data-table voucher-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">Sr #</th>
+                <th style="width: 90px;">Code</th>
+                <th>Product Title</th>
+                <th style="width: 70px;">P.Qty</th>
+                <th style="width: 70px;">U.Qty</th>
+                <th style="width: 70px;">Bonus</th>
+                <th style="width: 90px;">T.P</th>
+                <th style="width: 70px;">Pro %</th>
+                <th style="width: 90px;">R.P</th>
+                <th style="width: 90px;">W.P</th>
+                <th style="width: 70px;">T.O</th>
+                <th style="width: 70px;">Disc %</th>
+                <th style="width: 110px;">Net Amount</th>
+                <th style="width: 60px;">X</th>
+              </tr>
+            </thead>
+            <tbody id="purchaseItemsTableBody"></tbody>
+          </table>
+          <div id="purchaseItemsEmptyState" class="empty-state">
+            <span>No line items added yet. Select party, choose product, and click Add.</span>
+          </div>
+        </div>
+
+        <!-- Voucher Summary & Totals Footer -->
+        <div class="voucher-footer-row card">
+          <div class="footer-summary-grid">
+            <div class="summary-item">
+              <label>Discount</label>
+              <input type="number" id="purDiscount" class="form-control form-control-sm font-num" min="0" value="0.00">
             </div>
-            <div class="total-price-box">
-              <span class="total-price-label">Total Individual</span>
-              <span id="summaryTotalIndividual" class="total-price-value">PKR 0.00</span>
+            <div class="summary-item">
+              <label>Freight Disc</label>
+              <input type="number" id="purFreightDisc" class="form-control form-control-sm font-num" min="0" value="0.00">
+            </div>
+            <div class="summary-item">
+              <label>Freight Expn</label>
+              <input type="number" id="purFreightExpn" class="form-control form-control-sm font-num" min="0" value="0.00">
+            </div>
+            <div class="summary-item">
+              <label>Sales Tax</label>
+              <input type="number" id="purSalesTax" class="form-control form-control-sm font-num" min="0" value="0.00">
+            </div>
+            <div class="summary-item">
+              <label>Extra Charges</label>
+              <input type="number" id="purExtraCharges" class="form-control form-control-sm font-num" min="0" value="0.00">
+            </div>
+            <div class="summary-item summary-item-grand">
+              <label>Total Amount</label>
+              <span id="purGrandTotalDisplay" class="grand-total-val font-num">0.00</span>
             </div>
           </div>
         </div>
 
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- TAB 7: PRODUCT INFO (LEGACY DESKTOP REPLICA)              -->
+      <!-- ======================================================== -->
+      <section id="viewProductInfo" class="subview-section">
+        <header class="section-header">
+          <div class="header-left">
+            <h1 class="view-title">Product Info</h1>
+          </div>
+          <div class="header-right">
+            <div class="header-nav-btn-group">
+              <button type="button" id="btnPiFirst" class="btn btn-secondary btn-icon-only" title="First Product">|&lt;</button>
+              <button type="button" id="btnPiPrev" class="btn btn-secondary btn-icon-only" title="Previous Product">&lt;&lt;</button>
+              <button type="button" id="btnPiNext" class="btn btn-secondary btn-icon-only" title="Next Product">&gt;&gt;</button>
+              <button type="button" id="btnPiLast" class="btn btn-secondary btn-icon-only" title="Last Product">&gt;|</button>
+            </div>
+            <button type="button" id="btnProductInfoList" class="btn btn-secondary" title="Product Catalog (F1)">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+              </svg>
+              <span>Product Catalog (F1)</span>
+            </button>
+            <button type="button" id="btnPiRefresh" class="btn btn-secondary" title="Reset / Clear Form">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              <span>Reset</span>
+            </button>
+            <button type="button" id="btnPiDelete" class="btn btn-danger" title="Delete Product">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Delete</span>
+            </button>
+            <button type="button" id="btnPiSave" class="btn btn-primary" title="Save Product">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>Save Product</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Product Information Master Card (Matching Screenshot) -->
+        <div class="product-master-card card">
+          <form id="productInfoForm" autocomplete="off" onsubmit="return false;">
+            <!-- Row 1: Code, Template, Find, Barcode, Generate Barcode, Additional Code, Print Barcode -->
+            <div class="pi-row pi-row-top">
+              <div class="pi-field pi-code-field">
+                <label>Code</label>
+                <input type="text" id="piCode" class="form-control form-control-sm font-num font-bold">
+              </div>
+              <div class="pi-field pi-btn-field">
+                <button type="button" id="btnPiTemplate" class="btn btn-sm btn-secondary">Template</button>
+                <button type="button" id="btnPiFind" class="btn btn-sm btn-secondary">Find</button>
+              </div>
+              <div class="pi-field pi-barcode-field">
+                <label>Barcode</label>
+                <input type="text" id="piBarcode" class="form-control form-control-sm font-num">
+              </div>
+              <div class="pi-field pi-btn-field">
+                <button type="button" id="btnPiGenBarcode" class="btn btn-sm btn-secondary">Generate Barcode</button>
+              </div>
+              <div class="pi-field pi-addl-code-field">
+                <label>Additional Code</label>
+                <input type="text" id="piAdditionalCode" class="form-control form-control-sm">
+              </div>
+              <div class="pi-checkbox-inline">
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="piPrintBarcode">
+                  <span class="chk-label">Print Barcode</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Row 2: Group & Category -->
+            <div class="pi-row">
+              <div class="pi-field flex-1">
+                <label>Product Group</label>
+                <select id="piGroupSelect" class="form-control form-control-sm">
+                  <option value="">-- Select Product Group --</option>
+                </select>
+              </div>
+              <div class="pi-field flex-1">
+                <label>Product Category</label>
+                <select id="piCategorySelect" class="form-control form-control-sm">
+                  <option value="">-- Select Category --</option>
+                </select>
+              </div>
+              <div class="pi-field flex-1">
+                <label>Sub Category</label>
+                <select id="piSubCategorySelect" class="form-control form-control-sm">
+                  <option value="">-- Select Sub Category --</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 3: Product Title & Urdu Title -->
+            <div class="pi-row">
+              <div class="pi-field flex-2">
+                <label class="required-label">Product Title</label>
+                <input type="text" id="piTitleEng" class="form-control form-control-sm" placeholder="e.g. Sonica Cable 3/29 Pure Copper Red">
+              </div>
+              <div class="pi-field flex-1">
+                <label>Product Title in Urdu</label>
+                <input type="text" id="piTitleUrdu" class="form-control form-control-sm urdu-text" dir="rtl" placeholder="سونیکا کیبل 3/29 سرخ">
+              </div>
+            </div>
+
+            <!-- Row 4: Packing Type, Measuring Unit, Pack Size, Tax -->
+            <div class="pi-row">
+              <div class="pi-field flex-1">
+                <label>Packing Type</label>
+                <input type="text" id="piPackingType" class="form-control form-control-sm" value="Piece" list="packingTypeList">
+                <datalist id="packingTypeList">
+                  <option value="Piece">
+                  <option value="Box">
+                  <option value="Roll">
+                  <option value="Packet">
+                  <option value="Meter">
+                  <option value="Dozen">
+                </datalist>
+              </div>
+              <div class="pi-field flex-1">
+                <label>Measuring Unit</label>
+                <select id="piUnitSelect" class="form-control form-control-sm">
+                  <option value="">-- Select Unit --</option>
+                </select>
+              </div>
+              <div class="pi-field flex-1">
+                <label>Pack Size</label>
+                <input type="number" id="piPackSize" class="form-control form-control-sm font-num" min="1" value="1">
+              </div>
+              <div class="pi-field flex-1">
+                <label>Tax (%)</label>
+                <input type="number" id="piTaxPercent" class="form-control form-control-sm font-num" min="0" step="0.1" value="0.0">
+              </div>
+            </div>
+
+            <!-- Row 5: Pricing (Purchase Price, Profit Margin %, Retail Sale Price, Wholesale Price) -->
+            <div class="pi-row pi-row-pricing">
+              <div class="pi-field flex-1">
+                <label>Purchase Price</label>
+                <input type="number" id="piPurchasePrice" class="form-control form-control-sm font-num" min="0" step="0.01" value="0.00">
+              </div>
+              <div class="pi-field flex-1">
+                <label class="highlight-label">Profit Margin %</label>
+                <input type="number" id="piProfitMargin" class="form-control form-control-sm font-num font-bold text-success" step="0.01" value="0.00">
+              </div>
+              <div class="pi-field flex-1">
+                <label class="highlight-label">Retail Sale Price</label>
+                <input type="number" id="piRetailPrice" class="form-control form-control-sm font-num font-bold text-warning" min="0" step="0.01" value="0.00">
+              </div>
+              <div class="pi-field flex-1">
+                <label>Whole Sale Price</label>
+                <input type="number" id="piWholesalePrice" class="form-control form-control-sm font-num font-bold" min="0" step="0.01" value="0.00">
+              </div>
+            </div>
+
+            <!-- Row 6: Minimum Stock, ReOrder Level, Product Group Type, Product Type -->
+            <div class="pi-row">
+              <div class="pi-field flex-1">
+                <label>Minimum Stock Level</label>
+                <input type="number" id="piMinStock" class="form-control form-control-sm font-num" min="0" value="0">
+              </div>
+              <div class="pi-field flex-1">
+                <label>ReOrder Level</label>
+                <input type="number" id="piReorderLevel" class="form-control form-control-sm font-num" min="0" value="0">
+              </div>
+              <div class="pi-field flex-1">
+                <label>Product Group Type</label>
+                <input type="text" id="piGroupType" class="form-control form-control-sm" placeholder="e.g. Electrical / Hardware">
+              </div>
+              <div class="pi-field flex-1">
+                <label>Product Type</label>
+                <select id="piTypeSelect" class="form-control form-control-sm">
+                  <option value="Both">Both</option>
+                  <option value="Trading">Trading</option>
+                  <option value="Manufacturing">Manufacturing</option>
+                  <option value="Service">Service</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Row 7: Average Cost, Location, Short Code, Stock Qty, Short Label -->
+            <div class="pi-row">
+              <div class="pi-field flex-1">
+                <label>Average Cost</label>
+                <input type="number" id="piAverageCost" class="form-control form-control-sm font-num" min="0" step="0.01" value="0.00">
+              </div>
+              <div class="pi-field flex-1">
+                <label>Location</label>
+                <input type="text" id="piLocation" class="form-control form-control-sm" placeholder="e.g. Rack A-3 / Godown 1">
+              </div>
+              <div class="pi-field flex-1">
+                <label>Short Code</label>
+                <input type="text" id="piShortCode" class="form-control form-control-sm" placeholder="e.g. FB-HVY">
+              </div>
+              <div class="pi-field flex-1">
+                <label>Stock Qty</label>
+                <input type="number" id="piStockQty" class="form-control form-control-sm font-num font-bold text-accent" value="0">
+              </div>
+              <div class="pi-field flex-1">
+                <label>Short Label</label>
+                <input type="text" id="piShortLabel" class="form-control form-control-sm" placeholder="e.g. Fan Box PVC">
+              </div>
+            </div>
+
+            <!-- Row 8: Description & Checkboxes -->
+            <div class="pi-row pi-row-bottom">
+              <div class="pi-field flex-3">
+                <label>Description</label>
+                <textarea id="piDescription" class="form-control form-control-sm" rows="2" placeholder="Item technical specifications, gauge, warranty notes..."></textarea>
+              </div>
+              <div class="pi-checkboxes-stack flex-1">
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="piBatchExpiry">
+                  <span class="chk-label">Use Batch Expiry</span>
+                </label>
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="piLoosePackSize">
+                  <span class="chk-label">Loose Pack Size</span>
+                </label>
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="piInActive">
+                  <span class="chk-label text-danger">InActive</span>
+                </label>
+              </div>
+            </div>
+          </form>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODALS                                                   -->
+  <!-- ======================================================== -->
+
+  <!-- Modal: Unit Info -->
+  <div id="modalUnit" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalUnitTitle" class="modal-title">Add Unit</h2>
+        <button id="btnCloseUnitModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="unitForm" class="modal-body" onsubmit="return false;">
+        <input type="hidden" id="unitId">
+        <div class="form-group">
+          <label for="unitNameInput" class="required-label">Unit Name</label>
+          <input type="text" id="unitNameInput" class="form-control" placeholder="e.g. Piece, Meter, Box" required>
+        </div>
+        <div class="form-group">
+          <label for="unitSymbolInput">Symbol / Short</label>
+          <input type="text" id="unitSymbolInput" class="form-control" placeholder="e.g. Pcs, Mtr, Box">
+        </div>
         <div class="modal-footer">
-          <button type="button" id="btnCancelStock" class="btn btn-secondary">Cancel</button>
-          <button type="submit" id="btnSaveStock" class="btn btn-primary">Save Stock</button>
+          <button type="button" id="btnCancelUnit" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btnSaveUnit" class="btn btn-primary">Save Unit</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL: ADD / EDIT VENDOR -->
+  <!-- Modal: Product Type -->
+  <div id="modalProductType" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalProductTypeTitle" class="modal-title">Add Product Type</h2>
+        <button id="btnCloseProductTypeModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="productTypeForm" class="modal-body" onsubmit="return false;">
+        <input type="hidden" id="productTypeId">
+        <div class="form-group">
+          <label for="productTypeNameInput" class="required-label">Type Name</label>
+          <input type="text" id="productTypeNameInput" class="form-control" placeholder="e.g. Trading, Manufacturing" required>
+        </div>
+        <div class="form-group">
+          <label for="productTypeDescInput">Description</label>
+          <input type="text" id="productTypeDescInput" class="form-control" placeholder="Description / Notes">
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btnCancelProductType" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btnSaveProductType" class="btn btn-primary">Save Product Type</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Product Group -->
+  <div id="modalProductGroup" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalProductGroupTitle" class="modal-title">Add Product Group</h2>
+        <button id="btnCloseProductGroupModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="productGroupForm" class="modal-body" onsubmit="return false;">
+        <input type="hidden" id="productGroupId">
+        <div class="form-group">
+          <label for="productGroupNameInput" class="required-label">Group / Brand Name</label>
+          <input type="text" id="productGroupNameInput" class="form-control" placeholder="e.g. Shahzaib Traders, Pak Fan" required>
+        </div>
+        <div class="form-group">
+          <label for="productGroupCodeInput">Code / Short</label>
+          <input type="text" id="productGroupCodeInput" class="form-control" placeholder="e.g. ST, PF">
+        </div>
+        <div class="form-group">
+          <label for="productGroupNotesInput">Notes</label>
+          <input type="text" id="productGroupNotesInput" class="form-control" placeholder="Optional notes">
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btnCancelProductGroup" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btnSaveProductGroup" class="btn btn-primary">Save Product Group</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Product Category -->
+  <div id="modalCategory" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalCategoryTitle" class="modal-title">Add Category</h2>
+        <button id="btnCloseCategoryModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="categoryForm" class="modal-body" onsubmit="return false;">
+        <input type="hidden" id="categoryId">
+        <div class="form-group">
+          <label for="categoryNameInput" class="required-label">Category Name</label>
+          <input type="text" id="categoryNameInput" class="form-control" placeholder="e.g. China Fitting, Cables, Fans" required>
+        </div>
+        <div class="form-group">
+          <label for="categoryCodeInput">Code</label>
+          <input type="text" id="categoryCodeInput" class="form-control" placeholder="e.g. CF, CBL">
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btnCancelCategory" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btnSaveCategory" class="btn btn-primary">Save Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Product Sub Category -->
+  <div id="modalSubCategory" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalSubCategoryTitle" class="modal-title">Add Sub Category</h2>
+        <button id="btnCloseSubCategoryModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="subCategoryForm" class="modal-body" onsubmit="return false;">
+        <input type="hidden" id="subCategoryId">
+        <div class="form-group">
+          <label for="subCategoryParentSelect" class="required-label">Parent Category</label>
+          <select id="subCategoryParentSelect" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label for="subCategoryNameInput" class="required-label">Sub Category Name</label>
+          <input type="text" id="subCategoryNameInput" class="form-control" placeholder="e.g. 8x2 Golden, Heavy Fan Box" required>
+        </div>
+        <div class="form-group">
+          <label for="subCategoryCodeInput">Code</label>
+          <input type="text" id="subCategoryCodeInput" class="form-control" placeholder="e.g. 8X2G, HFB">
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btnCancelSubCategory" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="btnSaveSubCategory" class="btn btn-primary">Save Sub Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Vendor -->
   <div id="modalVendor" class="modal-overlay hidden">
-    <div class="modal-card modal-sm">
+    <div class="modal-card">
       <div class="modal-header">
         <h2 id="modalVendorTitle" class="modal-title">Add Vendor</h2>
-        <button id="btnCloseVendorModal" class="btn-close">&times;</button>
+        <button id="btnCloseVendorModal" class="modal-close-btn">&times;</button>
       </div>
-      <form id="vendorForm" class="modal-form">
+      <form id="vendorForm" class="modal-body" onsubmit="return false;">
         <input type="hidden" id="vendorId">
-
         <div class="form-group">
-          <label for="vendorNameInput">Vendor Name <span class="req">*</span></label>
-          <input type="text" id="vendorNameInput" placeholder="Enter vendor name" required>
+          <label for="vendorNameInput" class="required-label">Company / Vendor Name</label>
+          <input type="text" id="vendorNameInput" class="form-control" placeholder="e.g. Abid Trading Company" required>
         </div>
-
         <div class="form-group">
-          <label for="vendorPhoneInput">Phone Number <span class="req">*</span></label>
-          <input type="tel" id="vendorPhoneInput" placeholder="0300-1234567" required>
+          <label for="vendorPhoneInput" class="required-label">Phone</label>
+          <input type="text" id="vendorPhoneInput" class="form-control" placeholder="e.g. 0300-1234567" required>
         </div>
-
+        <div class="form-group">
+          <label for="vendorContactPersonInput">Contact Person</label>
+          <input type="text" id="vendorContactPersonInput" class="form-control" placeholder="e.g. Muhammad Abid">
+        </div>
+        <div class="form-group">
+          <label for="vendorEmailInput">Email</label>
+          <input type="email" id="vendorEmailInput" class="form-control" placeholder="e.g. vendor@example.com">
+        </div>
+        <div class="form-group">
+          <label for="vendorAddressInput">Address</label>
+          <input type="text" id="vendorAddressInput" class="form-control" placeholder="e.g. Wah Cantt, Punjab">
+        </div>
+        <div class="form-group">
+          <label for="vendorNotesInput">Notes</label>
+          <textarea id="vendorNotesInput" class="form-control" rows="2" placeholder="Optional notes"></textarea>
+        </div>
         <div class="modal-footer">
           <button type="button" id="btnCancelVendor" class="btn btn-secondary">Cancel</button>
           <button type="submit" id="btnSaveVendor" class="btn btn-primary">Save Vendor</button>
@@ -403,41 +1037,82 @@
     </div>
   </div>
 
-  <!-- MODAL: CONFIRM DELETE -->
-  <div id="modalConfirm" class="modal-overlay hidden">
-    <div class="modal-card modal-confirm-card">
+  <!-- Modal: Product Search (F1 Find) -->
+  <div id="modalProductSearch" class="modal-overlay hidden">
+    <div class="modal-card modal-card-lg">
       <div class="modal-header">
-        <div class="modal-header-danger">
-          <svg class="modal-danger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <h2 class="modal-title">Find Product (F1)</h2>
+        <button id="btnCloseProductSearch" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="search-box mb-3">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <h2 id="confirmTitle" class="modal-title">Delete Stock</h2>
+          <input type="text" id="f1SearchInput" placeholder="Type Code, Title, Category, or Group to search..." autocomplete="off">
         </div>
-        <button id="btnCloseConfirmModal" class="btn-close">&times;</button>
+        <div class="table-container modal-table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 70px;">Code</th>
+                <th>Product Title</th>
+                <th style="width: 80px;">Pack Size</th>
+                <th style="width: 100px;">Purchase</th>
+                <th style="width: 100px;">Retail</th>
+                <th style="width: 100px;">Wholesale</th>
+                <th style="width: 80px;">Stock</th>
+                <th>Location</th>
+              </tr>
+            </thead>
+            <tbody id="f1ProductTableBody"></tbody>
+          </table>
+        </div>
       </div>
-      <div class="modal-body confirm-modal-body">
-        <p id="confirmMessage" class="confirm-text">Are you sure you want to delete this record?</p>
-        <p class="confirm-warning-note">This action cannot be undone.</p>
+    </div>
+  </div>
+
+  <!-- Modal: Message Alert (Mandatory Validation & Feedback) -->
+  <div id="modalAlert" class="modal-overlay hidden">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header alert-header">
+        <h3 id="alertTitle" class="modal-title text-warning">Notice</h3>
+        <button id="btnCloseAlertModal" class="modal-close-btn">&times;</button>
       </div>
-      <div class="modal-footer confirm-modal-footer">
+      <div class="modal-body">
+        <p id="alertMessage" class="alert-text-body">Please Select the Party Title!</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnOkAlert" class="btn btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirm Delete -->
+  <div id="modalConfirm" class="modal-overlay hidden">
+    <div class="modal-card modal-card-sm">
+      <div class="modal-header">
+        <h3 id="confirmTitle" class="modal-title">Confirm Action</h3>
+        <button id="btnCloseConfirmModal" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage" class="confirm-text">Are you sure you want to proceed?</p>
+      </div>
+      <div class="modal-footer">
         <button type="button" id="btnCancelConfirm" class="btn btn-secondary">Cancel</button>
         <button type="button" id="btnExecuteConfirm" class="btn btn-danger">Delete</button>
       </div>
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATION -->
+  <!-- Toast Notifications Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Shared Utilities -->
+  <!-- App Scripts -->
   <script src="shared/utils.js"></script>
-
-  <!-- Feature Modules -->
   <script src="vendors/vendors.js"></script>
   <script src="inventory/inventory.js"></script>
-
-  <!-- Application Orchestrator -->
   <script src="renderer.js"></script>
 </body>
 

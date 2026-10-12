@@ -1,83 +1,844 @@
 /* ========================================================
-   INVENTORY MODULE SPECIFIC STYLES
+   INVENTORY MODULE & SUB-MODULES COMPLETE STYLES
    ======================================================== */
 
-.col-stock-name {
-  width: 20%;
+/* Sidebar Nav Item Dropdown & Floating Hover Flyout Menu */
+.nav-item-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.nav-chevron-arrow {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  color: var(--text-muted, #9ca3af);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed .nav-chevron-arrow {
+  display: none;
+}
+
+.nav-item-dropdown:hover .nav-chevron-arrow {
+  transform: translateX(3px);
+  color: var(--text-primary, #111827);
+}
+
+/* Floating Hover Flyout Menu */
+.sidebar-flyout-menu {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 8px);
+  min-width: 215px;
+  background: #ffffff;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px -4px rgba(15, 23, 42, 0.16), 0 4px 10px -2px rgba(15, 23, 42, 0.08);
+  padding: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-10px) scale(0.97);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+/* Invisible bridge so mouse hover never drops between button and flyout */
+.sidebar-flyout-menu::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -14px;
+  width: 16px;
+  background: transparent;
+}
+
+/* Show Flyout on Hover or Focus */
+.nav-item-dropdown:hover .sidebar-flyout-menu,
+.nav-item-dropdown:focus-within .sidebar-flyout-menu,
+.nav-item-dropdown.show-flyout .sidebar-flyout-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0) scale(1);
+  pointer-events: auto;
+}
+
+.flyout-header-tag {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #94a3b8;
+  padding: 4px 10px 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 4px;
+}
+
+.flyout-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.flyout-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
   text-align: left;
-  word-break: break-word;
+  user-select: none;
 }
 
-.col-vendor {
-  width: 18%;
-  text-align: left;
-  word-break: break-word;
-  padding-left: 14px !important;
+.flyout-sub-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  font-weight: 600;
+  padding-left: 15px;
 }
 
-.col-stock-qty,
-.col-sell-qty {
-  width: 10%;
-  text-align: center !important;
+.flyout-sub-item.active {
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.flyout-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+.flyout-label {
+  flex: 1;
   white-space: nowrap;
 }
 
-.col-price {
-  width: 11%;
-  text-align: center !important;
+/* Subview Section Visibility */
+.subview-section {
+  display: none;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.subview-section.active {
+  display: flex;
+}
+
+/* Card Container */
+.card {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Form Controls */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.form-group label,
+.pi-field label,
+.meta-field label,
+.entry-col label,
+.summary-item label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
   white-space: nowrap;
 }
 
-.col-date {
-  width: 13%;
-  text-align: center !important;
-  white-space: nowrap;
+.form-control {
+  padding: 7px 10px;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 6px;
+  font-size: 13px;
+  background-color: #ffffff;
+  color: var(--text-primary, #111827);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  width: 100%;
 }
 
-.user-stock-filter {
+.form-control:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.form-control-sm {
+  padding: 5px 8px;
+  font-size: 12.5px;
+  height: 32px;
+}
+
+textarea.form-control-sm {
+  height: auto;
+}
+
+.font-num {
+  font-variant-numeric: tabular-nums;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.text-success { color: #16a34a !important; }
+.text-warning { color: #d97706 !important; }
+.text-danger { color: #dc2626 !important; }
+.text-accent { color: #2563eb !important; }
+
+.required-label::after {
+  content: " *";
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.required-input {
+  border-color: #f59e0b;
+}
+
+/* Urdu Script Input */
+.urdu-text {
+  font-family: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", "Urdu Typesetting", "Arial", sans-serif;
+  font-size: 15px;
+  direction: rtl;
+  text-align: right;
+}
+
+/* ========================================================
+   CATEGORY DUAL-PANE LAYOUT
+   ======================================================== */
+.category-split-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.category-panel,
+.sub-category-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+  margin-bottom: 0;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light, #e5e7eb);
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+
+.panel-badge {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.subcat-header-info {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.filter-num-input {
-  width: 80px;
-  padding: 6px 10px;
-  border: 1px solid var(--border-light, #e2e8f0);
-  border-radius: 6px;
-  font-size: 13px;
-  outline: none;
+.category-pill-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
 }
 
-.filter-num-input:focus {
-  border-color: #2563eb;
+.panel-search {
+  margin-bottom: 10px;
 }
 
-.total-prices-banner {
-  display: flex;
-  gap: 16px;
-  background: #f8fafc;
-  padding: 12px 16px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.total-price-box {
+.category-list-scroll {
   flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.category-selectable-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+}
+
+.category-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+  color: var(--text-primary, #111827);
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.category-list-item:hover {
+  background: #f1f5f9;
+}
+
+.category-list-item.active {
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.category-item-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0.6;
+}
+
+.category-list-item:hover .category-item-actions,
+.category-list-item.active .category-item-actions {
+  opacity: 1;
+}
+
+.btn-icon-xs {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.category-list-item.active .btn-icon-xs {
+  color: #cbd5e1;
+}
+
+/* ========================================================
+   PURCHASE VOUCHER REPLICA STYLES
+   ======================================================== */
+.voucher-top-bar {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  background: #ffffff;
+  padding: 12px 16px;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.voucher-title-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.voucher-meta-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.meta-field-party {
+  flex: 2.5;
+  min-width: 240px;
+}
+
+.voucher-secondary-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  background: #ffffff;
+  padding: 10px 16px;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.flex-1 { flex: 1; }
+.flex-2 { flex: 2; }
+.flex-3 { flex: 3; }
+
+/* Item Entry Row */
+.voucher-item-entry-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.entry-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.entry-code { width: 130px; }
+.entry-title { flex: 2; min-width: 180px; }
+.entry-sm { width: 70px; }
+.entry-price { width: 95px; }
+.entry-pill { width: 85px; }
+.entry-btn { width: 80px; }
+
+.input-with-btn {
+  display: flex;
   gap: 4px;
 }
 
-.total-price-label {
-  font-size: 11.5px;
-  color: #64748b;
-  font-weight: 500;
-  text-transform: uppercase;
+.hotkey-hint {
+  font-size: 10px;
+  color: #2563eb;
+  font-weight: 700;
 }
 
-.total-price-value {
-  font-size: 15px;
+.badge-price-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
   font-weight: 700;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.bg-green-pill {
+  background: #22c55e;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(34, 197, 94, 0.3);
+}
+
+.btn-add-item {
+  height: 32px;
+  width: 100%;
+  font-weight: 700;
+}
+
+/* Voucher Table */
+.voucher-grid-container {
+  flex: 1;
+  min-height: 180px;
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #ffffff;
+}
+
+.voucher-table th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  z-index: 2;
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.voucher-table td {
+  text-align: center;
+  font-size: 12.5px;
+}
+
+.voucher-table td:nth-child(3) {
+  text-align: left;
+}
+
+/* Voucher Totals Footer */
+.voucher-footer-row {
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  background: #ffffff;
+}
+
+.footer-summary-grid {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 105px;
+}
+
+.summary-item-grand {
+  width: 160px;
+  background: #0f172a;
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.summary-item-grand label {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.grand-total-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #4ade80;
+  line-height: 1.2;
+}
+
+/* ========================================================
+   PRODUCT INFO MASTER VIEW STYLES
+   ======================================================== */
+.product-master-card {
+  padding: 16px 20px;
+  margin-bottom: 14px;
+}
+
+.pi-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.pi-row-top {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-light, #e5e7eb);
+  margin-bottom: 14px;
+}
+
+.pi-code-field { width: 120px; }
+.pi-barcode-field { width: 180px; }
+.pi-addl-code-field { width: 160px; }
+.pi-btn-field {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.pi-checkbox-inline {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  margin-left: 8px;
+}
+
+.pi-row-pricing {
+  background: #fafafa;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.highlight-label {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+.pi-checkboxes-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 12px;
+}
+
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* ========================================================
+   HEADER ACTIONS & NAVIGATION BUTTONS (MODERN TOOLBAR)
+   ======================================================== */
+.voucher-header-title-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light, #f1f5f9);
+}
+
+.voucher-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.header-nav-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-surface-secondary, #f1f5f9);
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid var(--border-light, #e2e8f0);
+}
+
+.header-nav-btn-group .btn-icon-only {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.header-nav-btn-group .btn-icon-only:hover {
+  background: #ffffff;
   color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ========================================================
+   BALANCED EQUAL ALIGNMENT TABLES
+   ======================================================== */
+/* Unit Info Table - Balanced Equal Alignment */
+.table-unit-info {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.table-unit-info th,
+.table-unit-info td {
+  padding: 12px 14px;
+  vertical-align: middle;
+}
+
+.table-unit-info .col-unit-sr {
+  width: 10% !important;
+  text-align: center !important;
+}
+
+.table-unit-info .col-unit-name {
+  width: 45% !important;
+  text-align: left !important;
+}
+
+.table-unit-info .col-unit-symbol {
+  width: 30% !important;
+  text-align: left !important;
+}
+
+.table-unit-info .col-unit-actions {
+  width: 15% !important;
+  text-align: center !important;
+  position: relative;
+}
+
+/* Product Type Table - Balanced Equal Alignment */
+.table-product-type {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.table-product-type th,
+.table-product-type td {
+  padding: 12px 14px;
+  vertical-align: middle;
+}
+
+.table-product-type .col-pt-sr {
+  width: 10% !important;
+  text-align: center !important;
+}
+
+.table-product-type .col-pt-name {
+  width: 45% !important;
+  text-align: left !important;
+}
+
+.table-product-type .col-pt-desc {
+  width: 30% !important;
+  text-align: left !important;
+}
+
+.table-product-type .col-pt-actions {
+  width: 15% !important;
+  text-align: center !important;
+  position: relative;
+}
+
+/* Product Group Table - Balanced Equal Alignment */
+.table-product-group {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.table-product-group th,
+.table-product-group td {
+  padding: 12px 14px;
+  vertical-align: middle;
+}
+
+.table-product-group .col-pg-sr {
+  width: 10% !important;
+  text-align: center !important;
+}
+
+.table-product-group .col-pg-name {
+  width: 35% !important;
+  text-align: left !important;
+}
+
+.table-product-group .col-pg-code {
+  width: 20% !important;
+  text-align: left !important;
+}
+
+.table-product-group .col-pg-notes {
+  width: 20% !important;
+  text-align: left !important;
+}
+
+.table-product-group .col-pg-actions {
+  width: 15% !important;
+  text-align: center !important;
+  position: relative;
+}
+
+/* Modal Sizes */
+.modal-card-sm {
+  max-width: 420px;
+}
+
+.modal-card-lg {
+  max-width: 820px;
+}
+
+.modal-table-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.alert-header {
+  border-bottom-color: #fef3c7;
+}
+
+.alert-text-body {
+  font-size: 14px;
+  font-weight: 600;
+  color: #b45309;
+  padding: 12px 0;
+  text-align: center;
+}
+
+.mb-3 { margin-bottom: 12px; }
+
+.hidden {
+  display: none !important;
+}
+
+/* Toast Notifications */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+  animation: toastFadeIn 0.2s ease;
+}
+
+.toast-error {
+  background: #dc2626;
+}
+
+.toast-warning {
+  background: #d97706;
+}
+
+@keyframes toastFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }

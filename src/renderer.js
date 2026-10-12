@@ -2,44 +2,40 @@
 
 // Global Application State
 window.appData = {
+  units: [],
+  product_types: [],
+  product_groups: [],
+  product_categories: [],
+  product_sub_categories: [],
   vendors: [],
+  products: [],
+  purchases: [],
   inventory: []
 };
 
-window.currentTab = 'inventory'; // 'inventory' | 'vendors'
-
-// API Storage Bridge (Electron IPC with fallback)
+// API Storage Bridge (Electron IPC with local storage fallback)
 window.api = window.electronAPI || {
-  getData: async () => {
-    const raw = localStorage.getItem('inventory_data');
-    if (raw) {
-      try { return JSON.parse(raw); } catch (e) {}
-    }
-    return { vendors: [], inventory: [] };
-  },
-  saveData: async (data) => {
-    localStorage.setItem('inventory_data', JSON.stringify(data));
-    return { success: true };
-  },
-  addStock: async () => ({ success: true }),
-  updateStock: async () => ({ success: true }),
-  deleteStock: async () => ({ success: true }),
+  getData: async () => ({
+    units: [],
+    product_types: [],
+    product_groups: [],
+    product_categories: [],
+    product_sub_categories: [],
+    vendors: [],
+    products: [],
+    purchases: [],
+    inventory: []
+  }),
+  saveData: async () => ({ success: true }),
   addVendor: async () => ({ success: true }),
   updateVendor: async () => ({ success: true }),
-  deleteVendor: async () => ({ success: true }),
-  exportPDF: async () => ({ success: true }),
-  exportExcel: async () => ({ success: true }),
-  exportCSV: async () => ({ success: true })
+  deleteVendor: async () => ({ success: true })
 };
 
 // DOM References
 const appEl = {
-  navInventoryBtn: document.getElementById('navInventoryBtn'),
-  navVendorBtn: document.getElementById('navVendorBtn'),
-  inventoryView: document.getElementById('inventoryView'),
-  vendorView: document.getElementById('vendorView'),
-  badgeInventoryCount: document.getElementById('badgeInventoryCount'),
   badgeVendorCount: document.getElementById('badgeVendorCount'),
+  badgeProductsCount: document.getElementById('badgeProductsCount'),
 
   // Confirm Modal
   modalConfirm: document.getElementById('modalConfirm'),
@@ -84,35 +80,12 @@ if (appEl.btnExecuteConfirm) {
 window.openConfirmModal = openConfirmModal;
 window.closeConfirmModal = closeConfirmModal;
 
-// Tab Switching
-function switchTab(tab) {
-  window.currentTab = tab;
-  if (window.closeAllActionMenus) window.closeAllActionMenus();
-
-  if (appEl.navInventoryBtn) appEl.navInventoryBtn.classList.toggle('active', tab === 'inventory');
-  if (appEl.navVendorBtn) appEl.navVendorBtn.classList.toggle('active', tab === 'vendors');
-
-  if (appEl.inventoryView) appEl.inventoryView.classList.toggle('active', tab === 'inventory');
-  if (appEl.vendorView) appEl.vendorView.classList.toggle('active', tab === 'vendors');
-
-  if (tab === 'inventory' && window.renderInventory) {
-    window.renderInventory();
-  } else if (tab === 'vendors' && window.renderVendors) {
-    window.renderVendors();
-  }
-}
-
-window.switchTab = switchTab;
-
-if (appEl.navInventoryBtn) appEl.navInventoryBtn.addEventListener('click', () => switchTab('inventory'));
-if (appEl.navVendorBtn) appEl.navVendorBtn.addEventListener('click', () => switchTab('vendors'));
-
 // Badges Update
 function updateBadges() {
-  const invCount = (window.appData && window.appData.inventory ? window.appData.inventory.length : 0);
   const venCount = (window.appData && window.appData.vendors ? window.appData.vendors.length : 0);
-  if (appEl.badgeInventoryCount) appEl.badgeInventoryCount.textContent = invCount;
+  const prodCount = (window.appData && window.appData.products ? window.appData.products.length : 0);
   if (appEl.badgeVendorCount) appEl.badgeVendorCount.textContent = venCount;
+  if (appEl.badgeProductsCount) appEl.badgeProductsCount.textContent = prodCount;
 }
 
 window.updateBadges = updateBadges;
@@ -121,32 +94,30 @@ window.updateBadges = updateBadges;
 async function reloadFromDatabase() {
   try {
     const data = await window.api.getData();
-    if (data && (Array.isArray(data.vendors) || Array.isArray(data.inventory))) {
+    if (data) {
       window.appData = {
+        units: Array.isArray(data.units) ? data.units : [],
+        product_types: Array.isArray(data.product_types) ? data.product_types : [],
+        product_groups: Array.isArray(data.product_groups) ? data.product_groups : [],
+        product_categories: Array.isArray(data.product_categories) ? data.product_categories : [],
+        product_sub_categories: Array.isArray(data.product_sub_categories) ? data.product_sub_categories : [],
         vendors: Array.isArray(data.vendors) ? data.vendors : [],
+        products: Array.isArray(data.products) ? data.products : [],
+        purchases: Array.isArray(data.purchases) ? data.purchases : [],
         inventory: Array.isArray(data.inventory) ? data.inventory : []
       };
-      try {
-        localStorage.setItem('inventory_db_backup', JSON.stringify(window.appData));
-      } catch (e) {}
     }
   } catch (err) {
     console.error('Error reloading database data:', err);
-    try {
-      const raw = localStorage.getItem('inventory_db_backup');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        window.appData = {
-          vendors: Array.isArray(parsed.vendors) ? parsed.vendors : [],
-          inventory: Array.isArray(parsed.inventory) ? parsed.inventory : []
-        };
-      }
-    } catch (e) {}
   }
 
   updateBadges();
-  if (window.refreshVendorDropdowns) window.refreshVendorDropdowns();
-  if (window.renderInventory) window.renderInventory();
+
+  // Refresh active views
+  if (window.renderUnits) window.renderUnits();
+  if (window.renderProductTypes) window.renderProductTypes();
+  if (window.renderProductGroups) window.renderProductGroups();
+  if (window.renderProductCategories) window.renderProductCategories();
   if (window.renderVendors) window.renderVendors();
 }
 
@@ -214,6 +185,11 @@ async function init() {
   if (isAppInitialized) return;
   isAppInitialized = true;
   await reloadFromDatabase();
+
+  // Initial tab setup
+  if (window.switchSubTab) {
+    window.switchSubTab('unit-info');
+  }
 }
 
 if (document.readyState === 'loading') {
@@ -222,16 +198,3 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
-
-// Window Resize Debounce
-let resizeTimer = null;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    if (window.currentTab === 'inventory' && window.renderInventory) {
-      window.renderInventory();
-    } else if (window.currentTab === 'vendors' && window.renderVendors) {
-      window.renderVendors();
-    }
-  }, 120);
-});
