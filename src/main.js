@@ -34,6 +34,59 @@ if (!gotTheLock) {
 }
 
 let mainWindow;
+let findProductWindow = null;
+
+function openFindProductWindow() {
+  if (findProductWindow && !findProductWindow.isDestroyed()) {
+    if (findProductWindow.isMinimized()) findProductWindow.restore();
+    findProductWindow.focus();
+    findProductWindow.webContents.send('refresh-products');
+    return;
+  }
+
+  const iconPath = fs.existsSync(path.join(__dirname, 'assets', 'circle-logo.png'))
+    ? path.join(__dirname, 'assets', 'circle-logo.png')
+    : path.join(__dirname, 'circle-logo.png');
+
+  findProductWindow = new BrowserWindow({
+    width: 1260,
+    height: 780,
+    minWidth: 920,
+    minHeight: 560,
+    center: true,
+    backgroundColor: '#ffffff',
+    title: 'Find Product (F1) - Shahzaib Traders',
+    icon: iconPath,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  findProductWindow.removeMenu();
+
+  findProductWindow.webContents.on('before-input-event', (event, input) => {
+    if ((input.control && input.key.toLowerCase() === 'r') || input.key === 'F5') {
+      findProductWindow.reload();
+      event.preventDefault();
+    }
+    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+      findProductWindow.webContents.toggleDevTools();
+      event.preventDefault();
+    }
+    if (input.key === 'Escape') {
+      findProductWindow.close();
+      event.preventDefault();
+    }
+  });
+
+  findProductWindow.loadFile(path.join(__dirname, 'find-product', 'find-product.html'));
+
+  findProductWindow.on('closed', () => {
+    findProductWindow = null;
+  });
+}
 
 function getDbFilePath() {
   if (app.isPackaged) {
@@ -111,6 +164,13 @@ function createWindow() {
       mainWindow.loadFile(path.join(__dirname, 'auth', 'login.html'));
     }
   }, 4800);
+
+  mainWindow.on('closed', () => {
+    if (findProductWindow && !findProductWindow.isDestroyed()) {
+      findProductWindow.close();
+    }
+    mainWindow = null;
+  });
 }
 
 app.whenReady().then(() => {
@@ -257,6 +317,29 @@ app.whenReady().then(() => {
 
   ipcMain.handle('export-csv', async (event, data) => {
     return exporter.exportCSV(data, mainWindow);
+  });
+
+  // ============================================
+  // FIND PRODUCT DEDICATED WINDOW HANDLERS
+  // ============================================
+  ipcMain.on('open-find-product-window', () => {
+    openFindProductWindow();
+  });
+
+  ipcMain.on('close-find-product-window', () => {
+    if (findProductWindow && !findProductWindow.isDestroyed()) {
+      findProductWindow.close();
+    }
+  });
+
+  ipcMain.on('select-find-product', (_event, product) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('product-selected-from-window', product);
+      mainWindow.focus();
+    }
+    if (findProductWindow && !findProductWindow.isDestroyed()) {
+      findProductWindow.close();
+    }
   });
 
   app.on('activate', () => {

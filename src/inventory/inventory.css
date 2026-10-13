@@ -706,18 +706,18 @@ textarea.form-control-sm {
 }
 
 .table-unit-info .col-unit-name {
-  width: 45% !important;
+  width: 42% !important;
   text-align: left !important;
   padding-left: 16px !important;
 }
 
 .table-unit-info .col-unit-symbol {
-  width: 30% !important;
+  width: 36% !important;
   text-align: center !important;
 }
 
 .table-unit-info .col-unit-actions {
-  width: 15% !important;
+  width: 12% !important;
   text-align: center !important;
   position: relative;
 }
@@ -744,18 +744,18 @@ textarea.form-control-sm {
 }
 
 .table-product-type .col-pt-name {
-  width: 45% !important;
+  width: 40% !important;
   text-align: left !important;
   padding-left: 16px !important;
 }
 
 .table-product-type .col-pt-desc {
-  width: 30% !important;
+  width: 38% !important;
   text-align: center !important;
 }
 
 .table-product-type .col-pt-actions {
-  width: 15% !important;
+  width: 12% !important;
   text-align: center !important;
   position: relative;
 }
@@ -777,24 +777,24 @@ textarea.form-control-sm {
 }
 
 .table-product-category .col-cat-sr {
-  width: 10% !important;
+  width: 8% !important;
   text-align: left !important;
   padding-left: 24px !important;
 }
 
 .table-product-category .col-cat-name {
-  width: 40% !important;
+  width: 34% !important;
   text-align: left !important;
   padding-left: 16px !important;
 }
 
 .table-product-category .col-cat-code {
-  width: 20% !important;
+  width: 22% !important;
   text-align: center !important;
 }
 
 .table-product-category .col-cat-subs {
-  width: 20% !important;
+  width: 26% !important;
   text-align: center !important;
 }
 
@@ -820,29 +820,29 @@ textarea.form-control-sm {
 }
 
 .table-product-sub-category .col-sub-sr {
-  width: 10% !important;
+  width: 8% !important;
   text-align: left !important;
   padding-left: 24px !important;
 }
 
 .table-product-sub-category .col-sub-name {
-  width: 35% !important;
+  width: 32% !important;
   text-align: left !important;
   padding-left: 16px !important;
 }
 
 .table-product-sub-category .col-sub-code {
-  width: 15% !important;
+  width: 20% !important;
   text-align: center !important;
 }
 
 .table-product-sub-category .col-sub-parent {
-  width: 28% !important;
+  width: 30% !important;
   text-align: center !important;
 }
 
 .table-product-sub-category .col-sub-actions {
-  width: 12% !important;
+  width: 10% !important;
   text-align: center !important;
   position: relative;
 }

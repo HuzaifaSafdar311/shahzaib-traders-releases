@@ -31,15 +31,6 @@
       </div>
 
       <nav class="nav-menu">
-        <button id="navInventoryMainBtn" class="nav-item active" title="Inventory">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-            <line x1="8" y1="21" x2="16" y2="21"></line>
-            <line x1="12" y1="17" x2="12" y2="21"></line>
-          </svg>
-          <span class="nav-label">Inventory</span>
-        </button>
-
         <button id="navGeneralInfoBtn" class="nav-item" title="General Info">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
@@ -48,11 +39,20 @@
           </svg>
           <span class="nav-label">General Info</span>
         </button>
+
+        <button id="navInventoryMainBtn" class="nav-item active" title="Inventory">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <span class="nav-label">Inventory</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
         <span class="status-indicator"></span>
-        <span class="status-label">SQLite Active</span>
+        <span class="status-label">Active</span>
       </div>
     </aside>
 
@@ -173,10 +173,10 @@
           <table class="data-table table-unit-info">
             <thead>
               <tr>
-                <th class="col-unit-sr" style="width: 100px; text-align: left; padding-left: 24px;">SR #</th>
-                <th class="col-unit-name" style="text-align: left; padding-left: 16px;">Unit Name</th>
-                <th class="col-unit-symbol" style="width: 180px; text-align: center;">Symbol</th>
-                <th class="col-unit-actions" style="width: 100px; text-align: center;">Action</th>
+                <th class="col-unit-sr" style="width: 10%; text-align: left; padding-left: 24px;">SR #</th>
+                <th class="col-unit-name" style="width: 42%; text-align: left; padding-left: 16px;">Unit Name</th>
+                <th class="col-unit-symbol" style="width: 36%; text-align: center;">Symbol</th>
+                <th class="col-unit-actions col-dots-actions" style="width: 12%; text-align: center;">Action</th>
               </tr>
             </thead>
             <tbody id="unitTableBody"></tbody>
@@ -221,10 +221,10 @@
           <table class="data-table table-product-type">
             <thead>
               <tr>
-                <th class="col-pt-sr" style="width: 100px; text-align: left; padding-left: 24px;">SR #</th>
-                <th class="col-pt-name" style="text-align: left; padding-left: 16px;">Product Type</th>
-                <th class="col-pt-desc" style="text-align: center;">Description</th>
-                <th class="col-pt-actions" style="width: 100px; text-align: center;">Action</th>
+                <th class="col-pt-sr" style="width: 10%; text-align: left; padding-left: 24px;">SR #</th>
+                <th class="col-pt-name" style="width: 40%; text-align: left; padding-left: 16px;">Product Type</th>
+                <th class="col-pt-desc" style="width: 38%; text-align: center;">Description</th>
+                <th class="col-pt-actions col-dots-actions" style="width: 12%; text-align: center;">Action</th>
               </tr>
             </thead>
             <tbody id="productTypeTableBody"></tbody>
@@ -270,11 +270,11 @@
           <table class="data-table table-product-category">
             <thead>
               <tr>
-                <th class="col-cat-sr" style="width: 100px; text-align: left; padding-left: 24px;">SR #</th>
-                <th class="col-cat-name" style="text-align: left; padding-left: 16px;">Category Name</th>
-                <th class="col-cat-code" style="width: 180px; text-align: center;">Code</th>
-                <th class="col-cat-subs" style="width: 200px; text-align: center;">Sub Categories</th>
-                <th class="col-cat-actions col-dots-actions" style="width: 100px; text-align: center;">Action</th>
+                <th class="col-cat-sr" style="width: 8%; text-align: left; padding-left: 24px;">SR #</th>
+                <th class="col-cat-name" style="width: 34%; text-align: left; padding-left: 16px;">Category Name</th>
+                <th class="col-cat-code" style="width: 22%; text-align: center;">Code</th>
+                <th class="col-cat-subs" style="width: 26%; text-align: center;">Sub Categories</th>
+                <th class="col-cat-actions col-dots-actions" style="width: 10%; text-align: center;">Action</th>
               </tr>
             </thead>
             <tbody id="categoryTableBody"></tbody>
@@ -324,11 +324,11 @@
           <table class="data-table table-product-sub-category">
             <thead>
               <tr>
-                <th class="col-sub-sr" style="width: 100px; text-align: left; padding-left: 24px;">SR #</th>
-                <th class="col-sub-name" style="text-align: left; padding-left: 16px;">Sub Category Name</th>
-                <th class="col-sub-code" style="width: 180px; text-align: center;">Code</th>
-                <th class="col-sub-parent" style="width: 220px; text-align: center;">Parent Category</th>
-                <th class="col-sub-actions col-dots-actions" style="width: 100px; text-align: center;">Action</th>
+                <th class="col-sub-sr" style="width: 8%; text-align: left; padding-left: 24px;">SR #</th>
+                <th class="col-sub-name" style="width: 32%; text-align: left; padding-left: 16px;">Sub Category Name</th>
+                <th class="col-sub-code" style="width: 20%; text-align: center;">Code</th>
+                <th class="col-sub-parent" style="width: 30%; text-align: center;">Parent Category</th>
+                <th class="col-sub-actions col-dots-actions" style="width: 10%; text-align: center;">Action</th>
               </tr>
             </thead>
             <tbody id="subCategoryTableBody"></tbody>
