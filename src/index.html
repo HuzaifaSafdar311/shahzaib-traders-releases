@@ -1311,15 +1311,9 @@
               <input type="text" id="saleManualNo" class="form-control form-control-sm" placeholder="Ref #">
             </div>
             <div class="form-group">
-              <label>Party Type</label>
-              <select id="salePartyTypeSelect" class="form-control form-control-sm">
-                <option value="">-- All Party Types --</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="required-label">Party Title</label>
-              <select id="saleCustomerSelect" class="form-control form-control-sm required-input">
-                <option value="">-- Select Party Title --</option>
+              <label class="required-label">Party Type</label>
+              <select id="salePartyTypeSelect" class="form-control form-control-sm required-input">
+                <option value="">-- Select Party Type --</option>
               </select>
             </div>
             <div class="form-group">
@@ -1336,16 +1330,12 @@
         <!-- Secondary Party & Store Info Row -->
         <div class="sale-secondary-bar">
           <div class="form-group">
-            <label>Party Phone</label>
-            <input type="text" id="saleCustomerPhone" class="form-control form-control-sm" placeholder="Phone" readonly>
+            <label>Party Code</label>
+            <input type="text" id="saleCustomerPhone" class="form-control form-control-sm" placeholder="Code" readonly>
           </div>
           <div class="form-group">
-            <label>City / Territory</label>
-            <input type="text" id="saleCustomerArea" class="form-control form-control-sm" placeholder="Area" readonly>
-          </div>
-          <div class="form-group">
-            <label>Party Ledger Balance</label>
-            <input type="text" id="saleCustomerPrevBalance" class="form-control form-control-sm font-num sale-customer-prev-balance text-danger" value="Rs 0.00" readonly>
+            <label>Party Type Detail</label>
+            <input type="text" id="saleCustomerArea" class="form-control form-control-sm" placeholder="Description" readonly>
           </div>
           <div class="form-group">
             <label>Description / Notes</label>
@@ -1591,15 +1581,9 @@
                 <input type="text" id="returnOriginalBillRef" class="form-control form-control-sm font-num" placeholder="e.g. SV-0001">
               </div>
               <div class="sale-meta-field">
-                <label for="returnPartyTypeSelect">Party Type</label>
-                <select id="returnPartyTypeSelect" class="form-control form-control-sm">
-                  <option value="">-- All Party Types --</option>
-                </select>
-              </div>
-              <div class="sale-meta-field">
-                <label for="returnCustomerSelect">Party Title *</label>
-                <select id="returnCustomerSelect" class="form-control form-control-sm">
-                  <option value="">-- Select Party Title --</option>
+                <label for="returnPartyTypeSelect" class="required-label">Party Type *</label>
+                <select id="returnPartyTypeSelect" class="form-control form-control-sm required-input">
+                  <option value="">-- Select Party Type --</option>
                 </select>
               </div>
               <div class="sale-meta-field">
@@ -1612,19 +1596,15 @@
             </div>
           </header>
 
-          <!-- Customer Secondary Info & Reason Bar -->
+          <!-- Party Type Secondary Info & Reason Bar -->
           <div class="sale-meta-row-2">
             <div class="sale-meta-item">
-              <span class="meta-label">Party Phone:</span>
+              <span class="meta-label">Party Code:</span>
               <span id="returnCustomerPhone" class="meta-value">-</span>
             </div>
             <div class="sale-meta-item">
-              <span class="meta-label">Territory / Area:</span>
+              <span class="meta-label">Detail:</span>
               <span id="returnCustomerArea" class="meta-value">-</span>
-            </div>
-            <div class="sale-meta-item">
-              <span class="meta-label">Party Ledger Balance:</span>
-              <span id="returnCustomerPrevBalance" class="meta-value font-num font-bold text-accent">Rs 0.00</span>
             </div>
             <div class="sale-meta-item">
               <span class="meta-label">Return Reason:</span>

@@ -61,14 +61,14 @@
 
 .sale-meta-row {
   display: grid;
-  grid-template-columns: 130px 130px 125px 160px 1fr 140px;
+  grid-template-columns: 140px 140px 130px 1fr 150px;
   gap: 12px;
   align-items: end;
 }
 
 .sale-meta-grid {
   display: grid;
-  grid-template-columns: 130px 130px 125px 160px 1fr 160px;
+  grid-template-columns: 140px 140px 140px 1fr 180px;
   gap: 12px;
   align-items: end;
 }
@@ -82,7 +82,7 @@
 /* Customer & Secondary Row */
 .sale-secondary-bar {
   display: grid;
-  grid-template-columns: 180px 180px 180px 1fr;
+  grid-template-columns: 160px 240px 1fr;
   gap: 12px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
