@@ -752,8 +752,13 @@ function savePurchase(purchaseData, items = []) {
       if (incomingQty > 0 && code) {
         const prod = jsonData.products.find(p => p.code === code || p.id === item.productId);
         if (prod) {
-          prod.stockQty = (Number(prod.stockQty) || 0) + incomingQty;
-          if (tp > 0) prod.purchasePrice = tp;
+          const prevStock = Number(prod.stockQty) || 0;
+          prod.stockQty = prevStock + incomingQty;
+          if (tp > 0) {
+            prod.purchasePrice = tp;
+            const prevCost = Number(prod.averageCost || prod.purchasePrice) || tp;
+            prod.averageCost = prevStock > 0 ? Number((((prevStock * prevCost) + (incomingQty * tp)) / (prevStock + incomingQty)).toFixed(2)) : tp;
+          }
         }
       }
       sr++;
@@ -844,6 +849,15 @@ function savePurchase(purchaseData, items = []) {
 
       if (incomingQty > 0 && code) {
         updateProductStock.run(incomingQty, tp, tp, code, item.productId || '');
+        if (tp > 0) {
+          const pRec = dbInstance.prepare('SELECT stockQty, averageCost, purchasePrice FROM products WHERE code = ? OR id = ?').get(code, item.productId || '');
+          if (pRec) {
+            const prevStock = Math.max(0, (Number(pRec.stockQty) || 0) - incomingQty);
+            const prevCost = Number(pRec.averageCost || pRec.purchasePrice) || tp;
+            const wac = prevStock > 0 ? (((prevStock * prevCost) + (incomingQty * tp)) / (prevStock + incomingQty)) : tp;
+            dbInstance.prepare('UPDATE products SET averageCost = ? WHERE code = ? OR id = ?').run(Number(wac.toFixed(2)), code, item.productId || '');
+          }
+        }
       }
       sr++;
     }
@@ -1009,6 +1023,9 @@ function saveSale(saleData, items = []) {
     }
 
     saveJsonData();
+    if (saleRecord.balanceDue > 0 && saleRecord.partyId) {
+      generalInfoDb.updatePartyBalance(saleRecord.partyId, saleRecord.balanceDue);
+    }
     return { success: true, id, voucherNo };
   }
 
@@ -1101,6 +1118,9 @@ function saveSale(saleData, items = []) {
 
     dbInstance.exec('COMMIT;');
     checkpoint();
+    if (saleRecord.balanceDue > 0 && saleRecord.partyId) {
+      generalInfoDb.updatePartyBalance(saleRecord.partyId, saleRecord.balanceDue);
+    }
     return { success: true, id, voucherNo };
   } catch (err) {
     dbInstance.exec('ROLLBACK;');
@@ -1112,6 +1132,9 @@ function deleteSale(id) {
   if (isJsonFallback) {
     const existing = jsonData.sales.find(s => s.id === id || s.voucherNo === id);
     if (existing) {
+      if (existing.balanceDue > 0 && existing.partyId) {
+        generalInfoDb.updatePartyBalance(existing.partyId, -Number(existing.balanceDue));
+      }
       const items = jsonData.sale_items.filter(it => it.saleId === existing.id);
       for (const it of items) {
         const prod = jsonData.products.find(p => p.id === it.productId || p.code === it.productCode);
@@ -1128,8 +1151,11 @@ function deleteSale(id) {
 
   dbInstance.exec('BEGIN TRANSACTION;');
   try {
-    const s = dbInstance.prepare('SELECT id FROM sales WHERE id = ? OR voucherNo = ?').get(id, id);
+    const s = dbInstance.prepare('SELECT id, partyId, balanceDue FROM sales WHERE id = ? OR voucherNo = ?').get(id, id);
     if (s) {
+      if (s.balanceDue > 0 && s.partyId) {
+        generalInfoDb.updatePartyBalance(s.partyId, -Number(s.balanceDue));
+      }
       const items = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_items WHERE saleId = ?').all(s.id);
       for (const it of items) {
         dbInstance.prepare(`
@@ -1363,6 +1389,9 @@ function saveSaleReturn(returnData, items = []) {
 
     dbInstance.exec('COMMIT;');
     checkpoint();
+    if (returnData.refundMode === 'Credit' && returnData.partyId && Number(returnData.totalAmount) > 0) {
+      generalInfoDb.updatePartyBalance(returnData.partyId, -Number(returnData.totalAmount));
+    }
     return { success: true, id, returnNo };
   } catch (err) {
     dbInstance.exec('ROLLBACK;');
@@ -1500,5 +1529,6 @@ module.exports = {
   addParty: generalInfoDb.addParty,
   updateParty: generalInfoDb.updateParty,
   deleteParty: generalInfoDb.deleteParty,
+  updatePartyBalance: generalInfoDb.updatePartyBalance,
   getAllGeneralInfo: generalInfoDb.getAllGeneralInfo
 };

@@ -884,8 +884,15 @@ async function initPurchaseView() {
     } catch (e) {
       console.warn('Failed to load parties for purchase voucher:', e);
     }
-    inv.purPartySelect.innerHTML = '<option value="">-- Please Select Party Title --</option>' +
-      parties.map(p => `<option value="${p.id}" data-contact="${window.escapeHtml(p.contactPerson || '')}">${window.escapeHtml(p.name)} (${window.escapeHtml(p.partyTypeName || 'Party')})</option>`).join('');
+    // Filter vendors/suppliers first for accurate purchase accounting
+    const vendors = parties.filter(p => {
+      const t = (p.partyTypeName || '').toLowerCase();
+      return t.includes('vendor') || t.includes('supplier') || t.includes('manufacturer') || t.includes('distributor');
+    });
+    const listToUse = vendors.length > 0 ? vendors : parties;
+
+    inv.purPartySelect.innerHTML = '<option value="">-- Please Select Supplier / Vendor --</option>' +
+      listToUse.map(p => `<option value="${p.id}" data-contact="${window.escapeHtml(p.contactPerson || '')}" data-phone="${window.escapeHtml(p.phone || '')}" data-area="${window.escapeHtml(p.areaName || p.city || '')}">${window.escapeHtml(p.name)} [${window.escapeHtml(p.partyTypeName || 'Supplier')}]</option>`).join('');
   }
 
   // Populate Products Dropdown

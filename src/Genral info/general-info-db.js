@@ -755,6 +755,28 @@ function getAllGeneralInfo() {
   };
 }
 
+function updatePartyBalance(partyId, deltaBalance) {
+  if (!partyId || !deltaBalance) return;
+  const num = Number(deltaBalance);
+  if (isNaN(num) || num === 0) return;
+
+  if (isJson) {
+    const p = (jsonStore.parties || []).find(x => x.id === partyId);
+    if (p) {
+      p.openingBalance = (Number(p.openingBalance) || 0) + num;
+      if (saveJsonFn) saveJsonFn();
+    }
+    return;
+  }
+  if (!db) return;
+  try {
+    db.prepare('UPDATE parties SET openingBalance = openingBalance + ? WHERE id = ?').run(num, String(partyId));
+    if (checkpointFn) checkpointFn();
+  } catch (err) {
+    console.warn('Could not update party balance in DB:', err);
+  }
+}
+
 module.exports = {
   initGeneralInfo,
   getCompanyInfo,
@@ -775,5 +797,6 @@ module.exports = {
   addParty,
   updateParty,
   deleteParty,
+  updatePartyBalance,
   getAllGeneralInfo
 };

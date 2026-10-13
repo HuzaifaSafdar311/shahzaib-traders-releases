@@ -126,8 +126,21 @@
   // PARTY TYPES INTEGRATION (DYNAMIC FROM GENERAL INFO)
   // ========================================================
   let sharedPartyTypes = [];
+  let sharedCompanyInfo = null;
+
+  async function loadCompanyInfo() {
+    try {
+      if (window.generalInfoAPI?.getGeneralInfo) {
+        const gi = await window.generalInfoAPI.getGeneralInfo();
+        if (gi?.companyInfo) sharedCompanyInfo = gi.companyInfo;
+      }
+    } catch (e) {
+      console.warn('Could not load company info for sales receipts:', e);
+    }
+  }
 
   async function loadPartyTypes() {
+    await loadCompanyInfo();
     try {
       if (window.generalInfoAPI?.getPartyTypes) {
         sharedPartyTypes = await window.generalInfoAPI.getPartyTypes();
@@ -183,6 +196,16 @@
     const pt = sharedPartyTypes.find(t => t.id === partyTypeId || t.name === partyTypeId);
     if (pt) {
       saleState.selectedPartyType = pt;
+      const ptLower = (pt.name || '').toLowerCase();
+      const ptCodeLower = (pt.code || '').toLowerCase();
+      if (ptLower.includes('wholesale') || ptLower.includes('distributor') || ptCodeLower.includes('whl') || ptCodeLower.includes('dist')) {
+        saleState.rateMode = 'wholesale';
+      } else {
+        saleState.rateMode = 'retail';
+      }
+      if (saleState.selectedProduct) {
+        applyRateChoice(saleState.rateMode);
+      }
       saleState.selectedCustomer = {
         id: pt.id,
         partyTypeId: pt.id,
@@ -277,8 +300,12 @@
       el.retailPill.title = 'Click to apply Retail Price';
     }
 
-    // Default rate selection (Retail by default, or Wholesale if set)
-    applyRateChoice(saleState.rateMode === 'wholesale' ? 'wholesale' : 'retail');
+    // Dynamic rate choice according to selected Party Type
+    const ptLower = (saleState.selectedPartyType?.name || '').toLowerCase();
+    const ptCodeLower = (saleState.selectedPartyType?.code || '').toLowerCase();
+    const isWholesaleParty = ptLower.includes('wholesale') || ptLower.includes('distributor') || ptCodeLower.includes('whl') || ptCodeLower.includes('dist');
+    const autoMode = isWholesaleParty ? 'wholesale' : (saleState.rateMode || 'retail');
+    applyRateChoice(autoMode);
 
     // Default quantities
     if (el.packQty) el.packQty.value = 1;
@@ -295,13 +322,15 @@
     const p = saleState.selectedProduct;
 
     if (mode === 'wholesale') {
-      const wp = Number(p.wholesalePrice || p.retailPrice || 0);
-      if (el.salePrice) el.salePrice.value = wp.toFixed(2);
+      const wp = Number(p.wholesalePrice || 0);
+      const rateToUse = wp > 0 ? wp : Number(p.retailPrice || 0);
+      if (el.salePrice) el.salePrice.value = rateToUse.toFixed(2);
       if (el.wholesalePill) el.wholesalePill.classList.add('active-choice');
       if (el.retailPill) el.retailPill.classList.remove('active-choice');
     } else if (mode === 'retail') {
-      const rp = Number(p.retailPrice || p.wholesalePrice || 0);
-      if (el.salePrice) el.salePrice.value = rp.toFixed(2);
+      const rp = Number(p.retailPrice || 0);
+      const rateToUse = rp > 0 ? rp : Number(p.wholesalePrice || 0);
+      if (el.salePrice) el.salePrice.value = rateToUse.toFixed(2);
       if (el.retailPill) el.retailPill.classList.add('active-choice');
       if (el.wholesalePill) el.wholesalePill.classList.remove('active-choice');
     }
@@ -359,6 +388,16 @@
     const grossLine = totalQty * rate;
     const discAmt = grossLine * (discPct / 100);
     const netLine = Math.max(0, grossLine - discAmt);
+
+    // Stock availability verification
+    const currentStock = Number(p.stockQty || 0);
+    if (currentStock <= 0) {
+      const allowOut = confirm(`Stock Alert: "${p.titleEng}" has 0 stock available (Current: ${currentStock}).\nDo you want to proceed with negative stock sale?`);
+      if (!allowOut) return;
+    } else if (totalQty > currentStock) {
+      const allowExcess = confirm(`Stock Alert: Requested quantity (${totalQty}) exceeds available inventory (${currentStock}).\nDo you want to proceed anyway?`);
+      if (!allowExcess) return;
+    }
 
     // Warning if selling below purchase cost!
     if (costPrice > 0 && rate < costPrice) {
@@ -637,13 +676,22 @@
       `;
     });
 
+    const comp = sharedCompanyInfo || {
+      name: 'SHAHZAIB TRADERS',
+      tagline: 'Wholesale & Retail Trading Solutions',
+      address: 'Wah Cantt, Pakistan',
+      phone: '0300-1234567'
+    };
+
     el.receiptArea.innerHTML = `
       <div class="thermal-receipt-paper">
         <div class="receipt-header">
-          <div class="receipt-title">SHAHZAIB TRADERS</div>
-          <div class="receipt-meta">Main Market, Wah Cantt, Punjab</div>
-          <div class="receipt-meta">Phone: 0300-1234567 | 051-4567890</div>
-          <div class="receipt-meta"><strong>SALE INVOICE</strong></div>
+          <div class="receipt-title">${window.escapeHtml(comp.name || 'SHAHZAIB TRADERS')}</div>
+          ${comp.tagline ? `<div class="receipt-meta" style="font-style: italic;">${window.escapeHtml(comp.tagline)}</div>` : ''}
+          <div class="receipt-meta">${window.escapeHtml(comp.address || 'Wah Cantt, Pakistan')}</div>
+          <div class="receipt-meta">Phone: ${window.escapeHtml(comp.phone || '0300-1234567')}${comp.email ? ` | ${window.escapeHtml(comp.email)}` : ''}</div>
+          ${comp.ntn ? `<div class="receipt-meta">NTN: ${window.escapeHtml(comp.ntn)}</div>` : ''}
+          <div class="receipt-meta" style="margin-top: 4px;"><strong>SALE INVOICE</strong></div>
         </div>
 
         <div style="font-size: 11px; margin-bottom: 8px;">
@@ -1372,12 +1420,18 @@
       `;
     });
 
+    const comp = sharedCompanyInfo || {
+      name: 'SHAHZAIB TRADERS',
+      address: 'Wah Cantt, Pakistan',
+      phone: '0300-1234567'
+    };
+
     retEl.receiptArea.innerHTML = `
       <div class="thermal-receipt-paper" style="border: 1px dashed #dc2626;">
         <div class="receipt-header">
-          <h2>SHAHZAIB TRADERS</h2>
-          <p>Wah Cantt, Pakistan</p>
-          <p>Phone: 0300-1234567</p>
+          <h2>${window.escapeHtml(comp.name || 'SHAHZAIB TRADERS')}</h2>
+          <p>${window.escapeHtml(comp.address || 'Wah Cantt, Pakistan')}</p>
+          <p>Phone: ${window.escapeHtml(comp.phone || '0300-1234567')}</p>
           <div class="receipt-title-badge" style="background: #fee2e2; color: #b91c1c; border-color: #fca5a5;">
             SALE RETURN / CREDIT MEMO
           </div>
