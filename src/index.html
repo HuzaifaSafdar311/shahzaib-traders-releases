@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="shared/styles.css">
   <link rel="stylesheet" href="inventory/inventory.css">
   <link rel="stylesheet" href="Genral info/general-info.css">
+  <link rel="stylesheet" href="sales/sales.css">
 </head>
 
 <body>
@@ -1220,25 +1221,279 @@
 </section>
 
       <!-- ======================================================== -->
-      <!-- SALE MAIN VIEW (PLACEHOLDER)                             -->
+      <!-- SALE INFORMATION VOUCHER (MULTI-RATE VISIBILITY)         -->
       <!-- ======================================================== -->
-      <section id="salesView" class="view-section">
-        <header class="gi-header">
-          <div class="gi-header-top">
-            <div class="gi-main-title">
+      <section id="salesView" class="view-section sales-section">
+        <!-- Top Action & Meta Bar -->
+        <header class="sale-voucher-header">
+          <div class="sale-header-actions-row">
+            <div class="sale-title-wrap">
               <svg class="gi-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="9" cy="21" r="1"></circle>
                 <circle cx="20" cy="21" r="1"></circle>
                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
               </svg>
-              <span>Sale</span>
+              <h1>Sale Information Voucher</h1>
+            </div>
+            <div class="sale-header-btn-group">
+              <button type="button" id="btnSaleNew" class="btn btn-secondary" title="New Voucher (F2)">
+                <span>+ New (F2)</span>
+              </button>
+              <button type="button" id="btnSaleHistory" class="btn btn-secondary" title="Sales History">
+                <span>📋 Recent Sales</span>
+              </button>
+              <button type="button" id="btnSalePrint" class="btn btn-secondary" title="Print Bill (Ctrl+P)">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Bill</span>
+              </button>
+              <button type="button" id="btnSaleSave" class="btn btn-primary" title="Save Voucher (F10 / Ctrl+S)">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <path d="M7 3v5h8"></path>
+                </svg>
+                <span>Save Voucher</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="sale-meta-row">
+            <div class="form-group">
+              <label>Entry Date</label>
+              <input type="date" id="saleEntryDate" class="form-control form-control-sm">
+            </div>
+            <div class="form-group">
+              <label>Voucher No</label>
+              <input type="text" id="saleVoucherNo" class="form-control form-control-sm font-num font-bold text-primary" readonly>
+            </div>
+            <div class="form-group">
+              <label>Manual / Bill #</label>
+              <input type="text" id="saleManualNo" class="form-control form-control-sm" placeholder="Ref #">
+            </div>
+            <div class="form-group">
+              <label class="required-label">Customer / Party Title</label>
+              <select id="saleCustomerSelect" class="form-control form-control-sm required-input">
+                <option value="">-- Select Customer / Party --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Payment Mode</label>
+              <select id="salePaymentType" class="form-control form-control-sm">
+                <option value="Cash">Cash Sale</option>
+                <option value="Credit">Credit / Ledger</option>
+                <option value="Bank">Bank Transfer</option>
+              </select>
             </div>
           </div>
         </header>
-        <div class="empty-state" style="padding: 60px 20px; text-align: center;">
-          <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Sale Module</h2>
-          <p style="color: var(--text-secondary); max-width: 480px; margin: 0 auto; line-height: 1.6;">Sale Information Voucher with live Retail, Wholesale, and Purchase Price visibility.</p>
+
+        <!-- Secondary Customer & Store Info Row -->
+        <div class="sale-secondary-bar">
+          <div class="form-group">
+            <label>Customer Phone</label>
+            <input type="text" id="saleCustomerPhone" class="form-control form-control-sm" placeholder="Phone" readonly>
+          </div>
+          <div class="form-group">
+            <label>City / Territory</label>
+            <input type="text" id="saleCustomerArea" class="form-control form-control-sm" placeholder="Area" readonly>
+          </div>
+          <div class="form-group">
+            <label>Previous Balance</label>
+            <input type="text" id="saleCustomerPrevBalance" class="form-control form-control-sm font-num sale-customer-prev-balance text-danger" value="Rs 0.00" readonly>
+          </div>
+          <div class="form-group">
+            <label>Description / Notes</label>
+            <input type="text" id="saleDescription" class="form-control form-control-sm" placeholder="Remarks or customer reference notes">
+          </div>
         </div>
+
+        <!-- LINE ITEM ENTRY CARD WITH PURCHASE, WHOLESALE, AND RETAIL RATES -->
+        <div class="sale-item-entry-card">
+          <div class="sale-entry-grid">
+            <!-- Code & Search (F1) -->
+            <div class="form-group">
+              <label>Code <span class="hotkey-hint">(F1)</span></label>
+              <div class="input-with-btn">
+                <input type="text" id="saleItemCode" class="form-control form-control-sm font-num font-bold" placeholder="Code">
+                <button type="button" id="btnSaleFindProduct" class="btn btn-sm btn-secondary" title="Search Product (F1)">🔍</button>
+              </div>
+            </div>
+
+            <!-- Product Title -->
+            <div class="form-group">
+              <label>Product Title</label>
+              <select id="saleProductSelect" class="form-control form-control-sm">
+                <option value="">-- Select Product Title --</option>
+              </select>
+            </div>
+
+            <!-- Pack Size -->
+            <div class="form-group">
+              <label>Pack</label>
+              <input type="number" id="salePackSize" class="form-control form-control-sm font-num text-center" min="1" value="1" readonly>
+            </div>
+
+            <!-- Pack Qty -->
+            <div class="form-group">
+              <label>P.Qty</label>
+              <input type="number" id="salePackQty" class="form-control form-control-sm font-num text-center" min="0" value="1">
+            </div>
+
+            <!-- Unit Qty -->
+            <div class="form-group">
+              <label>U.Qty</label>
+              <input type="number" id="saleUnitQty" class="form-control form-control-sm font-num text-center" min="0" value="0">
+            </div>
+
+            <!-- Total Qty (Calculated) -->
+            <div class="form-group">
+              <label>Total Qty</label>
+              <input type="number" id="saleTotalQty" class="form-control form-control-sm font-num font-bold text-center text-primary" min="1" value="1" readonly>
+            </div>
+
+            <!-- Purchase Cost Rate (Staff Baseline Reference) -->
+            <div class="rate-pill-box">
+              <label title="Cost baseline (Internal)">Cost (Ref)</label>
+              <div id="salePurchasePricePill" class="rate-badge-btn rate-pill-cost font-num" title="Purchase Price (Cost)">0.00</div>
+            </div>
+
+            <!-- Wholesale Rate (Clickable Choice Button) -->
+            <div class="rate-pill-box">
+              <label title="Click to apply Wholesale Price">Wholesale</label>
+              <div id="saleWholesalePricePill" class="rate-badge-btn rate-pill-wholesale font-num" title="Click to use Wholesale Price">0.00</div>
+            </div>
+
+            <!-- Retail Rate (Clickable Choice Button) -->
+            <div class="rate-pill-box">
+              <label title="Click to apply Retail Price">Retail</label>
+              <div id="saleRetailPricePill" class="rate-badge-btn rate-pill-retail font-num active-choice" title="Click to use Retail Price">0.00</div>
+            </div>
+
+            <!-- Applied Sale Price (Editable) -->
+            <div class="form-group applied-sale-price-field">
+              <label class="required-label">Sale Rate</label>
+              <input type="number" id="saleSalePriceInput" class="form-control form-control-sm font-num" min="0" step="0.01" value="0.00">
+            </div>
+
+            <!-- Discount % -->
+            <div class="form-group">
+              <label>Disc %</label>
+              <input type="number" id="saleDiscountPercent" class="form-control form-control-sm font-num text-center" min="0" max="100" step="0.5" value="0.0">
+            </div>
+
+            <!-- Line Total -->
+            <div class="form-group">
+              <label>Net Total</label>
+              <input type="number" id="saleLineAmount" class="form-control form-control-sm font-num font-bold text-success" value="0.00" readonly>
+            </div>
+
+            <!-- Add Button -->
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <button type="button" id="btnSaleAddItem" class="btn btn-sm btn-primary">
+                <span>+ Add</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: var(--text-secondary); padding: 0 4px;">
+            <div>
+              <span>Current Stock Available: </span>
+              <span id="saleAvailableStock" class="font-bold font-num">-</span>
+            </div>
+            <div>
+              <span>Tip: Click <strong>Wholesale</strong> or <strong>Retail</strong> badge to automatically apply the chosen rate, or type a custom rate.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ITEMS TABLE CONTAINER -->
+        <div class="sale-items-table-container">
+          <table class="sale-items-table">
+            <thead>
+              <tr>
+                <th style="width: 45px; text-align: center;">SR #</th>
+                <th style="width: 110px;">Item Code</th>
+                <th>Product Description</th>
+                <th style="width: 60px; text-align: center;">Pack</th>
+                <th style="width: 80px; text-align: center;">P/U Qty</th>
+                <th style="width: 80px; text-align: center;">Total Qty</th>
+                <th style="width: 95px; text-align: center;" title="Purchase Cost (Internal Reference)">Cost (Ref)</th>
+                <th style="width: 95px; text-align: center;">Wholesale</th>
+                <th style="width: 95px; text-align: center;">Retail</th>
+                <th style="width: 105px; text-align: right;">Applied Rate</th>
+                <th style="width: 70px; text-align: center;">Disc</th>
+                <th style="width: 115px; text-align: right;">Net Amount</th>
+                <th style="width: 50px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="saleItemsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+          <div id="saleItemsEmptyState" class="empty-state">
+            <span>No products added to this sale voucher yet. Enter code or press F1 to search products.</span>
+          </div>
+        </div>
+
+        <!-- FINANCIAL SUMMARY & VOUCHER FOOTER -->
+        <footer class="sale-voucher-footer">
+          <div class="sale-footer-left">
+            <div class="sale-footer-stats-pills">
+              <div class="sale-stat-pill">
+                <span class="stat-label">Total Items</span>
+                <span id="saleTotalItemsCount" class="stat-val font-num">0</span>
+              </div>
+              <div class="sale-stat-pill">
+                <span class="stat-label">Total Pieces</span>
+                <span id="saleTotalPiecesCount" class="stat-val font-num">0</span>
+              </div>
+              <div class="sale-stat-pill">
+                <span class="stat-label">Est. Profit Preview</span>
+                <span id="saleTotalProfitPreview" class="stat-val font-num text-success">Rs 0.00</span>
+              </div>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: auto;">
+              <span>• Stock will be automatically deducted from inventory upon saving.</span><br>
+              <span>• Customer ledger balance will be updated automatically.</span>
+            </div>
+          </div>
+
+          <div class="sale-footer-right">
+            <div class="sale-calc-row">
+              <span class="calc-label">Gross Amount:</span>
+              <span id="saleGrossTotal" class="calc-val font-num font-bold">Rs 0.00</span>
+            </div>
+            <div class="sale-calc-row">
+              <span class="calc-label">Special Discount:</span>
+              <input type="number" id="saleSpecialDiscount" class="form-control form-control-sm font-num text-right" style="width: 110px;" min="0" step="1" value="0">
+            </div>
+            <div class="sale-calc-row highlight-net">
+              <span class="calc-label font-bold" style="font-size: 1.05rem;">Net Bill Total:</span>
+              <span id="saleNetTotal" class="calc-val font-num">Rs 0.00</span>
+            </div>
+            <div class="sale-calc-row">
+              <span class="calc-label">Paid / Received:</span>
+              <input type="number" id="salePaidAmount" class="form-control form-control-sm font-num text-right font-bold text-success" style="width: 110px;" min="0" step="1" value="0">
+            </div>
+            <div class="sale-calc-row">
+              <span class="calc-label">Bill Balance Due:</span>
+              <span id="saleBalanceDue" class="calc-val font-num font-bold text-danger">Rs 0.00</span>
+            </div>
+            <div class="sale-calc-row">
+              <span class="calc-label">Return Change:</span>
+              <span id="saleReturnChange" class="calc-val font-num">Rs 0.00</span>
+            </div>
+            <div class="sale-calc-row highlight-balance" style="margin-top: 4px;">
+              <span class="calc-label font-bold">New Customer Ledger:</span>
+              <span id="saleFinalCustomerBalance" class="calc-val font-num">Rs 0.00</span>
+            </div>
+          </div>
+        </footer>
       </section>
 
       <!-- ======================================================== -->
@@ -1758,6 +2013,63 @@
 </div>
 
 
+  <!-- Modal: Sale Receipt (Thermal Print) -->
+  <div id="modalSaleReceipt" class="modal-overlay hidden">
+    <div class="modal-card sale-receipt-modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Sale Bill Receipt</h2>
+        <button id="btnCloseSaleReceipt" class="modal-close-btn">&times;</button>
+      </div>
+      <div id="thermalReceiptPrintArea" class="modal-body" style="padding: 0;">
+        <!-- Dynamically rendered receipt -->
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Thermal 80mm & A4 compatible</span>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalSaleReceipt').classList.add('hidden')">Close</button>
+          <button type="button" id="btnDoPrintSaleReceipt" class="btn btn-primary">🖨️ Print Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Sales History -->
+  <div id="modalSaleHistory" class="modal-overlay hidden">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <h2 class="modal-title">Recent Sales History</h2>
+        <button id="btnCloseSaleHistory" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="search-box mb-3">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="saleHistorySearchInput" placeholder="Search by Voucher #, Customer, or Ref..." autocomplete="off">
+        </div>
+        <div class="table-container" style="max-height: 420px; overflow-y: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 120px;">Voucher #</th>
+                <th style="width: 110px;">Date</th>
+                <th>Customer Name</th>
+                <th style="width: 80px; text-align: center;">Items</th>
+                <th style="width: 130px; text-align: right;">Net Amount</th>
+                <th style="width: 120px; text-align: right;">Paid</th>
+                <th style="width: 140px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="saleHistoryTableBody">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notifications Container -->
   <div id="toastContainer" class="toast-container"></div>
 
@@ -1766,6 +2078,7 @@
   <script src="renderer.js"></script>
   <script src="inventory/inventory.js"></script>
   <script src="Genral info/general-info.js"></script>
+  <script src="sales/sales.js"></script>
 </body>
 
 </html>

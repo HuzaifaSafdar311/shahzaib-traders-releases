@@ -43,11 +43,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
   savePurchase: (purchaseData, items) => ipcRenderer.invoke('save-purchase', purchaseData, items),
   deletePurchase: (id) => ipcRenderer.invoke('delete-purchase', id),
 
+  // Sales (Vouchers)
+  getSales: () => ipcRenderer.invoke('get-sales'),
+  getSale: (id) => ipcRenderer.invoke('get-sale', id),
+  getNextSaleVoucherNo: () => ipcRenderer.invoke('get-next-sale-voucher-no'),
+  saveSale: (saleData, items) => ipcRenderer.invoke('save-sale', saleData, items),
+  deleteSale: (id) => ipcRenderer.invoke('delete-sale', id),
+
   // Exports
   exportPDF: (data) => ipcRenderer.invoke('export-pdf', data),
   exportExcel: (data) => ipcRenderer.invoke('export-excel', data),
   exportCSV: (data) => ipcRenderer.invoke('export-csv', data)
 });
+
+// Dedicated Sales API Bridge
+contextBridge.exposeInMainWorld('salesAPI', {
+  getSales: () => ipcRenderer.invoke('get-sales'),
+  getSale: (id) => ipcRenderer.invoke('get-sale', id),
+  getNextVoucherNo: () => ipcRenderer.invoke('get-next-sale-voucher-no'),
+  saveSale: (saleData, items) => ipcRenderer.invoke('save-sale', saleData, items),
+  deleteSale: (id) => ipcRenderer.invoke('delete-sale', id)
+});
+
 
 // Expose General Info API for Company Info, Provinces, Areas, Party Types, and Parties
 contextBridge.exposeInMainWorld('generalInfoAPI', {

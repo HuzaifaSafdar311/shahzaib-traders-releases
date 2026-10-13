@@ -19,7 +19,9 @@ let jsonData = {
   product_sub_categories: [],
   products: [],
   purchases: [],
-  purchase_items: []
+  purchase_items: [],
+  sales: [],
+  sale_items: []
 };
 
 function saveJsonData() {
@@ -47,14 +49,16 @@ function initJsonFallback(dbPath) {
         product_sub_categories: Array.isArray(parsed.product_sub_categories) ? parsed.product_sub_categories : [],
         products: Array.isArray(parsed.products) ? parsed.products : [],
         purchases: Array.isArray(parsed.purchases) ? parsed.purchases : [],
-        purchase_items: Array.isArray(parsed.purchase_items) ? parsed.purchase_items : []
+        purchase_items: Array.isArray(parsed.purchase_items) ? parsed.purchase_items : [],
+        sales: Array.isArray(parsed.sales) ? parsed.sales : [],
+        sale_items: Array.isArray(parsed.sale_items) ? parsed.sale_items : []
       };
     } catch (e) {
       console.warn('Failed to parse existing JSON database, re-initializing:', e);
-      jsonData = { units: [], product_types: [], product_categories: [], product_sub_categories: [], products: [], purchases: [], purchase_items: [] };
+      jsonData = { units: [], product_types: [], product_categories: [], product_sub_categories: [], products: [], purchases: [], purchase_items: [], sales: [], sale_items: [] };
     }
   } else {
-    jsonData = { units: [], product_types: [], product_categories: [], product_sub_categories: [], products: [], purchases: [], purchase_items: [] };
+    jsonData = { units: [], product_types: [], product_categories: [], product_sub_categories: [], products: [], purchases: [], purchase_items: [], sales: [], sale_items: [] };
     saveJsonData();
   }
 
@@ -205,6 +209,55 @@ function initDatabase(dbPath) {
         tradeOffer REAL DEFAULT 0,
         discountPercent REAL DEFAULT 0,
         netAmount REAL DEFAULT 0
+      );
+    `);
+
+    // 8. Sales (Header)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sales (
+        id TEXT PRIMARY KEY,
+        voucherNo TEXT UNIQUE NOT NULL,
+        manualNo TEXT DEFAULT '',
+        entryDate TEXT NOT NULL,
+        partyId TEXT NOT NULL,
+        partyTitle TEXT NOT NULL,
+        customerPhone TEXT DEFAULT '',
+        areaName TEXT DEFAULT '',
+        description TEXT DEFAULT '',
+        storeTitle TEXT DEFAULT 'Main Store',
+        paymentType TEXT DEFAULT 'Cash',
+        previousBalance REAL DEFAULT 0,
+        grossAmount REAL DEFAULT 0,
+        discount REAL DEFAULT 0,
+        netAmount REAL DEFAULT 0,
+        paidAmount REAL DEFAULT 0,
+        balanceDue REAL DEFAULT 0,
+        itemsJson TEXT DEFAULT '[]',
+        createdAt TEXT NOT NULL
+      );
+    `);
+
+    // 9. Sale Items (Line items with Purchase & Wholesale rate visibility)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sale_items (
+        id TEXT PRIMARY KEY,
+        saleId TEXT NOT NULL,
+        srNo INTEGER DEFAULT 1,
+        productId TEXT,
+        productCode TEXT NOT NULL,
+        productTitle TEXT NOT NULL,
+        packSize REAL DEFAULT 1,
+        packQty REAL DEFAULT 0,
+        unitQty REAL DEFAULT 0,
+        totalQty REAL DEFAULT 0,
+        purchasePrice REAL DEFAULT 0,
+        wholesalePrice REAL DEFAULT 0,
+        retailPrice REAL DEFAULT 0,
+        salePrice REAL DEFAULT 0,
+        discountPercent REAL DEFAULT 0,
+        discountAmount REAL DEFAULT 0,
+        netAmount REAL DEFAULT 0,
+        createdAt TEXT NOT NULL
       );
     `);
 
@@ -783,7 +836,274 @@ function deletePurchase(id) {
   }
 }
 
-// Enterprise All-Data Fetcher
+// ============================================
+// SALES CRUD & STOCK OUTWARD (WITH RATES VISIBILITY)
+// ============================================
+function getAllSales() {
+  if (isJsonFallback) {
+    return [...jsonData.sales].sort((a, b) => (b.entryDate || '').localeCompare(a.entryDate || ''));
+  }
+  if (!dbInstance) throw new Error('DB not initialized');
+  return dbInstance.prepare('SELECT * FROM sales ORDER BY entryDate DESC, createdAt DESC').all();
+}
+
+function getSaleById(id) {
+  if (isJsonFallback) {
+    const s = jsonData.sales.find(sr => sr.id === id || sr.voucherNo === id);
+    if (!s) return null;
+    const items = jsonData.sale_items.filter(it => it.saleId === s.id);
+    return { ...s, items };
+  }
+  const s = dbInstance.prepare('SELECT * FROM sales WHERE id = ? OR voucherNo = ?').get(id, id);
+  if (!s) return null;
+  const items = dbInstance.prepare('SELECT * FROM sale_items WHERE saleId = ? ORDER BY srNo ASC').all(s.id);
+  return { ...s, items };
+}
+
+function getNextSaleVoucherNo() {
+  const sales = getAllSales();
+  if (!sales || sales.length === 0) return 'SV-0001';
+  const numericNos = sales
+    .map(s => {
+      const match = String(s.voucherNo || '').match(/\d+/);
+      return match ? parseInt(match[0], 10) : 0;
+    })
+    .filter(n => !isNaN(n) && n > 0);
+  if (numericNos.length === 0) return 'SV-0001';
+  const max = Math.max(...numericNos);
+  return 'SV-' + String(max + 1).padStart(4, '0');
+}
+
+function saveSale(saleData, items = []) {
+  const id = saleData.id || `sale-${Date.now()}`;
+  const voucherNo = String(saleData.voucherNo || '').trim() || getNextSaleVoucherNo();
+  const now = new Date().toISOString();
+  const itemsJson = JSON.stringify(items);
+
+  const saleRecord = {
+    id,
+    voucherNo,
+    manualNo: saleData.manualNo || '',
+    entryDate: saleData.entryDate || new Date().toISOString().split('T')[0],
+    partyId: saleData.partyId || '',
+    partyTitle: saleData.partyTitle || '',
+    customerPhone: saleData.customerPhone || '',
+    areaName: saleData.areaName || '',
+    description: saleData.description || '',
+    storeTitle: saleData.storeTitle || 'Main Store',
+    paymentType: saleData.paymentType || 'Cash',
+    previousBalance: Number(saleData.previousBalance) || 0,
+    grossAmount: Number(saleData.grossAmount) || 0,
+    discount: Number(saleData.discount) || 0,
+    netAmount: Number(saleData.netAmount) || 0,
+    paidAmount: Number(saleData.paidAmount) || 0,
+    balanceDue: Number(saleData.balanceDue) || 0,
+    itemsJson,
+    createdAt: now
+  };
+
+  if (isJsonFallback) {
+    const existing = jsonData.sales.find(s => s.id === id || s.voucherNo === voucherNo);
+    if (existing) {
+      const oldItems = jsonData.sale_items.filter(it => it.saleId === existing.id);
+      for (const oldIt of oldItems) {
+        const prod = jsonData.products.find(p => p.id === oldIt.productId || p.code === oldIt.productCode);
+        if (prod) {
+          prod.stockQty = (Number(prod.stockQty) || 0) + (Number(oldIt.totalQty) || 0);
+        }
+      }
+      jsonData.sales = jsonData.sales.filter(s => s.id !== existing.id);
+      jsonData.sale_items = jsonData.sale_items.filter(it => it.saleId !== existing.id);
+      saleRecord.createdAt = existing.createdAt;
+    }
+
+    jsonData.sales.unshift(saleRecord);
+
+    let sr = 1;
+    for (const item of items) {
+      const code = String(item.productCode || item.code || '').trim();
+      let packSize = Number(item.packSize) || 1;
+      const packQty = Number(item.packQty || 0);
+      const unitQty = Number(item.unitQty || 0);
+      const totalQty = (packQty * packSize) + unitQty;
+      const salePrice = Number(item.salePrice || item.retailPrice || 0);
+      const purchasePrice = Number(item.purchasePrice || 0);
+      const wholesalePrice = Number(item.wholesalePrice || 0);
+      const retailPrice = Number(item.retailPrice || 0);
+      const discountPercent = Number(item.discountPercent || 0);
+      const discountAmount = Number(item.discountAmount || 0);
+      const netAmount = Number(item.netAmount || (totalQty * salePrice - discountAmount));
+
+      jsonData.sale_items.push({
+        id: `si-${Date.now()}-${sr}`,
+        saleId: id,
+        srNo: sr,
+        productId: item.productId || '',
+        productCode: code,
+        productTitle: item.productTitle || '',
+        packSize,
+        packQty,
+        unitQty,
+        totalQty,
+        purchasePrice,
+        wholesalePrice,
+        retailPrice,
+        salePrice,
+        discountPercent,
+        discountAmount,
+        netAmount,
+        createdAt: now
+      });
+
+      if (totalQty > 0) {
+        const prod = jsonData.products.find(p => (code && p.code === code) || (item.productId && p.id === item.productId));
+        if (prod) {
+          prod.stockQty = Math.max(0, (Number(prod.stockQty) || 0) - totalQty);
+        }
+      }
+      sr++;
+    }
+
+    saveJsonData();
+    return { success: true, id, voucherNo };
+  }
+
+  dbInstance.exec('BEGIN TRANSACTION;');
+  try {
+    const existing = dbInstance.prepare('SELECT id, createdAt FROM sales WHERE id = ? OR voucherNo = ?').get(id, voucherNo);
+    if (existing) {
+      const oldItems = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_items WHERE saleId = ?').all(existing.id);
+      for (const oldIt of oldItems) {
+        dbInstance.prepare(`
+          UPDATE products SET stockQty = stockQty + ? WHERE code = ? OR id = ?
+        `).run(Number(oldIt.totalQty) || 0, oldIt.productCode || '', oldIt.productId || '');
+      }
+      dbInstance.prepare('DELETE FROM sale_items WHERE saleId = ?').run(existing.id);
+      dbInstance.prepare(`
+        UPDATE sales SET
+          voucherNo = ?, manualNo = ?, entryDate = ?, partyId = ?, partyTitle = ?,
+          customerPhone = ?, areaName = ?, description = ?, storeTitle = ?, paymentType = ?,
+          previousBalance = ?, grossAmount = ?, discount = ?, netAmount = ?,
+          paidAmount = ?, balanceDue = ?, itemsJson = ?
+        WHERE id = ?
+      `).run(
+        voucherNo, saleRecord.manualNo, saleRecord.entryDate, saleRecord.partyId, saleRecord.partyTitle,
+        saleRecord.customerPhone, saleRecord.areaName, saleRecord.description, saleRecord.storeTitle, saleRecord.paymentType,
+        saleRecord.previousBalance, saleRecord.grossAmount, saleRecord.discount, saleRecord.netAmount,
+        saleRecord.paidAmount, saleRecord.balanceDue, itemsJson, existing.id
+      );
+    } else {
+      dbInstance.prepare(`
+        INSERT INTO sales (
+          id, voucherNo, manualNo, entryDate, partyId, partyTitle,
+          customerPhone, areaName, description, storeTitle, paymentType,
+          previousBalance, grossAmount, discount, netAmount,
+          paidAmount, balanceDue, itemsJson, createdAt
+        ) VALUES (
+          ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?
+        )
+      `).run(
+        id, voucherNo, saleRecord.manualNo, saleRecord.entryDate, saleRecord.partyId, saleRecord.partyTitle,
+        saleRecord.customerPhone, saleRecord.areaName, saleRecord.description, saleRecord.storeTitle, saleRecord.paymentType,
+        saleRecord.previousBalance, saleRecord.grossAmount, saleRecord.discount, saleRecord.netAmount,
+        saleRecord.paidAmount, saleRecord.balanceDue, itemsJson, now
+      );
+    }
+
+    const insertItem = dbInstance.prepare(`
+      INSERT INTO sale_items (
+        id, saleId, srNo, productId, productCode, productTitle,
+        packSize, packQty, unitQty, totalQty,
+        purchasePrice, wholesalePrice, retailPrice, salePrice,
+        discountPercent, discountAmount, netAmount, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const deductStock = dbInstance.prepare(`
+      UPDATE products SET stockQty = MAX(0, stockQty - ?) WHERE code = ? OR id = ?
+    `);
+
+    let sr = 1;
+    for (const item of items) {
+      const itemId = `si-${Date.now()}-${sr}`;
+      const code = String(item.productCode || item.code || '').trim();
+      let packSize = Number(item.packSize) || 1;
+      const packQty = Number(item.packQty || 0);
+      const unitQty = Number(item.unitQty || 0);
+      const totalQty = (packQty * packSize) + unitQty;
+      const salePrice = Number(item.salePrice || item.retailPrice || 0);
+      const purchasePrice = Number(item.purchasePrice || 0);
+      const wholesalePrice = Number(item.wholesalePrice || 0);
+      const retailPrice = Number(item.retailPrice || 0);
+      const discountPercent = Number(item.discountPercent || 0);
+      const discountAmount = Number(item.discountAmount || 0);
+      const netAmount = Number(item.netAmount || (totalQty * salePrice - discountAmount));
+
+      insertItem.run(
+        itemId, id, sr, item.productId || '', code, item.productTitle || '',
+        packSize, packQty, unitQty, totalQty,
+        purchasePrice, wholesalePrice, retailPrice, salePrice,
+        discountPercent, discountAmount, netAmount, now
+      );
+
+      if (totalQty > 0) {
+        deductStock.run(totalQty, code, item.productId || '');
+      }
+      sr++;
+    }
+
+    dbInstance.exec('COMMIT;');
+    checkpoint();
+    return { success: true, id, voucherNo };
+  } catch (err) {
+    dbInstance.exec('ROLLBACK;');
+    throw err;
+  }
+}
+
+function deleteSale(id) {
+  if (isJsonFallback) {
+    const existing = jsonData.sales.find(s => s.id === id || s.voucherNo === id);
+    if (existing) {
+      const items = jsonData.sale_items.filter(it => it.saleId === existing.id);
+      for (const it of items) {
+        const prod = jsonData.products.find(p => p.id === it.productId || p.code === it.productCode);
+        if (prod) {
+          prod.stockQty = (Number(prod.stockQty) || 0) + (Number(it.totalQty) || 0);
+        }
+      }
+      jsonData.sales = jsonData.sales.filter(s => s.id !== existing.id);
+      jsonData.sale_items = jsonData.sale_items.filter(it => it.saleId !== existing.id);
+      saveJsonData();
+    }
+    return { success: true };
+  }
+
+  dbInstance.exec('BEGIN TRANSACTION;');
+  try {
+    const s = dbInstance.prepare('SELECT id FROM sales WHERE id = ? OR voucherNo = ?').get(id, id);
+    if (s) {
+      const items = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_items WHERE saleId = ?').all(s.id);
+      for (const it of items) {
+        dbInstance.prepare(`
+          UPDATE products SET stockQty = stockQty + ? WHERE code = ? OR id = ?
+        `).run(Number(it.totalQty) || 0, it.productCode || '', it.productId || '');
+      }
+      dbInstance.prepare('DELETE FROM sale_items WHERE saleId = ?').run(s.id);
+      dbInstance.prepare('DELETE FROM sales WHERE id = ?').run(s.id);
+    }
+    dbInstance.exec('COMMIT;');
+    checkpoint();
+    return { success: true };
+  } catch (err) {
+    dbInstance.exec('ROLLBACK;');
+    throw err;
+  }
+}
+
 function getAllData() {
   return {
     units: getAllUnits(),
@@ -791,7 +1111,8 @@ function getAllData() {
     product_categories: getAllProductCategories(),
     product_sub_categories: getSubCategoriesByCategory(),
     products: getAllProducts(),
-    purchases: getAllPurchases()
+    purchases: getAllPurchases(),
+    sales: getAllSales()
   };
 }
 
@@ -851,6 +1172,13 @@ module.exports = {
   getNextPurchaseVoucherNo,
   savePurchase,
   deletePurchase,
+
+  // Sales
+  getAllSales,
+  getSaleById,
+  getNextSaleVoucherNo,
+  saveSale,
+  deleteSale,
 
   // General Info Module (Company, Provinces, Areas, Party Types, Parties)
   getCompanyInfo: generalInfoDb.getCompanyInfo,

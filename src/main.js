@@ -304,6 +304,16 @@ app.whenReady().then(() => {
   ipcMain.handle('get-next-purchase-voucher-no', async () => db.getNextPurchaseVoucherNo());
   ipcMain.handle('save-purchase', async (_event, purchaseData, items) => db.savePurchase(purchaseData, items));
   ipcMain.handle('delete-purchase', async (_event, id) => db.deletePurchase(id));
+
+  // ============================================
+  // SALES IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-sales', async () => db.getAllSales());
+  ipcMain.handle('get-sale', async (_event, id) => db.getSaleById(id));
+  ipcMain.handle('get-next-sale-voucher-no', async () => db.getNextSaleVoucherNo());
+  ipcMain.handle('save-sale', async (_event, saleData, items) => db.saveSale(saleData, items));
+  ipcMain.handle('delete-sale', async (_event, id) => db.deleteSale(id));
+
   // ============================================
   // EXPORT IPC HANDLERS
   // ============================================

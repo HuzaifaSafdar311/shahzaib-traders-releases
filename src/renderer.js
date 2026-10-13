@@ -7,7 +7,8 @@ window.appData = {
   product_categories: [],
   product_sub_categories: [],
   products: [],
-  purchases: []
+  purchases: [],
+  sales: []
 };
 
 // API Storage Bridge (Electron IPC with local storage fallback)
@@ -18,7 +19,8 @@ window.api = window.electronAPI || {
     product_categories: [],
     product_sub_categories: [],
     products: [],
-    purchases: []
+    purchases: [],
+    sales: []
   })
 };
 
@@ -115,6 +117,10 @@ function switchTab(tab) {
     if (window.switchSubTab) {
       window.switchSubTab(window.currentSubTab || 'unit-info');
     }
+  } else if (tab === 'sale') {
+    if (window.SalesModule && window.SalesModule.onActivate) {
+      window.SalesModule.onActivate();
+    }
   }
 }
 
@@ -151,7 +157,8 @@ async function reloadFromDatabase() {
         product_categories: Array.isArray(data.product_categories) ? data.product_categories : [],
         product_sub_categories: Array.isArray(data.product_sub_categories) ? data.product_sub_categories : [],
         products: Array.isArray(data.products) ? data.products : [],
-        purchases: Array.isArray(data.purchases) ? data.purchases : []
+        purchases: Array.isArray(data.purchases) ? data.purchases : [],
+        sales: Array.isArray(data.sales) ? data.sales : []
       };
     }
   } catch (err) {
@@ -165,6 +172,7 @@ async function reloadFromDatabase() {
   if (window.renderProductTypes) window.renderProductTypes();
   if (window.renderProductCategories) window.renderProductCategories();
   if (window.renderProductSubCategories) window.renderProductSubCategories();
+  if (window.SalesModule && window.SalesModule.refresh) window.SalesModule.refresh();
 }
 
 window.reloadFromDatabase = reloadFromDatabase;

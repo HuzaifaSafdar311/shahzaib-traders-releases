@@ -1532,7 +1532,9 @@ function closeProductSearchModal() {
 if (window.findProductAPI?.onProductSelected) {
   window.findProductAPI.onProductSelected((p) => {
     if (!p) return;
-    if (currentSubTab === 'purchase') {
+    if (window.currentTab === 'sale' && window.SalesModule?.selectProduct) {
+      window.SalesModule.selectProduct(p);
+    } else if (currentSubTab === 'purchase') {
       selectProductForPurchase(p);
     } else {
       switchSubTab('product-info');
@@ -1569,11 +1571,11 @@ function renderF1ProductSearch() {
       <td>${window.escapeHtml(p.location || '-')}</td>
     `;
     tr.addEventListener('click', () => {
-      // If currently on Purchase view, fill purchase line entry
-      if (currentSubTab === 'purchase') {
+      if (window.currentTab === 'sale' && window.SalesModule?.selectProduct) {
+        window.SalesModule.selectProduct(p);
+      } else if (currentSubTab === 'purchase') {
         selectProductForPurchase(p);
       } else {
-        // Otherwise load product into Product Info form
         switchSubTab('product-info');
         loadProductRecord(p);
       }
@@ -1611,4 +1613,6 @@ window.confirmDeleteCategory = confirmDeleteCategory;
 window.openEditSubCategory = openEditSubCategory;
 window.confirmDeleteSubCategory = confirmDeleteSubCategory;
 window.removePurchaseLineItem = removePurchaseLineItem;
+window.openProductSearchModal = openProductSearchModal;
+window.closeProductSearchModal = closeProductSearchModal;
 
