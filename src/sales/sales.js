@@ -821,8 +821,732 @@
     if (window.findProductAPI?.onProductSelected) {
       window.findProductAPI.onProductSelected((product) => {
         if (window.currentTab === 'sale') {
-          selectProduct(product);
+          if (currentSaleSubTab === 'return') {
+            selectReturnProduct(product);
+          } else {
+            selectProduct(product);
+          }
         }
+      });
+    }
+  }
+
+  // ========================================================
+  // SUB-TAB NAVIGATION (SALE VOUCHER vs SALE RETURN)
+  // ========================================================
+  let currentSaleSubTab = 'voucher';
+  const navTabs = {};
+
+  function initSubTabs() {
+    navTabs.btnVoucher = document.getElementById('saleSubTabBtnVoucher');
+    navTabs.btnReturn = document.getElementById('saleSubTabBtnReturn');
+    navTabs.panelVoucher = document.getElementById('subviewSaleVoucher');
+    navTabs.panelReturn = document.getElementById('subviewSaleReturn');
+
+    if (navTabs.btnVoucher) {
+      navTabs.btnVoucher.addEventListener('click', () => switchSaleSubTab('voucher'));
+    }
+    if (navTabs.btnReturn) {
+      navTabs.btnReturn.addEventListener('click', () => switchSaleSubTab('return'));
+    }
+  }
+
+  function switchSaleSubTab(tab) {
+    currentSaleSubTab = tab;
+    if (navTabs.btnVoucher) navTabs.btnVoucher.classList.toggle('active', tab === 'voucher');
+    if (navTabs.btnReturn) navTabs.btnReturn.classList.toggle('active', tab === 'return');
+
+    if (navTabs.panelVoucher) {
+      if (tab === 'voucher') {
+        navTabs.panelVoucher.classList.remove('hidden');
+        navTabs.panelVoucher.classList.add('active');
+        populateCustomers();
+        populateProductDropdown();
+        if (!saleState.voucherNo) loadNextVoucherNo();
+      } else {
+        navTabs.panelVoucher.classList.add('hidden');
+        navTabs.panelVoucher.classList.remove('active');
+      }
+    }
+
+    if (navTabs.panelReturn) {
+      if (tab === 'return') {
+        navTabs.panelReturn.classList.remove('hidden');
+        navTabs.panelReturn.classList.add('active');
+        onActivateReturn();
+      } else {
+        navTabs.panelReturn.classList.add('hidden');
+        navTabs.panelReturn.classList.remove('active');
+      }
+    }
+  }
+
+  // ========================================================
+  // SALE RETURN MODULE (RETURN VOUCHER & STOCK RESTORATION)
+  // ========================================================
+  let returnState = {
+    returnId: null,
+    returnNo: '',
+    items: [],
+    selectedProduct: null,
+    selectedCustomer: null,
+    returnsList: []
+  };
+
+  const retEl = {};
+
+  function initReturnElements() {
+    retEl.btnNew = document.getElementById('btnReturnNew');
+    retEl.btnSave = document.getElementById('btnReturnSave');
+    retEl.btnPrint = document.getElementById('btnReturnPrint');
+    retEl.btnHistory = document.getElementById('btnReturnHistory');
+
+    retEl.entryDate = document.getElementById('returnEntryDate');
+    retEl.voucherNo = document.getElementById('returnVoucherNo');
+    retEl.originalBillRef = document.getElementById('returnOriginalBillRef');
+    retEl.customerSelect = document.getElementById('returnCustomerSelect');
+    retEl.refundMode = document.getElementById('returnRefundMode');
+
+    retEl.customerPhone = document.getElementById('returnCustomerPhone');
+    retEl.customerArea = document.getElementById('returnCustomerArea');
+    retEl.customerPrevBalance = document.getElementById('returnCustomerPrevBalance');
+    retEl.returnReason = document.getElementById('returnReason');
+    retEl.description = document.getElementById('returnDescription');
+
+    retEl.itemCode = document.getElementById('returnItemCode');
+    retEl.btnFindProduct = document.getElementById('btnReturnFindProduct');
+    retEl.productSelect = document.getElementById('returnProductSelect');
+    retEl.packSize = document.getElementById('returnPackSize');
+    retEl.packQty = document.getElementById('returnPackQty');
+    retEl.unitQty = document.getElementById('returnUnitQty');
+    retEl.totalQty = document.getElementById('returnTotalQty');
+    retEl.availableStock = document.getElementById('returnAvailableStock');
+    retEl.itemCondition = document.getElementById('returnItemCondition');
+
+    retEl.costPill = document.getElementById('returnCostPill');
+    retEl.wholesalePill = document.getElementById('returnWholesalePill');
+    retEl.retailPill = document.getElementById('returnRetailPill');
+    retEl.rateInput = document.getElementById('returnRateInput');
+    retEl.lineAmount = document.getElementById('returnLineAmount');
+    retEl.btnAddItem = document.getElementById('btnReturnAddItem');
+
+    retEl.itemsTableBody = document.getElementById('returnItemsTableBody');
+    retEl.emptyTableState = document.getElementById('returnItemsEmptyState');
+
+    retEl.totalItemsCount = document.getElementById('returnTotalItemsCount');
+    retEl.totalPiecesCount = document.getElementById('returnTotalPiecesCount');
+    retEl.grossRefund = document.getElementById('returnGrossRefund');
+    retEl.summaryPrevBal = document.getElementById('returnSummaryPrevBal');
+    retEl.summaryDeduction = document.getElementById('returnSummaryDeduction');
+    retEl.summaryNewBal = document.getElementById('returnSummaryNewBal');
+
+    retEl.modalReceipt = document.getElementById('modalReturnReceipt');
+    retEl.receiptArea = document.getElementById('thermalReturnReceiptPrintArea');
+    retEl.btnCloseReceipt = document.getElementById('btnCloseReturnReceipt');
+    retEl.btnDoPrintReceipt = document.getElementById('btnDoPrintReturnReceipt');
+
+    retEl.modalHistory = document.getElementById('modalReturnHistory');
+    retEl.historyTableBody = document.getElementById('returnHistoryTableBody');
+    retEl.btnCloseHistory = document.getElementById('btnCloseReturnHistory');
+    retEl.historySearchInput = document.getElementById('returnHistorySearchInput');
+  }
+
+  async function loadNextReturnNo() {
+    try {
+      if (window.salesReturnAPI?.getNextReturnNo) {
+        const no = await window.salesReturnAPI.getNextReturnNo();
+        if (no && retEl.voucherNo) {
+          retEl.voucherNo.value = no;
+          returnState.returnNo = no;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load next return no:', err);
+    }
+  }
+
+  async function populateReturnCustomers() {
+    if (!retEl.customerSelect) return;
+    try {
+      let parties = [];
+      if (window.generalInfoAPI?.getParties) {
+        parties = await window.generalInfoAPI.getParties();
+      }
+      const customers = (parties || []).filter(p => !p.partyType || p.partyType.toLowerCase().includes('customer'));
+
+      retEl.customerSelect.innerHTML = '<option value="">-- Select Customer --</option>';
+      customers.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.partyTitle} (${c.areaName || 'General'})`;
+        opt.dataset.party = JSON.stringify(c);
+        retEl.customerSelect.appendChild(opt);
+      });
+    } catch (e) {
+      console.error('Failed to populate return customers:', e);
+    }
+  }
+
+  function selectReturnCustomer(partyId) {
+    if (!partyId) {
+      returnState.selectedCustomer = null;
+      if (retEl.customerPhone) retEl.customerPhone.textContent = '-';
+      if (retEl.customerArea) retEl.customerArea.textContent = '-';
+      if (retEl.customerPrevBalance) retEl.customerPrevBalance.textContent = 'Rs 0.00';
+      updateReturnTotals();
+      return;
+    }
+
+    const opt = retEl.customerSelect?.querySelector(`option[value="${partyId}"]`);
+    if (opt && opt.dataset.party) {
+      try {
+        const c = JSON.parse(opt.dataset.party);
+        returnState.selectedCustomer = c;
+        if (retEl.customerPhone) retEl.customerPhone.textContent = c.phone || '-';
+        if (retEl.customerArea) retEl.customerArea.textContent = c.areaName || '-';
+        const bal = Number(c.currentBalance || c.openingBalance || 0);
+        if (retEl.customerPrevBalance) retEl.customerPrevBalance.textContent = `Rs ${bal.toFixed(2)}`;
+        updateReturnTotals();
+      } catch (err) {
+        console.error('Error parsing customer data:', err);
+      }
+    }
+  }
+
+  function populateReturnProducts() {
+    if (!retEl.productSelect) return;
+    const prods = window.appData?.products || [];
+    retEl.productSelect.innerHTML = '<option value="">-- Choose Product --</option>';
+    prods.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id || p.code;
+      opt.textContent = `${p.code} - ${p.titleEng} (Stock: ${p.stockQty || 0})`;
+      opt.dataset.product = JSON.stringify(p);
+      retEl.productSelect.appendChild(opt);
+    });
+  }
+
+  function selectReturnProduct(product) {
+    if (!product) return;
+    returnState.selectedProduct = product;
+
+    if (retEl.itemCode) retEl.itemCode.value = product.code || '';
+    if (retEl.productSelect) {
+      retEl.productSelect.value = product.id || product.code;
+    }
+    if (retEl.packSize) retEl.packSize.value = product.packSize || 1;
+    if (retEl.packQty) retEl.packQty.value = 0;
+    if (retEl.unitQty) retEl.unitQty.value = 1;
+
+    // Rate reference pills
+    if (retEl.costPill) retEl.costPill.textContent = `Cost: Rs ${Number(product.purchasePrice || 0).toFixed(2)}`;
+    if (retEl.wholesalePill) retEl.wholesalePill.textContent = `Wholesale: Rs ${Number(product.wholesalePrice || 0).toFixed(2)}`;
+    if (retEl.retailPill) retEl.retailPill.textContent = `Retail: Rs ${Number(product.retailPrice || 0).toFixed(2)}`;
+
+    // Default return rate to retail or wholesale
+    const defaultRate = Number(product.retailPrice || product.wholesalePrice || 0);
+    if (retEl.rateInput) retEl.rateInput.value = defaultRate.toFixed(2);
+
+    // Current in-stock
+    if (retEl.availableStock) {
+      retEl.availableStock.textContent = `${product.stockQty || 0} pcs`;
+    }
+
+    updateReturnLineCalculations();
+    setTimeout(() => retEl.unitQty?.focus(), 50);
+  }
+
+  function updateReturnLineCalculations() {
+    const packSize = Number(retEl.packSize?.value) || 1;
+    const pQty = Number(retEl.packQty?.value) || 0;
+    const uQty = Number(retEl.unitQty?.value) || 0;
+    const totalQty = (pQty * packSize) + uQty;
+
+    if (retEl.totalQty) retEl.totalQty.value = totalQty;
+
+    const rate = Number(retEl.rateInput?.value) || 0;
+    const lineAmt = totalQty * rate;
+
+    if (retEl.lineAmount) retEl.lineAmount.value = lineAmt.toFixed(2);
+  }
+
+  function addCurrentReturnItem() {
+    const p = returnState.selectedProduct;
+    if (!p) {
+      if (window.showToast) window.showToast('Please select a product first', 'warning');
+      return;
+    }
+
+    const packSize = Number(retEl.packSize?.value) || 1;
+    const packQty = Number(retEl.packQty?.value) || 0;
+    const unitQty = Number(retEl.unitQty?.value) || 0;
+    const totalQty = (packQty * packSize) + unitQty;
+
+    if (totalQty <= 0) {
+      if (window.showToast) window.showToast('Return quantity must be greater than 0', 'warning');
+      return;
+    }
+
+    const returnRate = Number(retEl.rateInput?.value) || 0;
+    const lineAmt = totalQty * returnRate;
+    const condition = retEl.itemCondition?.value || 'Good';
+
+    // Check if item already exists in return list
+    const existingIdx = returnState.items.findIndex(it => it.productCode === p.code);
+    if (existingIdx !== -1) {
+      returnState.items[existingIdx].packQty += packQty;
+      returnState.items[existingIdx].unitQty += unitQty;
+      returnState.items[existingIdx].totalQty += totalQty;
+      returnState.items[existingIdx].returnRate = returnRate;
+      returnState.items[existingIdx].netAmount += lineAmt;
+      returnState.items[existingIdx].condition = condition;
+    } else {
+      returnState.items.push({
+        productId: p.id || '',
+        productCode: p.code,
+        productTitle: p.titleEng,
+        condition,
+        packSize,
+        packQty,
+        unitQty,
+        totalQty,
+        returnRate,
+        netAmount: lineAmt
+      });
+    }
+
+    renderReturnItemsTable();
+    updateReturnTotals();
+
+    // Reset item entry fields
+    returnState.selectedProduct = null;
+    if (retEl.itemCode) retEl.itemCode.value = '';
+    if (retEl.productSelect) retEl.productSelect.value = '';
+    if (retEl.packQty) retEl.packQty.value = 0;
+    if (retEl.unitQty) retEl.unitQty.value = 0;
+    if (retEl.totalQty) retEl.totalQty.value = 0;
+    if (retEl.rateInput) retEl.rateInput.value = '0.00';
+    if (retEl.lineAmount) retEl.lineAmount.value = '0.00';
+    if (retEl.availableStock) retEl.availableStock.textContent = '0 pcs';
+
+    setTimeout(() => retEl.itemCode?.focus(), 50);
+  }
+
+  function removeReturnItem(idx) {
+    if (idx >= 0 && idx < returnState.items.length) {
+      returnState.items.splice(idx, 1);
+      renderReturnItemsTable();
+      updateReturnTotals();
+    }
+  }
+
+  function renderReturnItemsTable() {
+    if (!retEl.itemsTableBody) return;
+    retEl.itemsTableBody.innerHTML = '';
+
+    if (returnState.items.length === 0) {
+      if (retEl.emptyTableState) retEl.emptyTableState.style.display = 'flex';
+      return;
+    }
+
+    if (retEl.emptyTableState) retEl.emptyTableState.style.display = 'none';
+
+    returnState.items.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      const condBadge = item.condition === 'Good'
+        ? '<span class="badge-condition-good">Good</span>'
+        : '<span class="badge-condition-damaged">Damaged</span>';
+
+      tr.innerHTML = `
+        <td class="text-center font-num">${idx + 1}</td>
+        <td class="font-num font-bold">${window.escapeHtml(item.productCode)}</td>
+        <td class="font-bold">${window.escapeHtml(item.productTitle)}</td>
+        <td class="text-center">${condBadge}</td>
+        <td class="font-num text-center">${item.packSize}</td>
+        <td class="font-num text-center">${item.packQty}</td>
+        <td class="font-num text-center">${item.unitQty}</td>
+        <td class="font-num text-center font-bold text-danger">${item.totalQty}</td>
+        <td class="font-num text-right">${Number(item.returnRate).toFixed(2)}</td>
+        <td class="font-num text-right font-bold text-danger">${Number(item.netAmount).toFixed(2)}</td>
+        <td class="text-center">
+          <button type="button" class="btn-icon text-danger" title="Remove Item" onclick="window.SalesModule.removeReturnItem(${idx})">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </td>
+      `;
+      retEl.itemsTableBody.appendChild(tr);
+    });
+  }
+
+  function updateReturnTotals() {
+    const totalItems = returnState.items.length;
+    let totalPieces = 0;
+    let grossRefund = 0;
+
+    returnState.items.forEach(it => {
+      totalPieces += Number(it.totalQty || 0);
+      grossRefund += Number(it.netAmount || 0);
+    });
+
+    if (retEl.totalItemsCount) retEl.totalItemsCount.textContent = totalItems;
+    if (retEl.totalPiecesCount) retEl.totalPiecesCount.textContent = totalPieces;
+    if (retEl.grossRefund) retEl.grossRefund.textContent = `Rs ${grossRefund.toFixed(2)}`;
+
+    const prevBal = returnState.selectedCustomer ? Number(returnState.selectedCustomer.currentBalance || returnState.selectedCustomer.openingBalance || 0) : 0;
+    if (retEl.summaryPrevBal) retEl.summaryPrevBal.textContent = `Rs ${prevBal.toFixed(2)}`;
+    if (retEl.summaryDeduction) retEl.summaryDeduction.textContent = `- Rs ${grossRefund.toFixed(2)}`;
+
+    const isCredit = (retEl.refundMode?.value === 'Credit');
+    const newBal = isCredit ? (prevBal - grossRefund) : prevBal;
+    if (retEl.summaryNewBal) retEl.summaryNewBal.textContent = `Rs ${newBal.toFixed(2)}`;
+  }
+
+  async function saveSaleReturn() {
+    if (!returnState.selectedCustomer) {
+      alert('Please select a customer before saving the return voucher.');
+      retEl.customerSelect?.focus();
+      return;
+    }
+
+    if (returnState.items.length === 0) {
+      alert('Please add at least one returned item to save.');
+      return;
+    }
+
+    let totalPieces = 0;
+    let grossRefund = 0;
+    returnState.items.forEach(it => {
+      totalPieces += Number(it.totalQty || 0);
+      grossRefund += Number(it.netAmount || 0);
+    });
+
+    const returnData = {
+      id: returnState.returnId || undefined,
+      returnNo: retEl.voucherNo?.value || '',
+      saleVoucherRef: retEl.originalBillRef?.value.trim() || '',
+      entryDate: retEl.entryDate?.value || new Date().toISOString().slice(0, 10),
+      partyId: String(returnState.selectedCustomer.id || ''),
+      partyTitle: returnState.selectedCustomer.partyTitle || 'Customer',
+      customerPhone: retEl.customerPhone?.textContent !== '-' ? retEl.customerPhone?.textContent : '',
+      areaName: retEl.customerArea?.textContent !== '-' ? retEl.customerArea?.textContent : '',
+      description: retEl.description?.value.trim() || '',
+      refundMode: retEl.refundMode?.value || 'Credit',
+      totalItems: returnState.items.length,
+      totalPieces,
+      totalAmount: grossRefund,
+      paidRefund: retEl.refundMode?.value === 'Cash' ? grossRefund : 0
+    };
+
+    try {
+      if (retEl.btnSave) retEl.btnSave.disabled = true;
+      if (window.salesReturnAPI?.saveReturn) {
+        const res = await window.salesReturnAPI.saveReturn(returnData, returnState.items);
+        if (res && res.success) {
+          if (window.showToast) window.showToast(`Sale Return ${res.returnNo} saved! Stock added back to inventory.`, 'success');
+          if (window.reloadFromDatabase) await window.reloadFromDatabase();
+          openReturnReceiptModal({ ...returnData, returnNo: res.returnNo, items: returnState.items });
+          resetReturnForm();
+        }
+      }
+    } catch (err) {
+      alert('Error saving return: ' + err.message);
+    } finally {
+      if (retEl.btnSave) retEl.btnSave.disabled = false;
+    }
+  }
+
+  function resetReturnForm() {
+    returnState.returnId = null;
+    returnState.items = [];
+    returnState.selectedProduct = null;
+    returnState.selectedCustomer = null;
+
+    if (retEl.entryDate) retEl.entryDate.value = new Date().toISOString().slice(0, 10);
+    if (retEl.originalBillRef) retEl.originalBillRef.value = '';
+    if (retEl.customerSelect) retEl.customerSelect.value = '';
+    if (retEl.refundMode) retEl.refundMode.value = 'Credit';
+    if (retEl.customerPhone) retEl.customerPhone.textContent = '-';
+    if (retEl.customerArea) retEl.customerArea.textContent = '-';
+    if (retEl.customerPrevBalance) retEl.customerPrevBalance.textContent = 'Rs 0.00';
+    if (retEl.returnReason) retEl.returnReason.value = 'Customer Return';
+    if (retEl.description) retEl.description.value = '';
+
+    renderReturnItemsTable();
+    updateReturnTotals();
+    loadNextReturnNo();
+  }
+
+  function openReturnReceiptModal(data) {
+    if (!retEl.modalReceipt || !retEl.receiptArea) return;
+    const items = data.items || [];
+    const dateStr = data.entryDate || new Date().toISOString().slice(0, 10);
+
+    let rowsHtml = '';
+    items.forEach((it, i) => {
+      rowsHtml += `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${window.escapeHtml(it.productTitle || it.productCode)}</td>
+          <td style="text-align: center;">${it.totalQty}</td>
+          <td style="text-align: right;">${Number(it.returnRate || 0).toFixed(2)}</td>
+          <td style="text-align: right;">${Number(it.netAmount || 0).toFixed(2)}</td>
+        </tr>
+      `;
+    });
+
+    retEl.receiptArea.innerHTML = `
+      <div class="thermal-receipt-paper" style="border: 1px dashed #dc2626;">
+        <div class="receipt-header">
+          <h2>SHAHZAIB TRADERS</h2>
+          <p>Wah Cantt, Pakistan</p>
+          <p>Phone: 0300-1234567</p>
+          <div class="receipt-title-badge" style="background: #fee2e2; color: #b91c1c; border-color: #fca5a5;">
+            SALE RETURN / CREDIT MEMO
+          </div>
+        </div>
+
+        <div class="receipt-meta">
+          <div><span>Return #:</span><strong>${data.returnNo}</strong></div>
+          <div><span>Date:</span><strong>${dateStr}</strong></div>
+          <div><span>Customer:</span><strong>${window.escapeHtml(data.partyTitle || 'Customer')}</strong></div>
+          <div><span>Orig Bill Ref:</span><strong>${data.saleVoucherRef || '-'}</strong></div>
+          <div><span>Refund Mode:</span><strong>${data.refundMode || 'Credit'}</strong></div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 20px;">#</th>
+              <th>Description</th>
+              <th style="text-align: center; width: 35px;">Pcs</th>
+              <th style="text-align: right; width: 55px;">Rate</th>
+              <th style="text-align: right; width: 60px;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+
+        <div class="receipt-totals">
+          <div class="receipt-calc-row">
+            <span>Total Items:</span>
+            <strong>${items.length} (${data.totalPieces || 0} pcs)</strong>
+          </div>
+          <div class="receipt-calc-row" style="font-size: 13px; font-weight: bold; color: #b91c1c;">
+            <span>Total Refund Rs:</span>
+            <span>Rs ${Number(data.totalAmount || 0).toFixed(2)}</span>
+          </div>
+          <div class="receipt-calc-row">
+            <span>Stock Status:</span>
+            <span style="color: #059669; font-weight: bold;">Items Restocked (+)</span>
+          </div>
+        </div>
+
+        <div class="receipt-footer">
+          <p>*** Stock added back to inventory ***</p>
+          <p>Thank you for your business!</p>
+        </div>
+      </div>
+    `;
+
+    retEl.modalReceipt.classList.remove('hidden');
+  }
+
+  async function openReturnHistoryModal() {
+    if (!retEl.modalHistory) return;
+    try {
+      let list = [];
+      if (window.salesReturnAPI?.getReturns) {
+        list = await window.salesReturnAPI.getReturns();
+      }
+      returnState.returnsList = list || [];
+      renderReturnHistoryList(returnState.returnsList);
+      retEl.modalHistory.classList.remove('hidden');
+    } catch (err) {
+      console.error('Failed to load return history:', err);
+    }
+  }
+
+  function renderReturnHistoryList(list) {
+    if (!retEl.historyTableBody) return;
+    retEl.historyTableBody.innerHTML = '';
+
+    if (!list || list.length === 0) {
+      retEl.historyTableBody.innerHTML = `
+        <tr><td colspan="7" class="text-center" style="padding: 24px; color: var(--text-secondary);">No sales returns recorded yet.</td></tr>
+      `;
+      return;
+    }
+
+    list.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="font-num font-bold text-danger">${r.returnNo}</td>
+        <td class="font-num">${r.entryDate || '-'}</td>
+        <td class="font-bold">${window.escapeHtml(r.partyTitle || 'Customer')}</td>
+        <td class="font-num text-center">${r.saleVoucherRef || '-'}</td>
+        <td class="font-num text-center">${r.totalItems || 1}</td>
+        <td class="font-num text-right font-bold text-danger">Rs ${Number(r.totalAmount || 0).toFixed(2)}</td>
+        <td class="text-center">
+          <button type="button" class="btn btn-secondary btn-sm" style="padding: 2px 8px; font-size: 11px;" onclick="window.SalesModule.reprintReturn('${r.id}')" title="Reprint Memo">🖨️ Memo</button>
+          <button type="button" class="btn btn-danger btn-sm" style="padding: 2px 8px; font-size: 11px; margin-left: 4px;" onclick="window.SalesModule.deleteReturnPrompt('${r.id}')" title="Delete Return">🗑️</button>
+        </td>
+      `;
+      retEl.historyTableBody.appendChild(tr);
+    });
+  }
+
+  function onActivateReturn() {
+    populateReturnCustomers();
+    populateReturnProducts();
+    if (!returnState.returnNo) loadNextReturnNo();
+  }
+
+  function initReturnModule() {
+    initReturnElements();
+    initSubTabs();
+
+    if (retEl.entryDate) retEl.entryDate.value = new Date().toISOString().slice(0, 10);
+
+    // Buttons
+    if (retEl.btnNew) retEl.btnNew.addEventListener('click', resetReturnForm);
+    if (retEl.btnSave) retEl.btnSave.addEventListener('click', saveSaleReturn);
+    if (retEl.btnHistory) retEl.btnHistory.addEventListener('click', openReturnHistoryModal);
+    if (retEl.btnPrint) {
+      retEl.btnPrint.addEventListener('click', () => {
+        if (returnState.items.length === 0) {
+          alert('Add returned items before printing.');
+          return;
+        }
+        let totalPieces = 0;
+        let grossRefund = 0;
+        returnState.items.forEach(it => {
+          totalPieces += Number(it.totalQty || 0);
+          grossRefund += Number(it.netAmount || 0);
+        });
+        openReturnReceiptModal({
+          returnNo: retEl.voucherNo?.value || 'SR-0001',
+          entryDate: retEl.entryDate?.value || new Date().toISOString().slice(0, 10),
+          partyTitle: returnState.selectedCustomer?.partyTitle || 'Customer',
+          saleVoucherRef: retEl.originalBillRef?.value || '',
+          refundMode: retEl.refundMode?.value || 'Credit',
+          totalPieces,
+          totalAmount: grossRefund,
+          items: returnState.items
+        });
+      });
+    }
+
+    // Customer Selection
+    if (retEl.customerSelect) {
+      retEl.customerSelect.addEventListener('change', (e) => {
+        selectReturnCustomer(e.target.value);
+      });
+    }
+
+    // Refund Mode Selection
+    if (retEl.refundMode) {
+      retEl.refundMode.addEventListener('change', updateReturnTotals);
+    }
+
+    // Product Selection dropdown
+    if (retEl.productSelect) {
+      retEl.productSelect.addEventListener('change', (e) => {
+        const opt = e.target.selectedOptions[0];
+        if (opt && opt.dataset.product) {
+          try {
+            selectReturnProduct(JSON.parse(opt.dataset.product));
+          } catch (err) {}
+        }
+      });
+    }
+
+    // Product Code input
+    if (retEl.itemCode) {
+      retEl.itemCode.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const code = retEl.itemCode.value.trim().toLowerCase();
+          const p = (window.appData?.products || []).find(x => String(x.code).toLowerCase() === code);
+          if (p) selectReturnProduct(p);
+        }
+      });
+    }
+
+    // Search button (F1)
+    if (retEl.btnFindProduct) {
+      retEl.btnFindProduct.addEventListener('click', () => {
+        if (window.findProductAPI?.openWindow) {
+          window.findProductAPI.openWindow();
+        } else if (window.openProductSearchModal) {
+          window.openProductSearchModal();
+        }
+      });
+    }
+
+    // Rate pills (Wholesale & Retail)
+    if (retEl.wholesalePill) {
+      retEl.wholesalePill.addEventListener('click', () => {
+        if (returnState.selectedProduct) {
+          if (retEl.rateInput) retEl.rateInput.value = Number(returnState.selectedProduct.wholesalePrice || 0).toFixed(2);
+          updateReturnLineCalculations();
+        }
+      });
+    }
+    if (retEl.retailPill) {
+      retEl.retailPill.addEventListener('click', () => {
+        if (returnState.selectedProduct) {
+          if (retEl.rateInput) retEl.rateInput.value = Number(returnState.selectedProduct.retailPrice || 0).toFixed(2);
+          updateReturnLineCalculations();
+        }
+      });
+    }
+
+    // Quantity & Rate inputs
+    if (retEl.packQty) retEl.packQty.addEventListener('input', updateReturnLineCalculations);
+    if (retEl.unitQty) retEl.unitQty.addEventListener('input', updateReturnLineCalculations);
+    if (retEl.rateInput) retEl.rateInput.addEventListener('input', updateReturnLineCalculations);
+
+    // Add Item button & Enter
+    if (retEl.btnAddItem) retEl.btnAddItem.addEventListener('click', addCurrentReturnItem);
+    if (retEl.rateInput) {
+      retEl.rateInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addCurrentReturnItem();
+        }
+      });
+    }
+
+    // Receipt Modal Close & Print
+    if (retEl.btnCloseReceipt) {
+      retEl.btnCloseReceipt.addEventListener('click', () => {
+        if (retEl.modalReceipt) retEl.modalReceipt.classList.add('hidden');
+      });
+    }
+    if (retEl.btnDoPrintReceipt) {
+      retEl.btnDoPrintReceipt.addEventListener('click', () => window.print());
+    }
+
+    // History Modal Close & Search
+    if (retEl.btnCloseHistory) {
+      retEl.btnCloseHistory.addEventListener('click', () => {
+        if (retEl.modalHistory) retEl.modalHistory.classList.add('hidden');
+      });
+    }
+    if (retEl.historySearchInput) {
+      retEl.historySearchInput.addEventListener('input', () => {
+        const q = retEl.historySearchInput.value.trim().toLowerCase();
+        const filtered = returnState.returnsList.filter(r =>
+          (r.returnNo || '').toLowerCase().includes(q) ||
+          (r.partyTitle || '').toLowerCase().includes(q) ||
+          (r.saleVoucherRef || '').toLowerCase().includes(q)
+        );
+        renderReturnHistoryList(filtered);
       });
     }
   }
@@ -831,24 +1555,50 @@
   // PUBLIC EXPORTS
   // ========================================================
   window.SalesModule = {
-    init: initSalesModule,
+    init: () => {
+      initSalesModule();
+      initReturnModule();
+    },
+    switchSubTab: switchSaleSubTab,
     onActivate: () => {
-      populateCustomers();
-      populateProductDropdown();
-      if (!saleState.voucherNo) loadNextVoucherNo();
+      if (currentSaleSubTab === 'return') {
+        onActivateReturn();
+      } else {
+        populateCustomers();
+        populateProductDropdown();
+        if (!saleState.voucherNo) loadNextVoucherNo();
+      }
     },
     refresh: () => {
       populateProductDropdown();
       populateCustomers();
+      populateReturnCustomers();
+      populateReturnProducts();
     },
-    selectProduct,
+    selectProduct: (p) => {
+      if (currentSaleSubTab === 'return') {
+        selectReturnProduct(p);
+      } else {
+        selectProduct(p);
+      }
+    },
+    selectReturnProduct,
     removeItem: removeSaleItem,
+    removeReturnItem,
     reprintSale: (id) => {
       const s = saleState.salesList.find(x => x.id === id);
       if (s) {
         let items = [];
         try { items = JSON.parse(s.itemsJson || '[]'); } catch (e) {}
         openReceiptModal({ ...s, items });
+      }
+    },
+    reprintReturn: (id) => {
+      const r = returnState.returnsList.find(x => x.id === id);
+      if (r) {
+        let items = [];
+        try { items = JSON.parse(r.itemsJson || '[]'); } catch (e) {}
+        openReturnReceiptModal({ ...r, items });
       }
     },
     deleteSalePrompt: (id) => {
@@ -860,12 +1610,23 @@
       }).catch(err => {
         alert('Delete failed: ' + err.message);
       });
+    },
+    deleteReturnPrompt: (id) => {
+      if (!confirm('Are you sure you want to delete this sale return voucher?\nNote: Returned items stock will be deducted back from inventory!')) return;
+      window.salesReturnAPI?.deleteReturn(id).then(async () => {
+        if (window.showToast) window.showToast('Sale return deleted and stock deducted', 'success');
+        if (window.reloadFromDatabase) await window.reloadFromDatabase();
+        openReturnHistoryModal();
+      }).catch(err => {
+        alert('Delete failed: ' + err.message);
+      });
     }
   };
 
   // Auto initialize on DOM ready
   document.addEventListener('DOMContentLoaded', () => {
-    initSalesModule();
+    window.SalesModule.init();
   });
 
 })();
+

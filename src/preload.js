@@ -50,6 +50,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSale: (saleData, items) => ipcRenderer.invoke('save-sale', saleData, items),
   deleteSale: (id) => ipcRenderer.invoke('delete-sale', id),
 
+  // Sales Returns
+  getSaleReturns: () => ipcRenderer.invoke('get-sale-returns'),
+  getSaleReturn: (id) => ipcRenderer.invoke('get-sale-return', id),
+  getNextSaleReturnNo: () => ipcRenderer.invoke('get-next-sale-return-no'),
+  saveSaleReturn: (returnData, items) => ipcRenderer.invoke('save-sale-return', returnData, items),
+  deleteSaleReturn: (id) => ipcRenderer.invoke('delete-sale-return', id),
+
   // Exports
   exportPDF: (data) => ipcRenderer.invoke('export-pdf', data),
   exportExcel: (data) => ipcRenderer.invoke('export-excel', data),
@@ -63,6 +70,15 @@ contextBridge.exposeInMainWorld('salesAPI', {
   getNextVoucherNo: () => ipcRenderer.invoke('get-next-sale-voucher-no'),
   saveSale: (saleData, items) => ipcRenderer.invoke('save-sale', saleData, items),
   deleteSale: (id) => ipcRenderer.invoke('delete-sale', id)
+});
+
+// Dedicated Sales Return API Bridge
+contextBridge.exposeInMainWorld('salesReturnAPI', {
+  getReturns: () => ipcRenderer.invoke('get-sale-returns'),
+  getReturn: (id) => ipcRenderer.invoke('get-sale-return', id),
+  getNextReturnNo: () => ipcRenderer.invoke('get-next-sale-return-no'),
+  saveReturn: (returnData, items) => ipcRenderer.invoke('save-sale-return', returnData, items),
+  deleteReturn: (id) => ipcRenderer.invoke('delete-sale-return', id)
 });
 
 

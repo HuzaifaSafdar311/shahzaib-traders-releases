@@ -1221,9 +1221,45 @@
 </section>
 
       <!-- ======================================================== -->
-      <!-- SALE INFORMATION VOUCHER (MULTI-RATE VISIBILITY)         -->
+      <!-- SALE MODULE (SALE VOUCHER & SALE RETURN)                  -->
       <!-- ======================================================== -->
       <section id="salesView" class="view-section sales-section">
+        <!-- Sales Header & Sub-Tabs Navigation -->
+        <header class="gi-header sale-module-nav-header">
+          <div class="gi-header-top">
+            <div class="gi-main-title">
+              <svg class="gi-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              <span>Sales Management</span>
+            </div>
+          </div>
+
+          <!-- 2 Sub-Tabs: Sale Voucher & Sale Return -->
+          <nav class="gi-sub-tabs" role="tablist">
+            <button type="button" class="gi-tab-btn active" id="saleSubTabBtnVoucher" data-salesub="voucher">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              <span>Sale Voucher</span>
+            </button>
+            <button type="button" class="gi-tab-btn" id="saleSubTabBtnReturn" data-salesub="return">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+              <span>Sale Return</span>
+            </button>
+          </nav>
+        </header>
+
+        <!-- SUBVIEW 1: Sale Information Voucher -->
+        <div id="subviewSaleVoucher" class="sales-subview-panel active">
         <!-- Top Action & Meta Bar -->
         <header class="sale-voucher-header">
           <div class="sale-header-actions-row">
@@ -1494,6 +1530,260 @@
             </div>
           </div>
         </footer>
+        </div>
+
+        <!-- SUBVIEW 2: Sale Return Voucher -->
+        <div id="subviewSaleReturn" class="sales-subview-panel hidden">
+          <!-- Top Action & Meta Bar -->
+          <header class="sale-voucher-header">
+            <div class="sale-header-actions-row">
+              <div class="sale-title-wrap">
+                <svg class="gi-title-icon" style="color: #dc2626;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                <h1 style="color: #b91c1c;">Sale Return Voucher</h1>
+                <span class="badge-return-stock-impact">🔄 Restores Stock to Inventory</span>
+              </div>
+              <div class="sale-header-btn-group">
+                <button type="button" id="btnReturnNew" class="btn btn-secondary" title="New Return (F2)">
+                  <span>+ New Return</span>
+                </button>
+                <button type="button" id="btnReturnHistory" class="btn btn-secondary" title="Return History">
+                  <span>📋 Return History</span>
+                </button>
+                <button type="button" id="btnReturnPrint" class="btn btn-secondary" title="Print Return Note">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                  </svg>
+                  <span>Print Note</span>
+                </button>
+                <button type="button" id="btnReturnSave" class="btn btn-danger" style="background: #dc2626; color: white;" title="Save Return">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  <span>Save Return</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="sale-meta-grid">
+              <div class="sale-meta-field">
+                <label for="returnEntryDate">Return Date</label>
+                <input type="date" id="returnEntryDate" class="form-control form-control-sm">
+              </div>
+              <div class="sale-meta-field">
+                <label for="returnVoucherNo">Return #</label>
+                <input type="text" id="returnVoucherNo" class="form-control form-control-sm font-num font-bold text-danger" readonly value="SR-0001">
+              </div>
+              <div class="sale-meta-field">
+                <label for="returnOriginalBillRef">Orig. Sale Bill # (Ref)</label>
+                <input type="text" id="returnOriginalBillRef" class="form-control form-control-sm font-num" placeholder="e.g. SV-0001">
+              </div>
+              <div class="sale-meta-field span-2">
+                <label for="returnCustomerSelect">Customer / Party *</label>
+                <select id="returnCustomerSelect" class="form-control form-control-sm">
+                  <option value="">-- Select Customer --</option>
+                </select>
+              </div>
+              <div class="sale-meta-field">
+                <label for="returnRefundMode">Refund Mode</label>
+                <select id="returnRefundMode" class="form-control form-control-sm">
+                  <option value="Credit" selected>Credit (Deduct from Customer Balance)</option>
+                  <option value="Cash">Cash (Immediate Cash Refund)</option>
+                </select>
+              </div>
+            </div>
+          </header>
+
+          <!-- Customer Secondary Info & Reason Bar -->
+          <div class="sale-meta-row-2">
+            <div class="sale-meta-item">
+              <span class="meta-label">Customer Phone:</span>
+              <span id="returnCustomerPhone" class="meta-value">-</span>
+            </div>
+            <div class="sale-meta-item">
+              <span class="meta-label">Territory / Area:</span>
+              <span id="returnCustomerArea" class="meta-value">-</span>
+            </div>
+            <div class="sale-meta-item">
+              <span class="meta-label">Current Ledger Balance:</span>
+              <span id="returnCustomerPrevBalance" class="meta-value font-num font-bold text-accent">Rs 0.00</span>
+            </div>
+            <div class="sale-meta-item">
+              <span class="meta-label">Return Reason:</span>
+              <select id="returnReason" class="form-control form-control-sm" style="display: inline-block; width: 170px;">
+                <option value="Customer Return">Customer Return / Excess</option>
+                <option value="Defective">Defective / Damaged</option>
+                <option value="Exchange">Exchange / Replacement</option>
+                <option value="Wrong Item">Wrong Item Sent</option>
+              </select>
+            </div>
+            <div class="sale-meta-item flex-grow">
+              <span class="meta-label">Remarks:</span>
+              <input type="text" id="returnDescription" class="form-control form-control-sm" placeholder="Reason details or notes...">
+            </div>
+          </div>
+
+          <!-- Return Item Entry Card -->
+          <div class="sale-item-entry-card" style="border-left: 4px solid #dc2626;">
+            <div class="sale-entry-row-1">
+              <!-- Item Code & Search -->
+              <div class="sale-entry-field field-code">
+                <label for="returnItemCode">Code (F1)</label>
+                <div class="input-with-btn">
+                  <input type="text" id="returnItemCode" class="form-control form-control-sm font-num font-bold" placeholder="Code">
+                  <button type="button" id="btnReturnFindProduct" class="btn btn-secondary btn-sm" title="Search Product (F1)">🔍</button>
+                </div>
+              </div>
+
+              <!-- Product Select -->
+              <div class="sale-entry-field field-product flex-grow">
+                <label for="returnProductSelect">Product Description</label>
+                <select id="returnProductSelect" class="form-control form-control-sm">
+                  <option value="">-- Choose Product --</option>
+                </select>
+              </div>
+
+              <!-- Pack Size -->
+              <div class="sale-entry-field field-num">
+                <label for="returnPackSize">Pack Sz</label>
+                <input type="number" id="returnPackSize" class="form-control form-control-sm font-num text-center" min="1" value="1" readonly>
+              </div>
+
+              <!-- Pack Qty -->
+              <div class="sale-entry-field field-num">
+                <label for="returnPackQty">Ret. Pack</label>
+                <input type="number" id="returnPackQty" class="form-control form-control-sm font-num text-center" min="0" step="1" value="0">
+              </div>
+
+              <!-- Unit Qty -->
+              <div class="sale-entry-field field-num">
+                <label for="returnUnitQty">Ret. Unit</label>
+                <input type="number" id="returnUnitQty" class="form-control form-control-sm font-num text-center" min="0" step="1" value="0">
+              </div>
+
+              <!-- Total Qty Returned -->
+              <div class="sale-entry-field field-num">
+                <label for="returnTotalQty">Total Pcs</label>
+                <input type="number" id="returnTotalQty" class="form-control form-control-sm font-num text-center font-bold text-danger" readonly value="0">
+              </div>
+
+              <!-- Stock Preview -->
+              <div class="sale-entry-field field-stock">
+                <label>Current Stock</label>
+                <span id="returnAvailableStock" class="stock-badge font-num">0 pcs</span>
+              </div>
+
+              <!-- Item Condition -->
+              <div class="sale-entry-field" style="width: 130px;">
+                <label for="returnItemCondition">Condition</label>
+                <select id="returnItemCondition" class="form-control form-control-sm">
+                  <option value="Good" selected>Good (Restock)</option>
+                  <option value="Damaged">Damaged / Scrap</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Return Rate & Add Button -->
+            <div class="sale-entry-row-2">
+              <div class="rate-pills-wrap">
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Product Rates Ref:</span>
+                <span id="returnCostPill" class="rate-pill rate-pill-cost" title="Original Purchase Cost">Cost: Rs 0.00</span>
+                <span id="returnWholesalePill" class="rate-pill rate-pill-wholesale" style="cursor: pointer;" title="Click to use Wholesale Rate">Wholesale: Rs 0.00</span>
+                <span id="returnRetailPill" class="rate-pill rate-pill-retail" style="cursor: pointer;" title="Click to use Retail Rate">Retail: Rs 0.00</span>
+              </div>
+
+              <div class="sale-pricing-inputs">
+                <div class="pricing-field">
+                  <label for="returnRateInput">Return Rate (Rs)</label>
+                  <input type="number" id="returnRateInput" class="form-control form-control-sm font-num text-right font-bold" min="0" step="0.01" value="0.00">
+                </div>
+
+                <div class="pricing-field">
+                  <label for="returnLineAmount">Refund Line (Rs)</label>
+                  <input type="text" id="returnLineAmount" class="form-control form-control-sm font-num text-right font-bold text-danger" readonly value="0.00">
+                </div>
+
+                <button type="button" id="btnReturnAddItem" class="btn btn-primary btn-sm btn-add-item" style="background: #dc2626; border-color: #dc2626;">
+                  <span>+ Add Item</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Returned Items Table -->
+          <div class="sale-table-container">
+            <table class="data-table sale-grid-table">
+              <thead>
+                <tr>
+                  <th style="width: 45px; text-align: center;">#</th>
+                  <th style="width: 90px;">Code</th>
+                  <th>Product Title</th>
+                  <th style="width: 100px; text-align: center;">Condition</th>
+                  <th style="width: 75px; text-align: center;">Pack Sz</th>
+                  <th style="width: 70px; text-align: center;">Packs</th>
+                  <th style="width: 70px; text-align: center;">Units</th>
+                  <th style="width: 80px; text-align: center;">Total Pcs</th>
+                  <th style="width: 105px; text-align: right;">Return Rate</th>
+                  <th style="width: 120px; text-align: right;">Refund Total</th>
+                  <th style="width: 60px; text-align: center;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="returnItemsTableBody">
+                <!-- Dynamically populated rows -->
+              </tbody>
+            </table>
+            <div id="returnItemsEmptyState" class="table-empty-state">
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+              <p>No returned items added yet. Search a product (F1) and click <strong>+ Add Item</strong>.</p>
+            </div>
+          </div>
+
+          <!-- Return Footer Summary -->
+          <footer class="sale-footer-summary" style="border-top: 2px solid #dc2626;">
+            <div class="sale-summary-left">
+              <div class="stat-badge">
+                <span class="stat-label">Total Returned Items:</span>
+                <span id="returnTotalItemsCount" class="stat-val font-num font-bold">0</span>
+              </div>
+              <div class="stat-badge">
+                <span class="stat-label">Total Pieces Returned:</span>
+                <span id="returnTotalPiecesCount" class="stat-val font-num font-bold">0</span>
+              </div>
+              <div class="stat-badge" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+                <span class="stat-label" style="color: #059669;">Inventory Stock Update:</span>
+                <span class="stat-val font-num font-bold" style="color: #059669;">Stock Auto-Added (+)</span>
+              </div>
+            </div>
+
+            <div class="sale-calculations-card">
+              <div class="sale-calc-row">
+                <span class="calc-label font-bold">Total Refund Value:</span>
+                <span id="returnGrossRefund" class="calc-val font-num font-bold text-danger" style="font-size: 1.15rem;">Rs 0.00</span>
+              </div>
+              <div class="sale-calc-row">
+                <span class="calc-label">Customer Ledger Before Return:</span>
+                <span id="returnSummaryPrevBal" class="calc-val font-num">Rs 0.00</span>
+              </div>
+              <div class="sale-calc-row">
+                <span class="calc-label font-bold text-success">Less Return Credit:</span>
+                <span id="returnSummaryDeduction" class="calc-val font-num font-bold text-success">- Rs 0.00</span>
+              </div>
+              <div class="sale-calc-row highlight-balance">
+                <span class="calc-label font-bold">Adjusted Customer Ledger:</span>
+                <span id="returnSummaryNewBal" class="calc-val font-num font-bold">Rs 0.00</span>
+              </div>
+            </div>
+          </footer>
+        </div>
       </section>
 
       <!-- ======================================================== -->
@@ -2062,6 +2352,63 @@
               </tr>
             </thead>
             <tbody id="saleHistoryTableBody">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Sale Return Receipt (Thermal Print) -->
+  <div id="modalReturnReceipt" class="modal-overlay hidden">
+    <div class="modal-card sale-receipt-modal-content">
+      <div class="modal-header" style="background: #fef2f2; border-bottom-color: #fecaca;">
+        <h2 class="modal-title" style="color: #b91c1c;">Sale Return Credit Memo</h2>
+        <button id="btnCloseReturnReceipt" class="modal-close-btn">&times;</button>
+      </div>
+      <div id="thermalReturnReceiptPrintArea" class="modal-body" style="padding: 0;">
+        <!-- Dynamically rendered return receipt -->
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Thermal 80mm & A4 compatible</span>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalReturnReceipt').classList.add('hidden')">Close</button>
+          <button type="button" id="btnDoPrintReturnReceipt" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626;">🖨️ Print Memo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Sale Returns History -->
+  <div id="modalReturnHistory" class="modal-overlay hidden">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header" style="background: #fef2f2; border-bottom-color: #fecaca;">
+        <h2 class="modal-title" style="color: #b91c1c;">Sale Returns History</h2>
+        <button id="btnCloseReturnHistory" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="search-box mb-3">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="returnHistorySearchInput" placeholder="Search by Return #, Customer, or Orig Bill..." autocomplete="off">
+        </div>
+        <div class="table-container" style="max-height: 420px; overflow-y: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 120px;">Return #</th>
+                <th style="width: 110px;">Date</th>
+                <th>Customer Name</th>
+                <th style="width: 100px;">Orig Ref #</th>
+                <th style="width: 80px; text-align: center;">Items</th>
+                <th style="width: 120px; text-align: right;">Refund Total</th>
+                <th style="width: 140px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="returnHistoryTableBody">
               <!-- Dynamically rendered -->
             </tbody>
           </table>

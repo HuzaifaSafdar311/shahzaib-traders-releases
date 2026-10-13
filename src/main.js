@@ -315,6 +315,15 @@ app.whenReady().then(() => {
   ipcMain.handle('delete-sale', async (_event, id) => db.deleteSale(id));
 
   // ============================================
+  // SALES RETURNS IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-sale-returns', async () => db.getAllSaleReturns());
+  ipcMain.handle('get-sale-return', async (_event, id) => db.getSaleReturnById(id));
+  ipcMain.handle('get-next-sale-return-no', async () => db.getNextSaleReturnNo());
+  ipcMain.handle('save-sale-return', async (_event, returnData, items) => db.saveSaleReturn(returnData, items));
+  ipcMain.handle('delete-sale-return', async (_event, id) => db.deleteSaleReturn(id));
+
+  // ============================================
   // EXPORT IPC HANDLERS
   // ============================================
   ipcMain.handle('export-pdf', async (event, data) => {

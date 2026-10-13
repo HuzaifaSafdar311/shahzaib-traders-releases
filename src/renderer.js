@@ -8,7 +8,8 @@ window.appData = {
   product_sub_categories: [],
   products: [],
   purchases: [],
-  sales: []
+  sales: [],
+  sales_returns: []
 };
 
 // API Storage Bridge (Electron IPC with local storage fallback)
@@ -20,7 +21,8 @@ window.api = window.electronAPI || {
     product_sub_categories: [],
     products: [],
     purchases: [],
-    sales: []
+    sales: [],
+    sales_returns: []
   })
 };
 
@@ -158,7 +160,8 @@ async function reloadFromDatabase() {
         product_sub_categories: Array.isArray(data.product_sub_categories) ? data.product_sub_categories : [],
         products: Array.isArray(data.products) ? data.products : [],
         purchases: Array.isArray(data.purchases) ? data.purchases : [],
-        sales: Array.isArray(data.sales) ? data.sales : []
+        sales: Array.isArray(data.sales) ? data.sales : [],
+        sales_returns: Array.isArray(data.sales_returns) ? data.sales_returns : []
       };
     }
   } catch (err) {

@@ -406,14 +406,64 @@
   padding-top: 10px;
 }
 
+.sale-module-nav-header {
+  padding: 0 0 12px 0;
+  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.sales-subview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.sales-subview-panel.hidden {
+  display: none !important;
+}
+
+.badge-return-stock-impact {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.badge-condition-good {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.badge-condition-damaged {
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
 @media print {
   body * {
     visibility: hidden;
   }
-  #thermalReceiptPrintArea, #thermalReceiptPrintArea * {
+  #thermalReceiptPrintArea, #thermalReceiptPrintArea *,
+  #thermalReturnReceiptPrintArea, #thermalReturnReceiptPrintArea * {
     visibility: visible;
   }
-  #thermalReceiptPrintArea {
+  #thermalReceiptPrintArea, #thermalReturnReceiptPrintArea {
     position: absolute;
     left: 0;
     top: 0;
@@ -422,3 +472,4 @@
     padding: 4mm;
   }
 }
+

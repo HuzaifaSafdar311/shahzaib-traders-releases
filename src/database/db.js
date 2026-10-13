@@ -51,14 +51,16 @@ function initJsonFallback(dbPath) {
         purchases: Array.isArray(parsed.purchases) ? parsed.purchases : [],
         purchase_items: Array.isArray(parsed.purchase_items) ? parsed.purchase_items : [],
         sales: Array.isArray(parsed.sales) ? parsed.sales : [],
-        sale_items: Array.isArray(parsed.sale_items) ? parsed.sale_items : []
+        sale_items: Array.isArray(parsed.sale_items) ? parsed.sale_items : [],
+        sales_returns: Array.isArray(parsed.sales_returns) ? parsed.sales_returns : [],
+        sale_return_items: Array.isArray(parsed.sale_return_items) ? parsed.sale_return_items : []
       };
     } catch (e) {
       console.warn('Failed to parse existing JSON database, re-initializing:', e);
-      jsonData = { units: [], product_types: [], product_categories: [], product_sub_categories: [], products: [], purchases: [], purchase_items: [], sales: [], sale_items: [] };
+      jsonData = { units: [], product_types: [], product_categories: [], product_sub_categories: [], products: [], purchases: [], purchase_items: [], sales: [], sale_items: [], sales_returns: [], sale_return_items: [] };
     }
   } else {
-    jsonData = { units: [], product_types: [], product_categories: [], product_sub_categories: [], products: [], purchases: [], purchase_items: [], sales: [], sale_items: [] };
+    jsonData = { units: [], product_types: [], product_categories: [], product_sub_categories: [], products: [], purchases: [], purchase_items: [], sales: [], sale_items: [], sales_returns: [], sale_return_items: [] };
     saveJsonData();
   }
 
@@ -257,6 +259,48 @@ function initDatabase(dbPath) {
         discountPercent REAL DEFAULT 0,
         discountAmount REAL DEFAULT 0,
         netAmount REAL DEFAULT 0,
+        createdAt TEXT NOT NULL
+      );
+    `);
+
+    // 10. Sales Returns (Customer return vouchers)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sales_returns (
+        id TEXT PRIMARY KEY,
+        returnNo TEXT UNIQUE NOT NULL,
+        saleVoucherRef TEXT DEFAULT '',
+        entryDate TEXT NOT NULL,
+        partyId TEXT NOT NULL,
+        partyTitle TEXT NOT NULL,
+        customerPhone TEXT DEFAULT '',
+        areaName TEXT DEFAULT '',
+        description TEXT DEFAULT '',
+        refundMode TEXT DEFAULT 'Credit',
+        totalItems INTEGER DEFAULT 0,
+        totalPieces REAL DEFAULT 0,
+        totalAmount REAL DEFAULT 0,
+        paidRefund REAL DEFAULT 0,
+        itemsJson TEXT DEFAULT '[]',
+        createdAt TEXT NOT NULL
+      );
+    `);
+
+    // 11. Sale Return Items (Returned items that restore stock)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sale_return_items (
+        id TEXT PRIMARY KEY,
+        returnId TEXT NOT NULL,
+        srNo INTEGER DEFAULT 1,
+        productId TEXT,
+        productCode TEXT NOT NULL,
+        productTitle TEXT NOT NULL,
+        packSize REAL DEFAULT 1,
+        packQty REAL DEFAULT 0,
+        unitQty REAL DEFAULT 0,
+        totalQty REAL DEFAULT 0,
+        returnRate REAL DEFAULT 0,
+        netAmount REAL DEFAULT 0,
+        condition TEXT DEFAULT 'Good',
         createdAt TEXT NOT NULL
       );
     `);
@@ -1112,8 +1156,258 @@ function getAllData() {
     product_sub_categories: getSubCategoriesByCategory(),
     products: getAllProducts(),
     purchases: getAllPurchases(),
-    sales: getAllSales()
+    sales: getAllSales(),
+    sales_returns: getAllSaleReturns()
   };
+}
+
+// ============================================
+// SALES RETURN FUNCTIONS
+// ============================================
+
+function getAllSaleReturns() {
+  if (isJsonFallback) {
+    return [...(jsonData.sales_returns || [])].reverse();
+  }
+  return dbInstance.prepare(`
+    SELECT * FROM sales_returns ORDER BY createdAt DESC
+  `).all();
+}
+
+function getSaleReturnById(id) {
+  if (isJsonFallback) {
+    const ret = (jsonData.sales_returns || []).find(r => r.id === id || r.returnNo === id);
+    if (!ret) return null;
+    const items = (jsonData.sale_return_items || []).filter(it => it.returnId === ret.id);
+    return { ...ret, items };
+  }
+  const ret = dbInstance.prepare('SELECT * FROM sales_returns WHERE id = ? OR returnNo = ?').get(id, id);
+  if (!ret) return null;
+  const items = dbInstance.prepare('SELECT * FROM sale_return_items WHERE returnId = ? ORDER BY srNo ASC').all(ret.id);
+  return { ...ret, items };
+}
+
+function getNextSaleReturnNo() {
+  if (isJsonFallback) {
+    let max = 0;
+    for (const r of (jsonData.sales_returns || [])) {
+      const match = (r.returnNo || '').match(/SR-(\d+)/);
+      if (match) {
+        const n = parseInt(match[1], 10);
+        if (n > max) max = n;
+      }
+    }
+    return `SR-${String(max + 1).padStart(4, '0')}`;
+  }
+  const rows = dbInstance.prepare('SELECT returnNo FROM sales_returns ORDER BY id DESC LIMIT 50').all();
+  let max = 0;
+  for (const r of rows) {
+    const match = (r.returnNo || '').match(/SR-(\d+)/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (n > max) max = n;
+    }
+  }
+  return `SR-${String(max + 1).padStart(4, '0')}`;
+}
+
+function saveSaleReturn(returnData, items = []) {
+  const now = new Date().toISOString();
+  const id = returnData.id || `sr-${Date.now()}`;
+  const returnNo = returnData.returnNo || getNextSaleReturnNo();
+
+  if (isJsonFallback) {
+    if (!jsonData.sales_returns) jsonData.sales_returns = [];
+    if (!jsonData.sale_return_items) jsonData.sale_return_items = [];
+
+    const returnRecord = {
+      id,
+      returnNo,
+      saleVoucherRef: returnData.saleVoucherRef || '',
+      entryDate: returnData.entryDate || now.slice(0, 10),
+      partyId: String(returnData.partyId || ''),
+      partyTitle: returnData.partyTitle || 'Walk-in Customer',
+      customerPhone: returnData.customerPhone || '',
+      areaName: returnData.areaName || '',
+      description: returnData.description || '',
+      refundMode: returnData.refundMode || 'Credit',
+      totalItems: Number(returnData.totalItems || items.length),
+      totalPieces: Number(returnData.totalPieces || 0),
+      totalAmount: Number(returnData.totalAmount || 0),
+      paidRefund: Number(returnData.paidRefund || 0),
+      itemsJson: JSON.stringify(items),
+      createdAt: returnData.createdAt || now
+    };
+
+    // If updating, revert previous return stock addition first
+    const existingIdx = jsonData.sales_returns.findIndex(r => r.id === id);
+    if (existingIdx !== -1) {
+      const oldItems = jsonData.sale_return_items.filter(it => it.returnId === id);
+      for (const it of oldItems) {
+        const prod = jsonData.products.find(p => p.id === it.productId || p.code === it.productCode);
+        if (prod) {
+          prod.stockQty = Math.max(0, (Number(prod.stockQty) || 0) - (Number(it.totalQty) || 0));
+        }
+      }
+      jsonData.sales_returns.splice(existingIdx, 1);
+      jsonData.sale_return_items = jsonData.sale_return_items.filter(it => it.returnId !== id);
+    }
+
+    jsonData.sales_returns.push(returnRecord);
+
+    let sr = 1;
+    for (const item of items) {
+      const totalQty = Number(item.totalQty) || 0;
+      const returnRate = Number(item.returnRate || item.salePrice || 0);
+      const netAmount = Number(item.netAmount || (totalQty * returnRate));
+
+      const itemRec = {
+        id: `sri-${Date.now()}-${sr}`,
+        returnId: id,
+        srNo: sr,
+        productId: item.productId || '',
+        productCode: item.productCode || item.code || '',
+        productTitle: item.productTitle || item.title || '',
+        packSize: Number(item.packSize) || 1,
+        packQty: Number(item.packQty || 0),
+        unitQty: Number(item.unitQty || 0),
+        totalQty,
+        returnRate,
+        netAmount,
+        condition: item.condition || 'Good',
+        createdAt: now
+      };
+      jsonData.sale_return_items.push(itemRec);
+
+      // ADD stock back to inventory!
+      const prod = jsonData.products.find(p => p.id === item.productId || p.code === itemRec.productCode);
+      if (prod && totalQty > 0) {
+        prod.stockQty = (Number(prod.stockQty) || 0) + totalQty;
+      }
+      sr++;
+    }
+
+    saveJsonData();
+    return { success: true, id, returnNo };
+  }
+
+  // SQLite execution with transaction
+  dbInstance.exec('BEGIN TRANSACTION;');
+  try {
+    const existing = dbInstance.prepare('SELECT id FROM sales_returns WHERE id = ?').get(id);
+    if (existing) {
+      const oldItems = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_return_items WHERE returnId = ?').all(id);
+      for (const it of oldItems) {
+        dbInstance.prepare(`
+          UPDATE products SET stockQty = MAX(0, stockQty - ?) WHERE code = ? OR id = ?
+        `).run(Number(it.totalQty) || 0, it.productCode || '', it.productId || '');
+      }
+      dbInstance.prepare('DELETE FROM sale_return_items WHERE returnId = ?').run(id);
+      dbInstance.prepare('DELETE FROM sales_returns WHERE id = ?').run(id);
+    }
+
+    const insertReturn = dbInstance.prepare(`
+      INSERT INTO sales_returns (
+        id, returnNo, saleVoucherRef, entryDate, partyId, partyTitle,
+        customerPhone, areaName, description, refundMode,
+        totalItems, totalPieces, totalAmount, paidRefund,
+        itemsJson, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    insertReturn.run(
+      id, returnNo, returnData.saleVoucherRef || '', returnData.entryDate || now.slice(0, 10),
+      String(returnData.partyId || ''), returnData.partyTitle || 'Walk-in Customer',
+      returnData.customerPhone || '', returnData.areaName || '', returnData.description || '',
+      returnData.refundMode || 'Credit',
+      Number(returnData.totalItems || items.length), Number(returnData.totalPieces || 0),
+      Number(returnData.totalAmount || 0), Number(returnData.paidRefund || 0),
+      JSON.stringify(items), returnData.createdAt || now
+    );
+
+    const insertItem = dbInstance.prepare(`
+      INSERT INTO sale_return_items (
+        id, returnId, srNo, productId, productCode, productTitle,
+        packSize, packQty, unitQty, totalQty, returnRate, netAmount,
+        condition, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    // Add returned stock back to inventory
+    const addStock = dbInstance.prepare(`
+      UPDATE products SET stockQty = stockQty + ? WHERE code = ? OR id = ?
+    `);
+
+    let sr = 1;
+    for (const item of items) {
+      const itemId = `sri-${Date.now()}-${sr}`;
+      const code = String(item.productCode || item.code || '').trim();
+      const packSize = Number(item.packSize) || 1;
+      const packQty = Number(item.packQty || 0);
+      const unitQty = Number(item.unitQty || 0);
+      const totalQty = (packQty * packSize) + unitQty;
+      const returnRate = Number(item.returnRate || item.salePrice || 0);
+      const netAmount = Number(item.netAmount || (totalQty * returnRate));
+
+      insertItem.run(
+        itemId, id, sr, item.productId || '', code, item.productTitle || '',
+        packSize, packQty, unitQty, totalQty, returnRate, netAmount,
+        item.condition || 'Good', now
+      );
+
+      if (totalQty > 0) {
+        addStock.run(totalQty, code, item.productId || '');
+      }
+      sr++;
+    }
+
+    dbInstance.exec('COMMIT;');
+    checkpoint();
+    return { success: true, id, returnNo };
+  } catch (err) {
+    dbInstance.exec('ROLLBACK;');
+    throw err;
+  }
+}
+
+function deleteSaleReturn(id) {
+  if (isJsonFallback) {
+    const existing = (jsonData.sales_returns || []).find(r => r.id === id || r.returnNo === id);
+    if (existing) {
+      const items = (jsonData.sale_return_items || []).filter(it => it.returnId === existing.id);
+      for (const it of items) {
+        const prod = jsonData.products.find(p => p.id === it.productId || p.code === it.productCode);
+        if (prod) {
+          prod.stockQty = Math.max(0, (Number(prod.stockQty) || 0) - (Number(it.totalQty) || 0));
+        }
+      }
+      jsonData.sales_returns = jsonData.sales_returns.filter(r => r.id !== existing.id);
+      jsonData.sale_return_items = jsonData.sale_return_items.filter(it => it.returnId !== existing.id);
+      saveJsonData();
+    }
+    return { success: true };
+  }
+
+  dbInstance.exec('BEGIN TRANSACTION;');
+  try {
+    const r = dbInstance.prepare('SELECT id FROM sales_returns WHERE id = ? OR returnNo = ?').get(id, id);
+    if (r) {
+      const items = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_return_items WHERE returnId = ?').all(r.id);
+      for (const it of items) {
+        dbInstance.prepare(`
+          UPDATE products SET stockQty = MAX(0, stockQty - ?) WHERE code = ? OR id = ?
+        `).run(Number(it.totalQty) || 0, it.productCode || '', it.productId || '');
+      }
+      dbInstance.prepare('DELETE FROM sale_return_items WHERE returnId = ?').run(r.id);
+      dbInstance.prepare('DELETE FROM sales_returns WHERE id = ?').run(r.id);
+    }
+    dbInstance.exec('COMMIT;');
+    checkpoint();
+    return { success: true };
+  } catch (err) {
+    dbInstance.exec('ROLLBACK;');
+    throw err;
+  }
 }
 
 function checkpoint() {
@@ -1179,6 +1473,13 @@ module.exports = {
   getNextSaleVoucherNo,
   saveSale,
   deleteSale,
+
+  // Sales Returns
+  getAllSaleReturns,
+  getSaleReturnById,
+  getNextSaleReturnNo,
+  saveSaleReturn,
+  deleteSaleReturn,
 
   // General Info Module (Company, Provinces, Areas, Party Types, Parties)
   getCompanyInfo: generalInfoDb.getCompanyInfo,
