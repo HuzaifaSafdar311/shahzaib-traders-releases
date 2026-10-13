@@ -1,0 +1,781 @@
+/* ========================================================
+   Shahzaib Traders - Accounts Module Stylesheet
+   Cash Receipt Voucher (CRV), Cash Payment Voucher (CPV),
+   Party Search Window (F1 Shortcut), and Account Ledgers
+   ======================================================== */
+
+/* Accounts Container */
+.accounts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  background: var(--bg-primary, #f8fafc);
+  color: var(--text-primary, #0f172a);
+  overflow-y: auto;
+}
+
+/* Accounts Top Header Navigation */
+.acc-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 12px 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.acc-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.acc-title-icon {
+  width: 28px;
+  height: 28px;
+  color: #0284c7;
+}
+
+.acc-title-text h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  letter-spacing: -0.01em;
+}
+
+.acc-title-text p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #64748b);
+}
+
+/* Accounts Navigation Tabs */
+.acc-nav-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--bg-secondary, #f1f5f9);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.acc-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.acc-tab-btn:hover {
+  color: var(--text-primary, #0f172a);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.acc-tab-btn.active {
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.acc-tab-btn.active.crv {
+  color: #059669;
+}
+
+.acc-tab-btn.active.cpv {
+  color: #dc2626;
+}
+
+/* Action Toolbar */
+.acc-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.acc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.acc-btn-new {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+.acc-btn-new:hover {
+  background: #e2e8f0;
+}
+
+.acc-btn-save {
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+}
+.acc-btn-save:hover {
+  background: #0369a1;
+}
+
+.acc-btn-save.crv {
+  background: #059669;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+}
+.acc-btn-save.crv:hover {
+  background: #047857;
+}
+
+.acc-btn-save.cpv {
+  background: #dc2626;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+}
+.acc-btn-save.cpv:hover {
+  background: #b91c1c;
+}
+
+.acc-btn-print {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+.acc-btn-print:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.acc-btn-history {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+.acc-btn-history:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.acc-btn-delete {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+.acc-btn-delete:hover {
+  background: #fee2e2;
+}
+
+/* Voucher Card Body */
+.acc-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.acc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.acc-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.775rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.acc-badge-pill.crv {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.acc-badge-pill.cpv {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* Form Grids */
+.acc-grid-header {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.acc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acc-form-group label {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.acc-form-control {
+  height: 38px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  background: #ffffff;
+  color: var(--text-primary, #0f172a);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.acc-form-control:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.acc-form-control[readonly] {
+  background: #f8fafc;
+  color: #475569;
+  cursor: default;
+}
+
+/* Party Search Input with Shortcut Button */
+.acc-party-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.acc-party-input {
+  width: 100%;
+  padding-right: 68px;
+}
+
+.acc-btn-f1-shortcut {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  bottom: 4px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid #bae6fd;
+  background: #f0f9ff;
+  color: #0284c7;
+  font-size: 0.725rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.acc-btn-f1-shortcut:hover {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.acc-f1-badge {
+  background: #0284c7;
+  color: #ffffff;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+/* Party Summary Banner */
+.acc-party-banner {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  background: var(--bg-secondary, #f8fafc);
+  border: 1px dashed var(--border-color, #cbd5e1);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.acc-party-banner-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.acc-banner-label {
+  font-size: 0.725rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  letter-spacing: 0.03em;
+}
+
+.acc-banner-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+.acc-banner-val.dr {
+  color: #b91c1c;
+}
+
+.acc-banner-val.cr {
+  color: #047857;
+}
+
+/* Big Calculation & Amount Section */
+.acc-calc-box {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  background: #ffffff;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.acc-calc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.acc-calc-card.highlight {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.acc-calc-card.highlight.cpv {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.acc-calc-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.acc-calc-input {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  height: 44px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.acc-calc-input:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.acc-calc-val-large {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 44px;
+}
+
+.acc-calc-val-large.positive {
+  color: #059669;
+}
+
+.acc-calc-val-large.negative {
+  color: #dc2626;
+}
+
+/* Secondary Meta Row */
+.acc-secondary-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1.5fr 3fr;
+  gap: 16px;
+}
+
+/* ========================================================
+   Party Help Search Window (F1 Shortcut Modal)
+   ======================================================== */
+.acc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.acc-modal-overlay.hidden {
+  display: none !important;
+}
+
+.acc-modal-box {
+  width: 100%;
+  max-width: 960px;
+  max-height: 85vh;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: accModalFadeIn 0.15s ease-out;
+}
+
+@keyframes accModalFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.acc-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.acc-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.acc-modal-title-badge {
+  background: #0284c7;
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.725rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.acc-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.acc-modal-close-btn:hover {
+  color: #ffffff;
+}
+
+.acc-modal-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.acc-modal-search-input {
+  flex: 1;
+  height: 42px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  padding: 0 14px;
+  font-size: 0.95rem;
+  background: #ffffff;
+}
+
+.acc-modal-search-input:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.acc-modal-filter-pills {
+  display: flex;
+  gap: 6px;
+}
+
+.acc-filter-pill {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.775rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.acc-filter-pill.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.acc-modal-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 480px;
+}
+
+.acc-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.acc-data-table th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-bottom: 1px solid #cbd5e1;
+  z-index: 2;
+  text-transform: uppercase;
+  font-size: 0.725rem;
+  letter-spacing: 0.04em;
+}
+
+.acc-data-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.acc-data-table tbody tr {
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.acc-data-table tbody tr:hover {
+  background: #f0f9ff;
+}
+
+.acc-data-table tbody tr.selected {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 600;
+}
+
+.acc-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.acc-keyboard-hints {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.acc-kbd {
+  background: #e2e8f0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.725rem;
+  font-family: monospace;
+  font-weight: 700;
+  color: #334155;
+}
+
+/* ========================================================
+   Account Ledger Tab
+   ======================================================== */
+.acc-ledger-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.acc-kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.acc-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acc-kpi-title {
+  font-size: 0.725rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.acc-kpi-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.acc-kpi-val.green {
+  color: #059669;
+}
+
+.acc-kpi-val.red {
+  color: #dc2626;
+}
+
+.acc-kpi-val.blue {
+  color: #0284c7;
+}
+
+/* Ledger Statement Table */
+.acc-ledger-table-wrap {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.acc-badge-dr {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.acc-badge-cr {
+  color: #059669;
+  font-weight: 700;
+}
+
+/* ========================================================
+   Print Templates (Thermal Slip & Standard Voucher)
+   ======================================================== */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #accountsPrintArea, #accountsPrintArea * {
+    visibility: visible;
+  }
+  #accountsPrintArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 10px;
+  }
+}
+
+.acc-print-container {
+  display: none;
+}
+
+/* Thermal Receipt Styling */
+.acc-thermal-slip {
+  width: 78mm;
+  margin: 0 auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  color: #000;
+  padding: 6px;
+  line-height: 1.35;
+}
+
+.acc-thermal-header {
+  text-align: center;
+  border-bottom: 1px dashed #000;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+
+.acc-thermal-title {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.acc-thermal-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 3px 0;
+}
+
+.acc-thermal-total {
+  border-top: 1px dashed #000;
+  border-bottom: 1px dashed #000;
+  padding: 6px 0;
+  margin: 6px 0;
+  font-weight: bold;
+  font-size: 13px;
+}

@@ -177,9 +177,12 @@ const inv = {
 
   btnPiFirst: document.getElementById('btnPiFirst'),
   btnPiPrev: document.getElementById('btnPiPrev'),
-  btnPiSave: document.getElementById('btnPiSave'),
   btnPiNext: document.getElementById('btnPiNext'),
   btnPiLast: document.getElementById('btnPiLast'),
+  btnPiNew: document.getElementById('btnPiNew'),
+  btnPiSave: document.getElementById('btnPiSave'),
+  btnPiSaveText: document.getElementById('btnPiSaveText'),
+  piFormModeBadge: document.getElementById('piFormModeBadge'),
   btnPiRefresh: document.getElementById('btnPiRefresh'),
   btnPiDelete: document.getElementById('btnPiDelete'),
   btnPiClose: document.getElementById('btnPiClose'),
@@ -1346,8 +1349,19 @@ if (inv.btnPiGenBarcode) {
   });
 }
 
+let currentProductFormMode = 'new';
+let currentEditingProductId = null;
+
 function loadProductRecord(p) {
   if (!p) return;
+  currentProductFormMode = 'edit';
+  currentEditingProductId = p.id;
+  if (inv.piFormModeBadge) {
+    inv.piFormModeBadge.textContent = `Editing: #${p.code}`;
+    inv.piFormModeBadge.className = 'badge-price-pill bg-warning-pill font-num font-bold';
+  }
+  if (inv.btnPiSaveText) inv.btnPiSaveText.textContent = 'Save Changes (Update)';
+
   if (inv.piCode) inv.piCode.value = p.code || '';
   if (inv.piBarcode) inv.piBarcode.value = p.barcode || '';
   if (inv.piAdditionalCode) inv.piAdditionalCode.value = p.additionalCode || '';
@@ -1381,21 +1395,28 @@ function loadProductRecord(p) {
 }
 
 async function resetProductInfoForm() {
+  currentProductFormMode = 'new';
+  currentEditingProductId = null;
   if (inv.productInfoForm) inv.productInfoForm.reset();
-  if (inv.piCode) {
-    try {
-      const nextCode = window.api?.getNextProductCode ? await window.api.getNextProductCode() : '101';
-      inv.piCode.value = nextCode;
-    } catch (e) {
-      inv.piCode.value = '101';
-    }
+  let nextCode = '101';
+  try {
+    nextCode = window.api?.getNextProductCode ? await window.api.getNextProductCode() : '101';
+  } catch (e) {
+    nextCode = '101';
   }
+  if (inv.piCode) inv.piCode.value = nextCode;
   if (inv.piPackSize) inv.piPackSize.value = 1;
   if (inv.piPurchasePrice) inv.piPurchasePrice.value = '0.00';
   if (inv.piProfitMargin) inv.piProfitMargin.value = '0.00';
   if (inv.piRetailPrice) inv.piRetailPrice.value = '0.00';
   if (inv.piWholesalePrice) inv.piWholesalePrice.value = '0.00';
   if (inv.piStockQty) inv.piStockQty.value = 0;
+  if (inv.piFormModeBadge) {
+    inv.piFormModeBadge.textContent = `New Product (#${nextCode})`;
+    inv.piFormModeBadge.className = 'badge-price-pill bg-green-pill font-num font-bold';
+  }
+  if (inv.btnPiSaveText) inv.btnPiSaveText.textContent = '+ Save New Product';
+  setTimeout(() => inv.piTitleEng?.focus(), 50);
 }
 
 async function saveProductRecord() {
@@ -1413,7 +1434,10 @@ async function saveProductRecord() {
   const unitSelect = inv.piUnitSelect;
   const unitName = unitSelect?.options[unitSelect.selectedIndex]?.text || '';
 
+  const isNew = currentProductFormMode === 'new';
   const prod = {
+    id: !isNew ? currentEditingProductId : undefined,
+    isNew,
     code: inv.piCode?.value.trim(),
     barcode: inv.piBarcode?.value.trim() || '',
     additionalCode: inv.piAdditionalCode?.value.trim() || '',
@@ -1447,9 +1471,19 @@ async function saveProductRecord() {
   };
 
   try {
-    if (window.api?.saveProduct) await window.api.saveProduct(prod);
+    const res = window.api?.saveProduct ? await window.api.saveProduct(prod) : null;
     await window.reloadFromDatabase();
     showAlert(`Product [${prod.code}] ${prod.titleEng} saved successfully!`, 'Saved');
+    if (res && res.id) {
+      currentProductFormMode = 'edit';
+      currentEditingProductId = res.id;
+      if (inv.piCode) inv.piCode.value = res.code || prod.code;
+      if (inv.piFormModeBadge) {
+        inv.piFormModeBadge.textContent = `Editing: #${res.code || prod.code}`;
+        inv.piFormModeBadge.className = 'badge-price-pill bg-warning-pill font-num font-bold';
+      }
+      if (inv.btnPiSaveText) inv.btnPiSaveText.textContent = 'Save Changes (Update)';
+    }
   } catch (err) {
     console.error('Save product error:', err);
     showAlert('Error saving product: ' + err.message, 'Error');
@@ -1457,6 +1491,7 @@ async function saveProductRecord() {
 }
 
 // Product Action Dock Listeners
+if (inv.btnPiNew) inv.btnPiNew.addEventListener('click', resetProductInfoForm);
 if (inv.btnPiSave) inv.btnPiSave.addEventListener('click', saveProductRecord);
 if (inv.btnPiRefresh) inv.btnPiRefresh.addEventListener('click', resetProductInfoForm);
 if (inv.btnPiClose) inv.btnPiClose.addEventListener('click', resetProductInfoForm);
@@ -1619,6 +1654,9 @@ window.openEditCategory = openEditCategory;
 window.confirmDeleteCategory = confirmDeleteCategory;
 window.openEditSubCategory = openEditSubCategory;
 window.confirmDeleteSubCategory = confirmDeleteSubCategory;
+window.initPurchaseView = initPurchaseView;
+window.populateProductInfoDropdowns = populateProductInfoDropdowns;
+window.resetProductInfoForm = resetProductInfoForm;
 window.removePurchaseLineItem = removePurchaseLineItem;
 window.openProductSearchModal = openProductSearchModal;
 window.closeProductSearchModal = closeProductSearchModal;

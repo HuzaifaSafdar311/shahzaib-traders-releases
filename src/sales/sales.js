@@ -36,10 +36,13 @@
     el.voucherNo = document.getElementById('saleVoucherNo');
     el.manualNo = document.getElementById('saleManualNo');
     el.partyTypeSelect = document.getElementById('salePartyTypeSelect');
-    el.customerSelect = document.getElementById('saleCustomerSelect');
     el.paymentType = document.getElementById('salePaymentType');
 
-    // Secondary bar
+    // Secondary bar (Dynamic Customer / Party selection)
+    el.partySelectLabel = document.getElementById('salePartySelectLabel');
+    el.customerSelect = document.getElementById('saleCustomerSelect');
+    el.customerNameLabel = document.getElementById('saleCustomerNameLabel');
+    el.customerName = document.getElementById('saleCustomerName');
     el.customerPhone = document.getElementById('saleCustomerPhone');
     el.customerArea = document.getElementById('saleCustomerArea');
     el.customerPrevBalance = document.getElementById('saleCustomerPrevBalance');
@@ -126,7 +129,19 @@
   // PARTY TYPES INTEGRATION (DYNAMIC FROM GENERAL INFO)
   // ========================================================
   let sharedPartyTypes = [];
+  let sharedAllParties = [];
   let sharedCompanyInfo = null;
+
+  function getPartyEntityLabel(typeName) {
+    if (!typeName) return 'Customer Name';
+    const lower = typeName.toLowerCase().trim();
+    if (lower.includes('vendor') || lower.includes('supplier')) return 'Vendor Name';
+    if (lower.includes('wholesaler')) return 'Wholesaler Name';
+    if (lower.includes('retailer')) return 'Retailer Name';
+    if (lower.includes('distributor')) return 'Distributor Name';
+    if (lower.includes('customer')) return 'Customer Name';
+    return `${typeName} Name`;
+  }
 
   async function loadCompanyInfo() {
     try {
@@ -139,8 +154,20 @@
     }
   }
 
+  async function loadAllParties() {
+    try {
+      if (window.generalInfoAPI?.getParties) {
+        sharedAllParties = (await window.generalInfoAPI.getParties()) || [];
+      }
+    } catch (e) {
+      console.warn('Could not load parties from generalInfoAPI:', e);
+      sharedAllParties = [];
+    }
+  }
+
   async function loadPartyTypes() {
     await loadCompanyInfo();
+    await loadAllParties();
     try {
       if (window.generalInfoAPI?.getPartyTypes) {
         sharedPartyTypes = await window.generalInfoAPI.getPartyTypes();
@@ -160,6 +187,7 @@
     }
 
     populatePartyTypeDropdowns();
+    populateCustomerDropdown();
   }
 
   function populatePartyTypeDropdowns() {
@@ -179,9 +207,97 @@
     });
   }
 
+  function populateCustomerDropdown(pt) {
+    if (!el.customerSelect) return;
+    const typeTitle = pt ? (pt.name.includes('/') ? pt.name.split('/')[0].trim() : pt.name) : 'Customer';
+    el.customerSelect.innerHTML = `<option value="">-- Walk-in / Cash ${typeTitle} --</option>`;
+
+    let list = sharedAllParties || [];
+    if (pt) {
+      const ptIdStr = String(pt.id || '').toLowerCase();
+      const ptNameLower = (pt.name || '').toLowerCase().trim();
+      const filtered = list.filter(p => {
+        if (p.partyTypeId && String(p.partyTypeId).toLowerCase() === ptIdStr) return true;
+        const pType = (p.partyTypeName || p.partyType || '').toLowerCase().trim();
+        return pType && (pType === ptNameLower || ptNameLower.includes(pType) || pType.includes(ptNameLower));
+      });
+      if (filtered.length > 0) {
+        list = filtered;
+      }
+    }
+
+    list.forEach(p => {
+      const pName = p.name || p.partyTitle || 'Party';
+      const pDetail = [p.city || p.areaName, p.phone].filter(Boolean).join(' • ');
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = pDetail ? `${pName} (${pDetail})` : pName;
+      opt.dataset.party = JSON.stringify(p);
+      el.customerSelect.appendChild(opt);
+    });
+  }
+
+  function populateCustomers() {
+    populateCustomerDropdown(saleState.selectedPartyType);
+  }
+
   function selectSalePartyType(partyTypeId) {
     if (!partyTypeId) {
       saleState.selectedPartyType = null;
+      saleState.selectedCustomer = null;
+      if (el.partySelectLabel) el.partySelectLabel.textContent = 'Party / Account';
+      if (el.customerNameLabel) el.customerNameLabel.textContent = 'Customer Name';
+      populateCustomerDropdown(null);
+      if (el.customerPhone) el.customerPhone.value = '';
+      if (el.customerArea) el.customerArea.value = '';
+      if (el.customerPrevBalance) {
+        el.customerPrevBalance.value = 'Rs 0.00';
+        el.customerPrevBalance.dataset.rawBalance = 0;
+      }
+      updateVoucherTotals();
+      return;
+    }
+
+    const pt = sharedPartyTypes.find(t => String(t.id) === String(partyTypeId) || t.name === partyTypeId);
+    if (pt) {
+      saleState.selectedPartyType = pt;
+      saleState.selectedCustomer = null;
+
+      // Dynamically update the labels
+      if (el.partySelectLabel) {
+        el.partySelectLabel.textContent = `${pt.name} Account`;
+      }
+      if (el.customerNameLabel) {
+        el.customerNameLabel.textContent = getPartyEntityLabel(pt.name);
+      }
+
+      // Repopulate customer dropdown matching this Party Type
+      populateCustomerDropdown(pt);
+
+      const ptLower = (pt.name || '').toLowerCase();
+      const ptCodeLower = (pt.code || '').toLowerCase();
+      if (ptLower.includes('wholesale') || ptLower.includes('distributor') || ptCodeLower.includes('whl') || ptCodeLower.includes('dist')) {
+        saleState.rateMode = 'wholesale';
+      } else {
+        saleState.rateMode = 'retail';
+      }
+      if (saleState.selectedProduct) {
+        applyRateChoice(saleState.rateMode);
+      }
+
+      if (el.customerPhone) el.customerPhone.value = '';
+      if (el.customerArea) el.customerArea.value = '';
+      if (el.customerPrevBalance) {
+        el.customerPrevBalance.value = 'Rs 0.00';
+        el.customerPrevBalance.dataset.rawBalance = 0;
+      }
+    }
+    updateVoucherTotals();
+  }
+
+  async function selectCustomerEntity(partyId) {
+    if (!partyId) {
+      // Walk-in / Cash Customer fallback
       saleState.selectedCustomer = null;
       if (el.customerPhone) el.customerPhone.value = '';
       if (el.customerArea) el.customerArea.value = '';
@@ -193,31 +309,40 @@
       return;
     }
 
-    const pt = sharedPartyTypes.find(t => t.id === partyTypeId || t.name === partyTypeId);
-    if (pt) {
-      saleState.selectedPartyType = pt;
-      const ptLower = (pt.name || '').toLowerCase();
-      const ptCodeLower = (pt.code || '').toLowerCase();
-      if (ptLower.includes('wholesale') || ptLower.includes('distributor') || ptCodeLower.includes('whl') || ptCodeLower.includes('dist')) {
-        saleState.rateMode = 'wholesale';
-      } else {
-        saleState.rateMode = 'retail';
+    const party = (sharedAllParties || []).find(p => String(p.id) === String(partyId));
+    if (!party) return;
+
+    saleState.selectedCustomer = party;
+    const pName = party.name || party.partyTitle || '';
+    if (el.customerName) el.customerName.value = pName;
+    if (el.customerPhone) el.customerPhone.value = party.phone || party.altPhone || '';
+    if (el.customerArea) el.customerArea.value = party.areaName || party.city || party.provinceName || party.address || '';
+
+    // Fetch up-to-date ledger closing balance
+    let balance = Number(party.openingBalance || 0);
+    try {
+      if (window.accountsAPI?.getPartyLedger) {
+        const ledger = await window.accountsAPI.getPartyLedger(party.id);
+        if (ledger && typeof ledger.closingBalance === 'number') {
+          balance = ledger.closingBalance;
+        }
       }
-      if (saleState.selectedProduct) {
-        applyRateChoice(saleState.rateMode);
-      }
-      saleState.selectedCustomer = {
-        id: pt.id,
-        partyTypeId: pt.id,
-        partyTypeName: pt.name,
-        partyTitle: pt.name,
-        title: pt.name,
-        name: pt.name,
-        code: pt.code || ''
-      };
-      if (el.customerPhone) el.customerPhone.value = pt.code || pt.name;
-      if (el.customerArea) el.customerArea.value = pt.description || pt.name;
+    } catch (e) {
+      console.warn('Could not fetch ledger closing balance, using openingBalance:', e);
     }
+
+    if (el.customerPrevBalance) {
+      el.customerPrevBalance.value = window.formatPKR ? window.formatPKR(balance) : `Rs ${balance.toFixed(2)}`;
+      el.customerPrevBalance.dataset.rawBalance = balance;
+      if (balance > 0) {
+        el.customerPrevBalance.className = 'form-control form-control-sm font-num sale-customer-prev-balance text-danger font-bold';
+      } else if (balance < 0) {
+        el.customerPrevBalance.className = 'form-control form-control-sm font-num sale-customer-prev-balance text-success font-bold';
+      } else {
+        el.customerPrevBalance.className = 'form-control form-control-sm font-num sale-customer-prev-balance text-secondary';
+      }
+    }
+
     updateVoucherTotals();
   }
 
@@ -252,14 +377,16 @@
 
   function populateProductDropdown() {
     if (!el.productSelect) return;
+    const currentVal = el.productSelect.value;
     el.productSelect.innerHTML = '<option value="">-- Select Product Title --</option>';
     const prods = window.appData?.products || [];
     prods.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.textContent = `${p.code} - ${p.titleEng} (Stock: ${p.stockQty || 0})`;
+      opt.textContent = `${p.code} - ${p.titleEng} (Stock: ${p.stockQty || 0} ${p.unitName || ''})`;
       el.productSelect.appendChild(opt);
     });
+    if (currentVal) el.productSelect.value = currentVal;
   }
 
   // ========================================================
@@ -267,20 +394,22 @@
   // ========================================================
   function selectProduct(p) {
     if (!p) return;
-    saleState.selectedProduct = p;
+    // Always resolve against fresh window.appData.products for live stock and rates
+    const fresh = (window.appData?.products || []).find(pr => String(pr.id) === String(p.id) || String(pr.code) === String(p.code)) || p;
+    saleState.selectedProduct = fresh;
 
-    if (el.itemCode) el.itemCode.value = p.code || '';
-    if (el.productSelect) el.productSelect.value = p.id || '';
-    if (el.packSize) el.packSize.value = Number(p.packSize) || 1;
+    if (el.itemCode) el.itemCode.value = fresh.code || '';
+    if (el.productSelect) el.productSelect.value = fresh.id || '';
+    if (el.packSize) el.packSize.value = Number(fresh.packSize) || 1;
     if (el.availableStock) {
-      el.availableStock.textContent = `${p.stockQty || 0} ${p.unitName || ''}`;
-      el.availableStock.className = (Number(p.stockQty) > 0) ? 'badge-price-pill bg-green-pill font-num' : 'badge-price-pill bg-danger-pill font-num';
+      el.availableStock.textContent = `${fresh.stockQty || 0} ${fresh.unitName || ''}`;
+      el.availableStock.className = (Number(fresh.stockQty) > 0) ? 'badge-price-pill bg-green-pill font-num' : 'badge-price-pill bg-danger-pill font-num';
     }
 
     // Populate the three distinct rates
-    const cost = Number(p.purchasePrice || p.averageCost || 0);
-    const wholesale = Number(p.wholesalePrice || 0);
-    const retail = Number(p.retailPrice || 0);
+    const cost = Number(fresh.purchasePrice || fresh.averageCost || 0);
+    const wholesale = Number(fresh.wholesalePrice || 0);
+    const retail = Number(fresh.retailPrice || 0);
 
     // 1. Purchase Price (Cost baseline for staff reference)
     if (el.costPill) {
@@ -557,8 +686,18 @@
       return;
     }
 
-    const selectedPtObj = saleState.selectedPartyType || sharedPartyTypes.find(t => t.id === el.partyTypeSelect?.value) || {};
+    const selectedPtObj = saleState.selectedPartyType || sharedPartyTypes.find(t => String(t.id) === String(el.partyTypeSelect?.value)) || {};
     const ptTitle = selectedPtObj.name || el.partyTypeSelect?.options[el.partyTypeSelect?.selectedIndex]?.text || 'General Party';
+
+    const isSpecificCustomer = Boolean(saleState.selectedCustomer);
+    const chosenPartyId = isSpecificCustomer ? saleState.selectedCustomer.id : (selectedPtObj.id || 'walk-in');
+    const enteredCustomerName = el.customerName?.value?.trim();
+    const chosenPartyTitle = enteredCustomerName || (isSpecificCustomer
+      ? (saleState.selectedCustomer.name || saleState.selectedCustomer.partyTitle)
+      : `Walk-in (${ptTitle})`);
+    const chosenCustomerPhone = el.customerPhone?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer.phone || '') : '') || '';
+    const chosenCustomerArea = el.customerArea?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer.areaName || saleState.selectedCustomer.city || '') : '') || '';
+
     const gross = saleState.items.reduce((s, it) => s + Number(it.netAmount || 0), 0);
     const specialDisc = Number(el.specialDiscount?.value) || 0;
     const net = Math.max(0, gross - specialDisc);
@@ -569,14 +708,14 @@
     const saleRecord = {
       id: saleState.saleId || undefined,
       voucherNo: el.voucherNo?.value || saleState.voucherNo,
-      manualNo: el.manualNo?.value.trim() || '',
+      manualNo: el.manualNo?.value?.trim() || '',
       entryDate: el.entryDate?.value || new Date().toISOString().split('T')[0],
-      partyId: selectedPtObj.id || el.partyTypeSelect.value,
-      partyTitle: ptTitle,
+      partyId: chosenPartyId,
+      partyTitle: chosenPartyTitle,
       partyTypeId: selectedPtObj.id || el.partyTypeSelect.value,
       partyTypeName: ptTitle,
-      customerPhone: el.customerPhone?.value || selectedPtObj.code || '',
-      areaName: el.customerArea?.value || selectedPtObj.description || '',
+      customerPhone: chosenCustomerPhone,
+      areaName: chosenCustomerArea,
       description: el.description?.value || '',
       storeTitle: el.storeTitle?.value || 'Main Store',
       paymentType: el.paymentType?.value || 'Cash',
@@ -611,14 +750,14 @@
         openReceiptModal({ ...saleRecord, items: [...saleState.items] });
       }
 
-      resetVoucher();
+      await resetVoucher();
     } catch (err) {
       console.error('Failed to save sale voucher:', err);
       if (window.showToast) window.showToast(`Save failed: ${err.message}`, 'error');
     }
   }
 
-  function resetVoucher() {
+  async function resetVoucher() {
     saleState.saleId = null;
     saleState.items = [];
     saleState.selectedProduct = null;
@@ -628,11 +767,17 @@
     if (el.entryDate) el.entryDate.value = new Date().toISOString().split('T')[0];
     if (el.manualNo) el.manualNo.value = '';
     if (el.partyTypeSelect) el.partyTypeSelect.value = '';
+    if (el.customerSelect) el.customerSelect.value = '';
+    if (el.customerName) el.customerName.value = '';
+    if (el.partySelectLabel) el.partySelectLabel.textContent = 'Party / Account';
+    if (el.customerNameLabel) el.customerNameLabel.textContent = 'Customer Name';
+    populateCustomerDropdown(null);
     if (el.customerPhone) el.customerPhone.value = '';
     if (el.customerArea) el.customerArea.value = '';
     if (el.customerPrevBalance) {
       el.customerPrevBalance.value = 'Rs 0.00';
       el.customerPrevBalance.dataset.rawBalance = 0;
+      el.customerPrevBalance.className = 'form-control form-control-sm font-num sale-customer-prev-balance text-secondary';
     }
     if (el.description) el.description.value = '';
     if (el.specialDiscount) el.specialDiscount.value = 0;
@@ -641,18 +786,23 @@
     clearEntryFields();
     renderItemsTable();
     updateVoucherTotals();
-    loadNextVoucherNo();
+    await loadNextVoucherNo();
   }
 
   // ========================================================
-  // RECEIPT BILL PRINT PREVIEW (THERMAL POS / INVOICE)
+  // RECEIPT BILL PRINT PREVIEW (CLEAN BLACK & WHITE SALE INVOICE)
   // ========================================================
   function openReceiptModal(saleObj) {
     if (!el.modalReceipt || !el.receiptArea) return;
+    const currentTypedName = el.customerName?.value?.trim();
     const s = saleObj || {
       voucherNo: el.voucherNo?.value || '',
       entryDate: el.entryDate?.value || '',
-      partyTitle: saleState.selectedPartyType?.name || el.partyTypeSelect?.options[el.partyTypeSelect?.selectedIndex]?.text || 'General Party',
+      partyTitle: currentTypedName || (saleState.selectedCustomer
+        ? (saleState.selectedCustomer.name || saleState.selectedCustomer.partyTitle)
+        : (saleState.selectedPartyType?.name || el.partyTypeSelect?.options[el.partyTypeSelect?.selectedIndex]?.text || 'Walk-in Cash Customer')),
+      partyTypeName: saleState.selectedPartyType?.name || '',
+      paymentType: el.paymentType?.value || 'Cash',
       customerPhone: el.customerPhone?.value || '',
       areaName: el.customerArea?.value || '',
       grossAmount: Number(el.grossTotal?.textContent.replace(/[^0-9.]/g, '') || 0),
@@ -665,13 +815,25 @@
     };
 
     let itemsRows = '';
+    let totalPiecesCount = 0;
     (s.items || []).forEach((it, idx) => {
+      const lineQty = Number(it.totalQty || 0);
+      totalPiecesCount += lineQty;
+      const rate = Number(it.salePrice || 0);
+      const disc = Number(it.discountPercent || 0);
+      const net = Number(it.netAmount || 0);
+
       itemsRows += `
         <tr>
-          <td>${idx + 1}. ${window.escapeHtml(it.productTitle)}</td>
-          <td style="text-align: center;">${it.totalQty}</td>
-          <td style="text-align: right;">${Number(it.salePrice).toFixed(2)}</td>
-          <td style="text-align: right;">${Number(it.netAmount).toFixed(2)}</td>
+          <td style="text-align: center;">${idx + 1}</td>
+          <td>
+            <strong>${window.escapeHtml(it.productTitle)}</strong>
+            ${it.productCode ? `<div style="font-size: 10px;">Code: ${window.escapeHtml(it.productCode)}${it.packSize > 1 ? ` (Pack ${it.packSize})` : ''}</div>` : ''}
+          </td>
+          <td style="text-align: center;">${lineQty}</td>
+          <td style="text-align: right;">${rate.toFixed(2)}</td>
+          <td style="text-align: center;">${disc > 0 ? `${disc}%` : '-'}</td>
+          <td style="text-align: right; font-weight: bold;">${net.toFixed(2)}</td>
         </tr>
       `;
     });
@@ -679,36 +841,67 @@
     const comp = sharedCompanyInfo || {
       name: 'SHAHZAIB TRADERS',
       tagline: 'Wholesale & Retail Trading Solutions',
-      address: 'Wah Cantt, Pakistan',
-      phone: '0300-1234567'
+      address: 'Wah Cantt, Punjab, Pakistan',
+      phone: '0300-1234567',
+      altPhone: '',
+      email: 'shahzaibtraders@gmail.com',
+      ntn: '',
+      strn: ''
     };
 
+    const finalOutstanding = Number(s.previousBalance || 0) + Number(s.balanceDue || 0);
+
     el.receiptArea.innerHTML = `
-      <div class="thermal-receipt-paper">
-        <div class="receipt-header">
-          <div class="receipt-title">${window.escapeHtml(comp.name || 'SHAHZAIB TRADERS')}</div>
-          ${comp.tagline ? `<div class="receipt-meta" style="font-style: italic;">${window.escapeHtml(comp.tagline)}</div>` : ''}
-          <div class="receipt-meta">${window.escapeHtml(comp.address || 'Wah Cantt, Pakistan')}</div>
-          <div class="receipt-meta">Phone: ${window.escapeHtml(comp.phone || '0300-1234567')}${comp.email ? ` | ${window.escapeHtml(comp.email)}` : ''}</div>
-          ${comp.ntn ? `<div class="receipt-meta">NTN: ${window.escapeHtml(comp.ntn)}</div>` : ''}
-          <div class="receipt-meta" style="margin-top: 4px;"><strong>SALE INVOICE</strong></div>
+      <div class="thermal-receipt-paper bw-sale-invoice">
+        <!-- Header -->
+        <div class="bw-header">
+          <div class="bw-company-name">${window.escapeHtml(comp.name || 'SHAHZAIB TRADERS')}</div>
+          ${comp.tagline ? `<div class="bw-tagline">${window.escapeHtml(comp.tagline)}</div>` : ''}
+          <div class="bw-meta-line">${window.escapeHtml(comp.address || 'Wah Cantt, Pakistan')}</div>
+          <div class="bw-meta-line">Tel: ${window.escapeHtml(comp.phone || '0300-1234567')}${comp.altPhone ? ` / ${window.escapeHtml(comp.altPhone)}` : ''}</div>
+          ${comp.ntn ? `<div class="bw-meta-line">NTN: ${window.escapeHtml(comp.ntn)}${comp.strn ? ` | STRN: ${window.escapeHtml(comp.strn)}` : ''}</div>` : ''}
         </div>
 
-        <div style="font-size: 11px; margin-bottom: 8px;">
-          <div><strong>Bill #:</strong> ${window.escapeHtml(s.voucherNo)}</div>
-          <div><strong>Date:</strong> ${s.entryDate} &nbsp; <strong>Time:</strong> ${new Date().toLocaleTimeString()}</div>
-          <div><strong>Customer:</strong> ${window.escapeHtml(s.partyTitle)}</div>
-          ${s.customerPhone ? `<div><strong>Phone:</strong> ${window.escapeHtml(s.customerPhone)}</div>` : ''}
-          ${s.areaName ? `<div><strong>City/Area:</strong> ${window.escapeHtml(s.areaName)}</div>` : ''}
+        <div class="bw-divider-dashed"></div>
+
+        <div class="bw-title-banner">
+          CASH INVOICE / SALE MEMO
         </div>
 
-        <table>
+        <div class="bw-divider-dashed"></div>
+
+        <!-- Metadata -->
+        <div class="bw-meta-section">
+          <div class="bw-meta-row">
+            <div><strong>Bill #:</strong> ${window.escapeHtml(s.voucherNo)}</div>
+            <div><strong>Date:</strong> ${s.entryDate}</div>
+          </div>
+          <div class="bw-meta-row">
+            <div><strong>Time:</strong> ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div><strong>Mode:</strong> ${window.escapeHtml(s.paymentType || 'Cash')}</div>
+          </div>
+          <div class="bw-meta-row" style="margin-top: 3px;">
+            <div><strong>Customer:</strong> <u>${window.escapeHtml(s.partyTitle || 'Walk-in Customer')}</u></div>
+          </div>
+          ${(s.customerPhone || s.areaName) ? `
+          <div class="bw-meta-row">
+            ${s.customerPhone ? `<div><strong>Phone:</strong> ${window.escapeHtml(s.customerPhone)}</div>` : ''}
+            ${s.areaName ? `<div><strong>City/Area:</strong> ${window.escapeHtml(s.areaName)}</div>` : ''}
+          </div>` : ''}
+        </div>
+
+        <div class="bw-divider-solid"></div>
+
+        <!-- Items Table -->
+        <table class="bw-table">
           <thead>
             <tr>
-              <th style="width: 48%;">Item</th>
-              <th style="width: 14%; text-align: center;">Qty</th>
-              <th style="width: 18%; text-align: right;">Rate</th>
-              <th style="width: 20%; text-align: right;">Total</th>
+              <th style="width: 25px; text-align: center;">#</th>
+              <th style="text-align: left;">Item Description</th>
+              <th style="width: 45px; text-align: center;">Qty</th>
+              <th style="width: 65px; text-align: right;">Rate</th>
+              <th style="width: 45px; text-align: center;">Disc</th>
+              <th style="width: 75px; text-align: right;">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -716,42 +909,70 @@
           </tbody>
         </table>
 
-        <div class="receipt-totals" style="font-size: 12px; line-height: 1.5;">
-          <div style="display: flex; justify-content: space-between;">
-            <span>Gross Total:</span>
-            <span>Rs ${Number(s.grossAmount || 0).toFixed(2)}</span>
+        <div class="bw-divider-solid"></div>
+
+        <!-- Totals Breakdown -->
+        <div class="bw-totals">
+          <div class="bw-total-row">
+            <span>Items: <strong>${(s.items || []).length}</strong> (Pcs: <strong>${totalPiecesCount}</strong>)</span>
+            <span>Gross Total: <strong>Rs ${Number(s.grossAmount || 0).toFixed(2)}</strong></span>
           </div>
           ${Number(s.discount) > 0 ? `
-          <div style="display: flex; justify-content: space-between;">
-            <span>Discount:</span>
-            <span>- Rs ${Number(s.discount).toFixed(2)}</span>
-          </div>` : ''}
-          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-top: 1px dashed #000; padding-top: 4px; margin-top: 4px;">
-            <span>Net Payable:</span>
+            <div class="bw-total-row">
+              <span>Special Discount:</span>
+              <span>- Rs ${Number(s.discount).toFixed(2)}</span>
+            </div>` : ''}
+          <div class="bw-total-row bw-net-row">
+            <span>NET AMOUNT PAYABLE:</span>
             <span>Rs ${Number(s.netAmount || 0).toFixed(2)}</span>
           </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span>Cash Received:</span>
+          <div class="bw-total-row">
+            <span>Amount Received:</span>
             <span>Rs ${Number(s.paidAmount || 0).toFixed(2)}</span>
           </div>
-          <div style="display: flex; justify-content: space-between; font-weight: bold;">
-            <span>Bill Balance:</span>
+          <div class="bw-total-row">
+            <span>Current Balance Due:</span>
             <span>Rs ${Number(s.balanceDue || 0).toFixed(2)}</span>
           </div>
-          ${Number(s.previousBalance) > 0 ? `
-          <div style="display: flex; justify-content: space-between; color: #4b5563; font-size: 11px; margin-top: 4px; border-top: 1px dotted #9ca3af;">
-            <span>Previous Ledger Bal:</span>
-            <span>Rs ${Number(s.previousBalance).toFixed(2)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px;">
-            <span>Total Outstanding:</span>
-            <span>Rs ${(Number(s.previousBalance) + Number(s.balanceDue)).toFixed(2)}</span>
-          </div>` : ''}
+          ${Number(s.paidAmount) > Number(s.netAmount) ? `
+            <div class="bw-total-row">
+              <span>Change Return:</span>
+              <span>Rs ${(Number(s.paidAmount) - Number(s.netAmount)).toFixed(2)}</span>
+            </div>` : ''}
+          ${Number(s.previousBalance) !== 0 ? `
+            <div class="bw-total-row bw-prev-row">
+              <span>Previous Ledger Balance:</span>
+              <span>Rs ${Number(s.previousBalance).toFixed(2)}</span>
+            </div>
+            <div class="bw-total-row bw-closing-row">
+              <span>TOTAL OUTSTANDING BALANCE:</span>
+              <span>Rs ${finalOutstanding.toFixed(2)}</span>
+            </div>` : ''}
         </div>
 
-        <div class="receipt-footer">
-          <div>Thank you for your business!</div>
-          <div style="font-size: 10px; margin-top: 4px;">Software by Shahzaib Traders Systems</div>
+        <div class="bw-divider-dashed"></div>
+
+        <!-- Policy -->
+        <div class="bw-policy">
+          <div>* Computerized receipt generated by Shahzaib Traders.</div>
+          <div>* Please check goods and count before leaving counter.</div>
+          <div>* Goods once sold can be exchanged within 7 days with bill.</div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="bw-signatures">
+          <div>
+            <div class="bw-signatures-line"></div>
+            Prepared By
+          </div>
+          <div>
+            <div class="bw-signatures-line"></div>
+            Customer Sign
+          </div>
+          <div>
+            <div class="bw-signatures-line"></div>
+            Authorized Sign
+          </div>
         </div>
       </div>
     `;
@@ -831,6 +1052,13 @@
     if (el.partyTypeSelect) {
       el.partyTypeSelect.addEventListener('change', (e) => {
         selectSalePartyType(e.target.value);
+      });
+    }
+
+    // Customer / Party Entity Select
+    if (el.customerSelect) {
+      el.customerSelect.addEventListener('change', (e) => {
+        selectCustomerEntity(e.target.value);
       });
     }
 
@@ -1689,19 +1917,29 @@
       initReturnModule();
     },
     switchSubTab: switchSaleSubTab,
-    onActivate: () => {
-      loadPartyTypes();
+    onActivate: async () => {
+      await loadPartyTypes();
       if (currentSaleSubTab === 'return') {
         onActivateReturn();
       } else {
         populateProductDropdown();
-        if (!saleState.voucherNo) loadNextVoucherNo();
+        if (!saleState.voucherNo) await loadNextVoucherNo();
       }
     },
     refresh: () => {
       populateProductDropdown();
       loadPartyTypes();
       populateReturnProducts();
+      if (saleState.selectedProduct) {
+        const fresh = (window.appData?.products || []).find(p => p.id === saleState.selectedProduct.id || p.code === saleState.selectedProduct.code);
+        if (fresh) {
+          saleState.selectedProduct = fresh;
+          if (el.availableStock) {
+            el.availableStock.textContent = `${fresh.stockQty || 0} ${fresh.unitName || ''}`;
+            el.availableStock.className = (Number(fresh.stockQty) > 0) ? 'badge-price-pill bg-green-pill font-num' : 'badge-price-pill bg-danger-pill font-num';
+          }
+        }
+      }
     },
     selectProduct: (p) => {
       if (currentSaleSubTab === 'return') {

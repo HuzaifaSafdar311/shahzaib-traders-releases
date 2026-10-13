@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="inventory/inventory.css">
   <link rel="stylesheet" href="Genral info/general-info.css">
   <link rel="stylesheet" href="sales/sales.css">
+  <link rel="stylesheet" href="accounts/accounts.css">
+  <link rel="stylesheet" href="reports/reports.css">
 </head>
 
 <body>
@@ -588,8 +590,9 @@
       <!-- ======================================================== -->
       <section id="viewProductInfo" class="subview-section">
         <header class="section-header">
-          <div class="header-left">
+          <div class="header-left" style="display: flex; align-items: center; gap: 12px;">
             <h1 class="view-title">Product Info</h1>
+            <span id="piFormModeBadge" class="badge-price-pill bg-green-pill font-num font-bold" style="padding: 4px 10px; font-size: 12px;">New Product</span>
           </div>
           <div class="header-right">
             <div class="header-nav-btn-group">
@@ -598,6 +601,13 @@
               <button type="button" id="btnPiNext" class="btn btn-secondary btn-icon-only" title="Next Product">&gt;&gt;</button>
               <button type="button" id="btnPiLast" class="btn btn-secondary btn-icon-only" title="Last Product">&gt;|</button>
             </div>
+            <button type="button" id="btnPiNew" class="btn btn-success" title="Create New Product (Clear & Next Code)">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ New Product</span>
+            </button>
             <button type="button" id="btnProductInfoList" class="btn btn-secondary" title="Product Catalog (F1)">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="8" y1="6" x2="21" y2="6"></line>
@@ -626,7 +636,7 @@
                 <polyline points="17 21 17 13 7 13 7 21"></polyline>
                 <polyline points="7 3 7 8 15 8"></polyline>
               </svg>
-              <span>Save Product</span>
+              <span id="btnPiSaveText">Save Product</span>
             </button>
           </div>
         </header>
@@ -1307,10 +1317,6 @@
               <input type="text" id="saleVoucherNo" class="form-control form-control-sm font-num font-bold text-primary" readonly>
             </div>
             <div class="form-group">
-              <label>Manual / Bill #</label>
-              <input type="text" id="saleManualNo" class="form-control form-control-sm" placeholder="Ref #">
-            </div>
-            <div class="form-group">
               <label class="required-label">Party Type</label>
               <select id="salePartyTypeSelect" class="form-control form-control-sm required-input">
                 <option value="">-- Select Party Type --</option>
@@ -1327,19 +1333,29 @@
           </div>
         </header>
 
-        <!-- Secondary Party & Store Info Row -->
+        <!-- Secondary Party & Customer Selector Row -->
         <div class="sale-secondary-bar">
-          <div class="form-group">
-            <label>Party Code</label>
-            <input type="text" id="saleCustomerPhone" class="form-control form-control-sm" placeholder="Code" readonly>
+          <div class="form-group party-select-group">
+            <label id="salePartySelectLabel">Party / Account</label>
+            <select id="saleCustomerSelect" class="form-control form-control-sm">
+              <option value="">-- Walk-in / Cash Customer --</option>
+            </select>
           </div>
-          <div class="form-group">
-            <label>Party Type Detail</label>
-            <input type="text" id="saleCustomerArea" class="form-control form-control-sm" placeholder="Description" readonly>
+          <div class="form-group customer-name-group">
+            <label id="saleCustomerNameLabel">Customer Name</label>
+            <input type="text" id="saleCustomerName" class="form-control form-control-sm font-bold" placeholder="Write Customer Name...">
           </div>
-          <div class="form-group">
-            <label>Description / Notes</label>
-            <input type="text" id="saleDescription" class="form-control form-control-sm" placeholder="Remarks or customer reference notes">
+          <div class="form-group phone-group">
+            <label>Contact Phone</label>
+            <input type="text" id="saleCustomerPhone" class="form-control form-control-sm font-num" placeholder="Phone">
+          </div>
+          <div class="form-group area-group">
+            <label>City / Territory</label>
+            <input type="text" id="saleCustomerArea" class="form-control form-control-sm" placeholder="Area">
+          </div>
+          <div class="form-group balance-group">
+            <label>Ledger Balance</label>
+            <input type="text" id="saleCustomerPrevBalance" class="form-control form-control-sm font-num sale-customer-prev-balance text-secondary" value="Rs 0.00" readonly>
           </div>
         </div>
 
@@ -2418,6 +2434,9 @@
   <script src="inventory/inventory.js"></script>
   <script src="Genral info/general-info.js"></script>
   <script src="sales/sales.js"></script>
+  <script src="accounts/accounts.js"></script>
+  <script src="reports/reports-engine.js"></script>
+  <script src="reports/reports.js"></script>
 </body>
 
 </html>

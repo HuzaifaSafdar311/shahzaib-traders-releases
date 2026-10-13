@@ -61,7 +61,7 @@
 
 .sale-meta-row {
   display: grid;
-  grid-template-columns: 140px 140px 130px 1fr 150px;
+  grid-template-columns: 160px 160px 1.4fr 170px;
   gap: 12px;
   align-items: end;
 }
@@ -75,15 +75,15 @@
 
 @media (max-width: 1200px) {
   .sale-meta-row, .sale-meta-grid {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 /* Customer & Secondary Row */
 .sale-secondary-bar {
   display: grid;
-  grid-template-columns: 160px 240px 1fr;
-  gap: 12px;
+  grid-template-columns: 210px 1.6fr 130px 140px 135px;
+  gap: 10px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -91,7 +91,7 @@
   align-items: center;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .sale-secondary-bar {
     grid-template-columns: 1fr 1fr;
   }
@@ -342,75 +342,189 @@
   color: #dc2626;
 }
 
-/* Modal Sale Bill / Thermal Receipt Preview */
+/* Modal Sale Bill / Clean Black & White Receipt */
 .sale-receipt-modal-content {
-  max-width: 440px;
+  max-width: 480px;
+  width: 95%;
   background: #ffffff;
-  color: #111827;
-  border-radius: var(--radius-lg);
+  color: #000000;
+  border-radius: var(--radius-md);
   overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  border: 1px solid #000000;
 }
 
 .thermal-receipt-paper {
   background: #ffffff;
-  padding: 24px 20px;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 13px;
+  padding: 16px 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
   line-height: 1.4;
   color: #000000;
-  max-height: 70vh;
+  max-height: 75vh;
   overflow-y: auto;
 }
 
-.thermal-receipt-paper .receipt-header {
+/* Pure Black & White Sale Invoice Styles */
+.bw-sale-invoice {
+  background: #ffffff;
+  color: #000000;
+}
+
+.bw-header {
   text-align: center;
-  border-bottom: 1px dashed #4b5563;
-  padding-bottom: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
-.thermal-receipt-paper .receipt-title {
-  font-size: 18px;
-  font-weight: bold;
+.bw-company-name {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  color: #000000;
+}
+
+.bw-tagline {
+  font-size: 11px;
+  font-style: italic;
+  margin-bottom: 3px;
+  color: #000000;
+}
+
+.bw-meta-line {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #000000;
+}
+
+.bw-divider-dashed {
+  border-top: 1px dashed #000000;
+  margin: 6px 0;
+}
+
+.bw-divider-solid {
+  border-top: 1px solid #000000;
+  margin: 6px 0;
+}
+
+.bw-title-banner {
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 800;
   letter-spacing: 1px;
+  padding: 2px 0;
+  color: #000000;
 }
 
-.thermal-receipt-paper .receipt-meta {
-  font-size: 12px;
-  margin-top: 4px;
+.bw-meta-section {
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 4px 0;
+  color: #000000;
 }
 
-.thermal-receipt-paper table {
+.bw-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #000000;
+}
+
+.bw-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 10px 0;
+  margin: 4px 0;
+  font-size: 11.5px;
+  color: #000000;
 }
 
-.thermal-receipt-paper table th {
-  border-bottom: 1px dashed #000;
-  border-top: 1px dashed #000;
+.bw-table th {
+  border-top: 1px solid #000000;
+  border-bottom: 1px solid #000000;
+  padding: 4px 2px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  color: #000000;
+  background: transparent;
+}
+
+.bw-table td {
+  padding: 4px 2px;
+  border-bottom: 1px dotted #888888;
+  vertical-align: top;
+  color: #000000;
+}
+
+.bw-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.bw-totals {
+  margin: 6px 0;
+  font-size: 11.5px;
+  color: #000000;
+}
+
+.bw-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  color: #000000;
+}
+
+.bw-total-row.bw-net-row {
+  font-size: 13.5px;
+  font-weight: 800;
+  border-top: 1px solid #000000;
+  border-bottom: 1px solid #000000;
   padding: 4px 0;
-  text-align: left;
-  font-size: 12px;
+  margin: 3px 0;
 }
 
-.thermal-receipt-paper table td {
-  padding: 4px 0;
-  font-size: 12px;
+.bw-total-row.bw-prev-row {
+  border-top: 1px dashed #000000;
+  padding-top: 3px;
+  margin-top: 3px;
 }
 
-.thermal-receipt-paper .receipt-totals {
-  border-top: 1px dashed #000;
-  padding-top: 8px;
-  margin-top: 8px;
+.bw-total-row.bw-closing-row {
+  font-size: 12.5px;
+  font-weight: 800;
+  border-top: 1px solid #000000;
+  padding-top: 3px;
+  margin-top: 2px;
 }
 
-.thermal-receipt-paper .receipt-footer {
+.bw-policy {
+  font-size: 10px;
   text-align: center;
-  margin-top: 16px;
-  font-size: 11px;
-  border-top: 1px dashed #000;
-  padding-top: 10px;
+  margin: 8px 0;
+  line-height: 1.35;
+  color: #000000;
+}
+
+.bw-signatures {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  font-size: 10px;
+  margin-top: 22px;
+  padding-top: 4px;
+  color: #000000;
+}
+
+.bw-signatures > div {
+  flex: 1;
+}
+
+.bw-signatures-line {
+  border-top: 1px solid #000000;
+  margin-bottom: 3px;
+  width: 75%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .sale-module-nav-header {
@@ -476,7 +590,14 @@
     top: 0;
     width: 80mm;
     margin: 0;
-    padding: 4mm;
+    padding: 3mm;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .bw-sale-invoice {
+    padding: 0;
+    color: #000000 !important;
+    background: #ffffff !important;
   }
 }
 

@@ -69,6 +69,7 @@ function initJsonFallback(dbPath) {
 }
 
 const generalInfoDb = require('../Genral info/general-info-db');
+const accountsDb = require('../accounts/accounts-db');
 
 function initDatabase(dbPath) {
   if (dbInstance) return dbInstance;
@@ -77,6 +78,7 @@ function initDatabase(dbPath) {
     console.log('node:sqlite not available in this Node/Electron version. Using robust JSON database fallback.');
     const res = initJsonFallback(dbPath);
     generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
+    accountsDb.initAccountsDb(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint, generalInfoDb);
     return res;
   }
 
@@ -307,11 +309,13 @@ function initDatabase(dbPath) {
 
     dbInstance = db;
     generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
+    accountsDb.initAccountsDb(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint, generalInfoDb);
     return dbInstance;
   } catch (err) {
     console.warn('SQLite init failed, falling back to JSON database:', err);
     const res = initJsonFallback(dbPath);
     generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
+    accountsDb.initAccountsDb(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint, generalInfoDb);
     return res;
   }
 }
@@ -536,12 +540,36 @@ function getNextProductCode() {
 }
 
 function saveProduct(p) {
-  const id = p.id || `prod-${Date.now()}`;
-  const code = String(p.code || '').trim() || getNextProductCode();
+  const isNew = !p.id || p.isNew === true;
+  let id = isNew ? `prod-${Date.now()}` : p.id;
+  let code = String(p.code || '').trim();
   const now = new Date().toISOString();
 
+  if (isNew) {
+    if (!code) {
+      code = getNextProductCode();
+    } else {
+      const codeTaken = isJsonFallback
+        ? jsonData.products.some(pr => pr.code === code)
+        : dbInstance.prepare('SELECT id FROM products WHERE code = ?').get(code);
+      if (codeTaken) {
+        // Auto-assign next code to prevent destructive overwrite of existing products
+        code = getNextProductCode();
+      }
+    }
+  } else {
+    if (code) {
+      const codeCollision = isJsonFallback
+        ? jsonData.products.some(pr => pr.code === code && pr.id !== id)
+        : dbInstance.prepare('SELECT id FROM products WHERE code = ? AND id != ?').get(code, id);
+      if (codeCollision) {
+        throw new Error(`Product Code [${code}] is already in use by another product! Please assign a unique code.`);
+      }
+    }
+  }
+
   if (isJsonFallback) {
-    const idx = jsonData.products.findIndex(pr => pr.id === id || pr.code === code);
+    const idx = jsonData.products.findIndex(pr => pr.id === id);
     const updatedRecord = {
       id,
       code,
@@ -587,7 +615,7 @@ function saveProduct(p) {
     return { success: true, id, code };
   }
 
-  const existing = dbInstance.prepare('SELECT id FROM products WHERE id = ? OR code = ?').get(id, code);
+  const existing = !isNew ? dbInstance.prepare('SELECT id FROM products WHERE id = ?').get(id) : null;
   if (existing) {
     const stmt = dbInstance.prepare(`
       UPDATE products SET
@@ -864,6 +892,9 @@ function savePurchase(purchaseData, items = []) {
 
     dbInstance.exec('COMMIT;');
     checkpoint();
+    if (purchaseData.partyId && Number(purchaseData.grandTotal) > 0) {
+      generalInfoDb.updatePartyBalance(purchaseData.partyId, -Number(purchaseData.grandTotal));
+    }
     return { success: true, id, voucherNo };
   } catch (err) {
     dbInstance.exec('ROLLBACK;');
@@ -873,6 +904,10 @@ function savePurchase(purchaseData, items = []) {
 
 function deletePurchase(id) {
   if (isJsonFallback) {
+    const p = jsonData.purchases.find(pr => pr.id === id || pr.voucherNo === id);
+    if (p && p.partyId && Number(p.grandTotal) > 0) {
+      generalInfoDb.updatePartyBalance(p.partyId, Number(p.grandTotal));
+    }
     jsonData.purchases = jsonData.purchases.filter(p => p.id !== id && p.voucherNo !== id);
     jsonData.purchase_items = jsonData.purchase_items.filter(pi => pi.purchaseId !== id);
     saveJsonData();
@@ -880,8 +915,11 @@ function deletePurchase(id) {
   }
   dbInstance.exec('BEGIN TRANSACTION;');
   try {
-    const p = dbInstance.prepare('SELECT id FROM purchases WHERE id = ? OR voucherNo = ?').get(id, id);
+    const p = dbInstance.prepare('SELECT id, partyId, grandTotal FROM purchases WHERE id = ? OR voucherNo = ?').get(id, id);
     if (p) {
+      if (p.partyId && Number(p.grandTotal) > 0) {
+        generalInfoDb.updatePartyBalance(p.partyId, Number(p.grandTotal));
+      }
       dbInstance.prepare('DELETE FROM purchase_items WHERE purchaseId = ?').run(p.id);
       dbInstance.prepare('DELETE FROM purchases WHERE id = ?').run(p.id);
     }
@@ -1183,7 +1221,32 @@ function getAllData() {
     products: getAllProducts(),
     purchases: getAllPurchases(),
     sales: getAllSales(),
-    sales_returns: getAllSaleReturns()
+    sales_returns: getAllSaleReturns(),
+    parties: generalInfoDb.getParties ? generalInfoDb.getParties() : [],
+    party_types: generalInfoDb.getPartyTypes ? generalInfoDb.getPartyTypes() : [],
+    areas: generalInfoDb.getAreas ? generalInfoDb.getAreas() : [],
+    provinces: generalInfoDb.getProvinces ? generalInfoDb.getProvinces() : [],
+    company_info: generalInfoDb.getCompanyInfo ? generalInfoDb.getCompanyInfo() : null,
+    vouchers: accountsDb.getAllVouchers ? accountsDb.getAllVouchers() : []
+  };
+}
+
+function getReportsMasterData() {
+  return {
+    sales: getAllSales(),
+    purchases: getAllPurchases(),
+    products: getAllProducts(),
+    returns: getAllSaleReturns(),
+    categories: getAllProductCategories(),
+    subCategories: getSubCategoriesByCategory(),
+    units: getAllUnits(),
+    productTypes: getAllProductTypes(),
+    parties: generalInfoDb.getParties ? generalInfoDb.getParties() : [],
+    partyTypes: generalInfoDb.getPartyTypes ? generalInfoDb.getPartyTypes() : [],
+    areas: generalInfoDb.getAreas ? generalInfoDb.getAreas() : [],
+    provinces: generalInfoDb.getProvinces ? generalInfoDb.getProvinces() : [],
+    companyInfo: generalInfoDb.getCompanyInfo ? generalInfoDb.getCompanyInfo() : null,
+    vouchers: accountsDb.getAllVouchers ? accountsDb.getAllVouchers() : []
   };
 }
 
@@ -1462,6 +1525,7 @@ module.exports = {
   closeDatabase,
   checkpoint,
   getAllData,
+  getReportsMasterData,
 
   // Units
   getAllUnits,
@@ -1530,5 +1594,13 @@ module.exports = {
   updateParty: generalInfoDb.updateParty,
   deleteParty: generalInfoDb.deleteParty,
   updatePartyBalance: generalInfoDb.updatePartyBalance,
-  getAllGeneralInfo: generalInfoDb.getAllGeneralInfo
+  getAllGeneralInfo: generalInfoDb.getAllGeneralInfo,
+
+  // Accounts Module (Cash Receipt Voucher, Cash Payment Voucher, Party Ledgers)
+  getAccountsNextVoucherNo: accountsDb.getNextVoucherNo,
+  getAccountsVouchers: accountsDb.getAllVouchers,
+  getAccountsVoucherById: accountsDb.getVoucherById,
+  saveAccountsVoucher: accountsDb.saveVoucher,
+  deleteAccountsVoucher: accountsDb.deleteVoucher,
+  getPartyLedger: accountsDb.getPartyLedger
 };

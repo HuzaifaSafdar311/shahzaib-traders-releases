@@ -81,6 +81,16 @@ contextBridge.exposeInMainWorld('salesReturnAPI', {
   deleteReturn: (id) => ipcRenderer.invoke('delete-sale-return', id)
 });
 
+// Dedicated Accounts API Bridge (Cash Receipts, Cash Payments, Party Ledgers)
+contextBridge.exposeInMainWorld('accountsAPI', {
+  getAllVouchers: (filter) => ipcRenderer.invoke('get-accounts-vouchers', filter),
+  getVoucher: (id) => ipcRenderer.invoke('get-accounts-voucher', id),
+  getNextVoucherNo: (type) => ipcRenderer.invoke('get-next-accounts-voucher-no', type),
+  saveVoucher: (voucherData) => ipcRenderer.invoke('save-accounts-voucher', voucherData),
+  deleteVoucher: (id) => ipcRenderer.invoke('delete-accounts-voucher', id),
+  getPartyLedger: (partyId, fromDate, toDate) => ipcRenderer.invoke('get-party-ledger', partyId, fromDate, toDate)
+});
+
 
 // Expose General Info API for Company Info, Provinces, Areas, Party Types, and Parties
 contextBridge.exposeInMainWorld('generalInfoAPI', {

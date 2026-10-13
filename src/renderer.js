@@ -120,8 +120,18 @@ function switchTab(tab) {
       window.switchSubTab(window.currentSubTab || 'unit-info');
     }
   } else if (tab === 'sale') {
-    if (window.SalesModule && window.SalesModule.onActivate) {
-      window.SalesModule.onActivate();
+    reloadFromDatabase().then(() => {
+      if (window.SalesModule && window.SalesModule.onActivate) {
+        window.SalesModule.onActivate();
+      }
+    });
+  } else if (tab === 'accounts') {
+    if (window.AccountsModule && window.AccountsModule.onActivate) {
+      window.AccountsModule.onActivate();
+    }
+  } else if (tab === 'reports') {
+    if (window.ReportsModule && window.ReportsModule.onActivate) {
+      window.ReportsModule.onActivate();
     }
   }
 }
@@ -175,6 +185,8 @@ async function reloadFromDatabase() {
   if (window.renderProductTypes) window.renderProductTypes();
   if (window.renderProductCategories) window.renderProductCategories();
   if (window.renderProductSubCategories) window.renderProductSubCategories();
+  if (window.populateProductInfoDropdowns) window.populateProductInfoDropdowns();
+  if (window.initPurchaseView) window.initPurchaseView();
   if (window.SalesModule && window.SalesModule.refresh) window.SalesModule.refresh();
 }
 

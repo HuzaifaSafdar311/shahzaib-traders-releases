@@ -328,6 +328,23 @@ app.whenReady().then(() => {
   ipcMain.handle('delete-sale-return', async (_event, id) => db.deleteSaleReturn(id));
 
   // ============================================
+  // ACCOUNTS MODULE IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-accounts-vouchers', async (_event, filter) => db.getAccountsVouchers(filter));
+  ipcMain.handle('get-accounts-voucher', async (_event, id) => db.getAccountsVoucherById(id));
+  ipcMain.handle('get-next-accounts-voucher-no', async (_event, type) => db.getAccountsNextVoucherNo(type));
+  ipcMain.handle('save-accounts-voucher', async (_event, voucherData) => db.saveAccountsVoucher(voucherData));
+  ipcMain.handle('delete-accounts-voucher', async (_event, id) => db.deleteAccountsVoucher(id));
+  ipcMain.handle('get-party-ledger', async (_event, partyId, fromDate, toDate) => db.getPartyLedger(partyId, fromDate, toDate));
+
+  // ============================================
+  // REPORTS MODULE MASTER DATA IPC HANDLER
+  // ============================================
+  ipcMain.handle('get-reports-master-data', async () => {
+    return db.getReportsMasterData();
+  });
+
+  // ============================================
   // EXPORT IPC HANDLERS
   // ============================================
   ipcMain.handle('export-pdf', async (event, data) => {
