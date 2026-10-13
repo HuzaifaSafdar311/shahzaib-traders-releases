@@ -26,8 +26,18 @@ window.api = window.electronAPI || {
 const appEl = {
   navInventoryMainBtn: document.getElementById('navInventoryMainBtn'),
   navGeneralInfoBtn: document.getElementById('navGeneralInfoBtn'),
+  navSalesMainBtn: document.getElementById('navSalesMainBtn'),
+  navAccountsMainBtn: document.getElementById('navAccountsMainBtn'),
+  navToolsMainBtn: document.getElementById('navToolsMainBtn'),
+  navReportsMainBtn: document.getElementById('navReportsMainBtn'),
+
   inventoryView: document.getElementById('inventoryView'),
   generalInfoView: document.getElementById('generalInfoView'),
+  salesView: document.getElementById('salesView'),
+  accountsView: document.getElementById('accountsView'),
+  toolsView: document.getElementById('toolsView'),
+  reportsView: document.getElementById('reportsView'),
+
   badgeProductsCount: document.getElementById('badgeProductsCount'),
   badgeCategoryCount: document.getElementById('badgeCategoryCount'),
   badgeSubCategoryCount: document.getElementById('badgeSubCategoryCount'),
@@ -76,20 +86,32 @@ window.openConfirmModal = openConfirmModal;
 window.closeConfirmModal = closeConfirmModal;
 
 // Tab Switching
+const mainTabs = {
+  'general-info': { btn: 'navGeneralInfoBtn', view: 'generalInfoView' },
+  'inventory': { btn: 'navInventoryMainBtn', view: 'inventoryView' },
+  'sale': { btn: 'navSalesMainBtn', view: 'salesView' },
+  'accounts': { btn: 'navAccountsMainBtn', view: 'accountsView' },
+  'tools': { btn: 'navToolsMainBtn', view: 'toolsView' },
+  'reports': { btn: 'navReportsMainBtn', view: 'reportsView' }
+};
+
 function switchTab(tab) {
+  if (!mainTabs[tab]) tab = 'inventory';
   window.currentTab = tab;
-  const isGi = (tab === 'general-info');
 
-  if (appEl.navGeneralInfoBtn) appEl.navGeneralInfoBtn.classList.toggle('active', isGi);
-  if (appEl.navInventoryMainBtn) appEl.navInventoryMainBtn.classList.toggle('active', !isGi);
-  if (appEl.generalInfoView) appEl.generalInfoView.classList.toggle('active', isGi);
-  if (appEl.inventoryView) appEl.inventoryView.classList.toggle('active', !isGi);
+  Object.entries(mainTabs).forEach(([key, config]) => {
+    const isActive = (key === tab);
+    const btn = appEl[config.btn];
+    const view = appEl[config.view];
+    if (btn) btn.classList.toggle('active', isActive);
+    if (view) view.classList.toggle('active', isActive);
+  });
 
-  if (isGi) {
+  if (tab === 'general-info') {
     if (window.GeneralInfoModule && window.GeneralInfoModule.onActivate) {
       window.GeneralInfoModule.onActivate();
     }
-  } else {
+  } else if (tab === 'inventory') {
     if (window.switchSubTab) {
       window.switchSubTab(window.currentSubTab || 'unit-info');
     }
@@ -100,6 +122,11 @@ window.switchTab = switchTab;
 
 if (appEl.navGeneralInfoBtn) appEl.navGeneralInfoBtn.addEventListener('click', () => switchTab('general-info'));
 if (appEl.navInventoryMainBtn) appEl.navInventoryMainBtn.addEventListener('click', () => switchTab('inventory'));
+if (appEl.navSalesMainBtn) appEl.navSalesMainBtn.addEventListener('click', () => switchTab('sale'));
+if (appEl.navAccountsMainBtn) appEl.navAccountsMainBtn.addEventListener('click', () => switchTab('accounts'));
+if (appEl.navToolsMainBtn) appEl.navToolsMainBtn.addEventListener('click', () => switchTab('tools'));
+if (appEl.navReportsMainBtn) appEl.navReportsMainBtn.addEventListener('click', () => switchTab('reports'));
+
 
 // Badges Update
 function updateBadges() {
