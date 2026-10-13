@@ -1311,9 +1311,15 @@
               <input type="text" id="saleManualNo" class="form-control form-control-sm" placeholder="Ref #">
             </div>
             <div class="form-group">
-              <label class="required-label">Customer / Party Title</label>
+              <label>Party Type</label>
+              <select id="salePartyTypeSelect" class="form-control form-control-sm">
+                <option value="">-- All Party Types --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="required-label">Party Title</label>
               <select id="saleCustomerSelect" class="form-control form-control-sm required-input">
-                <option value="">-- Select Customer / Party --</option>
+                <option value="">-- Select Party Title --</option>
               </select>
             </div>
             <div class="form-group">
@@ -1327,10 +1333,10 @@
           </div>
         </header>
 
-        <!-- Secondary Customer & Store Info Row -->
+        <!-- Secondary Party & Store Info Row -->
         <div class="sale-secondary-bar">
           <div class="form-group">
-            <label>Customer Phone</label>
+            <label>Party Phone</label>
             <input type="text" id="saleCustomerPhone" class="form-control form-control-sm" placeholder="Phone" readonly>
           </div>
           <div class="form-group">
@@ -1338,7 +1344,7 @@
             <input type="text" id="saleCustomerArea" class="form-control form-control-sm" placeholder="Area" readonly>
           </div>
           <div class="form-group">
-            <label>Previous Balance</label>
+            <label>Party Ledger Balance</label>
             <input type="text" id="saleCustomerPrevBalance" class="form-control form-control-sm font-num sale-customer-prev-balance text-danger" value="Rs 0.00" readonly>
           </div>
           <div class="form-group">
@@ -1584,10 +1590,16 @@
                 <label for="returnOriginalBillRef">Orig. Sale Bill # (Ref)</label>
                 <input type="text" id="returnOriginalBillRef" class="form-control form-control-sm font-num" placeholder="e.g. SV-0001">
               </div>
-              <div class="sale-meta-field span-2">
-                <label for="returnCustomerSelect">Customer / Party *</label>
+              <div class="sale-meta-field">
+                <label for="returnPartyTypeSelect">Party Type</label>
+                <select id="returnPartyTypeSelect" class="form-control form-control-sm">
+                  <option value="">-- All Party Types --</option>
+                </select>
+              </div>
+              <div class="sale-meta-field">
+                <label for="returnCustomerSelect">Party Title *</label>
                 <select id="returnCustomerSelect" class="form-control form-control-sm">
-                  <option value="">-- Select Customer --</option>
+                  <option value="">-- Select Party Title --</option>
                 </select>
               </div>
               <div class="sale-meta-field">
@@ -1603,7 +1615,7 @@
           <!-- Customer Secondary Info & Reason Bar -->
           <div class="sale-meta-row-2">
             <div class="sale-meta-item">
-              <span class="meta-label">Customer Phone:</span>
+              <span class="meta-label">Party Phone:</span>
               <span id="returnCustomerPhone" class="meta-value">-</span>
             </div>
             <div class="sale-meta-item">
@@ -1611,7 +1623,7 @@
               <span id="returnCustomerArea" class="meta-value">-</span>
             </div>
             <div class="sale-meta-item">
-              <span class="meta-label">Current Ledger Balance:</span>
+              <span class="meta-label">Party Ledger Balance:</span>
               <span id="returnCustomerPrevBalance" class="meta-value font-num font-bold text-accent">Rs 0.00</span>
             </div>
             <div class="sale-meta-item">

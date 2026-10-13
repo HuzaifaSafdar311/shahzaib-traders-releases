@@ -35,6 +35,7 @@
     el.entryDate = document.getElementById('saleEntryDate');
     el.voucherNo = document.getElementById('saleVoucherNo');
     el.manualNo = document.getElementById('saleManualNo');
+    el.partyTypeSelect = document.getElementById('salePartyTypeSelect');
     el.customerSelect = document.getElementById('saleCustomerSelect');
     el.paymentType = document.getElementById('salePaymentType');
 
@@ -102,7 +103,7 @@
 
     bindEvents();
     await loadNextVoucherNo();
-    await populateCustomers();
+    await loadPartyTypesAndParties();
     populateProductDropdown();
     resetVoucher();
   }
@@ -120,33 +121,140 @@
     }
   }
 
-  async function populateCustomers() {
-    if (!el.customerSelect) return;
-    el.customerSelect.innerHTML = '<option value="">-- Select Customer / Party --</option>';
+  // ========================================================
+  // PARTY TYPES & PARTIES INTEGRATION (FROM GENERAL INFO)
+  // ========================================================
+  let sharedPartyTypes = [];
+  let sharedAllParties = [];
 
-    let parties = [];
+  async function loadPartyTypesAndParties() {
+    try {
+      if (window.generalInfoAPI?.getPartyTypes) {
+        sharedPartyTypes = await window.generalInfoAPI.getPartyTypes();
+      }
+    } catch (e) {
+      console.warn('Could not load party types from generalInfoAPI:', e);
+    }
     try {
       if (window.generalInfoAPI?.getParties) {
-        parties = await window.generalInfoAPI.getParties();
+        sharedAllParties = await window.generalInfoAPI.getParties();
       }
     } catch (e) {
       console.warn('Could not load parties from generalInfoAPI:', e);
     }
-
-    if (!parties || parties.length === 0) {
-      parties = window.appData?.parties || [];
+    if (!sharedAllParties || sharedAllParties.length === 0) {
+      sharedAllParties = window.appData?.parties || [];
     }
 
-    // Sort parties alphabetically
-    parties.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    // Sort alphabetically by party name
+    sharedAllParties.sort((a, b) => (a.name || a.title || a.partyTitle || '').localeCompare(b.name || b.title || b.partyTitle || ''));
 
-    parties.forEach(p => {
+    populatePartyTypeDropdowns();
+    renderFilteredParties();
+    renderFilteredReturnParties();
+  }
+
+  function populatePartyTypeDropdowns() {
+    const list = sharedPartyTypes || [];
+    [el.partyTypeSelect, retEl.partyTypeSelect].forEach(selectEl => {
+      if (!selectEl) return;
+      const currentVal = selectEl.value;
+      selectEl.innerHTML = '<option value="">-- All Party Types --</option>';
+      list.forEach(pt => {
+        const opt = document.createElement('option');
+        opt.value = pt.id;
+        opt.textContent = pt.name;
+        opt.dataset.partyType = JSON.stringify(pt);
+        selectEl.appendChild(opt);
+      });
+      if (currentVal) selectEl.value = currentVal;
+    });
+  }
+
+  function renderFilteredParties() {
+    if (!el.customerSelect) return;
+    const selectedTypeId = el.partyTypeSelect?.value || '';
+    const filtered = selectedTypeId
+      ? sharedAllParties.filter(p => p.partyTypeId === selectedTypeId || String(p.partyTypeName || '').toLowerCase() === selectedTypeId.toLowerCase())
+      : sharedAllParties;
+
+    el.customerSelect.innerHTML = '<option value="">-- Select Party Title --</option>';
+    filtered.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.textContent = `${p.title}${p.urduTitle ? ` (${p.urduTitle})` : ''} - ${p.areaName || p.phone || 'General'}`;
+      const title = p.name || p.title || p.partyTitle || 'Party';
+      const typeLabel = p.partyTypeName ? ` [${p.partyTypeName}]` : '';
+      const areaLabel = p.areaName ? ` - ${p.areaName}` : '';
+      opt.textContent = `${title}${typeLabel}${areaLabel}`;
       opt.dataset.party = JSON.stringify(p);
       el.customerSelect.appendChild(opt);
     });
+
+    if (saleState.selectedCustomer) {
+      el.customerSelect.value = saleState.selectedCustomer.id || '';
+    }
+  }
+
+  function renderFilteredReturnParties() {
+    if (!retEl.customerSelect) return;
+    const selectedTypeId = retEl.partyTypeSelect?.value || '';
+    const filtered = selectedTypeId
+      ? sharedAllParties.filter(p => p.partyTypeId === selectedTypeId || String(p.partyTypeName || '').toLowerCase() === selectedTypeId.toLowerCase())
+      : sharedAllParties;
+
+    retEl.customerSelect.innerHTML = '<option value="">-- Select Party Title --</option>';
+    filtered.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      const title = p.name || p.title || p.partyTitle || 'Party';
+      const typeLabel = p.partyTypeName ? ` [${p.partyTypeName}]` : '';
+      const areaLabel = p.areaName ? ` - ${p.areaName}` : '';
+      opt.textContent = `${title}${typeLabel}${areaLabel}`;
+      opt.dataset.party = JSON.stringify(p);
+      retEl.customerSelect.appendChild(opt);
+    });
+
+    if (returnState.selectedCustomer) {
+      retEl.customerSelect.value = returnState.selectedCustomer.id || '';
+    }
+  }
+
+  function selectParty(partyId) {
+    if (!partyId) {
+      saleState.selectedCustomer = null;
+      if (el.customerPhone) el.customerPhone.value = '';
+      if (el.customerArea) el.customerArea.value = '';
+      if (el.customerPrevBalance) {
+        el.customerPrevBalance.value = 'Rs 0.00';
+        el.customerPrevBalance.dataset.rawBalance = 0;
+      }
+      updateVoucherTotals();
+      return;
+    }
+
+    const opt = el.customerSelect?.querySelector(`option[value="${partyId}"]`);
+    if (opt && opt.dataset.party) {
+      try {
+        const p = JSON.parse(opt.dataset.party);
+        saleState.selectedCustomer = p;
+
+        // Auto-select corresponding Party Type if set
+        if (el.partyTypeSelect && p.partyTypeId) {
+          el.partyTypeSelect.value = p.partyTypeId;
+        }
+
+        if (el.customerPhone) el.customerPhone.value = p.phone || '';
+        if (el.customerArea) el.customerArea.value = p.areaName || p.city || '';
+        const bal = Number(p.openingBalance || p.currentBalance || 0);
+        if (el.customerPrevBalance) {
+          el.customerPrevBalance.value = window.formatPKR ? window.formatPKR(bal) : `Rs ${bal.toFixed(2)}`;
+          el.customerPrevBalance.dataset.rawBalance = bal;
+        }
+      } catch (err) {
+        console.error('Error parsing party data:', err);
+      }
+    }
+    updateVoucherTotals();
   }
 
   function populateProductDropdown() {
@@ -506,6 +614,8 @@
 
     if (el.entryDate) el.entryDate.value = new Date().toISOString().split('T')[0];
     if (el.manualNo) el.manualNo.value = '';
+    if (el.partyTypeSelect) el.partyTypeSelect.value = '';
+    renderFilteredParties();
     if (el.customerSelect) el.customerSelect.value = '';
     if (el.customerPhone) el.customerPhone.value = '';
     if (el.customerArea) el.customerArea.value = '';
@@ -697,30 +807,17 @@
     if (el.btnPrint) el.btnPrint.addEventListener('click', () => openReceiptModal());
     if (el.btnHistory) el.btnHistory.addEventListener('click', openHistoryModal);
 
-    // Customer Select
+    // Party Type Select
+    if (el.partyTypeSelect) {
+      el.partyTypeSelect.addEventListener('change', () => {
+        renderFilteredParties();
+      });
+    }
+
+    // Party Title Select
     if (el.customerSelect) {
-      el.customerSelect.addEventListener('change', () => {
-        const opt = el.customerSelect.options[el.customerSelect.selectedIndex];
-        if (opt && opt.dataset.party) {
-          const p = JSON.parse(opt.dataset.party);
-          saleState.selectedCustomer = p;
-          if (el.customerPhone) el.customerPhone.value = p.phone || '';
-          if (el.customerArea) el.customerArea.value = p.areaName || '';
-          const bal = Number(p.openingBalance || p.currentBalance || 0);
-          if (el.customerPrevBalance) {
-            el.customerPrevBalance.value = window.formatPKR ? window.formatPKR(bal) : `Rs ${bal.toFixed(2)}`;
-            el.customerPrevBalance.dataset.rawBalance = bal;
-          }
-        } else {
-          saleState.selectedCustomer = null;
-          if (el.customerPhone) el.customerPhone.value = '';
-          if (el.customerArea) el.customerArea.value = '';
-          if (el.customerPrevBalance) {
-            el.customerPrevBalance.value = 'Rs 0.00';
-            el.customerPrevBalance.dataset.rawBalance = 0;
-          }
-        }
-        updateVoucherTotals();
+      el.customerSelect.addEventListener('change', (e) => {
+        selectParty(e.target.value);
       });
     }
 
@@ -904,6 +1001,7 @@
     retEl.entryDate = document.getElementById('returnEntryDate');
     retEl.voucherNo = document.getElementById('returnVoucherNo');
     retEl.originalBillRef = document.getElementById('returnOriginalBillRef');
+    retEl.partyTypeSelect = document.getElementById('returnPartyTypeSelect');
     retEl.customerSelect = document.getElementById('returnCustomerSelect');
     retEl.refundMode = document.getElementById('returnRefundMode');
 
@@ -1002,13 +1100,19 @@
       try {
         const c = JSON.parse(opt.dataset.party);
         returnState.selectedCustomer = c;
+
+        // Auto-select corresponding Party Type if set
+        if (retEl.partyTypeSelect && c.partyTypeId) {
+          retEl.partyTypeSelect.value = c.partyTypeId;
+        }
+
         if (retEl.customerPhone) retEl.customerPhone.textContent = c.phone || '-';
-        if (retEl.customerArea) retEl.customerArea.textContent = c.areaName || '-';
-        const bal = Number(c.currentBalance || c.openingBalance || 0);
+        if (retEl.customerArea) retEl.customerArea.textContent = c.areaName || c.city || '-';
+        const bal = Number(c.openingBalance || c.currentBalance || 0);
         if (retEl.customerPrevBalance) retEl.customerPrevBalance.textContent = `Rs ${bal.toFixed(2)}`;
         updateReturnTotals();
       } catch (err) {
-        console.error('Error parsing customer data:', err);
+        console.error('Error parsing party data:', err);
       }
     }
   }
@@ -1266,6 +1370,8 @@
 
     if (retEl.entryDate) retEl.entryDate.value = new Date().toISOString().slice(0, 10);
     if (retEl.originalBillRef) retEl.originalBillRef.value = '';
+    if (retEl.partyTypeSelect) retEl.partyTypeSelect.value = '';
+    renderFilteredReturnParties();
     if (retEl.customerSelect) retEl.customerSelect.value = '';
     if (retEl.refundMode) retEl.refundMode.value = 'Credit';
     if (retEl.customerPhone) retEl.customerPhone.textContent = '-';
@@ -1441,7 +1547,14 @@
       });
     }
 
-    // Customer Selection
+    // Party Type Selection
+    if (retEl.partyTypeSelect) {
+      retEl.partyTypeSelect.addEventListener('change', () => {
+        renderFilteredReturnParties();
+      });
+    }
+
+    // Party Title Selection
     if (retEl.customerSelect) {
       retEl.customerSelect.addEventListener('change', (e) => {
         selectReturnCustomer(e.target.value);
@@ -1561,18 +1674,17 @@
     },
     switchSubTab: switchSaleSubTab,
     onActivate: () => {
+      loadPartyTypesAndParties();
       if (currentSaleSubTab === 'return') {
         onActivateReturn();
       } else {
-        populateCustomers();
         populateProductDropdown();
         if (!saleState.voucherNo) loadNextVoucherNo();
       }
     },
     refresh: () => {
       populateProductDropdown();
-      populateCustomers();
-      populateReturnCustomers();
+      loadPartyTypesAndParties();
       populateReturnProducts();
     },
     selectProduct: (p) => {

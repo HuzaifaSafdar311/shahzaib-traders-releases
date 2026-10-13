@@ -61,13 +61,20 @@
 
 .sale-meta-row {
   display: grid;
-  grid-template-columns: 140px 140px 140px 1fr 140px;
+  grid-template-columns: 130px 130px 125px 160px 1fr 140px;
   gap: 12px;
   align-items: end;
 }
 
-@media (max-width: 1100px) {
-  .sale-meta-row {
+.sale-meta-grid {
+  display: grid;
+  grid-template-columns: 130px 130px 125px 160px 1fr 160px;
+  gap: 12px;
+  align-items: end;
+}
+
+@media (max-width: 1200px) {
+  .sale-meta-row, .sale-meta-grid {
     grid-template-columns: 1fr 1fr 1fr;
   }
 }

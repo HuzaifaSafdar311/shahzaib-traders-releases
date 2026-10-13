@@ -248,6 +248,10 @@ app.whenReady().then(() => {
     return db.deleteArea(id);
   });
 
+  ipcMain.handle('get-party-types', async () => {
+    return db.getPartyTypes();
+  });
+
   ipcMain.handle('add-party-type', async (event, partyType) => {
     return db.addPartyType(partyType);
   });

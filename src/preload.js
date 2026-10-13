@@ -92,6 +92,7 @@ contextBridge.exposeInMainWorld('generalInfoAPI', {
   addArea: (a) => ipcRenderer.invoke('add-area', a),
   updateArea: (a) => ipcRenderer.invoke('update-area', a),
   deleteArea: (id) => ipcRenderer.invoke('delete-area', id),
+  getPartyTypes: () => ipcRenderer.invoke('get-party-types'),
   addPartyType: (pt) => ipcRenderer.invoke('add-party-type', pt),
   updatePartyType: (pt) => ipcRenderer.invoke('update-party-type', pt),
   deletePartyType: (id) => ipcRenderer.invoke('delete-party-type', id),
