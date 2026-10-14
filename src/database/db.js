@@ -309,6 +309,17 @@ function initDatabase(dbPath) {
       );
     `);
 
+    // 11. Application Settings & Preferences
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      );
+    `);
+
+    seedDefaultAppSettings(db);
+
     dbInstance = db;
     generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
     accountsDb.initAccountsDb(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint, generalInfoDb);
@@ -1506,6 +1517,247 @@ function deleteSaleReturn(id) {
   }
 }
 
+// ============================================
+// APPLICATION SETTINGS & PREFERENCES
+// ============================================
+const DEFAULT_APP_SETTINGS = {
+  storeName: 'Shahzaib Traders',
+  storeTagline: 'Wholesale & Retail Trading Solutions',
+  contactPerson: 'Shahzaib Ali',
+  contactPhone: '0300-1234567',
+  altPhone: '042-37654321',
+  contactEmail: 'info@shahzaibtraders.com',
+  address: 'Main Bazar, Electrical Market, Lahore',
+  ntn: '7654321-9',
+  strn: '32-77-8765-432-1',
+  currency: 'PKR',
+  defaultWarehouse: 'Main Godown',
+  defaultRateMode: 'retail', // 'retail' | 'wholesale' | 'last'
+  lowStockThreshold: '10',
+  paperSize: '80mm', // '80mm' | 'A4'
+  autoPrintVoucher: 'false',
+  requirePinOnDelete: 'true',
+  receiptHeaderTitle: 'SHAHZAIB TRADERS',
+  receiptSubtitle: 'Dealers in Electrical Goods & Accessories',
+  receiptFooterNote: 'Thank you for your business!\nGoods once sold cannot be returned without bill.\nNo warranty on burnt or short-circuit electrical items.',
+  invoiceTerms: '1. Please inspect all items upon receipt.\n2. In case of return, original sale slip is required within 7 days.'
+};
+
+function seedDefaultAppSettings(db) {
+  try {
+    const existingCount = db.prepare('SELECT COUNT(*) as count FROM app_settings').get();
+    if (!existingCount || existingCount.count === 0) {
+      const stmt = db.prepare('INSERT OR IGNORE INTO app_settings (key, value, updatedAt) VALUES (?, ?, ?)');
+      const now = new Date().toISOString();
+      for (const [key, value] of Object.entries(DEFAULT_APP_SETTINGS)) {
+        stmt.run(key, String(value), now);
+      }
+    }
+  } catch (err) {
+    console.warn('Could not seed default app settings:', err);
+  }
+}
+
+function getAppSettings() {
+  const result = { ...DEFAULT_APP_SETTINGS };
+
+  if (isJsonFallback) {
+    if (jsonData.app_settings && typeof jsonData.app_settings === 'object') {
+      Object.assign(result, jsonData.app_settings);
+    }
+    return result;
+  }
+
+  if (!dbInstance) return result;
+
+  try {
+    const rows = dbInstance.prepare('SELECT key, value FROM app_settings').all();
+    for (const row of rows) {
+      result[row.key] = row.value;
+    }
+
+    // Overlay live company info if available
+    try {
+      const comp = generalInfoDb.getCompanyInfo();
+      if (comp && comp.name) {
+        if (!result.storeName || result.storeName === DEFAULT_APP_SETTINGS.storeName) result.storeName = comp.name;
+        if (comp.tagline) result.storeTagline = comp.tagline;
+        if (comp.phone) result.contactPhone = comp.phone;
+        if (comp.altPhone) result.altPhone = comp.altPhone;
+        if (comp.address) result.address = comp.address;
+        if (comp.ntn) result.ntn = comp.ntn;
+        if (comp.strn) result.strn = comp.strn;
+        if (comp.email) result.contactEmail = comp.email;
+        if (comp.contactPerson) result.contactPerson = comp.contactPerson;
+      }
+    } catch (_compErr) {}
+
+    return result;
+  } catch (err) {
+    console.error('Failed to get app settings:', err);
+    return result;
+  }
+}
+
+function saveAppSettings(settingsMap) {
+  if (!settingsMap || typeof settingsMap !== 'object') {
+    return { success: false, message: 'Invalid settings payload' };
+  }
+
+  const now = new Date().toISOString();
+
+  if (isJsonFallback) {
+    jsonData.app_settings = jsonData.app_settings || {};
+    Object.assign(jsonData.app_settings, settingsMap);
+    saveJsonData();
+    return { success: true };
+  }
+
+  if (!dbInstance) throw new Error('DB not initialized');
+
+  try {
+    dbInstance.exec('BEGIN TRANSACTION;');
+    const stmt = dbInstance.prepare(`
+      INSERT INTO app_settings (key, value, updatedAt)
+      VALUES (?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt
+    `);
+
+    for (const [key, val] of Object.entries(settingsMap)) {
+      stmt.run(key, String(val ?? ''), now);
+    }
+
+    dbInstance.exec('COMMIT;');
+    checkpoint();
+
+    // Also update company_info if core store details changed
+    try {
+      const companyPayload = {};
+      if (settingsMap.storeName) companyPayload.name = settingsMap.storeName;
+      if (settingsMap.storeTagline !== undefined) companyPayload.tagline = settingsMap.storeTagline;
+      if (settingsMap.contactPhone !== undefined) companyPayload.phone = settingsMap.contactPhone;
+      if (settingsMap.altPhone !== undefined) companyPayload.altPhone = settingsMap.altPhone;
+      if (settingsMap.contactPerson !== undefined) companyPayload.contactPerson = settingsMap.contactPerson;
+      if (settingsMap.address !== undefined) companyPayload.address = settingsMap.address;
+      if (settingsMap.ntn !== undefined) companyPayload.ntn = settingsMap.ntn;
+      if (settingsMap.strn !== undefined) companyPayload.strn = settingsMap.strn;
+      if (settingsMap.contactEmail !== undefined) companyPayload.email = settingsMap.contactEmail;
+
+      if (Object.keys(companyPayload).length > 0) {
+        generalInfoDb.saveCompanyInfo(companyPayload);
+      }
+    } catch (_syncErr) {}
+
+    return { success: true };
+  } catch (err) {
+    try { dbInstance.exec('ROLLBACK;'); } catch (_e) {}
+    console.error('Failed to save app settings:', err);
+    throw err;
+  }
+}
+
+function getDbStats(dbPath) {
+  try {
+    const stats = {
+      dbPath: dbPath || 'inventory.db',
+      fileSizeBytes: 0,
+      fileSizeKB: '0 KB',
+      productsCount: 0,
+      partiesCount: 0,
+      salesCount: 0,
+      purchasesCount: 0,
+      vouchersCount: 0,
+      journalMode: 'WAL'
+    };
+
+    if (dbPath && fs.existsSync(dbPath)) {
+      const st = fs.statSync(dbPath);
+      stats.fileSizeBytes = st.size;
+      stats.fileSizeKB = (st.size / 1024).toFixed(1) + ' KB';
+      if (st.size > 1024 * 1024) {
+        stats.fileSizeKB = (st.size / (1024 * 1024)).toFixed(2) + ' MB';
+      }
+    }
+
+    if (dbInstance) {
+      try { stats.productsCount = dbInstance.prepare('SELECT COUNT(*) as c FROM products').get()?.c || 0; } catch (_) {}
+      try { stats.partiesCount = dbInstance.prepare('SELECT COUNT(*) as c FROM parties').get()?.c || 0; } catch (_) {}
+      try { stats.salesCount = dbInstance.prepare('SELECT COUNT(*) as c FROM sales').get()?.c || 0; } catch (_) {}
+      try { stats.purchasesCount = dbInstance.prepare('SELECT COUNT(*) as c FROM purchases').get()?.c || 0; } catch (_) {}
+      try { stats.vouchersCount = dbInstance.prepare('SELECT COUNT(*) as c FROM accounts_vouchers').get()?.c || 0; } catch (_) {}
+    } else if (isJsonFallback) {
+      stats.productsCount = (jsonData.products || []).length;
+      stats.salesCount = (jsonData.sales || []).length;
+      stats.purchasesCount = (jsonData.purchases || []).length;
+      stats.journalMode = 'JSON';
+    }
+
+    return { success: true, stats };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+function backupDatabase(dbPath) {
+  try {
+    if (!dbPath || !fs.existsSync(dbPath)) {
+      throw new Error(`Database file not found at: ${dbPath}`);
+    }
+
+    // Flush WAL to disk first
+    if (dbInstance && typeof dbInstance.exec === 'function') {
+      try {
+        dbInstance.exec('PRAGMA wal_checkpoint(FULL);');
+      } catch (_e) {}
+    }
+
+    const backupDir = path.join(path.dirname(dbPath), 'backups');
+    fs.mkdirSync(backupDir, { recursive: true });
+
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+    const filename = `inventory_backup_${dateStr}.db`;
+    const targetPath = path.join(backupDir, filename);
+
+    fs.copyFileSync(dbPath, targetPath);
+
+    const st = fs.statSync(targetPath);
+    const sizeKB = (st.size / 1024).toFixed(1) + ' KB';
+
+    return {
+      success: true,
+      backupPath: targetPath,
+      filename,
+      sizeBytes: st.size,
+      sizeFormatted: sizeKB,
+      timestamp: now.toISOString()
+    };
+  } catch (err) {
+    console.error('Backup error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+function optimizeDatabase() {
+  try {
+    if (dbInstance && typeof dbInstance.exec === 'function') {
+      dbInstance.exec('PRAGMA wal_checkpoint(FULL);');
+      dbInstance.exec('VACUUM;');
+      dbInstance.exec('PRAGMA optimize;');
+      return { success: true, message: 'Database optimized, vacuumed, and WAL checkpoints flushed successfully.' };
+    }
+    return { success: true, message: 'No active SQLite engine to vacuum (JSON mode).' };
+  } catch (err) {
+    console.error('Optimize error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+function exportAllDatabaseJson() {
+  return getAllData();
+}
+
 function checkpoint() {
   if (dbInstance && typeof dbInstance.exec === 'function') {
     try {
@@ -1625,5 +1877,13 @@ module.exports = {
   deleteClaim: tradeFeaturesDb.deleteClaim,
   getDailyClosingSummary: tradeFeaturesDb.getDailyClosingSummary,
   getAllDayEndClosings: tradeFeaturesDb.getAllDayEndClosings,
-  saveDayEndClosing: tradeFeaturesDb.saveDayEndClosing
+  saveDayEndClosing: tradeFeaturesDb.saveDayEndClosing,
+
+  // Settings & System Maintenance
+  getAppSettings,
+  saveAppSettings,
+  getDbStats,
+  backupDatabase,
+  optimizeDatabase,
+  exportAllDatabaseJson
 };

@@ -247,6 +247,30 @@ body {
   border-radius: 12px;
 }
 
+.nav-spacer {
+  flex: 1;
+  min-height: 12px;
+}
+
+.nav-divider {
+  height: 1px;
+  background-color: var(--border-light);
+  margin: 6px 4px;
+}
+
+.nav-item-logout {
+  color: var(--text-secondary);
+}
+
+.nav-item-logout:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.nav-item-logout:hover .nav-icon {
+  color: #dc2626;
+}
+
 .sidebar-footer {
   padding: 14px 20px;
   border-top: 1px solid var(--border-light);

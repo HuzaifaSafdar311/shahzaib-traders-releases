@@ -471,8 +471,11 @@ function getPartyLedger(partyId, fromDate = '', toDate = '') {
     return (a.createdAt || '').localeCompare(b.createdAt || '');
   });
 
-  // Calculate opening balance before fromDate if date filter is active
-  let openingBal = Number(party ? party.openingBalance : 0) || 0;
+  // The party's stored balance in 'parties' represents their current balance.
+  // Base opening balance prior to any transactions is stored balance minus net transaction movements.
+  const totalAllNet = entries.reduce((sum, e) => sum + (e.debit - e.credit), 0);
+  let baseOpeningBal = (Number(party ? party.openingBalance : 0) || 0) - totalAllNet;
+  let openingBal = baseOpeningBal;
   let runningBal = openingBal;
   let totalDebit = 0;
   let totalCredit = 0;

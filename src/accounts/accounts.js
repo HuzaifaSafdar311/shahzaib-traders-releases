@@ -1347,6 +1347,8 @@
       if (e.key === 'F1') {
         if (isAccountsActive) {
           e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
           if (dom.helpModal.classList.contains('hidden')) {
             openPartyHelpModal();
           } else {
@@ -1356,6 +1358,7 @@
       } else if (e.key === 'Escape') {
         if (!dom.helpModal.classList.contains('hidden')) {
           e.preventDefault();
+          e.stopPropagation();
           closePartyHelpModal();
         }
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
@@ -1369,7 +1372,7 @@
           resetVoucher();
         }
       }
-    });
+    }, true);
   }
 
   // ========================================================

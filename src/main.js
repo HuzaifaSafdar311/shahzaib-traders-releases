@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -191,6 +191,12 @@ app.whenReady().then(() => {
   ipcMain.on('login-success', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    }
+  });
+
+  ipcMain.on('logout', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadFile(path.join(__dirname, 'auth', 'login.html'));
     }
   });
 
@@ -390,6 +396,93 @@ app.whenReady().then(() => {
 
   ipcMain.handle('export-csv', async (event, data) => {
     return exporter.exportCSV(data, mainWindow);
+  });
+
+  // ============================================
+  // SETTINGS & MAINTENANCE IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-app-settings', async () => {
+    return db.getAppSettings();
+  });
+
+  ipcMain.handle('save-app-settings', async (_event, settings) => {
+    return db.saveAppSettings(settings);
+  });
+
+  ipcMain.handle('get-db-stats', async () => {
+    return db.getDbStats(getDbFilePath());
+  });
+
+  ipcMain.handle('backup-database', async () => {
+    return db.backupDatabase(getDbFilePath());
+  });
+
+  ipcMain.handle('optimize-database', async () => {
+    return db.optimizeDatabase();
+  });
+
+  ipcMain.handle('open-backups-folder', async () => {
+    const backupDir = path.join(path.dirname(getDbFilePath()), 'backups');
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+    return shell.openPath(backupDir);
+  });
+
+  ipcMain.handle('change-app-pin', async (_event, { currentPin, newPin }) => {
+    if (!verifyPin(currentPin)) {
+      return { success: false, message: 'Current PIN is incorrect. Please re-enter current PIN.' };
+    }
+    const cleanNewPin = String(newPin || '').trim();
+    if (!/^\d{4}$/.test(cleanNewPin)) {
+      return { success: false, message: 'New PIN must be exactly 4 digits (0-9).' };
+    }
+
+    try {
+      process.env.APP_PIN = cleanNewPin;
+      fs.writeFileSync(envPath, `APP_PIN=${cleanNewPin}\n`, 'utf8');
+      return { success: true, message: 'Access PIN updated successfully to ' + cleanNewPin };
+    } catch (err) {
+      console.error('Failed to update .env:', err);
+      return { success: false, message: 'Failed to write updated PIN to disk: ' + err.message };
+    }
+  });
+
+  ipcMain.handle('get-system-info', async () => {
+    const mem = process.memoryUsage();
+    return {
+      appName: 'Shahzaib Traders Management System',
+      version: '0.3.0 Enterprise',
+      platform: process.platform === 'win32' ? 'Microsoft Windows' : process.platform,
+      arch: process.arch,
+      nodeVersion: process.versions.node,
+      electronVersion: process.versions.electron,
+      chromeVersion: process.versions.chrome,
+      v8Version: process.versions.v8,
+      dbPath: getDbFilePath(),
+      uptimeMinutes: Math.floor(process.uptime() / 60),
+      heapUsedMB: (mem.heapUsed / (1024 * 1024)).toFixed(1),
+      rssMB: (mem.rss / (1024 * 1024)).toFixed(1)
+    };
+  });
+
+  ipcMain.handle('export-all-data-json', async () => {
+    try {
+      const data = db.getAllData();
+      const saveRes = await dialog.showSaveDialog(mainWindow, {
+        title: 'Export Full Database (JSON)',
+        defaultPath: `shahzaib_traders_full_export_${new Date().toISOString().slice(0, 10)}.json`,
+        filters: [{ name: 'JSON Document', extensions: ['json'] }]
+      });
+
+      if (!saveRes.canceled && saveRes.filePath) {
+        fs.writeFileSync(saveRes.filePath, JSON.stringify(data, null, 2), 'utf8');
+        return { success: true, filePath: saveRes.filePath };
+      }
+      return { success: false, canceled: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
   });
 
   // ============================================

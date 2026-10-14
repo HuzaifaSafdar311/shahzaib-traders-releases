@@ -1633,11 +1633,34 @@ if (inv.btnProductInfoList) inv.btnProductInfoList.addEventListener('click', ope
 if (inv.btnCloseProductSearch) inv.btnCloseProductSearch.addEventListener('click', closeProductSearchModal);
 if (inv.f1SearchInput) inv.f1SearchInput.addEventListener('input', renderF1ProductSearch);
 
-// Global F1 Hotkey Listener
+// Global F1 Hotkey Listener (Active only for Inventory or Sales views, never in Accounts)
 window.addEventListener('keydown', (e) => {
   if (e.key === 'F1') {
-    e.preventDefault();
-    openProductSearchModal();
+    // If Accounts view is active, F1 belongs to Party Help Search
+    const accountsView = document.getElementById('accountsView');
+    if (accountsView && accountsView.classList.contains('active')) {
+      return;
+    }
+
+    const generalInfoView = document.getElementById('generalInfoView');
+    if (generalInfoView && generalInfoView.classList.contains('active')) {
+      return;
+    }
+
+    const reportsView = document.getElementById('reportsView');
+    if (reportsView && reportsView.classList.contains('active')) {
+      return;
+    }
+
+    const inventoryView = document.getElementById('inventoryView');
+    const salesView = document.getElementById('salesView');
+    const isInvActive = inventoryView && inventoryView.classList.contains('active');
+    const isSalesActive = salesView && salesView.classList.contains('active');
+
+    if (isInvActive || isSalesActive) {
+      e.preventDefault();
+      openProductSearchModal();
+    }
   }
 });
 
@@ -1660,4 +1683,6 @@ window.resetProductInfoForm = resetProductInfoForm;
 window.removePurchaseLineItem = removePurchaseLineItem;
 window.openProductSearchModal = openProductSearchModal;
 window.closeProductSearchModal = closeProductSearchModal;
+
+
 
