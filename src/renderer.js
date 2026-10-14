@@ -154,8 +154,6 @@ function updateBadges() {
   if (appEl.badgeProductsCount) appEl.badgeProductsCount.textContent = prodCount;
   if (appEl.badgeCategoryCount) appEl.badgeCategoryCount.textContent = catCount;
   if (appEl.badgeSubCategoryCount) appEl.badgeSubCategoryCount.textContent = subCatCount;
-  const badgeStock = document.getElementById('badgeStockCount');
-  if (badgeStock) badgeStock.textContent = prodCount;
 }
 
 window.updateBadges = updateBadges;
@@ -189,12 +187,6 @@ async function reloadFromDatabase() {
   if (window.renderProductSubCategories) window.renderProductSubCategories();
   if (window.populateProductInfoDropdowns) window.populateProductInfoDropdowns();
   if (window.initPurchaseView) window.initPurchaseView();
-  if (window.initStockView) {
-    const viewStock = document.getElementById('viewStock');
-    if (viewStock && viewStock.classList.contains('active')) {
-      window.initStockView();
-    }
-  }
   if (window.SalesModule && window.SalesModule.refresh) window.SalesModule.refresh();
 }
 

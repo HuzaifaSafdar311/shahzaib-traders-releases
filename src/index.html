@@ -169,16 +169,6 @@
               <span>Product Info</span>
               <span class="gi-tab-badge" id="badgeProductsCount">0</span>
             </button>
-
-            <button type="button" class="gi-tab-btn inv-tab-btn" data-subtab="stock" id="invTabBtnStock">
-              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-              </svg>
-              <span>Stock</span>
-              <span class="gi-tab-badge" id="badgeStockCount">702</span>
-            </button>
           </nav>
         </header>
 
@@ -832,130 +822,7 @@
 
       </section>
 
-      <!-- ======================================================== -->
-      <!-- TAB 7: STOCK CATALOG & INVENTORY VIEW                    -->
-      <!-- ======================================================== -->
-      <section id="viewStock" class="subview-section">
-        <header class="section-header stock-section-header">
-          <div class="header-left">
-            <h1 class="view-title">Stock Catalog & Inventory Position</h1>
-            <p class="view-subtitle" style="font-size: 0.85rem; color: #64748b; margin-top: 2px;">Shahzaib Traders - Live Electrical Warehouse Stock, Pieces & Pricing Details</p>
-          </div>
-          <div class="header-right stock-header-actions">
-            <button id="btnStockRefresh" class="btn btn-secondary btn-sm" title="Refresh Stock Data">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-              <span>Refresh</span>
-            </button>
-            <button id="btnStockExportExcel" class="btn btn-secondary btn-sm" title="Export Stock Catalog to Excel">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
-              <span>Export Excel</span>
-            </button>
-            <button id="btnStockPrint" class="btn btn-primary btn-sm" title="Print Professional Stock Catalog">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-              <span>Print Catalog</span>
-            </button>
-          </div>
-        </header>
-
-        <!-- Stock KPI Summary Cards -->
-        <div class="stock-kpi-bar">
-          <div class="stock-kpi-card">
-            <div class="stock-kpi-label">Total Products</div>
-            <div class="stock-kpi-val" id="stockKpiTotalItems">702</div>
-            <div class="stock-kpi-sub" id="stockKpiCategories">17 Active Categories</div>
-          </div>
-          <div class="stock-kpi-card highlight">
-            <div class="stock-kpi-label">Pieces / Units in Stock</div>
-            <div class="stock-kpi-val" id="stockKpiTotalPieces">39,160</div>
-            <div class="stock-kpi-sub">Total Units on Hand</div>
-          </div>
-          <div class="stock-kpi-card">
-            <div class="stock-kpi-label">Total Cost Valuation</div>
-            <div class="stock-kpi-val font-mono" id="stockKpiCostVal">Rs. 76,938,676</div>
-            <div class="stock-kpi-sub">Based on Purchase Rates</div>
-          </div>
-          <div class="stock-kpi-card success">
-            <div class="stock-kpi-label">Total Retail Valuation</div>
-            <div class="stock-kpi-val font-mono" id="stockKpiRetailVal">Rs. 85,177,692</div>
-            <div class="stock-kpi-sub" id="stockKpiProfit">Est. Margin: Rs. 8,239,016</div>
-          </div>
         </div>
-
-        <!-- Filter & Search Toolbar -->
-        <div class="toolbar stock-toolbar">
-          <div class="search-box stock-search-box">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="stockSearchInput" placeholder="Search by name, code (e.g. 347, 535), category, group..." autocomplete="off">
-            <button id="btnClearStockSearch" class="btn-clear hidden">&times;</button>
-          </div>
-
-          <div class="stock-filter-controls">
-            <select id="stockCategoryFilter" class="form-control form-control-sm stock-select">
-              <option value="">All Categories (17)</option>
-            </select>
-            <select id="stockGroupFilter" class="form-control form-control-sm stock-select">
-              <option value="">All Groups (2)</option>
-            </select>
-            <select id="stockStatusFilter" class="form-control form-control-sm stock-select">
-              <option value="">All Stock Status</option>
-              <option value="in-stock">In Stock (> 10 pcs)</option>
-              <option value="low-stock">Low Stock (≤ 10 pcs)</option>
-              <option value="zero-stock">Out of Stock (0 pcs)</option>
-            </select>
-            <select id="stockSortFilter" class="form-control form-control-sm stock-select">
-              <option value="code-asc">Sort: Code (Ascending)</option>
-              <option value="name-asc">Sort: Product Title (A-Z)</option>
-              <option value="stock-desc">Sort: Stock Pieces (High to Low)</option>
-              <option value="price-desc">Sort: Retail Price (High to Low)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Table Container -->
-        <div class="table-container stock-table-container">
-          <table class="data-table table-stock-catalog" id="stockDataTable">
-            <thead>
-              <tr>
-                <th style="width: 4%; text-align: center;">SR #</th>
-                <th style="width: 7%; text-align: center;">Code</th>
-                <th style="width: 25%; text-align: left; padding-left: 12px;">Product Title & Details</th>
-                <th style="width: 14%; text-align: left;">Category</th>
-                <th style="width: 8%; text-align: center;">Unit / Pk</th>
-                <th style="width: 9%; text-align: center;">Pieces in Stock</th>
-                <th style="width: 8%; text-align: right;">Pur. Price</th>
-                <th style="width: 8%; text-align: right;">W.S. Price</th>
-                <th style="width: 8%; text-align: right;">R.S. Price</th>
-                <th style="width: 9%; text-align: right; padding-right: 14px;">Total Retail Val.</th>
-              </tr>
-            </thead>
-            <tbody id="stockTableBody">
-              <!-- Dynamically populated -->
-            </tbody>
-            <tfoot id="stockTableFoot">
-              <!-- Dynamically populated summary footer -->
-            </tfoot>
-          </table>
-          <div id="stockEmptyState" class="empty-state hidden">
-            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-            </svg>
-            <span>No stock products match your filter</span>
-          </div>
-        </div>
-
-        <div class="table-footer stock-table-footer">
-          <span id="stockFooterSummary">Showing 702 of 702 products</span>
-          <span id="stockFooterValuation" style="font-weight: 600; color: #0284c7;">Total Pieces: 39,160</span>
-        </div>
-
-        <!-- Hidden Print Container for High Resolution Printing -->
-        <div id="stockPrintArea" class="stock-print-container"></div>
-      </section>
-
-              </div>
       </section>
 
       <!-- ======================================================== -->
