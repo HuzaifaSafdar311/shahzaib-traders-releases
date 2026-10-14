@@ -40,33 +40,33 @@
   // Sub-reports definition per category
   const reportCatalog = {
     sales: [
-      { id: 'bill-wise-sales', label: 'Bill-wise Sales', icon: '📄' },
-      { id: 'party-wise-sales', label: 'Party-wise Sales', icon: '👥' },
-      { id: 'item-wise-sales', label: 'Item-wise Sales', icon: '📦' },
-      { id: 'territory-wise-sales', label: 'Territory Sales', icon: '📍' },
-      { id: 'bill-wise-profit', label: 'Bill-wise Profit', icon: '💰' },
-      { id: 'sales-returns', label: 'Sales Returns', icon: '↩️' }
+      { id: 'bill-wise-sales', label: 'Bill-wise Sales' },
+      { id: 'party-wise-sales', label: 'Party-wise Sales' },
+      { id: 'item-wise-sales', label: 'Item-wise Sales' },
+      { id: 'territory-wise-sales', label: 'Territory Sales' },
+      { id: 'bill-wise-profit', label: 'Bill-wise Profit' },
+      { id: 'sales-returns', label: 'Sales Returns' }
     ],
     purchases: [
-      { id: 'bill-wise-purchases', label: 'Bill-wise Purchases', icon: '🛒' },
-      { id: 'supplier-wise-purchases', label: 'Supplier Purchases', icon: '🏭' },
-      { id: 'item-wise-purchases', label: 'Item Purchases', icon: '📦' }
+      { id: 'bill-wise-purchases', label: 'Bill-wise Purchases' },
+      { id: 'supplier-wise-purchases', label: 'Supplier Purchases' },
+      { id: 'item-wise-purchases', label: 'Item Purchases' }
     ],
     inventory: [
-      { id: 'stock-position', label: 'Current Stock Position', icon: '📊' },
-      { id: 'low-stock', label: 'Low Stock Alerts', icon: '⚠️' },
-      { id: 'zero-stock', label: 'Out of Stock (Zero)', icon: '🚫' },
-      { id: 'category-stock', label: 'Category Summary', icon: '📑' }
+      { id: 'stock-position', label: 'Current Stock Position' },
+      { id: 'low-stock', label: 'Low Stock Alerts' },
+      { id: 'zero-stock', label: 'Out of Stock (Zero)' },
+      { id: 'category-stock', label: 'Category Summary' }
     ],
     accounts: [
-      { id: 'customer-receivables', label: 'Customer Receivables', icon: '📥' },
-      { id: 'supplier-payables', label: 'Supplier Payables', icon: '📤' },
-      { id: 'crv-report', label: 'Cash Receipts (CRV)', icon: '💵' },
-      { id: 'cpv-report', label: 'Cash Payments (CPV)', icon: '💳' },
-      { id: 'cash-book', label: 'Daily Cash Flow', icon: '📈' }
+      { id: 'customer-receivables', label: 'Customer Receivables' },
+      { id: 'supplier-payables', label: 'Supplier Payables' },
+      { id: 'crv-report', label: 'Cash Receipts (CRV)' },
+      { id: 'cpv-report', label: 'Cash Payments (CPV)' },
+      { id: 'cash-book', label: 'Daily Cash Flow' }
     ],
     pnl: [
-      { id: 'profit-loss', label: 'Profit & Loss Statement', icon: '💹' }
+      { id: 'profit-loss', label: 'Profit & Loss Statement' }
     ]
   };
 
@@ -115,19 +115,19 @@
           <!-- Category Navigation Tabs -->
           <div class="rep-category-tabs">
             <button class="rep-cat-btn active" data-cat="sales">
-              <span>📊</span> Sales Reports
+              Sales Reports
             </button>
             <button class="rep-cat-btn" data-cat="purchases">
-              <span>🛒</span> Purchases
+              Purchases
             </button>
             <button class="rep-cat-btn" data-cat="inventory">
-              <span>📦</span> Stock & Inventory
+              Stock & Inventory
             </button>
             <button class="rep-cat-btn" data-cat="accounts">
-              <span>💳</span> Accounts & Finance
+              Accounts & Finance
             </button>
             <button class="rep-cat-btn" data-cat="pnl">
-              <span>📈</span> Profit & Loss
+              Profit & Loss
             </button>
           </div>
         </header>
@@ -488,7 +488,7 @@
     const pills = reportCatalog[state.activeCategory] || [];
     dom.subPillsBar.innerHTML = pills.map(p => `
       <button class="rep-pill-btn ${p.id === state.activeReportId ? 'active' : ''}" data-report-id="${p.id}">
-        <span>${p.icon}</span> ${p.label}
+        ${p.label}
       </button>
     `).join('');
 
