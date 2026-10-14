@@ -4,7 +4,7 @@
 
 window.SettingsModule = (function () {
   let isInitialized = false;
-  let activeSubTab = 'general';
+  let activeSubTab = 'printer';
   let cachedSettings = {};
   let cachedStats = {};
 
@@ -15,21 +15,6 @@ window.SettingsModule = (function () {
     el.view = document.getElementById('settingsView');
     el.tabBtns = document.querySelectorAll('.settings-tab-btn');
     el.tabPanels = document.querySelectorAll('.settings-tab-panel');
-
-    // General Form Inputs
-    el.inputStoreName = document.getElementById('setStoreName');
-    el.inputStoreTagline = document.getElementById('setStoreTagline');
-    el.inputContactPerson = document.getElementById('setContactPerson');
-    el.inputContactPhone = document.getElementById('setContactPhone');
-    el.inputAltPhone = document.getElementById('setAltPhone');
-    el.inputContactEmail = document.getElementById('setContactEmail');
-    el.inputAddress = document.getElementById('setAddress');
-    el.inputNtn = document.getElementById('setNtn');
-    el.inputStrn = document.getElementById('setStrn');
-    el.selectWarehouse = document.getElementById('setDefaultWarehouse');
-    el.selectRateMode = document.getElementById('setDefaultRateMode');
-    el.inputLowStock = document.getElementById('setLowStockThreshold');
-    el.btnSaveGeneral = document.getElementById('btnSaveGeneralSettings');
 
     // Printer & Receipt Inputs
     el.selectPaperSize = document.getElementById('setPaperSize');
@@ -129,13 +114,10 @@ window.SettingsModule = (function () {
   // Real-time Preview Synchronization
   function setupLivePreviewListeners() {
     const syncInputs = [
-      el.inputStoreName,
       el.inputReceiptTitle,
       el.inputReceiptSubtitle,
       el.inputReceiptPhone,
-      el.inputContactPhone,
       el.inputReceiptAddress,
-      el.inputAddress,
       el.textareaReceiptFooter
     ];
 
@@ -155,22 +137,24 @@ window.SettingsModule = (function () {
 
   function syncReceiptPreview() {
     const title = (el.inputReceiptTitle && el.inputReceiptTitle.value.trim()) || 
-                  (el.inputStoreName && el.inputStoreName.value.trim()) || 
+                  cachedSettings.receiptHeaderTitle || 
+                  cachedSettings.storeName || 
                   'SHAHZAIB TRADERS';
 
     const subtitle = (el.inputReceiptSubtitle && el.inputReceiptSubtitle.value.trim()) || 
-                     (el.inputStoreTagline && el.inputStoreTagline.value.trim()) || 
+                     cachedSettings.receiptSubtitle || 
                      'Electrical Goods & Accessories';
 
     const phone = (el.inputReceiptPhone && el.inputReceiptPhone.value.trim()) || 
-                  (el.inputContactPhone && el.inputContactPhone.value.trim()) || 
+                  cachedSettings.contactPhone || 
                   '0300-1234567';
 
     const address = (el.inputReceiptAddress && el.inputReceiptAddress.value.trim()) || 
-                    (el.inputAddress && el.inputAddress.value.trim()) || 
+                    cachedSettings.address || 
                     'Main Bazar, Lahore';
 
     const footer = (el.textareaReceiptFooter && el.textareaReceiptFooter.value) || 
+                   cachedSettings.receiptFooterNote || 
                    'Thank you for your business!\nGoods once sold cannot be returned without bill.';
 
     if (el.previewSlipTitle) el.previewSlipTitle.textContent = title;
@@ -186,20 +170,6 @@ window.SettingsModule = (function () {
       if (!window.settingsAPI) return;
       const settings = await window.settingsAPI.getSettings();
       cachedSettings = settings || {};
-
-      // General inputs
-      if (el.inputStoreName) el.inputStoreName.value = cachedSettings.storeName || '';
-      if (el.inputStoreTagline) el.inputStoreTagline.value = cachedSettings.storeTagline || '';
-      if (el.inputContactPerson) el.inputContactPerson.value = cachedSettings.contactPerson || '';
-      if (el.inputContactPhone) el.inputContactPhone.value = cachedSettings.contactPhone || '';
-      if (el.inputAltPhone) el.inputAltPhone.value = cachedSettings.altPhone || '';
-      if (el.inputContactEmail) el.inputContactEmail.value = cachedSettings.contactEmail || '';
-      if (el.inputAddress) el.inputAddress.value = cachedSettings.address || '';
-      if (el.inputNtn) el.inputNtn.value = cachedSettings.ntn || '';
-      if (el.inputStrn) el.inputStrn.value = cachedSettings.strn || '';
-      if (el.selectWarehouse) el.selectWarehouse.value = cachedSettings.defaultWarehouse || 'Main Godown';
-      if (el.selectRateMode) el.selectRateMode.value = cachedSettings.defaultRateMode || 'retail';
-      if (el.inputLowStock) el.inputLowStock.value = cachedSettings.lowStockThreshold || '10';
 
       // Printer inputs
       if (el.selectPaperSize) el.selectPaperSize.value = cachedSettings.paperSize || '80mm';
@@ -258,44 +228,7 @@ window.SettingsModule = (function () {
   }
 
   function setupActionButtons() {
-    // 1. Save General Settings
-    if (el.btnSaveGeneral) {
-      el.btnSaveGeneral.addEventListener('click', async () => {
-        const payload = {
-          storeName: el.inputStoreName?.value.trim() || 'Shahzaib Traders',
-          storeTagline: el.inputStoreTagline?.value.trim() || '',
-          contactPerson: el.inputContactPerson?.value.trim() || '',
-          contactPhone: el.inputContactPhone?.value.trim() || '',
-          altPhone: el.inputAltPhone?.value.trim() || '',
-          contactEmail: el.inputContactEmail?.value.trim() || '',
-          address: el.inputAddress?.value.trim() || '',
-          ntn: el.inputNtn?.value.trim() || '',
-          strn: el.inputStrn?.value.trim() || '',
-          defaultWarehouse: el.selectWarehouse?.value || 'Main Godown',
-          defaultRateMode: el.selectRateMode?.value || 'retail',
-          lowStockThreshold: el.inputLowStock?.value || '10'
-        };
-
-        try {
-          el.btnSaveGeneral.disabled = true;
-          el.btnSaveGeneral.textContent = 'Saving...';
-          const res = await window.settingsAPI.saveSettings(payload);
-          if (res && res.success) {
-            showToast('Store preferences saved successfully!', 'success');
-            syncReceiptPreview();
-          } else {
-            showToast('Failed to save settings: ' + (res?.message || 'Unknown error'), 'error');
-          }
-        } catch (err) {
-          showToast('Save error: ' + err.message, 'error');
-        } finally {
-          el.btnSaveGeneral.disabled = false;
-          el.btnSaveGeneral.textContent = 'Save Store Preferences';
-        }
-      });
-    }
-
-    // 2. Save Printer & Receipt Settings
+    // 1. Save Printer & Receipt Settings
     if (el.btnSavePrinter) {
       el.btnSavePrinter.addEventListener('click', async () => {
         const payload = {
