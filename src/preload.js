@@ -124,3 +124,16 @@ contextBridge.exposeInMainWorld('findProductAPI', {
   }
 });
 
+// Expose Settings & Maintenance API
+contextBridge.exposeInMainWorld('settingsAPI', {
+  getSettings: () => ipcRenderer.invoke('get-app-settings'),
+  saveSettings: (settings) => ipcRenderer.invoke('save-app-settings', settings),
+  getDbStats: () => ipcRenderer.invoke('get-db-stats'),
+  backupDatabase: () => ipcRenderer.invoke('backup-database'),
+  optimizeDatabase: () => ipcRenderer.invoke('optimize-database'),
+  openBackupsFolder: () => ipcRenderer.invoke('open-backups-folder'),
+  changeAppPin: (currentPin, newPin) => ipcRenderer.invoke('change-app-pin', { currentPin, newPin }),
+  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  exportAllDataJson: () => ipcRenderer.invoke('export-all-data-json')
+});
+

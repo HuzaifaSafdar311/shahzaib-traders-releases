@@ -7,3 +7,4 @@ Thumbs.db
 *.db-shm
 .env
 *.env.local
+backups/

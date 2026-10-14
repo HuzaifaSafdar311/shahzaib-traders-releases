@@ -32,14 +32,16 @@ const appEl = {
   navGeneralInfoBtn: document.getElementById('navGeneralInfoBtn'),
   navSalesMainBtn: document.getElementById('navSalesMainBtn'),
   navAccountsMainBtn: document.getElementById('navAccountsMainBtn'),
-  navToolsMainBtn: document.getElementById('navToolsMainBtn'),
+  navToolsMainBtn: document.getElementById('navToolsMainBtn') || document.getElementById('navSettingsMainBtn'),
+  navSettingsMainBtn: document.getElementById('navSettingsMainBtn') || document.getElementById('navToolsMainBtn'),
   navReportsMainBtn: document.getElementById('navReportsMainBtn'),
 
   inventoryView: document.getElementById('inventoryView'),
   generalInfoView: document.getElementById('generalInfoView'),
   salesView: document.getElementById('salesView'),
   accountsView: document.getElementById('accountsView'),
-  toolsView: document.getElementById('toolsView'),
+  toolsView: document.getElementById('toolsView') || document.getElementById('settingsView'),
+  settingsView: document.getElementById('settingsView') || document.getElementById('toolsView'),
   reportsView: document.getElementById('reportsView'),
 
   badgeProductsCount: document.getElementById('badgeProductsCount'),
@@ -95,7 +97,8 @@ const mainTabs = {
   'inventory': { btn: 'navInventoryMainBtn', view: 'inventoryView' },
   'sale': { btn: 'navSalesMainBtn', view: 'salesView' },
   'accounts': { btn: 'navAccountsMainBtn', view: 'accountsView' },
-  'tools': { btn: 'navToolsMainBtn', view: 'toolsView' },
+  'settings': { btn: 'navSettingsMainBtn', view: 'settingsView' },
+  'tools': { btn: 'navSettingsMainBtn', view: 'settingsView' },
   'reports': { btn: 'navReportsMainBtn', view: 'reportsView' }
 };
 
@@ -104,7 +107,7 @@ function switchTab(tab) {
   window.currentTab = tab;
 
   Object.entries(mainTabs).forEach(([key, config]) => {
-    const isActive = (key === tab);
+    const isActive = (key === tab || (tab === 'settings' && key === 'tools') || (tab === 'tools' && key === 'settings'));
     const btn = appEl[config.btn];
     const view = appEl[config.view];
     if (btn) btn.classList.toggle('active', isActive);
@@ -129,6 +132,10 @@ function switchTab(tab) {
     if (window.AccountsModule && window.AccountsModule.onActivate) {
       window.AccountsModule.onActivate();
     }
+  } else if (tab === 'settings' || tab === 'tools') {
+    if (window.SettingsModule && window.SettingsModule.onActivate) {
+      window.SettingsModule.onActivate();
+    }
   } else if (tab === 'reports') {
     if (window.ReportsModule && window.ReportsModule.onActivate) {
       window.ReportsModule.onActivate();
@@ -142,7 +149,10 @@ if (appEl.navGeneralInfoBtn) appEl.navGeneralInfoBtn.addEventListener('click', (
 if (appEl.navInventoryMainBtn) appEl.navInventoryMainBtn.addEventListener('click', () => switchTab('inventory'));
 if (appEl.navSalesMainBtn) appEl.navSalesMainBtn.addEventListener('click', () => switchTab('sale'));
 if (appEl.navAccountsMainBtn) appEl.navAccountsMainBtn.addEventListener('click', () => switchTab('accounts'));
-if (appEl.navToolsMainBtn) appEl.navToolsMainBtn.addEventListener('click', () => switchTab('tools'));
+if (appEl.navSettingsMainBtn) appEl.navSettingsMainBtn.addEventListener('click', () => switchTab('settings'));
+if (appEl.navToolsMainBtn && appEl.navToolsMainBtn !== appEl.navSettingsMainBtn) {
+  appEl.navToolsMainBtn.addEventListener('click', () => switchTab('settings'));
+}
 if (appEl.navReportsMainBtn) appEl.navReportsMainBtn.addEventListener('click', () => switchTab('reports'));
 
 

@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="sales/sales.css">
   <link rel="stylesheet" href="accounts/accounts.css">
   <link rel="stylesheet" href="reports/reports.css">
+  <link rel="stylesheet" href="settings/settings.css">
 </head>
 
 <body>
@@ -69,11 +70,12 @@
           <span class="nav-label">Accounts</span>
         </button>
 
-        <button id="navToolsMainBtn" class="nav-item" title="Tools">
+        <button id="navSettingsMainBtn" class="nav-item" title="Settings & Preferences">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
-          <span class="nav-label">Tools</span>
+          <span class="nav-label">Settings</span>
         </button>
 
         <button id="navReportsMainBtn" class="nav-item" title="Reports">
@@ -1816,22 +1818,640 @@
       </section>
 
       <!-- ======================================================== -->
-      <!-- TOOLS MAIN VIEW (PLACEHOLDER)                            -->
+      <!-- SETTINGS & SYSTEM PREFERENCES VIEW                       -->
       <!-- ======================================================== -->
-      <section id="toolsView" class="view-section">
-        <header class="gi-header">
-          <div class="gi-header-top">
-            <div class="gi-main-title">
-              <svg class="gi-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-              </svg>
-              <span>Tools</span>
+      <section id="settingsView" class="view-section settings-view">
+        <!-- Settings Header -->
+        <header class="settings-header">
+          <div class="settings-header-top">
+            <div class="settings-title-group">
+              <div class="settings-title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+              </div>
+              <div>
+                <h1 class="settings-heading">Settings & Preferences</h1>
+                <p class="settings-subheading">Store profile, thermal slip customization, security PIN, and database maintenance</p>
+              </div>
             </div>
           </div>
+
+          <!-- Sub-Tab Navigation Bar -->
+          <div class="settings-tab-bar">
+            <button type="button" class="settings-tab-btn active" data-tab="general">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+              General & Store
+            </button>
+            <button type="button" class="settings-tab-btn" data-tab="printer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+              </svg>
+              Thermal Slip & Printer
+            </button>
+            <button type="button" class="settings-tab-btn" data-tab="security">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              Security & PIN
+            </button>
+            <button type="button" class="settings-tab-btn" data-tab="database">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+              </svg>
+              Database & Backups
+            </button>
+            <button type="button" class="settings-tab-btn" data-tab="about">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              System & About
+            </button>
+          </div>
         </header>
-        <div class="empty-state" style="padding: 60px 20px; text-align: center;">
-          <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Tools & Utilities</h2>
-          <p style="color: var(--text-secondary); max-width: 480px; margin: 0 auto; line-height: 1.6;">1-Click Database Backup & Restore Utility.</p>
+
+        <!-- Main Scrollable Content -->
+        <div class="settings-content-scroll">
+          <!-- SUB-TAB 1: GENERAL & STORE PREFERENCES -->
+          <div id="setPanel-general" class="settings-tab-panel active">
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <div>
+                  <h3 class="settings-card-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Store Identity & Contact Details
+                  </h3>
+                  <p class="settings-card-subtitle">These details appear on sales invoices, thermal receipts, and accounts ledgers.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <div class="settings-form-grid">
+                  <div class="settings-form-row span-full">
+                    <label class="settings-label" for="setStoreName">Store / Company Name <span class="req">*</span></label>
+                    <input type="text" id="setStoreName" class="settings-input" placeholder="Shahzaib Traders" required>
+                  </div>
+                  <div class="settings-form-row span-full">
+                    <label class="settings-label" for="setStoreTagline">Tagline / Business Description</label>
+                    <input type="text" id="setStoreTagline" class="settings-input" placeholder="Wholesale & Retail Trading Solutions">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setContactPerson">Contact Person / Owner</label>
+                    <input type="text" id="setContactPerson" class="settings-input" placeholder="Shahzaib Ali">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setContactPhone">Primary Phone <span class="req">*</span></label>
+                    <input type="tel" id="setContactPhone" class="settings-input" placeholder="0300-1234567" required>
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setAltPhone">Alternate Phone / Landline</label>
+                    <input type="tel" id="setAltPhone" class="settings-input" placeholder="042-37654321">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setContactEmail">Email Address</label>
+                    <input type="email" id="setContactEmail" class="settings-input" placeholder="info@shahzaibtraders.com">
+                  </div>
+                  <div class="settings-form-row span-full">
+                    <label class="settings-label" for="setAddress">Store Address</label>
+                    <input type="text" id="setAddress" class="settings-input" placeholder="Main Bazar, Electrical Market, Lahore">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setNtn">National Tax Number (NTN)</label>
+                    <input type="text" id="setNtn" class="settings-input" placeholder="7654321-9">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setStrn">Sales Tax Reg. (STRN)</label>
+                    <input type="text" id="setStrn" class="settings-input" placeholder="32-77-8765-432-1">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Operational Defaults -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <div>
+                  <h3 class="settings-card-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                      <polyline points="2 17 12 22 22 17"></polyline>
+                      <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                    Operational Defaults & Inventory Rules
+                  </h3>
+                  <p class="settings-card-subtitle">Configure pricing modes, warehouses, and re-order thresholds.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <div class="settings-form-grid grid-3">
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setDefaultWarehouse">Default Godown / Warehouse</label>
+                    <select id="setDefaultWarehouse" class="settings-select">
+                      <option value="Main Godown">Main Godown</option>
+                      <option value="Shop Floor">Shop Floor</option>
+                      <option value="Basement Storage">Basement Storage</option>
+                    </select>
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setDefaultRateMode">Default Sale Rate Mode</label>
+                    <select id="setDefaultRateMode" class="settings-select">
+                      <option value="retail">Retail Rate (Default)</option>
+                      <option value="wholesale">Wholesale Rate</option>
+                      <option value="last">Customer's Last Sold Rate</option>
+                    </select>
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setLowStockThreshold">Low Stock Alert Threshold</label>
+                    <input type="number" id="setLowStockThreshold" class="settings-input" min="1" max="500" value="10">
+                    <div class="settings-help-text">Alerts when catalog stock drops below this number</div>
+                  </div>
+                </div>
+                <div class="settings-footer-actions">
+                  <button type="button" id="btnSaveGeneralSettings" class="btn btn-primary" style="padding: 9px 22px;">Save Store Preferences</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-TAB 2: THERMAL SLIP & PRINTER -->
+          <div id="setPanel-printer" class="settings-tab-panel">
+            <div class="settings-grid-2col">
+              <!-- Left: Configuration Form -->
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <div>
+                    <h3 class="settings-card-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                      </svg>
+                      Receipt Format & Printer Options
+                    </h3>
+                    <p class="settings-card-subtitle">Configure thermal POS slip headers, footers, and printing behavior.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setPaperSize">Paper / Print Type</label>
+                    <select id="setPaperSize" class="settings-select">
+                      <option value="80mm">80mm Thermal Receipt (Standard POS Roll)</option>
+                      <option value="58mm">58mm Thermal Receipt (Mini POS)</option>
+                      <option value="A4">A4 Full Page Detailed Tax Invoice</option>
+                    </select>
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setReceiptTitle">Receipt Header Title</label>
+                    <input type="text" id="setReceiptTitle" class="settings-input" placeholder="SHAHZAIB TRADERS">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setReceiptSubtitle">Subtitle / Dealings Note</label>
+                    <input type="text" id="setReceiptSubtitle" class="settings-input" placeholder="Electrical Cables, Lights & Accessories">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setReceiptPhone">Receipt Contact Number</label>
+                    <input type="text" id="setReceiptPhone" class="settings-input" placeholder="0300-1234567, 042-37654321">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setReceiptAddress">Receipt Address Line</label>
+                    <input type="text" id="setReceiptAddress" class="settings-input" placeholder="Shop #12, Electrical Plaza, Main Bazar, Lahore">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setReceiptFooter">Receipt Footer Thank You & Policy Note</label>
+                    <textarea id="setReceiptFooter" class="settings-textarea" rows="3" placeholder="Thank you for your business!&#10;Goods once sold cannot be returned without bill.&#10;No warranty on burnt electrical items."></textarea>
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setInvoiceTerms">A4 Invoice Terms & Conditions</label>
+                    <textarea id="setInvoiceTerms" class="settings-textarea" rows="2" placeholder="1. Please check goods at the time of delivery.&#10;2. Claims accepted within 7 days."></textarea>
+                  </div>
+
+                  <div class="setting-toggle-row">
+                    <div class="setting-toggle-info">
+                      <div class="setting-toggle-title">Auto-Print Slip on Sale Completion</div>
+                      <div class="setting-toggle-desc">Automatically trigger printing dialog immediately after saving a sale voucher.</div>
+                    </div>
+                    <label class="switch-toggle">
+                      <input type="checkbox" id="chkAutoPrint">
+                      <span class="switch-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="settings-footer-actions">
+                    <button type="button" id="btnTestPrintSlip" class="btn btn-secondary">Print Test Slip</button>
+                    <button type="button" id="btnSavePrinterSettings" class="btn btn-primary">Save Receipt Configuration</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: Live Thermal Slip Preview -->
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <div>
+                    <h3 class="settings-card-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="4"></circle>
+                      </svg>
+                      Live 80mm Thermal Slip Preview
+                    </h3>
+                    <p class="settings-card-subtitle">Real-time simulation of receipt printed on thermal roll.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body" style="background: #f1f5f9;">
+                  <div class="thermal-slip-preview-container">
+                    <div class="thermal-slip-paper">
+                      <div class="thermal-slip-header">
+                        <div id="prevSlipTitle" class="thermal-slip-title">SHAHZAIB TRADERS</div>
+                        <div id="prevSlipSubtitle" class="thermal-slip-meta">Electrical Goods & Accessories</div>
+                        <div id="prevSlipAddress" class="thermal-slip-meta">Main Bazar, Lahore</div>
+                        <div id="prevSlipPhone" class="thermal-slip-meta">Ph: 0300-1234567</div>
+                      </div>
+
+                      <div class="thermal-slip-row">
+                        <span>Invoice: <strong>ST-SV-0042</strong></span>
+                        <span id="prevSlipDate">14/10/2026 19:45</span>
+                      </div>
+                      <div class="thermal-slip-row">
+                        <span>Customer: <strong>Mian Electric Store</strong></span>
+                        <span>Cash Sale</span>
+                      </div>
+
+                      <table class="thermal-slip-table">
+                        <thead>
+                          <tr>
+                            <th>Item</th>
+                            <th style="text-align: center;">Qty</th>
+                            <th style="text-align: right;">Rate</th>
+                            <th style="text-align: right;">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>Pakistan Cable 7/29 Single Core</td>
+                            <td style="text-align: center;">2</td>
+                            <td style="text-align: right;">14,500</td>
+                            <td style="text-align: right;">29,000</td>
+                          </tr>
+                          <tr>
+                            <td>Philips LED Bulb 18W (Daylight)</td>
+                            <td style="text-align: center;">10</td>
+                            <td style="text-align: right;">450</td>
+                            <td style="text-align: right;">4,500</td>
+                          </tr>
+                          <tr>
+                            <td>Schneider Breaker 20A SP</td>
+                            <td style="text-align: center;">4</td>
+                            <td style="text-align: right;">650</td>
+                            <td style="text-align: right;">2,600</td>
+                          </tr>
+                        </tbody>
+                      </table>
+
+                      <div class="thermal-slip-totals">
+                        <div class="thermal-slip-row">
+                          <span>Subtotal:</span>
+                          <span>Rs 36,100</span>
+                        </div>
+                        <div class="thermal-slip-row">
+                          <span>Special Discount:</span>
+                          <span>- Rs 1,100</span>
+                        </div>
+                        <div class="thermal-slip-grandtotal">
+                          <span>NET TOTAL:</span>
+                          <span>Rs 35,000</span>
+                        </div>
+                      </div>
+
+                      <div class="thermal-slip-barcode">||||| | |||| ||| |||||</div>
+                      <div class="thermal-slip-meta" style="text-align: center;">* ST-0042-2026 *</div>
+
+                      <div id="prevSlipFooter" class="thermal-slip-footer">
+                        Thank you for your business!&#10;Goods once sold cannot be returned without bill.&#10;No warranty on burnt electrical items.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-TAB 3: SECURITY & ACCESS PIN -->
+          <div id="setPanel-security" class="settings-tab-panel">
+            <div class="settings-grid-2col">
+              <!-- Change PIN Card -->
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <div>
+                    <h3 class="settings-card-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                      Change Master Access PIN
+                    </h3>
+                    <p class="settings-card-subtitle">Update the 4-digit security code required to login and approve sensitive actions.</p>
+                  </div>
+                  <div class="security-pin-badge">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    PIN Protected
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setCurrentPin">Current 4-Digit PIN <span class="req">*</span></label>
+                    <input type="password" id="setCurrentPin" class="settings-input pin-box-input" maxlength="4" placeholder="••••" autocomplete="off">
+                    <div class="settings-help-text">Enter the current application PIN to authorize change (Default: 1996)</div>
+                  </div>
+
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setNewPin">New 4-Digit PIN <span class="req">*</span></label>
+                    <input type="password" id="setNewPin" class="settings-input pin-box-input" maxlength="4" placeholder="••••" autocomplete="off">
+                    <div class="settings-help-text">Must be exactly 4 numeric digits (0-9)</div>
+                  </div>
+
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setConfirmPin">Confirm New PIN <span class="req">*</span></label>
+                    <input type="password" id="setConfirmPin" class="settings-input pin-box-input" maxlength="4" placeholder="••••" autocomplete="off">
+                  </div>
+
+                  <div class="settings-footer-actions">
+                    <button type="button" id="btnUpdatePin" class="btn btn-primary">Update Access PIN</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Security Policy Card -->
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <div>
+                    <h3 class="settings-card-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                      </svg>
+                      Access & Deletion Safeguards
+                    </h3>
+                    <p class="settings-card-subtitle">Protect critical company records from accidental modification or deletion.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="setting-toggle-row">
+                    <div class="setting-toggle-info">
+                      <div class="setting-toggle-title">Require PIN for Voucher & Item Deletions</div>
+                      <div class="setting-toggle-desc">Prompts for PIN confirmation before deleting sales invoices, purchase records, or products.</div>
+                    </div>
+                    <label class="switch-toggle">
+                      <input type="checkbox" id="chkRequirePinDelete" checked>
+                      <span class="switch-slider"></span>
+                    </label>
+                  </div>
+
+                  <div style="margin-top: 20px; padding: 14px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div style="font-weight: 600; color: #0f172a; margin-bottom: 4px; font-size: 0.82rem;">Security Best Practices</div>
+                    <ul style="padding-left: 18px; font-size: 0.77rem; color: #64748b; line-height: 1.6;">
+                      <li>Never share your Master PIN with unauthorized staff members.</li>
+                      <li>Regularly back up your database before changing access credentials.</li>
+                      <li>The PIN is safely verified with timing-safe SHA-256 cryptographic comparison.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-TAB 4: DATABASE & BACKUPS -->
+          <div id="setPanel-database" class="settings-tab-panel">
+            <!-- Metrics Bar -->
+            <div class="db-stats-grid">
+              <div class="db-stat-box">
+                <div id="statDbEngine" class="db-stat-value">SQLite 3 (WAL)</div>
+                <div class="db-stat-label">Database Engine</div>
+              </div>
+              <div class="db-stat-box">
+                <div id="statProductsCount" class="db-stat-value">--</div>
+                <div class="db-stat-label">Products Master</div>
+              </div>
+              <div class="db-stat-box">
+                <div id="statPartiesCount" class="db-stat-value">--</div>
+                <div class="db-stat-label">Registered Parties</div>
+              </div>
+              <div class="db-stat-box">
+                <div id="statDbSize" class="db-stat-value">--</div>
+                <div class="db-stat-label">Database File Size</div>
+              </div>
+            </div>
+
+            <!-- Maintenance & Backup Operations -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <div>
+                  <h3 class="settings-card-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                      <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Database Backups & Space Optimization
+                  </h3>
+                  <p class="settings-card-subtitle">Keep your business data safe with automated snapshots and database defragmentation.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <div class="db-actions-list">
+                  <!-- Action 1: Create Backup -->
+                  <div class="db-action-item">
+                    <div class="db-action-info">
+                      <div class="db-action-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <polyline points="7 10 12 15 17 10"></polyline>
+                          <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="db-action-title">Create Instant Database Snapshot</div>
+                        <div class="db-action-desc">Flushes Write-Ahead Log (WAL) to disk and creates a timestamped copy in the backups directory.</div>
+                      </div>
+                    </div>
+                    <button type="button" id="btnBackupDatabase" class="btn btn-primary" style="padding: 8px 18px;">Create Instant Backup</button>
+                  </div>
+
+                  <!-- Action 2: Optimize & Vacuum -->
+                  <div class="db-action-item">
+                    <div class="db-action-info">
+                      <div class="db-action-icon" style="color: #059669; background: #ecfdf5;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="23 4 23 10 17 10"></polyline>
+                          <polyline points="1 20 1 14 7 14"></polyline>
+                          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="db-action-title">Optimize & Vacuum Database</div>
+                        <div class="db-action-desc">Rebuilds database file, reclaims deleted record space, and optimizes index query plans.</div>
+                      </div>
+                    </div>
+                    <button type="button" id="btnOptimizeDatabase" class="btn btn-secondary" style="padding: 8px 18px;">Vacuum & Optimize DB</button>
+                  </div>
+
+                  <!-- Action 3: Open Backup Folder -->
+                  <div class="db-action-item">
+                    <div class="db-action-info">
+                      <div class="db-action-icon" style="color: #d97706; background: #fffbeb;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="db-action-title">Open Backups Folder</div>
+                        <div class="db-action-desc">View and manage previous database backup files directly in Windows File Explorer.</div>
+                      </div>
+                    </div>
+                    <button type="button" id="btnOpenBackupsFolder" class="btn btn-secondary" style="padding: 8px 18px;">Open in Explorer</button>
+                  </div>
+
+                  <!-- Action 4: Export Full JSON -->
+                  <div class="db-action-item">
+                    <div class="db-action-info">
+                      <div class="db-action-icon" style="color: #6366f1; background: #eef2ff;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                          <line x1="16" y1="13" x2="8" y2="13"></line>
+                          <line x1="16" y1="17" x2="8" y2="17"></line>
+                          <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="db-action-title">Export Complete Database to JSON</div>
+                        <div class="db-action-desc">Creates a portable JSON file containing all products, parties, invoices, and vouchers.</div>
+                      </div>
+                    </div>
+                    <button type="button" id="btnExportFullJson" class="btn btn-secondary" style="padding: 8px 18px;">Export Full JSON</button>
+                  </div>
+                </div>
+
+                <div id="backupStatusText" style="margin-top: 16px; font-size: 0.77rem; color: #64748b; text-align: center;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-TAB 5: SYSTEM & ABOUT -->
+          <div id="setPanel-about" class="settings-tab-panel">
+            <div class="settings-grid-2col">
+              <!-- Runtime Specifications -->
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <div>
+                    <h3 class="settings-card-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                      </svg>
+                      Runtime Environment & Specifications
+                    </h3>
+                    <p class="settings-card-subtitle">Technical details of the running desktop application.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body" style="padding: 0;">
+                  <table class="system-info-table">
+                    <tbody>
+                      <tr>
+                        <td class="system-info-label">Application Version</td>
+                        <td class="system-info-val"><span id="sysAppVersion" class="system-badge-pill">0.3.0 Enterprise</span></td>
+                      </tr>
+                      <tr>
+                        <td class="system-info-label">Operating System</td>
+                        <td class="system-info-val" id="sysPlatform">Microsoft Windows (x64)</td>
+                      </tr>
+                      <tr>
+                        <td class="system-info-label">Electron Framework</td>
+                        <td class="system-info-val" id="sysElectron">--</td>
+                      </tr>
+                      <tr>
+                        <td class="system-info-label">Node.js Runtime</td>
+                        <td class="system-info-val" id="sysNode">--</td>
+                      </tr>
+                      <tr>
+                        <td class="system-info-label">Chromium Engine</td>
+                        <td class="system-info-val" id="sysChrome">--</td>
+                      </tr>
+                      <tr>
+                        <td class="system-info-label">Database File</td>
+                        <td class="system-info-val" id="sysDbPath" style="word-break: break-all; font-size: 0.75rem;">--</td>
+                      </tr>
+                      <tr>
+                        <td class="system-info-label">Memory Utilization</td>
+                        <td class="system-info-val" id="sysMemory">--</td>
+                      </tr>
+                      <tr>
+                        <td class="system-info-label">Current Session Uptime</td>
+                        <td class="system-info-val" id="sysUptime">--</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Health Check & Diagnostics -->
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <div>
+                    <h3 class="settings-card-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                      </svg>
+                      System Diagnostics & Health Check
+                    </h3>
+                    <p class="settings-card-subtitle">Verify SQLite engine status, disk permissions, and system responsiveness.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <table class="system-info-table">
+                    <tbody>
+                      <tr>
+                        <td class="system-info-label">SQLite Engine</td>
+                        <td class="system-info-val" id="diagDbStatus"><span style="color: #059669; font-weight: 600;">Operational (WAL Mode)</span></td>
+                      </tr>
+                      <tr>
+                        <td class="system-info-label">File System Storage</td>
+                        <td class="system-info-val" id="diagStorageStatus"><span style="color: #059669; font-weight: 600;">Accessible & Writeable</span></td>
+                      </tr>
+                      <tr>
+                        <td class="system-info-label">Application Memory</td>
+                        <td class="system-info-val" id="diagMemoryStatus"><span style="color: #059669; font-weight: 600;">Healthy</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div style="margin-top: 20px; text-align: center;">
+                    <button type="button" id="btnRunDiagnostics" class="btn btn-secondary" style="width: 100%; padding: 9px 0;">Run System Diagnostics</button>
+                  </div>
+
+                  <div style="margin-top: 24px; padding: 14px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Shahzaib Traders Inventory Management</div>
+                    <div style="font-size: 0.77rem; color: #64748b; margin-top: 4px;">Designed & Engineered for High-Performance Wholesale & Retail Operations.</div>
+                    <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 6px;">Developed by Arham Solution &copy; 2026. All rights reserved.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -2437,6 +3057,7 @@
   <script src="accounts/accounts.js"></script>
   <script src="reports/reports-engine.js"></script>
   <script src="reports/reports.js"></script>
+  <script src="settings/settings.js"></script>
 </body>
 
 </html>
