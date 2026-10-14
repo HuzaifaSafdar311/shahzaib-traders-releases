@@ -1,9 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose Auth API for PIN login
+// Expose Auth API for PIN login and logout
 contextBridge.exposeInMainWorld('authAPI', {
   verifyPin: (pin) => ipcRenderer.invoke('verify-pin', pin),
-  loginSuccess: () => ipcRenderer.send('login-success')
+  loginSuccess: () => ipcRenderer.send('login-success'),
+  logout: () => ipcRenderer.send('logout')
 });
 
 // Expose Electron API for Enterprise Inventory, Products, Purchases, and Exports

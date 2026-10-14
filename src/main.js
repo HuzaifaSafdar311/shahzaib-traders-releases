@@ -194,6 +194,12 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.on('logout', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadFile(path.join(__dirname, 'auth', 'login.html'));
+    }
+  });
+
   // ============================================
   // ENTERPRISE DATA HANDLER
   // ============================================

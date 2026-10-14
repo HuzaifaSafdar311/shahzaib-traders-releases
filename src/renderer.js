@@ -35,6 +35,7 @@ const appEl = {
   navToolsMainBtn: document.getElementById('navToolsMainBtn') || document.getElementById('navSettingsMainBtn'),
   navSettingsMainBtn: document.getElementById('navSettingsMainBtn') || document.getElementById('navToolsMainBtn'),
   navReportsMainBtn: document.getElementById('navReportsMainBtn'),
+  navLogoutBtn: document.getElementById('navLogoutBtn'),
 
   inventoryView: document.getElementById('inventoryView'),
   generalInfoView: document.getElementById('generalInfoView'),
@@ -149,11 +150,26 @@ if (appEl.navGeneralInfoBtn) appEl.navGeneralInfoBtn.addEventListener('click', (
 if (appEl.navInventoryMainBtn) appEl.navInventoryMainBtn.addEventListener('click', () => switchTab('inventory'));
 if (appEl.navSalesMainBtn) appEl.navSalesMainBtn.addEventListener('click', () => switchTab('sale'));
 if (appEl.navAccountsMainBtn) appEl.navAccountsMainBtn.addEventListener('click', () => switchTab('accounts'));
+if (appEl.navReportsMainBtn) appEl.navReportsMainBtn.addEventListener('click', () => switchTab('reports'));
 if (appEl.navSettingsMainBtn) appEl.navSettingsMainBtn.addEventListener('click', () => switchTab('settings'));
 if (appEl.navToolsMainBtn && appEl.navToolsMainBtn !== appEl.navSettingsMainBtn) {
   appEl.navToolsMainBtn.addEventListener('click', () => switchTab('settings'));
 }
-if (appEl.navReportsMainBtn) appEl.navReportsMainBtn.addEventListener('click', () => switchTab('reports'));
+if (appEl.navLogoutBtn) {
+  appEl.navLogoutBtn.addEventListener('click', () => {
+    openConfirmModal({
+      title: 'Confirm Log Out',
+      message: 'Are you sure you want to lock the session and return to the PIN login screen?',
+      onConfirm: () => {
+        if (window.authAPI && window.authAPI.logout) {
+          window.authAPI.logout();
+        } else {
+          window.location.href = 'auth/login.html';
+        }
+      }
+    });
+  });
+}
 
 
 // Badges Update
