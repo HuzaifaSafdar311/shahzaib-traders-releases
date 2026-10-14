@@ -338,6 +338,39 @@ app.whenReady().then(() => {
   ipcMain.handle('get-party-ledger', async (_event, partyId, fromDate, toDate) => db.getPartyLedger(partyId, fromDate, toDate));
 
   // ============================================
+  // DAILY EXPENSES IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-expenses', async (_event, filter) => db.getAllExpenses(filter));
+  ipcMain.handle('get-next-expense-voucher-no', async () => db.getNextExpenseVoucherNo());
+  ipcMain.handle('save-expense', async (_event, data) => db.saveExpense(data));
+  ipcMain.handle('delete-expense', async (_event, id) => db.deleteExpense(id));
+  ipcMain.handle('get-chart-of-accounts', async () => db.getChartOfAccounts());
+
+  // ============================================
+  // ESTIMATES / KACHA BILL IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-estimates', async () => db.getAllEstimates());
+  ipcMain.handle('get-estimate', async (_event, id) => db.getEstimateById(id));
+  ipcMain.handle('get-next-estimate-no', async () => db.getNextEstimateNo());
+  ipcMain.handle('save-estimate', async (_event, data, items) => db.saveEstimate(data, items));
+  ipcMain.handle('delete-estimate', async (_event, id) => db.deleteEstimate(id));
+
+  // ============================================
+  // WARRANTY CLAIMS IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-claims', async () => db.getAllClaims());
+  ipcMain.handle('get-next-claim-no', async () => db.getNextClaimNo());
+  ipcMain.handle('save-claim', async (_event, data) => db.saveClaim(data));
+  ipcMain.handle('delete-claim', async (_event, id) => db.deleteClaim(id));
+
+  // ============================================
+  // DAY-END CASH CLOSING IPC HANDLERS
+  // ============================================
+  ipcMain.handle('get-daily-closing-summary', async (_event, date) => db.getDailyClosingSummary(date));
+  ipcMain.handle('get-day-end-closings', async () => db.getAllDayEndClosings());
+  ipcMain.handle('save-day-end-closing', async (_event, data) => db.saveDayEndClosing(data));
+
+  // ============================================
   // REPORTS MODULE MASTER DATA IPC HANDLER
   // ============================================
   ipcMain.handle('get-reports-master-data', async () => {

@@ -91,6 +91,34 @@ contextBridge.exposeInMainWorld('accountsAPI', {
   getPartyLedger: (partyId, fromDate, toDate) => ipcRenderer.invoke('get-party-ledger', partyId, fromDate, toDate)
 });
 
+// Trade Features API (Expenses, Estimates / Kacha Bill, Warranty Claims, Day-End Cash Closing)
+contextBridge.exposeInMainWorld('tradeFeaturesAPI', {
+  // Expenses
+  getExpenses: (filter) => ipcRenderer.invoke('get-expenses', filter),
+  getNextExpenseVoucherNo: () => ipcRenderer.invoke('get-next-expense-voucher-no'),
+  saveExpense: (data) => ipcRenderer.invoke('save-expense', data),
+  deleteExpense: (id) => ipcRenderer.invoke('delete-expense', id),
+  getChartOfAccounts: () => ipcRenderer.invoke('get-chart-of-accounts'),
+
+  // Estimates / Kacha Bill
+  getEstimates: () => ipcRenderer.invoke('get-estimates'),
+  getEstimate: (id) => ipcRenderer.invoke('get-estimate', id),
+  getNextEstimateNo: () => ipcRenderer.invoke('get-next-estimate-no'),
+  saveEstimate: (data, items) => ipcRenderer.invoke('save-estimate', data, items),
+  deleteEstimate: (id) => ipcRenderer.invoke('delete-estimate', id),
+
+  // Claims
+  getClaims: () => ipcRenderer.invoke('get-claims'),
+  getNextClaimNo: () => ipcRenderer.invoke('get-next-claim-no'),
+  saveClaim: (data) => ipcRenderer.invoke('save-claim', data),
+  deleteClaim: (id) => ipcRenderer.invoke('delete-claim', id),
+
+  // Day-End Closing
+  getDailyClosingSummary: (date) => ipcRenderer.invoke('get-daily-closing-summary', date),
+  getDayEndClosings: () => ipcRenderer.invoke('get-day-end-closings'),
+  saveDayEndClosing: (data) => ipcRenderer.invoke('save-day-end-closing', data)
+});
+
 
 // Expose General Info API for Company Info, Provinces, Areas, Party Types, and Parties
 contextBridge.exposeInMainWorld('generalInfoAPI', {

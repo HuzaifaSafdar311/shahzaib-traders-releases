@@ -7,3 +7,8 @@ Thumbs.db
 *.db-shm
 .env
 *.env.local
+backups/
+*.bak
+*.backup*
+Shahzaib_Traders_Data.json
+Shahzaib_Traders_Complete_Data.md

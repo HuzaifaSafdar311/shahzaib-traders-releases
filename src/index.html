@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="sales/sales.css">
   <link rel="stylesheet" href="accounts/accounts.css">
   <link rel="stylesheet" href="reports/reports.css">
+  <link rel="stylesheet" href="features/trade-features.css">
 </head>
 
 <body>
@@ -1286,7 +1287,7 @@
                 <span>+ New (F2)</span>
               </button>
               <button type="button" id="btnSaleHistory" class="btn btn-secondary" title="Sales History">
-                <span>📋 Recent Sales</span>
+                <span>Recent Sales</span>
               </button>
               <button type="button" id="btnSalePrint" class="btn btn-secondary" title="Print Bill (Ctrl+P)">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -1307,14 +1308,15 @@
             </div>
           </div>
 
-          <div class="sale-meta-row">
+          <!-- Voucher Primary Metadata -->
+          <div class="sale-meta-row-clean">
             <div class="form-group">
               <label>Entry Date</label>
               <input type="date" id="saleEntryDate" class="form-control form-control-sm">
             </div>
             <div class="form-group">
               <label>Voucher No</label>
-              <input type="text" id="saleVoucherNo" class="form-control form-control-sm font-num font-bold text-primary" readonly>
+              <input type="text" id="saleVoucherNo" class="form-control form-control-sm font-num font-bold" readonly>
             </div>
             <div class="form-group">
               <label class="required-label">Party Type</label>
@@ -1331,132 +1333,119 @@
               </select>
             </div>
           </div>
-        </header>
 
-        <!-- Secondary Party & Customer Selector Row -->
-        <div class="sale-secondary-bar">
-          <div class="form-group party-select-group">
-            <label id="salePartySelectLabel">Party / Account</label>
-            <select id="saleCustomerSelect" class="form-control form-control-sm">
-              <option value="">-- Walk-in / Cash Customer --</option>
-            </select>
+          <!-- Customer & Ledger Balance Info Row -->
+          <div class="sale-meta-row-clean-2">
+            <div class="form-group">
+              <label id="salePartySelectLabel">Party / Account</label>
+              <select id="saleCustomerSelect" class="form-control form-control-sm">
+                <option value="">-- Walk-in / Cash Customer --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label id="saleCustomerNameLabel">Customer Name</label>
+              <input type="text" id="saleCustomerName" class="form-control form-control-sm font-bold" placeholder="Write Customer Name...">
+            </div>
+            <div class="form-group">
+              <label>Contact Phone</label>
+              <input type="text" id="saleCustomerPhone" class="form-control form-control-sm font-num" placeholder="03xx-xxxxxxx">
+            </div>
+            <div class="form-group">
+              <label>City / Territory</label>
+              <input type="text" id="saleCustomerArea" class="form-control form-control-sm" placeholder="Area">
+            </div>
+            <div class="form-group">
+              <label>Ledger Balance</label>
+              <input type="text" id="saleCustomerPrevBalance" class="form-control form-control-sm font-num font-bold text-secondary" value="Rs 0.00" readonly>
+            </div>
           </div>
-          <div class="form-group customer-name-group">
-            <label id="saleCustomerNameLabel">Customer Name</label>
-            <input type="text" id="saleCustomerName" class="form-control form-control-sm font-bold" placeholder="Write Customer Name...">
-          </div>
-          <div class="form-group phone-group">
-            <label>Contact Phone</label>
-            <input type="text" id="saleCustomerPhone" class="form-control form-control-sm font-num" placeholder="Phone">
-          </div>
-          <div class="form-group area-group">
-            <label>City / Territory</label>
-            <input type="text" id="saleCustomerArea" class="form-control form-control-sm" placeholder="Area">
-          </div>
-          <div class="form-group balance-group">
-            <label>Ledger Balance</label>
-            <input type="text" id="saleCustomerPrevBalance" class="form-control form-control-sm font-num sale-customer-prev-balance text-secondary" value="Rs 0.00" readonly>
-          </div>
-        </div>
+        </header>
 
         <!-- LINE ITEM ENTRY CARD WITH PURCHASE, WHOLESALE, AND RETAIL RATES -->
         <div class="sale-item-entry-card">
-          <div class="sale-entry-grid">
-            <!-- Code & Search (F1) -->
-            <div class="form-group">
+          <!-- Row 1: Code, Product Select, Stock, and Quantities -->
+          <div class="sale-entry-line-1">
+            <div class="form-group" style="width: 140px;">
               <label>Code <span class="hotkey-hint">(F1)</span></label>
-              <div class="input-with-btn">
+              <div style="display: flex; gap: 4px;">
                 <input type="text" id="saleItemCode" class="form-control form-control-sm font-num font-bold" placeholder="Code">
-                <button type="button" id="btnSaleFindProduct" class="btn btn-sm btn-secondary" title="Search Product (F1)">🔍</button>
+                <button type="button" id="btnSaleFindProduct" class="btn btn-secondary" style="height: 32px; padding: 0 8px;" title="Search Product (F1)">Find</button>
               </div>
             </div>
 
-            <!-- Product Title -->
-            <div class="form-group">
+            <div class="form-group" style="flex: 1; min-width: 220px;">
               <label>Product Title</label>
               <select id="saleProductSelect" class="form-control form-control-sm">
                 <option value="">-- Select Product Title --</option>
               </select>
             </div>
 
-            <!-- Pack Size -->
-            <div class="form-group">
+            <div class="form-group" style="width: 110px;">
+              <label>Available Stock</label>
+              <input type="text" id="saleAvailableStock" class="form-control form-control-sm font-num text-center" value="-" readonly>
+            </div>
+
+            <div class="form-group" style="width: 70px;">
               <label>Pack</label>
               <input type="number" id="salePackSize" class="form-control form-control-sm font-num text-center" min="1" value="1" readonly>
             </div>
 
-            <!-- Pack Qty -->
-            <div class="form-group">
+            <div class="form-group" style="width: 80px;">
               <label>P.Qty</label>
               <input type="number" id="salePackQty" class="form-control form-control-sm font-num text-center" min="0" value="1">
             </div>
 
-            <!-- Unit Qty -->
-            <div class="form-group">
+            <div class="form-group" style="width: 80px;">
               <label>U.Qty</label>
               <input type="number" id="saleUnitQty" class="form-control form-control-sm font-num text-center" min="0" value="0">
             </div>
 
-            <!-- Total Qty (Calculated) -->
-            <div class="form-group">
+            <div class="form-group" style="width: 95px;">
               <label>Total Qty</label>
-              <input type="number" id="saleTotalQty" class="form-control form-control-sm font-num font-bold text-center text-primary" min="1" value="1" readonly>
+              <input type="number" id="saleTotalQty" class="form-control form-control-sm font-num font-bold text-center" min="1" value="1" readonly>
             </div>
+          </div>
 
-            <!-- Purchase Cost Rate (Staff Baseline Reference) -->
-            <div class="rate-pill-box">
-              <label title="Cost baseline (Internal)">Cost (Ref)</label>
+          <!-- Row 2: Rate Tiers, Sale Rate, Discount %, Line Total, and Add Button -->
+          <div class="sale-entry-line-2">
+            <div class="form-group rate-pill-box" style="width: 120px;">
+              <label>Cost (Ref)</label>
               <div id="salePurchasePricePill" class="rate-badge-btn rate-pill-cost font-num" title="Purchase Price (Cost)">0.00</div>
             </div>
 
-            <!-- Wholesale Rate (Clickable Choice Button) -->
-            <div class="rate-pill-box">
-              <label title="Click to apply Wholesale Price">Wholesale</label>
+            <div class="form-group rate-pill-box" style="width: 130px;">
+              <label>Wholesale (Click)</label>
               <div id="saleWholesalePricePill" class="rate-badge-btn rate-pill-wholesale font-num" title="Click to use Wholesale Price">0.00</div>
             </div>
 
-            <!-- Retail Rate (Clickable Choice Button) -->
-            <div class="rate-pill-box">
-              <label title="Click to apply Retail Price">Retail</label>
+            <div class="form-group rate-pill-box" style="width: 130px;">
+              <label>Retail (Click)</label>
               <div id="saleRetailPricePill" class="rate-badge-btn rate-pill-retail font-num active-choice" title="Click to use Retail Price">0.00</div>
             </div>
 
-            <!-- Applied Sale Price (Editable) -->
-            <div class="form-group applied-sale-price-field">
-              <label class="required-label">Sale Rate</label>
-              <input type="number" id="saleSalePriceInput" class="form-control form-control-sm font-num" min="0" step="0.01" value="0.00">
+            <div class="form-group applied-sale-price-field" style="width: 130px;">
+              <label class="required-label">Sale Rate (Rs)</label>
+              <input type="number" id="saleSalePriceInput" class="form-control form-control-sm font-num text-right font-bold" min="0" step="0.01" value="0.00">
             </div>
 
-            <!-- Discount % -->
-            <div class="form-group">
+            <div class="form-group" style="width: 85px;">
               <label>Disc %</label>
               <input type="number" id="saleDiscountPercent" class="form-control form-control-sm font-num text-center" min="0" max="100" step="0.5" value="0.0">
             </div>
 
-            <!-- Line Total -->
-            <div class="form-group">
-              <label>Net Total</label>
-              <input type="number" id="saleLineAmount" class="form-control form-control-sm font-num font-bold text-success" value="0.00" readonly>
+            <div class="form-group" style="width: 140px;">
+              <label>Net Total (Rs)</label>
+              <input type="number" id="saleLineAmount" class="form-control form-control-sm font-num font-bold text-right" value="0.00" readonly>
             </div>
 
-            <!-- Add Button -->
-            <div class="form-group">
+            <div class="form-group" style="width: 110px;">
               <label>&nbsp;</label>
-              <button type="button" id="btnSaleAddItem" class="btn btn-sm btn-primary">
+              <button type="button" id="btnSaleAddItem" class="btn btn-primary" style="width: 100%; height: 32px;">
                 <span>+ Add</span>
               </button>
             </div>
           </div>
-
-          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: var(--text-secondary); padding: 0 4px;">
-            <div>
-              <span>Current Stock Available: </span>
-              <span id="saleAvailableStock" class="font-bold font-num">-</span>
-            </div>
-            <div>
-              <span>Tip: Click <strong>Wholesale</strong> or <strong>Retail</strong> badge to automatically apply the chosen rate, or type a custom rate.</span>
-            </div>
-          </div>
+        </div>
         </div>
 
         <!-- ITEMS TABLE CONTAINER -->
@@ -1550,19 +1539,18 @@
           <header class="sale-voucher-header">
             <div class="sale-header-actions-row">
               <div class="sale-title-wrap">
-                <svg class="gi-title-icon" style="color: #dc2626;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg class="gi-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="1 4 1 10 7 10"></polyline>
                   <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
                 </svg>
-                <h1 style="color: #b91c1c;">Sale Return Voucher</h1>
-                <span class="badge-return-stock-impact">🔄 Restores Stock to Inventory</span>
+                <h1>Sale Return Voucher</h1>
               </div>
               <div class="sale-header-btn-group">
                 <button type="button" id="btnReturnNew" class="btn btn-secondary" title="New Return (F2)">
                   <span>+ New Return</span>
                 </button>
                 <button type="button" id="btnReturnHistory" class="btn btn-secondary" title="Return History">
-                  <span>📋 Return History</span>
+                  <span>Return History</span>
                 </button>
                 <button type="button" id="btnReturnPrint" class="btn btn-secondary" title="Print Return Note">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -1572,7 +1560,7 @@
                   </svg>
                   <span>Print Note</span>
                 </button>
-                <button type="button" id="btnReturnSave" class="btn btn-danger" style="background: #dc2626; color: white;" title="Save Return">
+                <button type="button" id="btnReturnSave" class="btn btn-primary" title="Save Return">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                     <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -1583,141 +1571,146 @@
               </div>
             </div>
 
-            <div class="sale-meta-grid">
-              <div class="sale-meta-field">
+            <!-- Return Metadata Row 1 -->
+            <div class="sale-meta-row-clean">
+              <div class="form-group">
                 <label for="returnEntryDate">Return Date</label>
                 <input type="date" id="returnEntryDate" class="form-control form-control-sm">
               </div>
-              <div class="sale-meta-field">
+              <div class="form-group">
                 <label for="returnVoucherNo">Return #</label>
-                <input type="text" id="returnVoucherNo" class="form-control form-control-sm font-num font-bold text-danger" readonly value="SR-0001">
+                <input type="text" id="returnVoucherNo" class="form-control form-control-sm font-num font-bold" readonly value="SR-0001">
               </div>
-              <div class="sale-meta-field">
+              <div class="form-group">
                 <label for="returnOriginalBillRef">Orig. Sale Bill # (Ref)</label>
                 <input type="text" id="returnOriginalBillRef" class="form-control form-control-sm font-num" placeholder="e.g. SV-0001">
               </div>
-              <div class="sale-meta-field">
-                <label for="returnPartyTypeSelect" class="required-label">Party Type *</label>
+              <div class="form-group">
+                <label for="returnRefundMode">Refund Mode</label>
+                <select id="returnRefundMode" class="form-control form-control-sm">
+                  <option value="Credit" selected>Credit (Customer Balance)</option>
+                  <option value="Cash">Cash (Immediate Refund)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Return Metadata Row 2 -->
+            <div class="sale-meta-grid-2">
+              <div class="form-group">
+                <label for="returnPartyTypeSelect" class="required-label">Party Type</label>
                 <select id="returnPartyTypeSelect" class="form-control form-control-sm required-input">
                   <option value="">-- Select Party Type --</option>
                 </select>
               </div>
-              <div class="sale-meta-field">
-                <label for="returnRefundMode">Refund Mode</label>
-                <select id="returnRefundMode" class="form-control form-control-sm">
-                  <option value="Credit" selected>Credit (Deduct from Customer Balance)</option>
-                  <option value="Cash">Cash (Immediate Cash Refund)</option>
+              <div class="form-group">
+                <label for="returnCustomerSelect">Customer / Account</label>
+                <select id="returnCustomerSelect" class="form-control form-control-sm">
+                  <option value="">-- Select Customer / Party --</option>
                 </select>
               </div>
+              <div class="form-group">
+                <label for="returnReason">Return Reason</label>
+                <select id="returnReason" class="form-control form-control-sm">
+                  <option value="Customer Return">Customer Return / Excess</option>
+                  <option value="Defective">Defective / Damaged</option>
+                  <option value="Exchange">Exchange / Replacement</option>
+                  <option value="Wrong Item">Wrong Item Sent</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="returnDescription">Remarks / Notes</label>
+                <input type="text" id="returnDescription" class="form-control form-control-sm" placeholder="Reason details or notes...">
+              </div>
+              <!-- Hidden compatibility targets for sales.js -->
+              <span id="returnCustomerPhone" style="display: none;"></span>
+              <span id="returnCustomerArea" style="display: none;"></span>
+              <span id="returnCustomerPrevBalance" style="display: none;"></span>
             </div>
           </header>
 
-          <!-- Party Type Secondary Info & Reason Bar -->
-          <div class="sale-meta-row-2">
-            <div class="sale-meta-item">
-              <span class="meta-label">Party Code:</span>
-              <span id="returnCustomerPhone" class="meta-value">-</span>
-            </div>
-            <div class="sale-meta-item">
-              <span class="meta-label">Detail:</span>
-              <span id="returnCustomerArea" class="meta-value">-</span>
-            </div>
-            <div class="sale-meta-item">
-              <span class="meta-label">Return Reason:</span>
-              <select id="returnReason" class="form-control form-control-sm" style="display: inline-block; width: 170px;">
-                <option value="Customer Return">Customer Return / Excess</option>
-                <option value="Defective">Defective / Damaged</option>
-                <option value="Exchange">Exchange / Replacement</option>
-                <option value="Wrong Item">Wrong Item Sent</option>
-              </select>
-            </div>
-            <div class="sale-meta-item flex-grow">
-              <span class="meta-label">Remarks:</span>
-              <input type="text" id="returnDescription" class="form-control form-control-sm" placeholder="Reason details or notes...">
-            </div>
-          </div>
-
           <!-- Return Item Entry Card -->
-          <div class="sale-item-entry-card" style="border-left: 4px solid #dc2626;">
-            <div class="sale-entry-row-1">
-              <!-- Item Code & Search -->
-              <div class="sale-entry-field field-code">
-                <label for="returnItemCode">Code (F1)</label>
-                <div class="input-with-btn">
+          <div class="sale-item-entry-card">
+            <!-- Row 1: Code, Product Select, Condition, Stock, Quantities -->
+            <div class="sale-entry-line-1">
+              <div class="form-group" style="width: 140px;">
+                <label for="returnItemCode">Code <span class="hotkey-hint">(F1)</span></label>
+                <div style="display: flex; gap: 4px;">
                   <input type="text" id="returnItemCode" class="form-control form-control-sm font-num font-bold" placeholder="Code">
-                  <button type="button" id="btnReturnFindProduct" class="btn btn-secondary btn-sm" title="Search Product (F1)">🔍</button>
+                  <button type="button" id="btnReturnFindProduct" class="btn btn-secondary" style="height: 32px; padding: 0 8px;" title="Search Product (F1)">Find</button>
                 </div>
               </div>
 
-              <!-- Product Select -->
-              <div class="sale-entry-field field-product flex-grow">
+              <div class="form-group" style="flex: 1; min-width: 220px;">
                 <label for="returnProductSelect">Product Description</label>
                 <select id="returnProductSelect" class="form-control form-control-sm">
                   <option value="">-- Choose Product --</option>
                 </select>
               </div>
 
-              <!-- Pack Size -->
-              <div class="sale-entry-field field-num">
-                <label for="returnPackSize">Pack Sz</label>
-                <input type="number" id="returnPackSize" class="form-control form-control-sm font-num text-center" min="1" value="1" readonly>
-              </div>
-
-              <!-- Pack Qty -->
-              <div class="sale-entry-field field-num">
-                <label for="returnPackQty">Ret. Pack</label>
-                <input type="number" id="returnPackQty" class="form-control form-control-sm font-num text-center" min="0" step="1" value="0">
-              </div>
-
-              <!-- Unit Qty -->
-              <div class="sale-entry-field field-num">
-                <label for="returnUnitQty">Ret. Unit</label>
-                <input type="number" id="returnUnitQty" class="form-control form-control-sm font-num text-center" min="0" step="1" value="0">
-              </div>
-
-              <!-- Total Qty Returned -->
-              <div class="sale-entry-field field-num">
-                <label for="returnTotalQty">Total Pcs</label>
-                <input type="number" id="returnTotalQty" class="form-control form-control-sm font-num text-center font-bold text-danger" readonly value="0">
-              </div>
-
-              <!-- Stock Preview -->
-              <div class="sale-entry-field field-stock">
-                <label>Current Stock</label>
-                <span id="returnAvailableStock" class="stock-badge font-num">0 pcs</span>
-              </div>
-
-              <!-- Item Condition -->
-              <div class="sale-entry-field" style="width: 130px;">
+              <div class="form-group" style="width: 130px;">
                 <label for="returnItemCondition">Condition</label>
                 <select id="returnItemCondition" class="form-control form-control-sm">
                   <option value="Good" selected>Good (Restock)</option>
                   <option value="Damaged">Damaged / Scrap</option>
                 </select>
               </div>
-            </div>
 
-            <!-- Return Rate & Add Button -->
-            <div class="sale-entry-row-2">
-              <div class="rate-pills-wrap">
-                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Product Rates Ref:</span>
-                <span id="returnCostPill" class="rate-pill rate-pill-cost" title="Original Purchase Cost">Cost: Rs 0.00</span>
-                <span id="returnWholesalePill" class="rate-pill rate-pill-wholesale" style="cursor: pointer;" title="Click to use Wholesale Rate">Wholesale: Rs 0.00</span>
-                <span id="returnRetailPill" class="rate-pill rate-pill-retail" style="cursor: pointer;" title="Click to use Retail Rate">Retail: Rs 0.00</span>
+              <div class="form-group" style="width: 100px;">
+                <label>Current Stock</label>
+                <input type="text" id="returnAvailableStock" class="form-control form-control-sm font-num text-center" value="0 pcs" readonly>
               </div>
 
-              <div class="sale-pricing-inputs">
-                <div class="pricing-field">
-                  <label for="returnRateInput">Return Rate (Rs)</label>
-                  <input type="number" id="returnRateInput" class="form-control form-control-sm font-num text-right font-bold" min="0" step="0.01" value="0.00">
-                </div>
+              <div class="form-group" style="width: 70px;">
+                <label for="returnPackSize">Pack Sz</label>
+                <input type="number" id="returnPackSize" class="form-control form-control-sm font-num text-center" min="1" value="1" readonly>
+              </div>
 
-                <div class="pricing-field">
-                  <label for="returnLineAmount">Refund Line (Rs)</label>
-                  <input type="text" id="returnLineAmount" class="form-control form-control-sm font-num text-right font-bold text-danger" readonly value="0.00">
-                </div>
+              <div class="form-group" style="width: 80px;">
+                <label for="returnPackQty">Ret. Pack</label>
+                <input type="number" id="returnPackQty" class="form-control form-control-sm font-num text-center" min="0" step="1" value="0">
+              </div>
 
-                <button type="button" id="btnReturnAddItem" class="btn btn-primary btn-sm btn-add-item" style="background: #dc2626; border-color: #dc2626;">
+              <div class="form-group" style="width: 80px;">
+                <label for="returnUnitQty">Ret. Unit</label>
+                <input type="number" id="returnUnitQty" class="form-control form-control-sm font-num text-center" min="0" step="1" value="0">
+              </div>
+
+              <div class="form-group" style="width: 95px;">
+                <label for="returnTotalQty">Total Pcs</label>
+                <input type="number" id="returnTotalQty" class="form-control form-control-sm font-num text-center font-bold" readonly value="0">
+              </div>
+            </div>
+
+            <!-- Row 2: Rate References, Return Rate, Refund Amount, Add Button -->
+            <div class="sale-entry-line-2">
+              <div class="form-group rate-pill-box" style="width: 130px;">
+                <label>Cost (Ref)</label>
+                <div id="returnCostPill" class="rate-badge-btn rate-pill-cost font-num" title="Original Purchase Cost">0.00</div>
+              </div>
+
+              <div class="form-group rate-pill-box" style="width: 140px;">
+                <label>Wholesale (Click)</label>
+                <div id="returnWholesalePill" class="rate-badge-btn rate-pill-wholesale font-num" title="Click to use Wholesale Rate">0.00</div>
+              </div>
+
+              <div class="form-group rate-pill-box" style="width: 140px;">
+                <label>Retail (Click)</label>
+                <div id="returnRetailPill" class="rate-badge-btn rate-pill-retail font-num" title="Click to use Retail Rate">0.00</div>
+              </div>
+
+              <div class="form-group" style="width: 130px;">
+                <label for="returnRateInput">Return Rate (Rs)</label>
+                <input type="number" id="returnRateInput" class="form-control form-control-sm font-num text-right font-bold" min="0" step="0.01" value="0.00">
+              </div>
+
+              <div class="form-group" style="width: 140px;">
+                <label for="returnLineAmount">Refund Line (Rs)</label>
+                <input type="text" id="returnLineAmount" class="form-control form-control-sm font-num text-right font-bold" readonly value="0.00">
+              </div>
+
+              <div class="form-group" style="width: 120px;">
+                <label>&nbsp;</label>
+                <button type="button" id="btnReturnAddItem" class="btn btn-primary" style="width: 100%; height: 32px;">
                   <span>+ Add Item</span>
                 </button>
               </div>
@@ -1725,8 +1718,8 @@
           </div>
 
           <!-- Returned Items Table -->
-          <div class="sale-table-container">
-            <table class="data-table sale-grid-table">
+          <div class="sale-items-table-container">
+            <table class="sale-items-table">
               <thead>
                 <tr>
                   <th style="width: 45px; text-align: center;">#</th>
@@ -1742,50 +1735,46 @@
                   <th style="width: 60px; text-align: center;">Action</th>
                 </tr>
               </thead>
-              <tbody id="returnItemsTableBody">
-                <!-- Dynamically populated rows -->
-              </tbody>
+              <tbody id="returnItemsTableBody"></tbody>
             </table>
-            <div id="returnItemsEmptyState" class="table-empty-state">
-              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5">
-                <polyline points="1 4 1 10 7 10"></polyline>
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-              </svg>
-              <p>No returned items added yet. Search a product (F1) and click <strong>+ Add Item</strong>.</p>
+            <div id="returnItemsEmptyState" class="empty-state">
+              <span>No returned items added yet. Search a product (F1) and click <strong>+ Add Item</strong>.</span>
             </div>
           </div>
 
           <!-- Return Footer Summary -->
-          <footer class="sale-footer-summary" style="border-top: 2px solid #dc2626;">
-            <div class="sale-summary-left">
-              <div class="stat-badge">
-                <span class="stat-label">Total Returned Items:</span>
-                <span id="returnTotalItemsCount" class="stat-val font-num font-bold">0</span>
+          <footer class="sale-voucher-footer">
+            <div class="sale-footer-left">
+              <div class="sale-footer-stats-pills">
+                <div class="sale-stat-pill">
+                  <span class="stat-label">Total Returned Items</span>
+                  <span id="returnTotalItemsCount" class="stat-val font-num">0</span>
+                </div>
+                <div class="sale-stat-pill">
+                  <span class="stat-label">Total Pieces Returned</span>
+                  <span id="returnTotalPiecesCount" class="stat-val font-num">0</span>
+                </div>
               </div>
-              <div class="stat-badge">
-                <span class="stat-label">Total Pieces Returned:</span>
-                <span id="returnTotalPiecesCount" class="stat-val font-num font-bold">0</span>
-              </div>
-              <div class="stat-badge" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
-                <span class="stat-label" style="color: #059669;">Inventory Stock Update:</span>
-                <span class="stat-val font-num font-bold" style="color: #059669;">Stock Auto-Added (+)</span>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: auto;">
+                <span>• Returned stock will be automatically added back into active inventory.</span><br>
+                <span>• Customer ledger will be adjusted according to refund mode selected.</span>
               </div>
             </div>
 
-            <div class="sale-calculations-card">
-              <div class="sale-calc-row">
-                <span class="calc-label font-bold">Total Refund Value:</span>
-                <span id="returnGrossRefund" class="calc-val font-num font-bold text-danger" style="font-size: 1.15rem;">Rs 0.00</span>
+            <div class="sale-footer-right">
+              <div class="sale-calc-row highlight-net">
+                <span class="calc-label font-bold" style="font-size: 1.05rem;">Total Refund Value:</span>
+                <span id="returnGrossRefund" class="calc-val font-num font-bold">Rs 0.00</span>
               </div>
               <div class="sale-calc-row">
                 <span class="calc-label">Customer Ledger Before Return:</span>
                 <span id="returnSummaryPrevBal" class="calc-val font-num">Rs 0.00</span>
               </div>
               <div class="sale-calc-row">
-                <span class="calc-label font-bold text-success">Less Return Credit:</span>
-                <span id="returnSummaryDeduction" class="calc-val font-num font-bold text-success">- Rs 0.00</span>
+                <span class="calc-label font-bold">Less Return Credit:</span>
+                <span id="returnSummaryDeduction" class="calc-val font-num font-bold">- Rs 0.00</span>
               </div>
-              <div class="sale-calc-row highlight-balance">
+              <div class="sale-calc-row highlight-balance" style="margin-top: 4px;">
                 <span class="calc-label font-bold">Adjusted Customer Ledger:</span>
                 <span id="returnSummaryNewBal" class="calc-val font-num font-bold">Rs 0.00</span>
               </div>
@@ -2435,6 +2424,7 @@
   <script src="Genral info/general-info.js"></script>
   <script src="sales/sales.js"></script>
   <script src="accounts/accounts.js"></script>
+  <script src="features/trade-features.js"></script>
   <script src="reports/reports-engine.js"></script>
   <script src="reports/reports.js"></script>
 </body>

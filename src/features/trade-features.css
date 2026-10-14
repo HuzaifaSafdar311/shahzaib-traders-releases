@@ -1,0 +1,129 @@
+/* ========================================================
+   Shahzaib Traders - Trade Features Module Styles
+   Clean Enterprise Layout (No Extra Detailing)
+   ======================================================== */
+
+.trade-feature-panel {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.trade-feature-panel.active {
+  display: flex;
+}
+
+/* Day-End Closing 4-Column Summary Bar */
+.closing-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-md, 6px);
+  padding: 12px 18px;
+}
+
+.closing-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.closing-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.closing-stat-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+
+/* Minimal Grid Helpers */
+.tf-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.tf-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .tf-grid-4, .closing-summary-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .tf-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Minimal Status Badges */
+.tf-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.tf-badge.status-received {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.tf-badge.status-factory {
+  background: #fdf4ff;
+  border-color: #f0abfc;
+  color: #701a75;
+}
+
+.tf-badge.status-delivered,
+.tf-badge.status-replaced {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+/* Table Inline Action Buttons */
+.btn-table-action {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border-color, #d1d5db);
+  background: #ffffff;
+  color: var(--text-secondary, #374151);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-table-action:hover {
+  background: #f3f4f6;
+  color: var(--text-primary, #111827);
+}
+
+.btn-table-action.btn-table-del {
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.btn-table-action.btn-table-del:hover {
+  background: #fef2f2;
+}

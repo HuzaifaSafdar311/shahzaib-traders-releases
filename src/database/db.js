@@ -70,6 +70,7 @@ function initJsonFallback(dbPath) {
 
 const generalInfoDb = require('../Genral info/general-info-db');
 const accountsDb = require('../accounts/accounts-db');
+const tradeFeaturesDb = require('./trade-features-db');
 
 function initDatabase(dbPath) {
   if (dbInstance) return dbInstance;
@@ -79,6 +80,7 @@ function initDatabase(dbPath) {
     const res = initJsonFallback(dbPath);
     generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
     accountsDb.initAccountsDb(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint, generalInfoDb);
+    tradeFeaturesDb.initTradeFeatures(dbInstance);
     return res;
   }
 
@@ -310,12 +312,14 @@ function initDatabase(dbPath) {
     dbInstance = db;
     generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
     accountsDb.initAccountsDb(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint, generalInfoDb);
+    tradeFeaturesDb.initTradeFeatures(dbInstance);
     return dbInstance;
   } catch (err) {
     console.warn('SQLite init failed, falling back to JSON database:', err);
     const res = initJsonFallback(dbPath);
     generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
     accountsDb.initAccountsDb(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint, generalInfoDb);
+    tradeFeaturesDb.initTradeFeatures(dbInstance);
     return res;
   }
 }
@@ -1602,5 +1606,24 @@ module.exports = {
   getAccountsVoucherById: accountsDb.getVoucherById,
   saveAccountsVoucher: accountsDb.saveVoucher,
   deleteAccountsVoucher: accountsDb.deleteVoucher,
-  getPartyLedger: accountsDb.getPartyLedger
+  getPartyLedger: accountsDb.getPartyLedger,
+
+  // Trade Features: Expenses, Estimates, Claims, Day-End Closing & Chart of Accounts
+  getNextExpenseVoucherNo: tradeFeaturesDb.getNextExpenseVoucherNo,
+  getAllExpenses: tradeFeaturesDb.getAllExpenses,
+  saveExpense: tradeFeaturesDb.saveExpense,
+  deleteExpense: tradeFeaturesDb.deleteExpense,
+  getChartOfAccounts: tradeFeaturesDb.getChartOfAccounts,
+  getNextEstimateNo: tradeFeaturesDb.getNextEstimateNo,
+  getAllEstimates: tradeFeaturesDb.getAllEstimates,
+  getEstimateById: tradeFeaturesDb.getEstimateById,
+  saveEstimate: tradeFeaturesDb.saveEstimate,
+  deleteEstimate: tradeFeaturesDb.deleteEstimate,
+  getNextClaimNo: tradeFeaturesDb.getNextClaimNo,
+  getAllClaims: tradeFeaturesDb.getAllClaims,
+  saveClaim: tradeFeaturesDb.saveClaim,
+  deleteClaim: tradeFeaturesDb.deleteClaim,
+  getDailyClosingSummary: tradeFeaturesDb.getDailyClosingSummary,
+  getAllDayEndClosings: tradeFeaturesDb.getAllDayEndClosings,
+  saveDayEndClosing: tradeFeaturesDb.saveDayEndClosing
 };
