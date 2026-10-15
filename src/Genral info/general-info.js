@@ -885,11 +885,10 @@
       const isActive = (p.status || 'Active').toLowerCase() === 'active';
 
       tr.innerHTML = `
-        <td class="font-mono" style="font-size: 12.5px; text-align: left; padding-left: 24px;">${escapeHtml(p.ntn || '-')}</td>
         <td>
           <div class="party-info-cell">
             <div class="party-name-block">
-              <span class="cell-title font-bold" style="color: #0f172a;">${escapeHtml(p.name)}</span>
+              <span class="cell-title font-bold" style="color: #0f172a;" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
               ${p.address ? `<div class="cell-subtitle" style="color: #64748b; font-size: 11.5px; margin-top: 2px;" title="${escapeHtml(p.address)}">${escapeHtml(p.address)}</div>` : ''}
             </div>
           </div>
@@ -897,19 +896,20 @@
         <td style="text-align: center;">
           <span class="badge-party-type">${escapeHtml(p.partyTypeName || 'Standard')}</span>
         </td>
-        <td>
-          <span class="font-medium">${escapeHtml(p.contactPerson || '-')}</span>
+        <td style="text-align: center;">
+          <span class="font-medium" title="${escapeHtml(p.contactPerson || '-')}">${escapeHtml(p.contactPerson || '-')}</span>
         </td>
-        <td>
+        <td style="text-align: center;">
           <span class="font-mono text-xs">${escapeHtml(p.phone || '-')}</span>
         </td>
-        <td>
-          <span style="font-size: 12.5px; color: #475569;">${escapeHtml(p.email || '-')}</span>
+        <td style="text-align: center;">
+          <span style="font-size: 12.5px; color: #475569;" title="${escapeHtml(p.email || '-')}">${escapeHtml(p.email || '-')}</span>
         </td>
-        <td>
-          <span class="location-text" style="font-size: 12.5px;">${escapeHtml(locationStr)}</span>
+        <td style="text-align: center;">
+          <span class="location-text" style="font-size: 12.5px;" title="${escapeHtml(locationStr)}">${escapeHtml(locationStr)}</span>
         </td>
-        <td style="text-align: right;">
+        <td class="font-mono" style="font-size: 12.5px; text-align: center;">${escapeHtml(p.ntn || '-')}</td>
+        <td style="text-align: right; padding-right: 16px;">
           <span class="font-mono ${balance > 0 ? 'text-balance-pos' : balance < 0 ? 'text-balance-neg' : 'text-muted'}">${formattedBalance}</span>
         </td>
         <td style="text-align: center;">

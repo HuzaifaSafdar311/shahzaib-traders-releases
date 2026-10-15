@@ -513,6 +513,32 @@
 }
 
 /* Party Info Specific Styles */
+.table-party-info {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.table-party-info th,
+.table-party-info td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-party-info td:first-child {
+  text-align: left !important;
+  padding-left: 24px !important;
+}
+
+.table-party-info .cell-title,
+.table-party-info .cell-subtitle,
+.table-party-info .location-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
 .party-info-cell {
   display: flex;
   align-items: center;
