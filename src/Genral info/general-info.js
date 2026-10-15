@@ -894,9 +894,6 @@
           </div>
         </td>
         <td style="text-align: center;">
-          <span class="badge-party-type">${escapeHtml(p.partyTypeName || 'Standard')}</span>
-        </td>
-        <td style="text-align: center;">
           <span class="font-medium" title="${escapeHtml(p.contactPerson || '-')}">${escapeHtml(p.contactPerson || '-')}</span>
         </td>
         <td style="text-align: center;">
@@ -911,12 +908,6 @@
         <td class="font-mono" style="font-size: 12.5px; text-align: center;">${escapeHtml(p.ntn || '-')}</td>
         <td style="text-align: right; padding-right: 16px;">
           <span class="font-mono ${balance > 0 ? 'text-balance-pos' : balance < 0 ? 'text-balance-neg' : 'text-muted'}">${formattedBalance}</span>
-        </td>
-        <td style="text-align: center;">
-          <span class="status-badge ${isActive ? 'active' : 'inactive'}">
-            <span class="status-dot"></span>
-            ${escapeHtml(p.status || 'Active')}
-          </span>
         </td>
         <td class="gi-actions-cell" style="text-align: center;">
           <div class="dots-wrapper">
