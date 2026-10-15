@@ -520,11 +520,11 @@
 
 .table-party-info th,
 .table-party-info td {
-  width: 12.5% !important;
-  max-width: 12.5% !important;
+  width: 11.11% !important;
+  max-width: 11.11% !important;
   text-align: center;
   vertical-align: middle;
-  padding: 12px 14px;
+  padding: 12px 10px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -537,19 +537,20 @@
   padding-left: 20px !important;
 }
 
-.table-party-info th:nth-child(7),
-.table-party-info td:nth-child(7) {
+.table-party-info th:nth-child(8),
+.table-party-info td:nth-child(8) {
   text-align: right !important;
   padding-right: 20px !important;
 }
 
 .table-party-info .cell-title,
-.table-party-info .cell-subtitle,
+.table-party-info .address-text,
 .table-party-info .location-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+  display: block;
 }
 
 .party-info-cell {

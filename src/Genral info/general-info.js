@@ -887,10 +887,7 @@
       tr.innerHTML = `
         <td>
           <div class="party-info-cell">
-            <div class="party-name-block">
-              <span class="cell-title font-bold" style="color: #0f172a;" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
-              ${p.address ? `<div class="cell-subtitle" style="color: #64748b; font-size: 11.5px; margin-top: 2px;" title="${escapeHtml(p.address)}">${escapeHtml(p.address)}</div>` : ''}
-            </div>
+            <span class="cell-title font-bold" style="color: #0f172a;" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
           </div>
         </td>
         <td style="text-align: center;">
@@ -901,6 +898,9 @@
         </td>
         <td style="text-align: center;">
           <span style="font-size: 12.5px; color: #475569;" title="${escapeHtml(p.email || '-')}">${escapeHtml(p.email || '-')}</span>
+        </td>
+        <td style="text-align: center;">
+          <span class="address-text" style="font-size: 12.5px;" title="${escapeHtml(p.address || '-')}">${escapeHtml(p.address || '-')}</span>
         </td>
         <td style="text-align: center;">
           <span class="location-text" style="font-size: 12.5px;" title="${escapeHtml(locationStr)}">${escapeHtml(locationStr)}</span>
