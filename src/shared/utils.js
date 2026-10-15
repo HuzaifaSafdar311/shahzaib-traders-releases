@@ -110,8 +110,19 @@ window.toggleRowMenu = function(e, menuId) {
     targetMenu.classList.remove('hidden');
     const wrapper = targetMenu.closest('.dots-wrapper');
     if (wrapper) {
+      wrapper.classList.add('active');
+      const row = wrapper.closest('tr');
+      if (row) row.classList.add('menu-open');
+
       const rect = wrapper.getBoundingClientRect();
-      if (window.innerHeight - rect.bottom < 140) {
+      const tableWrapper = wrapper.closest('.gi-table-wrapper, .table-container, .voucher-grid-container');
+      const tableBounds = tableWrapper ? tableWrapper.getBoundingClientRect() : null;
+
+      const spaceBelow = tableBounds 
+        ? (tableBounds.bottom - rect.bottom) 
+        : (window.innerHeight - rect.bottom);
+
+      if (spaceBelow < 120) {
         wrapper.classList.add('drop-up');
       } else {
         wrapper.classList.remove('drop-up');
@@ -125,7 +136,11 @@ window.toggleRowMenu = function(e, menuId) {
 function closeAllActionMenus() {
   document.querySelectorAll('.action-menu').forEach(m => m.classList.add('hidden'));
   document.querySelectorAll('.btn-dots').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.dots-wrapper.drop-up').forEach(w => w.classList.remove('drop-up'));
+  document.querySelectorAll('.dots-wrapper').forEach(w => {
+    w.classList.remove('drop-up');
+    w.classList.remove('active');
+  });
+  document.querySelectorAll('tr.menu-open').forEach(r => r.classList.remove('menu-open'));
 }
 
 document.addEventListener('click', closeAllActionMenus);

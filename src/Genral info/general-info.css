@@ -317,7 +317,7 @@
 .gi-table-wrapper {
   flex: 1;
   overflow: auto;
-  padding: 0 0 60px 0;
+  padding: 0 0 120px 0;
   background-color: #ffffff;
 }
 
@@ -529,6 +529,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   box-sizing: border-box;
+}
+
+.table-party-info td.gi-actions-cell,
+.gi-data-table td.gi-actions-cell {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.table-party-info tbody tr.menu-open,
+.gi-data-table tbody tr.menu-open {
+  z-index: 100 !important;
 }
 
 .table-party-info th:first-child,
