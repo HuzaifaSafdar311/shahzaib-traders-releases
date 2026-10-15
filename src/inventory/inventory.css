@@ -559,6 +559,57 @@ textarea.form-control-sm {
   line-height: 1.2;
 }
 
+/* Purchase Bottom Navigation Dock (Matching Image 1) */
+.purchase-bottom-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 14px 0 20px 0;
+  width: 100%;
+}
+
+.nav-pill-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.nav-pill-btn {
+  background: transparent;
+  border: none;
+  color: #0284c7;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.nav-pill-btn:hover {
+  background: #e2e8f0;
+  color: #0369a1;
+}
+
+.nav-pill-btn:active {
+  transform: scale(0.95);
+}
+
+/* Purchase Modal Dialog */
+.purchase-modal-card {
+  max-width: 860px;
+  width: 92%;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
 /* ========================================================
    PRODUCT INFO MASTER VIEW STYLES
    ======================================================== */

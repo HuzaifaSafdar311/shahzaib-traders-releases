@@ -344,183 +344,79 @@
           <!-- ======================================================== -->
           <!-- TAB 6: PURCHASE (LEGACY DESKTOP REPLICA)                 -->
           <!-- ======================================================== -->
+          <!-- ======================================================== -->
+          <!-- TAB 5: PURCHASE (CLEAN TABLE VIEW & BOTTOM NAV)          -->
+          <!-- ======================================================== -->
           <section id="viewPurchase" class="subview-section">
-            <header class="voucher-top-bar">
-              <div class="voucher-header-title-actions">
-                <div class="voucher-title-wrap">
-                  <h1 class="view-title">Purchase</h1>
-                </div>
-                <div class="voucher-actions-bar">
-                  <div class="header-nav-btn-group">
-                    <button type="button" id="btnPurFirst" class="btn btn-secondary btn-icon-only"
-                      title="First Voucher">|&lt;</button>
-                    <button type="button" id="btnPurPrev" class="btn btn-secondary btn-icon-only"
-                      title="Previous Voucher">&lt;&lt;</button>
-                    <button type="button" id="btnPurNext" class="btn btn-secondary btn-icon-only"
-                      title="Next Voucher">&gt;&gt;</button>
-                    <button type="button" id="btnPurLast" class="btn btn-secondary btn-icon-only"
-                      title="Last Voucher">&gt;|</button>
-                  </div>
-                  <button type="button" id="btnPurRefresh" class="btn btn-secondary" title="New / Reset Voucher">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="23 4 23 10 17 10"></polyline>
-                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                    </svg>
-                    <span>New</span>
-                  </button>
-                  <button type="button" id="btnPurPrint" class="btn btn-secondary" title="Print Voucher">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                      <rect x="6" y="14" width="12" height="8"></rect>
-                    </svg>
-                    <span>Print</span>
-                  </button>
-                  <button type="button" id="btnPurDelete" class="btn btn-danger" title="Delete Voucher">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    <span>Delete</span>
-                  </button>
-                  <button type="button" id="btnPurSave" class="btn btn-primary" title="Save Purchase Voucher">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                      <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                    <span>Save Voucher</span>
-                  </button>
-                </div>
+            <header class="section-header">
+              <div class="header-left" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <h1 class="view-title">Purchase</h1>
+                <span id="purActiveVoucherBadge" class="badge-price-pill font-num font-bold"
+                  style="background: #e2e8f0; color: #1e293b; padding: 4px 12px; font-size: 13px; border-radius: 6px;">
+                  Voucher #<span id="purVoucherNoDisplay">109</span>
+                </span>
+                <span id="purActivePartyBadge" class="badge-price-pill font-bold hidden"
+                  style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 4px 12px; font-size: 13px; border-radius: 6px;"></span>
               </div>
-              <div class="voucher-meta-row">
-                <div class="meta-field">
-                  <label>Entry Date</label>
-                  <input type="date" id="purEntryDate" class="form-control form-control-sm">
-                </div>
-                <div class="meta-field">
-                  <label>Voucher No</label>
-                  <input type="text" id="purVoucherNo" class="form-control form-control-sm font-num font-bold" readonly>
-                </div>
-                <div class="meta-field">
-                  <label>Manual No</label>
-                  <input type="text" id="purManualNo" class="form-control form-control-sm"
-                    placeholder="Enter manual ref #">
-                </div>
-                <div class="meta-field meta-field-party">
-                  <label class="required-label">Party Title (Supplier)</label>
-                  <select id="purPartySelect" class="form-control form-control-sm required-input">
-                    <option value="">-- Please Select Party Title --</option>
-                  </select>
-                </div>
+              <div class="header-right" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <button type="button" id="btnOpenAddPurchase" class="btn btn-primary" title="Add Purchase (Open Entry Popup)">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Add Purchase</span>
+                </button>
+                <button type="button" id="btnPurRefresh" class="btn btn-secondary" title="New / Reset Voucher">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                  </svg>
+                  <span>New</span>
+                </button>
+                <button type="button" id="btnPurPrint" class="btn btn-secondary" title="Print Voucher">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                  </svg>
+                  <span>Print</span>
+                </button>
+                <button type="button" id="btnPurDelete" class="btn btn-danger" title="Delete Voucher">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  <span>Delete</span>
+                </button>
+                <button type="button" id="btnPurSave" class="btn btn-success" title="Save Purchase Voucher" style="background: #16a34a; border-color: #16a34a;">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  <span>Save Voucher</span>
+                </button>
               </div>
             </header>
 
-            <!-- Secondary Header Fields -->
-            <div class="voucher-secondary-bar">
-              <div class="form-group flex-2">
-                <label>Description</label>
-                <input type="text" id="purDescription" class="form-control form-control-sm"
-                  placeholder="Enter purchase voucher notes / details">
-              </div>
-              <div class="form-group flex-1">
-                <label>Store Title</label>
-                <input type="text" id="purStoreTitle" class="form-control form-control-sm" value="Main Store">
-              </div>
-              <div class="form-group flex-1">
-                <label>Receivable</label>
-                <input type="number" id="purReceivable" class="form-control form-control-sm font-num" value="0.00"
-                  readonly>
-              </div>
-              <div class="form-group flex-1">
-                <label>Contact Person</label>
-                <input type="text" id="purContactPerson" class="form-control form-control-sm"
-                  placeholder="Enter contact person">
-              </div>
-              <div class="form-group flex-1">
-                <label>Payment Due Date</label>
-                <input type="date" id="purDueDate" class="form-control form-control-sm">
-              </div>
-            </div>
-
-            <!-- Line Item Entry Single Row (Matching User Screenshot) -->
-            <div class="voucher-item-entry-row card">
-              <div class="entry-col entry-code">
-                <label>Code <span class="hotkey-hint">(F1)</span></label>
-                <div class="input-with-btn">
-                  <input type="text" id="pieCode" class="form-control form-control-sm font-num"
-                    placeholder="Enter item code">
-                  <button type="button" id="btnPieFind" class="btn btn-sm btn-secondary"
-                    title="Search Product (F1)">🔍</button>
-                </div>
-              </div>
-              <div class="entry-col entry-title">
-                <label>Product Title</label>
-                <select id="pieProductSelect" class="form-control form-control-sm">
-                  <option value="">-- Select Product --</option>
-                </select>
-              </div>
-              <div class="entry-col entry-sm">
-                <label>P.Qty</label>
-                <input type="number" id="piePackQty" class="form-control form-control-sm font-num" min="0" value="0">
-              </div>
-              <div class="entry-col entry-sm">
-                <label>U.Qty</label>
-                <input type="number" id="pieUnitQty" class="form-control form-control-sm font-num" min="0" value="0">
-              </div>
-              <div class="entry-col entry-sm">
-                <label>Bonus</label>
-                <input type="number" id="pieBonus" class="form-control form-control-sm font-num" min="0" value="0">
-              </div>
-              <div class="entry-col entry-price">
-                <label>T.Price</label>
-                <input type="number" id="pieTradePrice" class="form-control form-control-sm font-num" min="0"
-                  step="0.01" value="0.00">
-              </div>
-              <div class="entry-col entry-pill">
-                <label>R.Price</label>
-                <span id="pieRetailPricePill" class="badge-price-pill bg-green-pill font-num">0.00</span>
-              </div>
-              <div class="entry-col entry-pill">
-                <label>W.Price</label>
-                <span id="pieWholesalePricePill" class="badge-price-pill bg-green-pill font-num">0.00</span>
-              </div>
-              <div class="entry-col entry-sm">
-                <label>Offer</label>
-                <input type="number" id="pieTradeOffer" class="form-control form-control-sm font-num" min="0"
-                  step="0.01" value="0.00">
-              </div>
-              <div class="entry-col entry-sm">
-                <label>Disc %</label>
-                <input type="number" id="pieDiscPercent" class="form-control form-control-sm font-num" min="0" max="100"
-                  step="0.1" value="0.0">
-              </div>
-              <div class="entry-col entry-btn">
-                <label>&nbsp;</label>
-                <button type="button" id="btnAddPurchaseItem" class="btn btn-sm btn-primary btn-add-item">
-                  <span>+ Add</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Line Items Grid Table -->
-            <div class="table-container voucher-grid-container">
-              <table class="data-table voucher-table">
+            <!-- Line Items Grid Table (Image 2) -->
+            <div class="table-container voucher-grid-container gi-table-wrapper" style="min-height: 400px; max-height: calc(100vh - 330px); margin-top: 10px;">
+              <table class="data-table voucher-table gi-data-table">
                 <thead>
                   <tr>
-                    <th style="width: 50px;">Sr #</th>
-                    <th style="width: 90px;">Code</th>
-                    <th>Product Title</th>
-                    <th style="width: 70px;">P.Qty</th>
-                    <th style="width: 70px;">U.Qty</th>
-                    <th style="width: 70px;">Bonus</th>
+                    <th style="width: 50px;">SR #</th>
+                    <th style="width: 90px;">CODE</th>
+                    <th>PRODUCT TITLE</th>
+                    <th style="width: 70px;">P.QTY</th>
+                    <th style="width: 70px;">U.QTY</th>
+                    <th style="width: 70px;">BONUS</th>
                     <th style="width: 90px;">T.P</th>
-                    <th style="width: 70px;">Pro %</th>
+                    <th style="width: 70px;">PRO %</th>
                     <th style="width: 90px;">R.P</th>
                     <th style="width: 90px;">W.P</th>
                     <th style="width: 70px;">T.O</th>
-                    <th style="width: 70px;">Disc %</th>
-                    <th style="width: 110px;">Net Amount</th>
+                    <th style="width: 70px;">DISC %</th>
+                    <th style="width: 110px;">NET AMOUNT</th>
                     <th style="width: 60px;">X</th>
                   </tr>
                 </thead>
@@ -531,8 +427,8 @@
               </div>
             </div>
 
-            <!-- Voucher Summary & Totals Footer -->
-            <div class="voucher-footer-row card">
+            <!-- Voucher Summary & Totals Footer (Image 2) -->
+            <div class="voucher-footer-row card" style="margin-top: 8px;">
               <div class="footer-summary-grid">
                 <div class="summary-item">
                   <label>Discount</label>
@@ -563,6 +459,16 @@
                   <label>Total Amount</label>
                   <span id="purGrandTotalDisplay" class="grand-total-val font-num">0.00</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Bottom Navigation Dock (Image 1) -->
+            <div class="purchase-bottom-nav">
+              <div class="nav-pill-group">
+                <button type="button" id="btnPurFirst" class="nav-pill-btn" title="First Voucher">|&lt;</button>
+                <button type="button" id="btnPurPrev" class="nav-pill-btn" title="Previous Voucher">&lt;&lt;</button>
+                <button type="button" id="btnPurNext" class="nav-pill-btn" title="Next Voucher">&gt;&gt;</button>
+                <button type="button" id="btnPurLast" class="nav-pill-btn" title="Last Voucher">&gt;|</button>
               </div>
             </div>
 
@@ -2586,6 +2492,140 @@
     </div>
   </div>
 
+  <!-- Modal: Add Purchase / Purchase Entry (Popup) -->
+  <div id="modalAddPurchase" class="modal-overlay hidden">
+    <div class="modal-card modal-card-lg purchase-modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap" style="display: flex; align-items: center; gap: 12px;">
+          <h2 class="modal-title">Add Purchase Entry</h2>
+          <span class="badge-price-pill font-num font-bold"
+            style="background: #e2e8f0; color: #0f172a; padding: 4px 10px; font-size: 13px; border-radius: 6px;">
+            Voucher #<span id="modalPurVoucherNoDisplay">109</span>
+          </span>
+        </div>
+        <button id="btnCloseAddPurchaseModal" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px; max-height: calc(85vh - 120px); overflow-y: auto;">
+        
+        <!-- Section 1: Supplier & Voucher Info -->
+        <div class="modal-sub-section mb-3" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
+          <h4 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">1. Supplier & Voucher Details</h4>
+          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+            <div class="form-group">
+              <label for="purPartySelect" class="required-label">Party Title (Supplier)</label>
+              <select id="purPartySelect" class="form-control required-input">
+                <option value="">-- Please Select Supplier / Vendor --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="purEntryDate">Entry Date</label>
+              <input type="date" id="purEntryDate" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="purVoucherNo">Voucher No</label>
+              <input type="text" id="purVoucherNo" class="form-control font-num font-bold" readonly>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1.5fr; gap: 12px;">
+            <div class="form-group">
+              <label for="purManualNo">Manual / Bilty No</label>
+              <input type="text" id="purManualNo" class="form-control" placeholder="Enter manual ref #">
+            </div>
+            <div class="form-group">
+              <label for="purDueDate">Payment Due Date</label>
+              <input type="date" id="purDueDate" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="purContactPerson">Contact Person</label>
+              <input type="text" id="purContactPerson" class="form-control" placeholder="Enter contact person">
+            </div>
+            <div class="form-group">
+              <label for="purStoreTitle">Store / Godown</label>
+              <input type="text" id="purStoreTitle" class="form-control" value="Main Store">
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 10px;">
+            <label for="purDescription">Description / Notes</label>
+            <input type="text" id="purDescription" class="form-control" placeholder="Enter purchase voucher notes / details">
+          </div>
+        </div>
+
+        <!-- Section 2: Product & Rates Entry -->
+        <div class="modal-sub-section" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0; font-size: 13px; font-weight: 700; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px;">2. Product & Item Entry</h4>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span style="font-size: 12px; color: #64748b;">R.Price:</span>
+              <span id="pieRetailPricePill" class="badge-price-pill bg-green-pill font-num" style="height: 24px; padding: 0 8px; font-size: 12px;">0.00</span>
+              <span style="font-size: 12px; color: #64748b; margin-left: 8px;">W.Price:</span>
+              <span id="pieWholesalePricePill" class="badge-price-pill bg-green-pill font-num" style="height: 24px; padding: 0 8px; font-size: 12px;">0.00</span>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group">
+              <label for="pieCode">Code <span class="hotkey-hint">(F1)</span></label>
+              <div class="input-with-btn">
+                <input type="text" id="pieCode" class="form-control font-num" placeholder="Item Code">
+                <button type="button" id="btnPieFind" class="btn btn-sm btn-secondary" title="Search Product (F1)">🔍</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="pieProductSelect">Product Title</label>
+              <select id="pieProductSelect" class="form-control">
+                <option value="">-- Select Product --</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 12px;">
+            <div class="form-group">
+              <label for="piePackQty">P.Qty (Packs)</label>
+              <input type="number" id="piePackQty" class="form-control font-num" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="pieUnitQty">U.Qty (Units)</label>
+              <input type="number" id="pieUnitQty" class="form-control font-num" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="pieBonus">Bonus</label>
+              <input type="number" id="pieBonus" class="form-control font-num" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="pieTradePrice">Trade Price (T.P)</label>
+              <input type="number" id="pieTradePrice" class="form-control font-num" min="0" step="0.01" value="0.00">
+            </div>
+            <div class="form-group">
+              <label for="pieTradeOffer">Offer (T.O)</label>
+              <input type="number" id="pieTradeOffer" class="form-control font-num" min="0" step="0.01" value="0.00">
+            </div>
+            <div class="form-group">
+              <label for="pieDiscPercent">Disc %</label>
+              <input type="number" id="pieDiscPercent" class="form-control font-num" min="0" max="100" step="0.1" value="0.0">
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 10px 14px; border-radius: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13px; font-weight: 600; color: #475569;">Line Net Amount:</span>
+              <span id="pieLineNetPreview" class="font-num font-bold text-accent" style="font-size: 16px;">Rs. 0.00</span>
+            </div>
+            <button type="button" id="btnAddPurchaseItem" class="btn btn-primary" style="padding: 6px 20px; font-weight: 700;">
+              <span>+ Add Item to Voucher</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 12.5px; color: #64748b;">Items in this Voucher: <strong id="modalPurchaseItemCount">0</strong> item(s)</span>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" id="btnCancelAddPurchase" class="btn btn-secondary">Close</button>
+          <button type="button" id="btnDonePurchaseModal" class="btn btn-success">Done & View Bill</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: Product Search (F1 Find) -->
   <div id="modalProductSearch" class="modal-overlay hidden">

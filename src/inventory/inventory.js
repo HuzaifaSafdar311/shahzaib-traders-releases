@@ -124,6 +124,18 @@ const inv = {
   btnPurPrint: document.getElementById('btnPurPrint'),
   btnPurDelete: document.getElementById('btnPurDelete'),
 
+  // Purchase Modal & Badges
+  btnOpenAddPurchase: document.getElementById('btnOpenAddPurchase'),
+  modalAddPurchase: document.getElementById('modalAddPurchase'),
+  btnCloseAddPurchaseModal: document.getElementById('btnCloseAddPurchaseModal'),
+  btnCancelAddPurchase: document.getElementById('btnCancelAddPurchase'),
+  btnDonePurchaseModal: document.getElementById('btnDonePurchaseModal'),
+  purVoucherNoDisplay: document.getElementById('purVoucherNoDisplay'),
+  modalPurVoucherNoDisplay: document.getElementById('modalPurVoucherNoDisplay'),
+  purActivePartyBadge: document.getElementById('purActivePartyBadge'),
+  modalPurchaseItemCount: document.getElementById('modalPurchaseItemCount'),
+  pieLineNetPreview: document.getElementById('pieLineNetPreview'),
+
   // 7. Product Info Master
   btnProductInfoList: document.getElementById('btnProductInfoList'),
   productInfoForm: document.getElementById('productInfoForm'),
@@ -746,8 +758,67 @@ if (inv.btnClearUnitSearch && inv.unitSearchInput) {
   });
 }
 // ========================================================
-// 5. PURCHASE VOUCHER MODULE (ENTERPRISE)
+// 5. PURCHASE VOUCHER MODULE (ENTERPRISE - MODAL WORKFLOW)
 // ========================================================
+function openAddPurchaseModal() {
+  if (inv.modalAddPurchase) inv.modalAddPurchase.classList.remove('hidden');
+  updatePurchaseHeaderBadges();
+  updateModalPurchaseCount();
+  updateLineNetPreview();
+  setTimeout(() => { if (inv.pieCode) inv.pieCode.focus(); }, 100);
+}
+
+function closeAddPurchaseModal() {
+  if (inv.modalAddPurchase) inv.modalAddPurchase.classList.add('hidden');
+  updatePurchaseHeaderBadges();
+}
+
+function updatePurchaseHeaderBadges() {
+  const vNo = inv.purVoucherNo?.value || '109';
+  if (inv.purVoucherNoDisplay) inv.purVoucherNoDisplay.textContent = vNo;
+  if (inv.modalPurVoucherNoDisplay) inv.modalPurVoucherNoDisplay.textContent = vNo;
+
+  const partySelect = inv.purPartySelect;
+  const selectedParty = partySelect && partySelect.selectedIndex > 0 && partySelect.value
+    ? partySelect.options[partySelect.selectedIndex].text
+    : '';
+
+  if (inv.purActivePartyBadge) {
+    if (selectedParty) {
+      inv.purActivePartyBadge.textContent = selectedParty.split('[')[0].trim();
+      inv.purActivePartyBadge.classList.remove('hidden');
+    } else {
+      inv.purActivePartyBadge.classList.add('hidden');
+    }
+  }
+}
+
+function updateModalPurchaseCount() {
+  if (inv.modalPurchaseItemCount) {
+    inv.modalPurchaseItemCount.textContent = currentPurchaseItems.length;
+  }
+}
+
+function updateLineNetPreview() {
+  const code = inv.pieCode?.value.trim();
+  const prod = (window.appData?.products || []).find(p => String(p.code).trim() === code);
+  const packSize = Number(prod?.packSize) || 1;
+  const pQty = Number(inv.piePackQty?.value) || 0;
+  const uQty = Number(inv.pieUnitQty?.value) || 0;
+  const tp = Number(inv.pieTradePrice?.value) || 0;
+  const tradeOffer = Number(inv.pieTradeOffer?.value) || 0;
+  const discPercent = Number(inv.pieDiscPercent?.value) || 0;
+
+  const totalUnits = (pQty * packSize) + uQty;
+  let rawAmount = totalUnits * tp;
+  if (tradeOffer > 0) rawAmount -= tradeOffer;
+  if (discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
+  const net = Math.max(0, rawAmount);
+  if (inv.pieLineNetPreview) {
+    inv.pieLineNetPreview.textContent = 'Rs. ' + net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+}
+
 async function initPurchaseView() {
   // Populate Parties Dropdown from General Info Parties
   if (inv.purPartySelect) {
@@ -794,15 +865,18 @@ async function initPurchaseView() {
 
   loadedPurchases = window.appData?.purchases || [];
   renderPurchaseLineItems();
+  updatePurchaseHeaderBadges();
+  updateModalPurchaseCount();
 }
 
-// When Party dropdown changes, auto-fill contact person
+// When Party dropdown changes, auto-fill contact person & update badge
 if (inv.purPartySelect) {
   inv.purPartySelect.addEventListener('change', () => {
     const selected = inv.purPartySelect.options[inv.purPartySelect.selectedIndex];
     if (inv.purContactPerson) {
       inv.purContactPerson.value = selected?.dataset?.contact || '';
     }
+    updatePurchaseHeaderBadges();
   });
 }
 
@@ -814,6 +888,7 @@ function selectProductForPurchase(prod) {
   if (inv.pieTradePrice) inv.pieTradePrice.value = Number(prod.purchasePrice || 0).toFixed(2);
   if (inv.pieRetailPricePill) inv.pieRetailPricePill.textContent = Number(prod.retailPrice || 0).toFixed(2);
   if (inv.pieWholesalePricePill) inv.pieWholesalePricePill.textContent = Number(prod.wholesalePrice || 0).toFixed(2);
+  updateLineNetPreview();
 }
 
 if (inv.pieProductSelect) {
@@ -893,6 +968,8 @@ function addPurchaseLineItem() {
 
   currentPurchaseItems.push(lineItem);
   renderPurchaseLineItems();
+  updateModalPurchaseCount();
+  updatePurchaseHeaderBadges();
 
   // Reset entry line inputs
   if (inv.pieCode) inv.pieCode.value = '';
@@ -905,6 +982,7 @@ function addPurchaseLineItem() {
   if (inv.pieWholesalePricePill) inv.pieWholesalePricePill.textContent = '0.00';
   if (inv.pieTradeOffer) inv.pieTradeOffer.value = '0.00';
   if (inv.pieDiscPercent) inv.pieDiscPercent.value = '0.0';
+  updateLineNetPreview();
   inv.pieCode?.focus();
 }
 
@@ -914,6 +992,7 @@ function removePurchaseLineItem(index) {
   currentPurchaseItems.splice(index, 1);
   currentPurchaseItems.forEach((item, i) => { item.srNo = i + 1; });
   renderPurchaseLineItems();
+  updateModalPurchaseCount();
 }
 
 function renderPurchaseLineItems() {
@@ -1036,7 +1115,7 @@ async function resetPurchaseForm() {
     try {
       const vNo = window.api?.getNextPurchaseVoucherNo ? await window.api.getNextPurchaseVoucherNo() : '109';
       inv.purVoucherNo.value = vNo;
-    } catch (e) {}
+    } catch (e) { }
   }
   if (inv.purManualNo) inv.purManualNo.value = '';
   if (inv.purPartySelect) inv.purPartySelect.value = '';
@@ -1048,6 +1127,8 @@ async function resetPurchaseForm() {
   if (inv.purSalesTax) inv.purSalesTax.value = '0.00';
   if (inv.purExtraCharges) inv.purExtraCharges.value = '0.00';
   renderPurchaseLineItems();
+  updatePurchaseHeaderBadges();
+  updateModalPurchaseCount();
 }
 
 function loadPurchaseRecord(pur) {
@@ -1072,6 +1153,8 @@ function loadPurchaseRecord(pur) {
     currentPurchaseItems = [];
   }
   renderPurchaseLineItems();
+  updatePurchaseHeaderBadges();
+  updateModalPurchaseCount();
 }
 
 // Purchase Navigation Dock
@@ -1097,6 +1180,17 @@ if (inv.btnPurDelete) {
     });
   });
 }
+
+// Purchase Modal Open & Close Event Bindings
+if (inv.btnOpenAddPurchase) inv.btnOpenAddPurchase.addEventListener('click', openAddPurchaseModal);
+if (inv.btnCloseAddPurchaseModal) inv.btnCloseAddPurchaseModal.addEventListener('click', closeAddPurchaseModal);
+if (inv.btnCancelAddPurchase) inv.btnCancelAddPurchase.addEventListener('click', closeAddPurchaseModal);
+if (inv.btnDonePurchaseModal) inv.btnDonePurchaseModal.addEventListener('click', closeAddPurchaseModal);
+
+// Live preview listeners for item entry inside modal
+[inv.piePackQty, inv.pieUnitQty, inv.pieTradePrice, inv.pieTradeOffer, inv.pieDiscPercent].forEach(input => {
+  if (input) input.addEventListener('input', updateLineNetPreview);
+});
 
 if (inv.btnPurFirst) {
   inv.btnPurFirst.addEventListener('click', () => {
