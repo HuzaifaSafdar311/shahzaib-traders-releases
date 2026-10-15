@@ -887,23 +887,23 @@
       tr.innerHTML = `
         <td>
           <div class="party-info-cell">
-            <span class="cell-title font-bold" style="color: #0f172a;" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
+            <span class="cell-title font-bold" style="color: #0f172a; cursor: default;" data-full-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
           </div>
         </td>
         <td style="text-align: center;">
-          <span class="font-medium" title="${escapeHtml(p.contactPerson || '-')}">${escapeHtml(p.contactPerson || '-')}</span>
+          <span class="font-medium" style="cursor: default;" data-full-name="${escapeHtml(p.contactPerson || '-')}">${escapeHtml(p.contactPerson || '-')}</span>
         </td>
         <td style="text-align: center;">
           <span class="font-mono text-xs">${escapeHtml(p.phone || '-')}</span>
         </td>
         <td style="text-align: center;">
-          <span style="font-size: 12.5px; color: #475569;" title="${escapeHtml(p.email || '-')}">${escapeHtml(p.email || '-')}</span>
+          <span style="font-size: 12.5px; color: #475569; cursor: default;" data-full-name="${escapeHtml(p.email || '-')}">${escapeHtml(p.email || '-')}</span>
         </td>
         <td style="text-align: center;">
-          <span class="address-text" style="font-size: 12.5px;" title="${escapeHtml(p.address || '-')}">${escapeHtml(p.address || '-')}</span>
+          <span class="address-text" style="font-size: 12.5px; cursor: default;" data-full-name="${escapeHtml(p.address || '-')}">${escapeHtml(p.address || '-')}</span>
         </td>
         <td style="text-align: center;">
-          <span class="location-text" style="font-size: 12.5px;" title="${escapeHtml(locationStr)}">${escapeHtml(locationStr)}</span>
+          <span class="location-text" style="font-size: 12.5px; cursor: default;" data-full-name="${escapeHtml(locationStr)}">${escapeHtml(locationStr)}</span>
         </td>
         <td class="font-mono" style="font-size: 12.5px; text-align: center;">${escapeHtml(p.ntn || '-')}</td>
         <td style="text-align: right; padding-right: 20px;">
@@ -1217,6 +1217,67 @@
         }
       });
     }
+
+    setupSmartTooltip();
+  }
+
+  // Smart hover tooltip ONLY for elements whose text is truncated by ellipsis
+  function setupSmartTooltip() {
+    let tooltip = document.getElementById('giTruncatedTooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.id = 'giTruncatedTooltip';
+      tooltip.className = 'gi-truncated-tooltip hidden';
+      document.body.appendChild(tooltip);
+    }
+
+    function showTooltip(el) {
+      // Check if text is actually truncated with dots (scrollWidth > clientWidth)
+      if (el.scrollWidth > el.clientWidth + 2) {
+        const fullText = el.getAttribute('data-full-name') || el.textContent.trim();
+        if (!fullText || fullText === '-') return;
+
+        tooltip.textContent = fullText;
+        tooltip.classList.remove('hidden');
+
+        const rect = el.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+
+        let top = rect.top - tooltipRect.height - 6;
+        if (top < 8) {
+          top = rect.bottom + 6;
+        }
+
+        let left = rect.left;
+        if (left + tooltipRect.width > window.innerWidth - 16) {
+          left = window.innerWidth - tooltipRect.width - 16;
+        }
+        if (left < 10) left = 10;
+
+        tooltip.style.top = top + 'px';
+        tooltip.style.left = left + 'px';
+      }
+    }
+
+    function hideTooltip() {
+      if (tooltip) tooltip.classList.add('hidden');
+    }
+
+    document.addEventListener('mouseover', (e) => {
+      const target = e.target.closest('[data-full-name]');
+      if (target) {
+        showTooltip(target);
+      }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      const target = e.target.closest('[data-full-name]');
+      if (target) {
+        hideTooltip();
+      }
+    });
+
+    window.addEventListener('scroll', hideTooltip, true);
   }
 
   // Public module API
