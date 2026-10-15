@@ -307,10 +307,14 @@ function renderUnits() {
   filtered.forEach((unit, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="col-unit-sr font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
-      <td class="col-unit-name font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(unit.name)}</td>
-      <td class="col-unit-symbol" style="text-align: center;"><span class="code-pill">${window.escapeHtml(unit.symbol || '-')}</span></td>
-      <td class="col-unit-actions col-dots-actions text-center">
+      <td class="col-unit-sr font-num" style="text-align: center;">${idx + 1}</td>
+      <td class="col-unit-name font-bold" style="text-align: center;">
+        <span style="cursor: default;" data-full-name="${window.escapeHtml(unit.name)}">${window.escapeHtml(unit.name)}</span>
+      </td>
+      <td class="col-unit-symbol" style="text-align: center;">
+        <span class="code-pill" style="cursor: default;" data-full-name="${window.escapeHtml(unit.symbol || '-')}">${window.escapeHtml(unit.symbol || '-')}</span>
+      </td>
+      <td class="col-unit-actions col-dots-actions" style="text-align: center;">
         <div class="dots-wrapper">
           <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'unitMenu_${unit.id}')" title="Actions">
             <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -428,10 +432,14 @@ function renderProductTypes() {
   filtered.forEach((type, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="col-pt-sr font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
-      <td class="col-pt-name font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(type.name)}</td>
-      <td class="col-pt-desc text-secondary" style="text-align: center;">${window.escapeHtml(type.description || '-')}</td>
-      <td class="col-pt-actions col-dots-actions text-center">
+      <td class="col-pt-sr font-num" style="text-align: center;">${idx + 1}</td>
+      <td class="col-pt-name font-bold" style="text-align: center;">
+        <span style="cursor: default;" data-full-name="${window.escapeHtml(type.name)}">${window.escapeHtml(type.name)}</span>
+      </td>
+      <td class="col-pt-desc text-secondary" style="text-align: center;">
+        <span style="cursor: default;" data-full-name="${window.escapeHtml(type.description || '-')}">${window.escapeHtml(type.description || '-')}</span>
+      </td>
+      <td class="col-pt-actions col-dots-actions" style="text-align: center;">
         <div class="dots-wrapper">
           <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'ptMenu_${type.id}')" title="Actions">
             <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -549,11 +557,17 @@ function renderProductCategories() {
     const subCount = allSubs.filter(s => s.categoryId === cat.id).length;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="col-cat-sr font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
-      <td class="col-cat-name font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(cat.name)}</td>
-      <td class="col-cat-code" style="text-align: center;"><span class="code-pill">${window.escapeHtml(cat.code || '-')}</span></td>
-      <td class="col-cat-subs" style="text-align: center;"><span class="badge-tag">${subCount} Sub Categor${subCount === 1 ? 'y' : 'ies'}</span></td>
-      <td class="col-cat-actions col-dots-actions text-center">
+      <td class="col-cat-sr font-num" style="text-align: center;">${idx + 1}</td>
+      <td class="col-cat-name font-bold" style="text-align: center;">
+        <span style="cursor: default;" data-full-name="${window.escapeHtml(cat.name)}">${window.escapeHtml(cat.name)}</span>
+      </td>
+      <td class="col-cat-code" style="text-align: center;">
+        <span class="code-pill" style="cursor: default;" data-full-name="${window.escapeHtml(cat.code || '-')}">${window.escapeHtml(cat.code || '-')}</span>
+      </td>
+      <td class="col-cat-subs" style="text-align: center;">
+        <span class="badge-tag" style="cursor: default;">${subCount} Sub Categor${subCount === 1 ? 'y' : 'ies'}</span>
+      </td>
+      <td class="col-cat-actions col-dots-actions" style="text-align: center;">
         <div class="dots-wrapper">
           <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'catMenu_${cat.id}')" title="Actions">
             <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -687,11 +701,17 @@ function renderProductSubCategories() {
     const parentCat = categories.find(c => c.id === sub.categoryId);
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="col-sub-sr font-num" style="text-align: left; padding-left: 24px;">${idx + 1}</td>
-      <td class="col-sub-name font-bold" style="text-align: left; padding-left: 16px;">${window.escapeHtml(sub.name)}</td>
-      <td class="col-sub-code" style="text-align: center;"><span class="code-pill">${window.escapeHtml(sub.code || '-')}</span></td>
-      <td class="col-sub-parent" style="text-align: center;"><span class="badge-tag">${window.escapeHtml(parentCat?.name || '-')}</span></td>
-      <td class="col-sub-actions col-dots-actions text-center">
+      <td class="col-sub-sr font-num" style="text-align: center;">${idx + 1}</td>
+      <td class="col-sub-name font-bold" style="text-align: center;">
+        <span style="cursor: default;" data-full-name="${window.escapeHtml(sub.name)}">${window.escapeHtml(sub.name)}</span>
+      </td>
+      <td class="col-sub-code" style="text-align: center;">
+        <span class="code-pill" style="cursor: default;" data-full-name="${window.escapeHtml(sub.code || '-')}">${window.escapeHtml(sub.code || '-')}</span>
+      </td>
+      <td class="col-sub-parent" style="text-align: center;">
+        <span class="badge-tag" style="cursor: default;" data-full-name="${window.escapeHtml(parentCat?.name || '-')}">${window.escapeHtml(parentCat?.name || '-')}</span>
+      </td>
+      <td class="col-sub-actions col-dots-actions" style="text-align: center;">
         <div class="dots-wrapper">
           <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'subCatMenu_${sub.id}')" title="Actions">
             <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
