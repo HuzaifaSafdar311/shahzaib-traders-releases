@@ -1260,6 +1260,30 @@
               </svg>
               <span>Sales Management</span>
             </div>
+            <div class="sale-top-tools-actions">
+              <button type="button" id="btnTopEstimateModal" class="btn btn-secondary sale-top-tool-btn" title="Kacha Bill / Electrician Quotation">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>📋 Kacha Bill</span>
+              </button>
+              <button type="button" id="btnTopClosingModal" class="btn btn-secondary sale-top-tool-btn" title="Day-End Cash Closing & Counter Handover">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span>💵 Day Closing</span>
+              </button>
+              <button type="button" id="btnTopClaimsModal" class="btn btn-secondary sale-top-tool-btn" title="Warranty Claims (Kharab Samaan)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>🛡️ Claims</span>
+              </button>
+            </div>
           </div>
 
           <!-- 2 Sub-Tabs: Sale Voucher & Sale Return -->
@@ -1302,6 +1326,15 @@
               </button>
               <button type="button" id="btnSaleHistory" class="btn btn-secondary" title="Sales History">
                 <span>Recent Sales</span>
+              </button>
+              <button type="button" id="btnOpenEstimateModal" class="btn btn-secondary" title="Kacha Bill / Electrician Quotation">
+                <span>📋 Kacha Bill</span>
+              </button>
+              <button type="button" id="btnOpenClosingModal" class="btn btn-secondary" title="Day-End Cash Closing">
+                <span>💵 Day Closing</span>
+              </button>
+              <button type="button" id="btnOpenClaimsModal" class="btn btn-secondary" title="Warranty Claims (Kharab Samaan)">
+                <span>🛡️ Claims</span>
               </button>
               <button type="button" id="btnSalePrint" class="btn btn-secondary" title="Print Bill (Ctrl+P)">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -1460,7 +1493,6 @@
             </div>
           </div>
         </div>
-        </div>
 
         <!-- ITEMS TABLE CONTAINER -->
         <div class="sale-items-table-container">
@@ -1565,6 +1597,15 @@
                 </button>
                 <button type="button" id="btnReturnHistory" class="btn btn-secondary" title="Return History">
                   <span>Return History</span>
+                </button>
+                <button type="button" id="btnReturnOpenEstimateModal" class="btn btn-secondary" title="Kacha Bill / Electrician Quotation">
+                  <span>📋 Kacha Bill</span>
+                </button>
+                <button type="button" id="btnReturnOpenClosingModal" class="btn btn-secondary" title="Day-End Cash Closing">
+                  <span>💵 Day Closing</span>
+                </button>
+                <button type="button" id="btnReturnOpenClaimsModal" class="btn btn-secondary" title="Warranty Claims (Kharab Samaan)">
+                  <span>🛡️ Claims</span>
                 </button>
                 <button type="button" id="btnReturnPrint" class="btn btn-secondary" title="Print Return Note">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -2930,6 +2971,269 @@
             <tbody id="returnHistoryTableBody">
               <!-- Dynamically rendered -->
             </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: Kacha Bill / Electrician Quotation                -->
+  <!-- ======================================================== -->
+  <div id="modalEstimate" class="modal-overlay hidden">
+    <div class="modal-card modal-card-xl">
+      <div class="modal-header">
+        <h2 class="modal-title">📋 Kacha Bill / Electrician Quotation</h2>
+        <button type="button" id="btnCloseEstimateModal" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body modal-scroll-body">
+        <!-- Meta & Actions Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap;">
+          <div class="sale-meta-row-clean" style="flex: 1; min-width: 500px;">
+            <div class="form-group">
+              <label>Estimate No</label>
+              <input type="text" id="estNumber" class="form-control form-control-sm font-num font-bold" readonly value="EST-0001">
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="estDate" class="form-control form-control-sm">
+            </div>
+            <div class="form-group">
+              <label>Electrician / Customer Name</label>
+              <input type="text" id="estCustomerName" class="form-control form-control-sm font-bold" placeholder="Customer name">
+            </div>
+            <div class="form-group">
+              <label>Contact Phone</label>
+              <input type="text" id="estPhone" class="form-control form-control-sm" placeholder="03xx-xxxxxxx">
+            </div>
+          </div>
+          <div class="sale-header-btn-group" style="margin-bottom: 2px;">
+            <button type="button" id="btnEstimateNew" class="btn btn-secondary"><span>+ New</span></button>
+            <button type="button" id="btnEstimateConvertSale" class="btn btn-secondary"><span>Convert to Sale</span></button>
+            <button type="button" id="btnEstimatePrint" class="btn btn-secondary"><span>Print Bill</span></button>
+            <button type="button" id="btnEstimateSave" class="btn btn-primary"><span>Save Estimate</span></button>
+          </div>
+        </div>
+
+        <!-- Item Entry Card -->
+        <div class="sale-item-entry-card" style="margin-top: 8px;">
+          <div style="display: grid; grid-template-columns: 140px 1fr 90px 120px 130px 100px; gap: 10px; align-items: end;">
+            <div class="form-group">
+              <label>Item Code (F1)</label>
+              <div style="display: flex; gap: 4px;">
+                <input type="text" id="estItemCode" class="form-control form-control-sm font-bold" placeholder="Code">
+                <button type="button" id="btnEstFindProduct" class="btn btn-secondary" style="height: 32px; padding: 0 8px;">Find</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Product Description</label>
+              <select id="estProductSelect" class="form-control form-control-sm">
+                <option value="">-- Select Product --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Qty</label>
+              <input type="number" id="estQty" class="form-control form-control-sm text-center" min="1" value="1">
+            </div>
+            <div class="form-group">
+              <label>Quoted Rate (Rs)</label>
+              <input type="number" id="estRate" class="form-control form-control-sm text-right font-bold" min="0" value="0.00">
+            </div>
+            <div class="form-group">
+              <label>Amount (Rs)</label>
+              <input type="text" id="estLineAmount" class="form-control form-control-sm text-right font-bold" readonly value="Rs. 0.00">
+            </div>
+            <div>
+              <button type="button" id="btnEstAddItem" class="btn btn-primary" style="width: 100%; height: 32px;">+ Add</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Items Table Container -->
+        <div class="sale-items-table-container" style="max-height: 280px; overflow-y: auto;">
+          <table class="sale-items-table">
+            <thead>
+              <tr>
+                <th style="width: 48px; text-align: center;">Sr #</th>
+                <th style="width: 110px;">Item Code</th>
+                <th>Product Description</th>
+                <th style="width: 80px; text-align: center;">Qty</th>
+                <th style="width: 120px; text-align: right;">Rate (Rs)</th>
+                <th style="width: 130px; text-align: right;">Amount (Rs)</th>
+                <th style="width: 60px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="estTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="sale-secondary-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px;">
+          <div style="font-size: 13px; color: var(--text-secondary);">
+            Total Items: <strong id="estTotalItems" style="color: var(--text-primary);">0</strong>
+          </div>
+          <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">
+            Estimate Total: <span id="estGrandTotal" style="font-weight: 700; margin-left: 8px;">Rs. 0.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: Day-End Cash Closing & Counter Handover           -->
+  <!-- ======================================================== -->
+  <div id="modalClosing" class="modal-overlay hidden">
+    <div class="modal-card modal-card-lg" style="width: 820px; max-width: 95vw;">
+      <div class="modal-header">
+        <h2 class="modal-title">💵 Day-End Cash Closing & Counter Handover</h2>
+        <button type="button" id="btnCloseClosingModal" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body modal-scroll-body">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div class="form-group" style="width: 180px;">
+            <label>Closing Date</label>
+            <input type="date" id="closingDatePicker" class="form-control form-control-sm">
+          </div>
+          <div class="sale-header-btn-group">
+            <button type="button" id="btnRefreshClosing" class="btn btn-secondary"><span>Recalculate</span></button>
+            <button type="button" id="btnPrintClosing" class="btn btn-secondary"><span>Print Slip</span></button>
+            <button type="button" id="btnSaveClosing" class="btn btn-primary"><span>Save Closing</span></button>
+          </div>
+        </div>
+
+        <!-- 4 Summary Stats -->
+        <div class="closing-summary-row">
+          <div class="closing-stat">
+            <span class="closing-stat-label">Opening Cash</span>
+            <span id="statOpeningCash" class="closing-stat-val">Rs. 0.00</span>
+          </div>
+          <div class="closing-stat">
+            <span class="closing-stat-label">Today Inflow (+)</span>
+            <span id="statCashInflow" class="closing-stat-val">Rs. 0.00</span>
+          </div>
+          <div class="closing-stat">
+            <span class="closing-stat-label">Today Outflow (-)</span>
+            <span id="statCashOutflow" class="closing-stat-val">Rs. 0.00</span>
+          </div>
+          <div class="closing-stat">
+            <span class="closing-stat-label">Expected Drawer Cash (=)</span>
+            <span id="statExpectedCash" class="closing-stat-val">Rs. 0.00</span>
+          </div>
+        </div>
+
+        <!-- Physical Count & Handover -->
+        <div class="sale-item-entry-card">
+          <div class="tf-grid-3">
+            <div class="form-group">
+              <label>Physical Cash Counted (Rs)</label>
+              <input type="number" id="closingCountedCash" class="form-control form-control-sm font-bold" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>Difference</label>
+              <input type="text" id="closingDifference" class="form-control form-control-sm font-bold text-center" readonly value="Exact Balance (Rs. 0)">
+            </div>
+            <div class="form-group">
+              <label>Cash Delivered to Owner (Rs)</label>
+              <input type="number" id="closingHandoverManager" class="form-control form-control-sm font-bold" placeholder="0">
+            </div>
+          </div>
+          <div class="tf-grid-3" style="margin-top: 10px;">
+            <div class="form-group">
+              <label>Closing Drawer Balance (Next Day)</label>
+              <input type="text" id="closingNextDayCash" class="form-control form-control-sm font-bold" readonly value="Rs. 0.00">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>Notes / Handover Remarks</label>
+              <input type="text" id="closingNotes" class="form-control form-control-sm" placeholder="Handover details or remarks">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: Warranty & Defective Item Claims                  -->
+  <!-- ======================================================== -->
+  <div id="modalClaims" class="modal-overlay hidden">
+    <div class="modal-card modal-card-xl" style="width: 960px; max-width: 95vw;">
+      <div class="modal-header">
+        <h2 class="modal-title">🛡️ Warranty Claims (Kharab Samaan Record)</h2>
+        <button type="button" id="btnCloseClaimsModal" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body modal-scroll-body">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px;">
+          <div class="sale-meta-row-clean" style="flex: 1; min-width: 500px;">
+            <div class="form-group">
+              <label>Claim No</label>
+              <input type="text" id="claimNo" class="form-control form-control-sm font-bold" readonly value="CLM-0001">
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="claimDate" class="form-control form-control-sm">
+            </div>
+            <div class="form-group">
+              <label>Customer Name</label>
+              <input type="text" id="claimCustomer" class="form-control form-control-sm" placeholder="Customer name">
+            </div>
+            <div class="form-group">
+              <label>Contact Phone</label>
+              <input type="text" id="claimPhone" class="form-control form-control-sm" placeholder="03xx-xxxxxxx">
+            </div>
+          </div>
+          <div class="sale-header-btn-group" style="margin-bottom: 2px;">
+            <button type="button" id="btnClaimNew" class="btn btn-secondary"><span>+ New Claim</span></button>
+            <button type="button" id="btnClaimSave" class="btn btn-primary"><span>Save Claim</span></button>
+          </div>
+        </div>
+
+        <div class="sale-item-entry-card" style="margin-top: 8px;">
+          <div class="tf-grid-4">
+            <div class="form-group">
+              <label>Product Item</label>
+              <input type="text" id="claimProductTitle" class="form-control form-control-sm" placeholder="Product name / model">
+            </div>
+            <div class="form-group">
+              <label>Quantity</label>
+              <input type="number" id="claimQty" class="form-control form-control-sm text-center" min="1" value="1">
+            </div>
+            <div class="form-group">
+              <label>Supplier / Factory</label>
+              <input type="text" id="claimSupplier" class="form-control form-control-sm" placeholder="Supplier / Factory name">
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select id="claimStatus" class="form-control form-control-sm font-bold">
+                <option value="Received">Received from Customer</option>
+                <option value="SentToFactory">Sent to Factory</option>
+                <option value="Replaced">Replacement Received</option>
+                <option value="Delivered">Delivered to Customer</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 10px;">
+            <label>Fault / Defect Description</label>
+            <input type="text" id="claimFault" class="form-control form-control-sm" placeholder="Description of fault...">
+          </div>
+        </div>
+
+        <!-- Claims Table -->
+        <div class="sale-items-table-container" style="max-height: 260px; overflow-y: auto;">
+          <table class="sale-items-table">
+            <thead>
+              <tr>
+                <th style="width: 100px;">Claim No</th>
+                <th style="width: 95px;">Date</th>
+                <th>Customer Name</th>
+                <th>Product Description</th>
+                <th style="width: 65px; text-align: center;">Qty</th>
+                <th>Supplier</th>
+                <th style="width: 140px;">Status</th>
+                <th style="width: 75px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="claimsTableBody"></tbody>
           </table>
         </div>
       </div>
