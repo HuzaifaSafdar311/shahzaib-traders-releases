@@ -208,7 +208,6 @@ async function reloadFromDatabase() {
 
   // Refresh active views
   if (window.renderUnits) window.renderUnits();
-  if (window.renderProductTypes) window.renderProductTypes();
   if (window.renderProductCategories) window.renderProductCategories();
   if (window.renderProductSubCategories) window.renderProductSubCategories();
   if (window.populateProductInfoDropdowns) window.populateProductInfoDropdowns();

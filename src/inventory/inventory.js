@@ -43,20 +43,6 @@ const inv = {
   btnCloseUnitModal: document.getElementById('btnCloseUnitModal'),
   btnCancelUnit: document.getElementById('btnCancelUnit'),
 
-  // 2. Product Type
-  productTypeTableBody: document.getElementById('productTypeTableBody'),
-  productTypeEmptyState: document.getElementById('productTypeEmptyState'),
-  productTypeSearchInput: document.getElementById('productTypeSearchInput'),
-  btnClearProductTypeSearch: document.getElementById('btnClearProductTypeSearch'),
-  btnOpenAddProductType: document.getElementById('btnOpenAddProductType'),
-  modalProductType: document.getElementById('modalProductType'),
-  modalProductTypeTitle: document.getElementById('modalProductTypeTitle'),
-  productTypeForm: document.getElementById('productTypeForm'),
-  productTypeId: document.getElementById('productTypeId'),
-  productTypeNameInput: document.getElementById('productTypeNameInput'),
-  productTypeDescInput: document.getElementById('productTypeDescInput'),
-  btnCloseProductTypeModal: document.getElementById('btnCloseProductTypeModal'),
-  btnCancelProductType: document.getElementById('btnCancelProductType'),
 
   // 3. Product Category
   badgeCategoryCount: document.getElementById('badgeCategoryCount'),
@@ -246,7 +232,6 @@ function switchSubTab(subtab) {
   // View sections toggle
   const viewMap = {
     'unit-info': 'viewUnitInfo',
-    'product-type': 'viewProductType',
     'product-category': 'viewProductCategory',
     'product-categories': 'viewProductCategory',
     'product-sub-category': 'viewProductSubCategory',
@@ -262,7 +247,6 @@ function switchSubTab(subtab) {
 
   // Lifecycle updates for active view
   if (subtab === 'unit-info') renderUnits();
-  if (subtab === 'product-type') renderProductTypes();
   if (subtab === 'product-category' || subtab === 'product-categories') renderProductCategories();
   if (subtab === 'product-sub-category') renderProductSubCategories();
   if (subtab === 'purchase') initPurchaseView();
@@ -412,128 +396,6 @@ if (inv.btnCancelUnit) inv.btnCancelUnit.addEventListener('click', closeUnitModa
 if (inv.unitForm) inv.unitForm.addEventListener('submit', handleSaveUnit);
 if (inv.unitSearchInput) inv.unitSearchInput.addEventListener('input', renderUnits);
 
-// ========================================================
-// 2. PRODUCT TYPE MODULE
-// ========================================================
-function renderProductTypes() {
-  const types = window.appData?.product_types || [];
-  const q = (inv.productTypeSearchInput?.value || '').trim().toLowerCase();
-  const filtered = types.filter(t => !q || t.name.toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q));
-
-  if (!inv.productTypeTableBody) return;
-  inv.productTypeTableBody.innerHTML = '';
-
-  if (filtered.length === 0) {
-    if (inv.productTypeEmptyState) inv.productTypeEmptyState.classList.remove('hidden');
-    return;
-  }
-  if (inv.productTypeEmptyState) inv.productTypeEmptyState.classList.add('hidden');
-
-  filtered.forEach((type, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="col-pt-sr font-num" style="text-align: center;">${idx + 1}</td>
-      <td class="col-pt-name font-bold" style="text-align: center;">
-        <span style="cursor: default;" data-full-name="${window.escapeHtml(type.name)}">${window.escapeHtml(type.name)}</span>
-      </td>
-      <td class="col-pt-desc text-secondary" style="text-align: center;">
-        <span style="cursor: default;" data-full-name="${window.escapeHtml(type.description || '-')}">${window.escapeHtml(type.description || '-')}</span>
-      </td>
-      <td class="col-pt-actions col-dots-actions" style="text-align: center;">
-        <div class="dots-wrapper">
-          <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'ptMenu_${type.id}')" title="Actions">
-            <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="1.5"></circle>
-              <circle cx="12" cy="5" r="1.5"></circle>
-              <circle cx="12" cy="19" r="1.5"></circle>
-            </svg>
-          </button>
-          <div id="ptMenu_${type.id}" class="action-menu hidden">
-            <button type="button" class="action-menu-item" onclick="window.openEditProductType('${type.id}')">
-              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
-              <span>Edit</span>
-            </button>
-            <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteProductType('${type.id}')">
-              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
-      </td>
-    `;
-    inv.productTypeTableBody.appendChild(tr);
-  });
-}
-
-function openAddProductType() {
-  if (inv.modalProductTypeTitle) inv.modalProductTypeTitle.textContent = 'Add Product Type';
-  if (inv.productTypeId) inv.productTypeId.value = '';
-  if (inv.productTypeNameInput) inv.productTypeNameInput.value = '';
-  if (inv.productTypeDescInput) inv.productTypeDescInput.value = '';
-  if (inv.modalProductType) inv.modalProductType.classList.remove('hidden');
-}
-
-function openEditProductType(id) {
-  const item = (window.appData?.product_types || []).find(t => t.id === id);
-  if (!item) return;
-  if (inv.modalProductTypeTitle) inv.modalProductTypeTitle.textContent = 'Edit Product Type';
-  if (inv.productTypeId) inv.productTypeId.value = item.id;
-  if (inv.productTypeNameInput) inv.productTypeNameInput.value = item.name;
-  if (inv.productTypeDescInput) inv.productTypeDescInput.value = item.description || '';
-  if (inv.modalProductType) inv.modalProductType.classList.remove('hidden');
-}
-
-function closeProductTypeModal() {
-  if (inv.modalProductType) inv.modalProductType.classList.add('hidden');
-}
-
-async function handleSaveProductType(e) {
-  if (e) e.preventDefault();
-  const name = inv.productTypeNameInput?.value.trim();
-  if (!name) return;
-  const item = {
-    id: inv.productTypeId?.value || undefined,
-    name,
-    description: inv.productTypeDescInput?.value.trim() || ''
-  };
-
-  try {
-    if (window.api?.saveProductType) await window.api.saveProductType(item);
-    await window.reloadFromDatabase();
-    closeProductTypeModal();
-    renderProductTypes();
-  } catch (err) {
-    console.error('Save product type failed:', err);
-  }
-}
-
-function confirmDeleteProductType(id) {
-  window.openConfirmModal({
-    title: 'Delete Product Type',
-    message: 'Are you sure you want to delete this product type?',
-    onConfirm: async () => {
-      try {
-        if (window.api?.deleteProductType) await window.api.deleteProductType(id);
-        await window.reloadFromDatabase();
-        renderProductTypes();
-      } catch (err) {
-        console.error('Delete product type failed:', err);
-      }
-    }
-  });
-}
-
-if (inv.btnOpenAddProductType) inv.btnOpenAddProductType.addEventListener('click', openAddProductType);
-if (inv.btnCloseProductTypeModal) inv.btnCloseProductTypeModal.addEventListener('click', closeProductTypeModal);
-if (inv.btnCancelProductType) inv.btnCancelProductType.addEventListener('click', closeProductTypeModal);
-if (inv.productTypeForm) inv.productTypeForm.addEventListener('submit', handleSaveProductType);
-if (inv.productTypeSearchInput) inv.productTypeSearchInput.addEventListener('input', renderProductTypes);
 
 // 3. PRODUCT CATEGORY MODULE
 // ========================================================
@@ -881,16 +743,6 @@ if (inv.btnClearUnitSearch && inv.unitSearchInput) {
     inv.unitSearchInput.value = '';
     inv.btnClearUnitSearch.classList.add('hidden');
     renderUnits();
-  });
-}
-if (inv.btnClearProductTypeSearch && inv.productTypeSearchInput) {
-  inv.productTypeSearchInput.addEventListener('input', () => {
-    inv.btnClearProductTypeSearch.classList.toggle('hidden', !inv.productTypeSearchInput.value);
-  });
-  inv.btnClearProductTypeSearch.addEventListener('click', () => {
-    inv.productTypeSearchInput.value = '';
-    inv.btnClearProductTypeSearch.classList.add('hidden');
-    renderProductTypes();
   });
 }
 // ========================================================
@@ -1686,13 +1538,10 @@ window.addEventListener('keydown', (e) => {
 
 // Exports to window
 window.renderUnits = renderUnits;
-window.renderProductTypes = renderProductTypes;
 window.renderProductCategories = renderProductCategories;
 window.renderProductSubCategories = renderProductSubCategories;
 window.openEditUnit = openEditUnit;
 window.confirmDeleteUnit = confirmDeleteUnit;
-window.openEditProductType = openEditProductType;
-window.confirmDeleteProductType = confirmDeleteProductType;
 window.openEditCategory = openEditCategory;
 window.confirmDeleteCategory = confirmDeleteCategory;
 window.openEditSubCategory = openEditSubCategory;
