@@ -520,14 +520,27 @@
 
 .table-party-info th,
 .table-party-info td {
+  width: 12.5% !important;
+  max-width: 12.5% !important;
+  text-align: center;
+  vertical-align: middle;
+  padding: 12px 14px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
+.table-party-info th:first-child,
 .table-party-info td:first-child {
   text-align: left !important;
-  padding-left: 24px !important;
+  padding-left: 20px !important;
+}
+
+.table-party-info th:nth-child(7),
+.table-party-info td:nth-child(7) {
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 .table-party-info .cell-title,

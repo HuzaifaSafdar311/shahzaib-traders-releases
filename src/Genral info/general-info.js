@@ -906,7 +906,7 @@
           <span class="location-text" style="font-size: 12.5px;" title="${escapeHtml(locationStr)}">${escapeHtml(locationStr)}</span>
         </td>
         <td class="font-mono" style="font-size: 12.5px; text-align: center;">${escapeHtml(p.ntn || '-')}</td>
-        <td style="text-align: right; padding-right: 16px;">
+        <td style="text-align: right; padding-right: 20px;">
           <span class="font-mono ${balance > 0 ? 'text-balance-pos' : balance < 0 ? 'text-balance-neg' : 'text-muted'}">${formattedBalance}</span>
         </td>
         <td class="gi-actions-cell" style="text-align: center;">
