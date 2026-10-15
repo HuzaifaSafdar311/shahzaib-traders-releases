@@ -293,11 +293,11 @@
             </div>
             <div class="acc-form-group">
               <label>Cheque / Transaction Ref #</label>
-              <input type="text" id="accChequeRef" class="acc-form-control" placeholder="e.g. Chq# 87654 or Bank slip #">
+              <input type="text" id="accChequeRef" class="acc-form-control" placeholder="Enter cheque / bank slip ref">
             </div>
             <div class="acc-form-group">
               <label>Narration / Description / Remarks</label>
-              <input type="text" id="accRemarks" class="acc-form-control" placeholder="e.g. Received cash against bill payment...">
+              <input type="text" id="accRemarks" class="acc-form-control" placeholder="Enter voucher remarks / narration">
             </div>
           </div>
         </div>
