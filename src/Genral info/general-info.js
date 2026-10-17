@@ -198,11 +198,6 @@
 
     if (elName) elName.textContent = comp.name || 'Shahzaib Traders';
     if (elTagline) elTagline.textContent = comp.tagline || 'Wholesale & Retail Trading Solutions';
-
-    const elHeroTitle = document.getElementById('ciHeroTitle');
-    if (elHeroTitle) elHeroTitle.textContent = (comp.name || 'Shahzaib Traders').toUpperCase();
-    const elHeroSubtitle = document.getElementById('ciHeroSubtitle');
-    if (elHeroSubtitle) elHeroSubtitle.textContent = comp.tagline ? `${comp.tagline} • Retail System` : 'Retail Management & Point of Sale System';
     if (elPerson) elPerson.textContent = comp.contactPerson || '-';
     if (elPhone) elPhone.textContent = comp.phone || '-';
     if (elAltPhone) elAltPhone.textContent = comp.altPhone || '-';
@@ -1221,8 +1216,6 @@
     // Company Info edit button & form
     const btnEditCompany = document.getElementById('btnEditCompany');
     if (btnEditCompany) btnEditCompany.addEventListener('click', openEditCompanyModal);
-    const btnHeroEditCompany = document.getElementById('btnHeroEditCompany');
-    if (btnHeroEditCompany) btnHeroEditCompany.addEventListener('click', openEditCompanyModal);
 
     const btnCloseCompanyModal = document.getElementById('btnCloseCompanyModal');
     if (btnCloseCompanyModal) btnCloseCompanyModal.addEventListener('click', closeEditCompanyModal);
