@@ -13,18 +13,76 @@ window.appData = {
 };
 
 // API Storage Bridge (Electron IPC with local storage fallback)
-window.api = window.electronAPI || {
-  getData: async () => ({
-    units: [],
-    product_types: [],
-    product_categories: [],
-    product_sub_categories: [],
-    products: [],
-    purchases: [],
-    sales: [],
-    sales_returns: []
-  })
-};
+if (!window.electronAPI) {
+  const getLocalData = () => {
+    try {
+      const stored = localStorage.getItem('inventory_mock_data');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    // Default sample data for browser preview/testing
+    return {
+      units: [
+        { id: '1', name: 'Piece', symbol: 'Pcs' },
+        { id: '2', name: 'Box', symbol: 'Bx' },
+        { id: '3', name: 'Pack', symbol: 'Pk' }
+      ],
+      product_types: [{ id: '1', name: 'General' }, { id: '2', name: 'Electronics' }],
+      product_categories: [
+        { id: '1', name: 'LED Lights' },
+        { id: '2', name: 'Wires & Cables' },
+        { id: '3', name: 'Switches & Sockets' }
+      ],
+      product_sub_categories: [
+        { id: '1', categoryId: '1', name: 'Bulbs 12W-24W' },
+        { id: '2', categoryId: '1', name: 'Flood Lights 50W+' },
+        { id: '3', categoryId: '2', name: 'Copper Single Core' }
+      ],
+      products: [
+        { id: 'p1', code: '101', barcode: '890101001', titleEng: 'Philips LED Bulb 18W Cool Daylight', categoryId: '1', categoryName: 'LED Lights', subCategoryId: '1', subCategoryName: 'Bulbs 12W-24W', unitName: 'Piece', packSize: 1, purchasePrice: 320, profitMargin: 25, retailPrice: 400, wholesalePrice: 360, stockQty: 85, minStock: 20 },
+        { id: 'p2', code: '102', barcode: '890101002', titleEng: 'Osram Flood Light 50W IP65 Outdoor', categoryId: '1', categoryName: 'LED Lights', subCategoryId: '2', subCategoryName: 'Flood Lights 50W+', unitName: 'Piece', packSize: 1, purchasePrice: 1450, profitMargin: 20.7, retailPrice: 1750, wholesalePrice: 1600, stockQty: 14, minStock: 15 },
+        { id: 'p3', code: '103', barcode: '890101003', titleEng: 'Pakistan Cables 7/29 Copper Red 90m', categoryId: '2', categoryName: 'Wires & Cables', subCategoryId: '3', subCategoryName: 'Copper Single Core', unitName: 'Box', packSize: 1, purchasePrice: 8500, profitMargin: 11.8, retailPrice: 9500, wholesalePrice: 9000, stockQty: 0, minStock: 5 }
+      ],
+      purchases: [],
+      sales: [],
+      sales_returns: []
+    };
+  };
+
+  const saveLocalData = (data) => {
+    try { localStorage.setItem('inventory_mock_data', JSON.stringify(data)); } catch (e) {}
+  };
+
+  window.api = {
+    getData: async () => getLocalData(),
+    getNextProductCode: async () => {
+      const data = getLocalData();
+      const codes = data.products.map(p => Number(p.code)).filter(c => !isNaN(c));
+      return codes.length > 0 ? String(Math.max(...codes) + 1) : '101';
+    },
+    saveProduct: async (prod) => {
+      const data = getLocalData();
+      const isNew = !prod.id;
+      if (isNew) {
+        prod.id = `prod-${Date.now()}`;
+        data.products.push(prod);
+      } else {
+        const idx = data.products.findIndex(p => p.id === prod.id || String(p.code) === String(prod.code));
+        if (idx >= 0) data.products[idx] = { ...data.products[idx], ...prod };
+        else data.products.push(prod);
+      }
+      saveLocalData(data);
+      return { success: true };
+    },
+    deleteProduct: async (code) => {
+      const data = getLocalData();
+      data.products = data.products.filter(p => String(p.code) !== String(code));
+      saveLocalData(data);
+      return { success: true };
+    }
+  };
+} else {
+  window.api = window.electronAPI;
+}
 
 // DOM References
 const appEl = {
@@ -104,7 +162,7 @@ const mainTabs = {
 };
 
 function switchTab(tab) {
-  if (!mainTabs[tab]) tab = 'inventory';
+  if (!mainTabs[tab]) tab = 'general-info';
   window.currentTab = tab;
 
   Object.entries(mainTabs).forEach(([key, config]) => {
@@ -211,6 +269,7 @@ async function reloadFromDatabase() {
   if (window.renderProductCategories) window.renderProductCategories();
   if (window.renderProductSubCategories) window.renderProductSubCategories();
   if (window.populateProductInfoDropdowns) window.populateProductInfoDropdowns();
+  if (window.renderProductsTable) window.renderProductsTable();
   if (window.initPurchaseView) window.initPurchaseView();
   if (window.SalesModule && window.SalesModule.refresh) window.SalesModule.refresh();
 }
@@ -283,10 +342,8 @@ async function init() {
     await window.GeneralInfoModule.init();
   }
 
-  // Initial tab setup
-  if (window.switchSubTab) {
-    window.switchSubTab('unit-info');
-  }
+  // Initial tab setup: Default to General Info per user requirement
+  switchTab('general-info');
 }
 
 if (document.readyState === 'loading') {

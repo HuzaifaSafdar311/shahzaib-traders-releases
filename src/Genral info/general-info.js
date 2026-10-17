@@ -198,6 +198,11 @@
 
     if (elName) elName.textContent = comp.name || 'Shahzaib Traders';
     if (elTagline) elTagline.textContent = comp.tagline || 'Wholesale & Retail Trading Solutions';
+
+    const elHeroTitle = document.getElementById('ciHeroTitle');
+    if (elHeroTitle) elHeroTitle.textContent = (comp.name || 'Shahzaib Traders').toUpperCase();
+    const elHeroSubtitle = document.getElementById('ciHeroSubtitle');
+    if (elHeroSubtitle) elHeroSubtitle.textContent = comp.tagline ? `${comp.tagline} • Retail System` : 'Retail Management & Point of Sale System';
     if (elPerson) elPerson.textContent = comp.contactPerson || '-';
     if (elPhone) elPhone.textContent = comp.phone || '-';
     if (elAltPhone) elAltPhone.textContent = comp.altPhone || '-';
@@ -292,59 +297,64 @@
       footerCount.textContent = `Total: ${list.length} province${list.length === 1 ? '' : 's'}`;
     }
 
-    if (list.length === 0) {
-      if (emptyState) emptyState.classList.remove('hidden');
-      return;
+    if (!window.giProvPagination && window.createTablePagination) {
+      window.giProvPagination = window.createTablePagination({
+        container: '#giView-provinces .gi-table-wrapper',
+        tbody: tbody,
+        emptyStateEl: emptyState,
+        onRenderPage: (slice) => {
+          tbody.innerHTML = '';
+          slice.forEach(p => {
+            const areaCount = state.areas.filter(a => a.provinceId === p.id).length;
+            const isActive = (p.status || 'Active').toLowerCase() === 'active';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td style="font-weight: 600; color: #0f172a; text-align: left; padding-left: 24px;">${escapeHtml(p.name)}</td>
+              <td style="text-align: center;"><span class="code-pill">${escapeHtml(p.code || '-')}</span></td>
+              <td style="text-align: center;">
+                <span class="status-badge ${isActive ? 'active' : 'inactive'}">
+                  <span class="status-dot"></span>
+                  ${escapeHtml(p.status || 'Active')}
+                </span>
+              </td>
+              <td style="text-align: center;"><span class="badge-tag">${areaCount} Area${areaCount === 1 ? '' : 's'}</span></td>
+              <td class="gi-actions-cell" style="text-align: center;">
+                <div class="dots-wrapper">
+                  <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'provMenu_${p.id}')" title="Actions">
+                    <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="1.5"></circle>
+                      <circle cx="12" cy="5" r="1.5"></circle>
+                      <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                  </button>
+                  <div id="provMenu_${p.id}" class="action-menu hidden">
+                    <button type="button" class="action-menu-item" onclick="window.GeneralInfoModule.openEditProvince('${p.id}')">
+                      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                      </svg>
+                      <span>Edit</span>
+                    </button>
+                    <button type="button" class="action-menu-item text-danger" onclick="window.GeneralInfoModule.confirmDeleteProvince('${p.id}')">
+                      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      });
     }
 
-    if (emptyState) emptyState.classList.add('hidden');
-
-    list.forEach(p => {
-      // Calculate linked areas
-      const areaCount = state.areas.filter(a => a.provinceId === p.id).length;
-      const isActive = (p.status || 'Active').toLowerCase() === 'active';
-
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="font-weight: 600; color: #0f172a; text-align: left; padding-left: 24px;">${escapeHtml(p.name)}</td>
-        <td style="text-align: center;"><span class="code-pill">${escapeHtml(p.code || '-')}</span></td>
-        <td style="text-align: center;">
-          <span class="status-badge ${isActive ? 'active' : 'inactive'}">
-            <span class="status-dot"></span>
-            ${escapeHtml(p.status || 'Active')}
-          </span>
-        </td>
-        <td style="text-align: center;"><span class="badge-tag">${areaCount} Area${areaCount === 1 ? '' : 's'}</span></td>
-        <td class="gi-actions-cell" style="text-align: center;">
-          <div class="dots-wrapper">
-            <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'provMenu_${p.id}')" title="Actions">
-              <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="1.5"></circle>
-                <circle cx="12" cy="5" r="1.5"></circle>
-                <circle cx="12" cy="19" r="1.5"></circle>
-              </svg>
-            </button>
-            <div id="provMenu_${p.id}" class="action-menu hidden">
-              <button type="button" class="action-menu-item" onclick="window.GeneralInfoModule.openEditProvince('${p.id}')">
-                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 20h9"></path>
-                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                </svg>
-                <span>Edit</span>
-              </button>
-              <button type="button" class="action-menu-item text-danger" onclick="window.GeneralInfoModule.confirmDeleteProvince('${p.id}')">
-                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-                <span>Delete</span>
-              </button>
-            </div>
-          </div>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
+    if (window.giProvPagination) {
+      window.giProvPagination.setItems(list, !!q);
+    }
   }
 
   function openAddProvince() {
@@ -474,6 +484,68 @@
 
     if (footerCount) {
       footerCount.textContent = `Total: ${list.length} area${list.length === 1 ? '' : 's'}`;
+    }
+
+    if (!window.giAreaPagination && window.createTablePagination) {
+      window.giAreaPagination = window.createTablePagination({
+        container: '#giView-areas .gi-table-wrapper',
+        tbody: tbody,
+        emptyStateEl: emptyState,
+        onRenderPage: (slice) => {
+          tbody.innerHTML = '';
+          slice.forEach(a => {
+            const isActive = (a.status || 'Active').toLowerCase() === 'active';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td style="font-weight: 600; color: #0f172a; text-align: left; padding-left: 24px;">${escapeHtml(a.name)}</td>
+              <td style="text-align: center;">${escapeHtml(a.city || '-')}</td>
+              <td style="text-align: center;">
+                <span class="badge-tag">${escapeHtml(a.provinceName || 'Unassigned')}</span>
+              </td>
+              <td style="text-align: center;"><span class="code-pill">${escapeHtml(a.code || '-')}</span></td>
+              <td style="text-align: center;">
+                <span class="status-badge ${isActive ? 'active' : 'inactive'}">
+                  <span class="status-dot"></span>
+                  ${escapeHtml(a.status || 'Active')}
+                </span>
+              </td>
+              <td class="gi-actions-cell" style="text-align: center;">
+                <div class="dots-wrapper">
+                  <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'areaMenu_${a.id}')" title="Actions">
+                    <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="1.5"></circle>
+                      <circle cx="12" cy="5" r="1.5"></circle>
+                      <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                  </button>
+                  <div id="areaMenu_${a.id}" class="action-menu hidden">
+                    <button type="button" class="action-menu-item" onclick="window.GeneralInfoModule.openEditArea('${a.id}')">
+                      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                      </svg>
+                      <span>Edit</span>
+                    </button>
+                    <button type="button" class="action-menu-item text-danger" onclick="window.GeneralInfoModule.confirmDeleteArea('${a.id}')">
+                      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      });
+    }
+
+    if (window.giAreaPagination) {
+      window.giAreaPagination.setItems(list, !!q || !!provFilter);
+      return;
     }
 
     if (list.length === 0) {
@@ -633,6 +705,65 @@
 
     if (footerCount) {
       footerCount.textContent = `Total: ${list.length} party type${list.length === 1 ? '' : 's'}`;
+    }
+
+    if (!window.giPartyTypePagination && window.createTablePagination) {
+      window.giPartyTypePagination = window.createTablePagination({
+        container: '#giView-party-types .gi-table-wrapper',
+        tbody: tbody,
+        emptyStateEl: emptyState,
+        onRenderPage: (slice) => {
+          tbody.innerHTML = '';
+          slice.forEach(pt => {
+            const isActive = (pt.status || 'Active').toLowerCase() === 'active';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td style="font-weight: 600; color: #0f172a; text-align: left; padding-left: 24px;">${escapeHtml(pt.name)}</td>
+              <td style="text-align: center;"><span class="code-pill">${escapeHtml(pt.code || '-')}</span></td>
+              <td style="color: #64748b; font-size: 13px; text-align: center;">${escapeHtml(pt.description || '-')}</td>
+              <td style="text-align: center;">
+                <span class="status-badge ${isActive ? 'active' : 'inactive'}">
+                  <span class="status-dot"></span>
+                  ${escapeHtml(pt.status || 'Active')}
+                </span>
+              </td>
+              <td class="gi-actions-cell" style="text-align: center;">
+                <div class="dots-wrapper">
+                  <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'ptMenu_${pt.id}')" title="Actions">
+                    <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="1.5"></circle>
+                      <circle cx="12" cy="5" r="1.5"></circle>
+                      <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                  </button>
+                  <div id="ptMenu_${pt.id}" class="action-menu hidden">
+                    <button type="button" class="action-menu-item" onclick="window.GeneralInfoModule.openEditPartyType('${pt.id}')">
+                      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                      </svg>
+                      <span>Edit</span>
+                    </button>
+                    <button type="button" class="action-menu-item text-danger" onclick="window.GeneralInfoModule.confirmDeletePartyType('${pt.id}')">
+                      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      });
+    }
+
+    if (window.giPartyTypePagination) {
+      window.giPartyTypePagination.setItems(list, !!q);
+      return;
     }
 
     if (list.length === 0) {
@@ -870,75 +1001,83 @@
       footerCount.textContent = `Total: ${list.length} part${list.length === 1 ? 'y' : 'ies'}`;
     }
 
-    if (list.length === 0) {
-      if (emptyState) emptyState.classList.remove('hidden');
-      return;
+    if (!window.giPartyPagination && window.createTablePagination) {
+      window.giPartyPagination = window.createTablePagination({
+        container: '#giView-parties .gi-table-wrapper',
+        tbody: tbody,
+        emptyStateEl: emptyState,
+        onRenderPage: (slice) => {
+          tbody.innerHTML = '';
+          slice.forEach(p => {
+            const tr = document.createElement('tr');
+            const balance = Number(p.openingBalance) || 0;
+            const formattedBalance = 'PKR ' + balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const locationParts = [p.areaName, p.city, p.provinceName].filter(Boolean);
+            const locationStr = locationParts.join(', ') || '-';
+            const isActive = (p.status || 'Active').toLowerCase() === 'active';
+
+            tr.innerHTML = `
+              <td>
+                <div class="party-info-cell">
+                  <span class="cell-title font-bold" style="color: #0f172a; cursor: default;" data-full-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
+                </div>
+              </td>
+              <td style="text-align: center;">
+                <span class="font-medium" style="cursor: default;" data-full-name="${escapeHtml(p.contactPerson || '-')}">${escapeHtml(p.contactPerson || '-')}</span>
+              </td>
+              <td style="text-align: center;">
+                <span class="font-mono text-xs">${escapeHtml(p.phone || '-')}</span>
+              </td>
+              <td style="text-align: center;">
+                <span style="font-size: 12.5px; color: #475569; cursor: default;" data-full-name="${escapeHtml(p.email || '-')}">${escapeHtml(p.email || '-')}</span>
+              </td>
+              <td style="text-align: center;">
+                <span class="address-text" style="font-size: 12.5px; cursor: default;" data-full-name="${escapeHtml(p.address || '-')}">${escapeHtml(p.address || '-')}</span>
+              </td>
+              <td style="text-align: center;">
+                <span class="location-text" style="font-size: 12.5px; cursor: default;" data-full-name="${escapeHtml(locationStr)}">${escapeHtml(locationStr)}</span>
+              </td>
+              <td class="font-mono" style="font-size: 12.5px; text-align: center;">${escapeHtml(p.ntn || '-')}</td>
+              <td style="text-align: right; padding-right: 20px;">
+                <span class="font-mono ${balance > 0 ? 'text-balance-pos' : balance < 0 ? 'text-balance-neg' : 'text-muted'}">${formattedBalance}</span>
+              </td>
+              <td class="gi-actions-cell" style="text-align: center;">
+                <div class="dots-wrapper">
+                  <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'partyMenu_${p.id}')" title="Actions">
+                    <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="1.5"></circle>
+                      <circle cx="12" cy="5" r="1.5"></circle>
+                      <circle cx="12" cy="19" r="1.5"></circle>
+                    </svg>
+                  </button>
+                  <div id="partyMenu_${p.id}" class="action-menu hidden">
+                    <button type="button" class="action-menu-item" onclick="window.GeneralInfoModule.openEditParty('${p.id}')">
+                      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                      </svg>
+                      <span>Edit</span>
+                    </button>
+                    <button type="button" class="action-menu-item text-danger" onclick="window.GeneralInfoModule.confirmDeleteParty('${p.id}')">
+                      <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      });
     }
-    if (emptyState) emptyState.classList.add('hidden');
 
-    list.forEach(p => {
-      const tr = document.createElement('tr');
-      const balance = Number(p.openingBalance) || 0;
-      const formattedBalance = 'PKR ' + balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const locationParts = [p.areaName, p.city, p.provinceName].filter(Boolean);
-      const locationStr = locationParts.join(', ') || '-';
-      const isActive = (p.status || 'Active').toLowerCase() === 'active';
-
-      tr.innerHTML = `
-        <td>
-          <div class="party-info-cell">
-            <span class="cell-title font-bold" style="color: #0f172a; cursor: default;" data-full-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
-          </div>
-        </td>
-        <td style="text-align: center;">
-          <span class="font-medium" style="cursor: default;" data-full-name="${escapeHtml(p.contactPerson || '-')}">${escapeHtml(p.contactPerson || '-')}</span>
-        </td>
-        <td style="text-align: center;">
-          <span class="font-mono text-xs">${escapeHtml(p.phone || '-')}</span>
-        </td>
-        <td style="text-align: center;">
-          <span style="font-size: 12.5px; color: #475569; cursor: default;" data-full-name="${escapeHtml(p.email || '-')}">${escapeHtml(p.email || '-')}</span>
-        </td>
-        <td style="text-align: center;">
-          <span class="address-text" style="font-size: 12.5px; cursor: default;" data-full-name="${escapeHtml(p.address || '-')}">${escapeHtml(p.address || '-')}</span>
-        </td>
-        <td style="text-align: center;">
-          <span class="location-text" style="font-size: 12.5px; cursor: default;" data-full-name="${escapeHtml(locationStr)}">${escapeHtml(locationStr)}</span>
-        </td>
-        <td class="font-mono" style="font-size: 12.5px; text-align: center;">${escapeHtml(p.ntn || '-')}</td>
-        <td style="text-align: right; padding-right: 20px;">
-          <span class="font-mono ${balance > 0 ? 'text-balance-pos' : balance < 0 ? 'text-balance-neg' : 'text-muted'}">${formattedBalance}</span>
-        </td>
-        <td class="gi-actions-cell" style="text-align: center;">
-          <div class="dots-wrapper">
-            <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'partyMenu_${p.id}')" title="Actions">
-              <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="1.5"></circle>
-                <circle cx="12" cy="5" r="1.5"></circle>
-                <circle cx="12" cy="19" r="1.5"></circle>
-              </svg>
-            </button>
-            <div id="partyMenu_${p.id}" class="action-menu hidden">
-              <button type="button" class="action-menu-item" onclick="window.GeneralInfoModule.openEditParty('${p.id}')">
-                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 20h9"></path>
-                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                </svg>
-                <span>Edit</span>
-              </button>
-              <button type="button" class="action-menu-item text-danger" onclick="window.GeneralInfoModule.confirmDeleteParty('${p.id}')">
-                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-                <span>Delete</span>
-              </button>
-            </div>
-          </div>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
+    if (window.giPartyPagination) {
+      window.giPartyPagination.setItems(list, !!q || !!state.filters.partyTypeFilter);
+    }
   }
 
   function openAddParty() {
@@ -1082,6 +1221,8 @@
     // Company Info edit button & form
     const btnEditCompany = document.getElementById('btnEditCompany');
     if (btnEditCompany) btnEditCompany.addEventListener('click', openEditCompanyModal);
+    const btnHeroEditCompany = document.getElementById('btnHeroEditCompany');
+    if (btnHeroEditCompany) btnHeroEditCompany.addEventListener('click', openEditCompanyModal);
 
     const btnCloseCompanyModal = document.getElementById('btnCloseCompanyModal');
     if (btnCloseCompanyModal) btnCloseCompanyModal.addEventListener('click', closeEditCompanyModal);

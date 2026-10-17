@@ -554,7 +554,8 @@
     let totalRetailVal = 0;
 
     const catLookup = {};
-    for (const c of (categories || [])) {
+    const safeCategories = Array.isArray(categories) ? categories : [];
+    for (const c of safeCategories) {
       if (c && c.id) catLookup[String(c.id)] = c.name;
     }
 
@@ -615,7 +616,8 @@
     let totalShortage = 0;
 
     const catLookup = {};
-    for (const c of (categories || [])) {
+    const safeCategories = Array.isArray(categories) ? categories : [];
+    for (const c of safeCategories) {
       if (c && c.id) catLookup[String(c.id)] = c.name;
     }
 
@@ -659,7 +661,8 @@
   // 3.3 Out of Stock / Zero Stock Report
   function generateOutOfStockReport(products, categories, filters = {}) {
     const catLookup = {};
-    for (const c of (categories || [])) {
+    const safeCategories = Array.isArray(categories) ? categories : [];
+    for (const c of safeCategories) {
       if (c && c.id) catLookup[String(c.id)] = c.name;
     }
 
@@ -693,9 +696,10 @@
   // 3.4 Category-wise Stock Summary
   function generateCategoryStockReport(products, categories, filters = {}) {
     const catMap = {};
+    const safeCategories = Array.isArray(categories) ? categories : [];
 
     // Seed existing categories
-    for (const c of (categories || [])) {
+    for (const c of safeCategories) {
       if (filters && filters.categoryId && filters.categoryId !== 'all') {
         const filterStr = String(filters.categoryId).trim().toLowerCase();
         if (String(c.id) !== String(filters.categoryId) && String(c.name).toLowerCase() !== filterStr) {
@@ -714,7 +718,7 @@
     for (const p of (products || [])) {
       if (!matchesCategoryAndSubCategory(p, filters.categoryId, filters.subCategoryId)) continue;
 
-      const catLookupName = (categories || []).find(c => String(c.id) === String(p.categoryId || p.category_id))?.name;
+      const catLookupName = safeCategories.find(c => String(c.id) === String(p.categoryId || p.category_id))?.name;
       const catKey = p.categoryName || catLookupName || 'General';
 
       if (!catMap[catKey]) {
@@ -986,6 +990,150 @@
     };
   }
 
+  // ========================================================
+  // 6. TODAY'S BUSINESS & REGISTER REPORTS
+  // ========================================================
+
+  // 6.1 Today's Live Sales Register
+  function generateTodaySalesRegisterReport(sales, filters = {}) {
+    const todayStr = (filters.toDate || filters.fromDate || new Date().toISOString()).slice(0, 10);
+    const todayFilters = { ...filters, fromDate: todayStr, toDate: todayStr };
+    const rep = generateBillWiseSalesReport(sales, todayFilters);
+    rep.title = "Today's Sales Register & Cashier Log";
+    rep.subtitle = `Transactions for ${todayStr}`;
+    return rep;
+  }
+
+  // 6.2 Today's Full Multi-Module Business Summary
+  function generateTodayBusinessSummaryReport(masterData = {}, filters = {}) {
+    const todayStr = (filters.toDate || filters.fromDate || new Date().toISOString()).slice(0, 10);
+    const sales = (masterData.sales || []).filter(s => (s.entryDate || s.createdAt || '').slice(0, 10) === todayStr);
+    const purchases = (masterData.purchases || []).filter(p => (p.entryDate || p.createdAt || '').slice(0, 10) === todayStr);
+    const returns = (masterData.returns || []).filter(r => (r.entryDate || r.createdAt || '').slice(0, 10) === todayStr);
+    const vouchers = (masterData.vouchers || []).filter(v => (v.date || v.createdAt || '').slice(0, 10) === todayStr);
+
+    let salesGross = 0;
+    let salesNet = 0;
+    let salesCashPaid = 0;
+    let salesCreditBal = 0;
+
+    sales.forEach(s => {
+      salesGross += toNum(s.grossAmount);
+      salesNet += toNum(s.netAmount);
+      salesCashPaid += toNum(s.paidAmount);
+      salesCreditBal += toNum(s.balanceDue);
+    });
+
+    let purNet = 0;
+    let purPaid = 0;
+    purchases.forEach(p => {
+      purNet += toNum(p.grandTotal || p.netAmount);
+      purPaid += toNum(p.paidAmount);
+    });
+
+    let returnTotal = 0;
+    returns.forEach(r => {
+      returnTotal += toNum(r.totalAmount || r.netRefund);
+    });
+
+    let crvCashIn = 0;
+    let cpvCashOut = 0;
+    vouchers.forEach(v => {
+      const type = (v.type || v.voucherType || '').toUpperCase();
+      const amt = toNum(v.amount || v.totalAmount);
+      if (type.includes('CRV') || type.includes('RECEIPT')) crvCashIn += amt;
+      if (type.includes('CPV') || type.includes('PAYMENT')) cpvCashOut += amt;
+    });
+
+    const netDayCash = (salesCashPaid + crvCashIn) - (purPaid + returnTotal + cpvCashOut);
+
+    const rows = [];
+    sales.forEach(s => {
+      rows.push({
+        id: s.id,
+        time: (s.createdAt || s.entryDate || '').slice(11, 16) || '--:--',
+        type: 'Sale Bill',
+        refNo: s.voucherNo || '--',
+        party: s.partyTitle || 'Walk-in Customer',
+        details: `${s.paymentType || 'Cash'} | Items: ${getItems(s).length}`,
+        inflow: toNum(s.paidAmount),
+        outflow: 0,
+        balance: toNum(s.balanceDue)
+      });
+    });
+
+    returns.forEach(r => {
+      rows.push({
+        id: r.id,
+        time: (r.createdAt || r.entryDate || '').slice(11, 16) || '--:--',
+        type: 'Sale Return',
+        refNo: r.returnNo || '--',
+        party: r.partyTitle || 'Customer Return',
+        details: `Refund Mode: ${r.refundMode || 'Credit'}`,
+        inflow: 0,
+        outflow: toNum(r.totalAmount || r.netRefund),
+        balance: 0
+      });
+    });
+
+    purchases.forEach(p => {
+      rows.push({
+        id: p.id,
+        time: (p.createdAt || p.entryDate || '').slice(11, 16) || '--:--',
+        type: 'Purchase',
+        refNo: p.purchaseNo || p.billNo || '--',
+        party: p.supplierName || 'Vendor',
+        details: `${p.paymentType || 'Cash'}`,
+        inflow: 0,
+        outflow: toNum(p.paidAmount),
+        balance: toNum(p.balanceDue)
+      });
+    });
+
+    vouchers.forEach(v => {
+      const type = (v.type || v.voucherType || '').toUpperCase();
+      const isReceipt = type.includes('CRV') || type.includes('RECEIPT');
+      const amt = toNum(v.amount || v.totalAmount);
+      rows.push({
+        id: v.id,
+        time: (v.createdAt || v.date || '').slice(11, 16) || '--:--',
+        type: isReceipt ? 'Cash Receipt (CRV)' : 'Cash Payment (CPV)',
+        refNo: v.voucherNo || '--',
+        party: v.partyName || v.accountName || '--',
+        details: v.narration || v.description || '--',
+        inflow: isReceipt ? amt : 0,
+        outflow: isReceipt ? 0 : amt,
+        balance: 0
+      });
+    });
+
+    return {
+      title: "Today's Complete Business Register",
+      dateStr: todayStr,
+      metrics: {
+        todaySalesCount: sales.length,
+        todaySalesNet: salesNet,
+        todaySalesCash: salesCashPaid,
+        todayCreditSales: salesCreditBal,
+        todayPurchasesCount: purchases.length,
+        todayPurchasesNet: purNet,
+        todayPurchasesPaid: purPaid,
+        todayReturnsCount: returns.length,
+        todayReturnsAmount: returnTotal,
+        todayCrvInflow: crvCashIn,
+        todayCpvOutflow: cpvCashOut,
+        netDayCash
+      },
+      rows,
+      totals: {
+        records: rows.length,
+        totalInflow: salesCashPaid + crvCashIn,
+        totalOutflow: purPaid + returnTotal + cpvCashOut,
+        netDayCash
+      }
+    };
+  }
+
   return {
     generateBillWiseSalesReport,
     generatePartyWiseSalesReport,
@@ -1005,6 +1153,8 @@
     generateCRVReport,
     generateCPVReport,
     generateCashBookReport,
-    generateProfitAndLossReport
+    generateProfitAndLossReport,
+    generateTodaySalesRegisterReport,
+    generateTodayBusinessSummaryReport
   };
 });

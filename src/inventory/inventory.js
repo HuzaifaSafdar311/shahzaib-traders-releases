@@ -90,11 +90,14 @@ const inv = {
   purReceivable: document.getElementById('purReceivable'),
   purContactPerson: document.getElementById('purContactPerson'),
   purDueDate: document.getElementById('purDueDate'),
+  purPaymentStatus: document.getElementById('purPaymentStatus'),
 
   // Line item entry
   pieCode: document.getElementById('pieCode'),
   btnPieFind: document.getElementById('btnPieFind'),
   pieProductSelect: document.getElementById('pieProductSelect'),
+  pieProductSearchInput: document.getElementById('pieProductSearchInput'),
+  pieProductDropdownList: document.getElementById('pieProductDropdownList'),
   piePackQty: document.getElementById('piePackQty'),
   pieUnitQty: document.getElementById('pieUnitQty'),
   pieBonus: document.getElementById('pieBonus'),
@@ -107,6 +110,9 @@ const inv = {
 
   purchaseItemsTableBody: document.getElementById('purchaseItemsTableBody'),
   purchaseItemsEmptyState: document.getElementById('purchaseItemsEmptyState'),
+  modalPurchaseItemsTableBody: document.getElementById('modalPurchaseItemsTableBody'),
+  modalPurchaseEmptyState: document.getElementById('modalPurchaseEmptyState'),
+  modalPurchaseSubtotal: document.getElementById('modalPurchaseSubtotal'),
 
   purDiscount: document.getElementById('purDiscount'),
   purFreightDisc: document.getElementById('purFreightDisc'),
@@ -129,6 +135,7 @@ const inv = {
   modalAddPurchase: document.getElementById('modalAddPurchase'),
   btnCloseAddPurchaseModal: document.getElementById('btnCloseAddPurchaseModal'),
   btnCancelAddPurchase: document.getElementById('btnCancelAddPurchase'),
+  btnSavePurchaseModal: document.getElementById('btnSavePurchaseModal'),
   btnDonePurchaseModal: document.getElementById('btnDonePurchaseModal'),
   purVoucherNoDisplay: document.getElementById('purVoucherNoDisplay'),
   modalPurVoucherNoDisplay: document.getElementById('modalPurVoucherNoDisplay'),
@@ -136,10 +143,41 @@ const inv = {
   modalPurchaseItemCount: document.getElementById('modalPurchaseItemCount'),
   pieLineNetPreview: document.getElementById('pieLineNetPreview'),
 
+  // Purchase Filter Toolbar & History Modal
+  purFilterDate: document.getElementById('purFilterDate'),
+  btnPurFilterToday: document.getElementById('btnPurFilterToday'),
+  btnPurFilterAll: document.getElementById('btnPurFilterAll'),
+  purVoucherQuickSelect: document.getElementById('purVoucherQuickSelect'),
+  purDateCountDisplay: document.getElementById('purDateCountDisplay'),
+  purDateTotalDisplay: document.getElementById('purDateTotalDisplay'),
+  btnOpenPurchaseHistory: document.getElementById('btnOpenPurchaseHistory'),
+  modalPurchaseHistory: document.getElementById('modalPurchaseHistory'),
+  btnClosePurchaseHistory: document.getElementById('btnClosePurchaseHistory'),
+  btnDonePurchaseHistory: document.getElementById('btnDonePurchaseHistory'),
+  histDateBadge: document.getElementById('histDateBadge'),
+  histTotalCount: document.getElementById('histTotalCount'),
+  histTotalAmount: document.getElementById('histTotalAmount'),
+  purchaseHistoryTableBody: document.getElementById('purchaseHistoryTableBody'),
+  purchaseHistoryEmptyState: document.getElementById('purchaseHistoryEmptyState'),
+
   // 7. Product Info Master
   btnProductInfoList: document.getElementById('btnProductInfoList'),
   productInfoForm: document.getElementById('productInfoForm'),
   piCode: document.getElementById('piCode'),
+  btnOpenAddProduct: document.getElementById('btnOpenAddProduct'),
+  modalAddProduct: document.getElementById('modalAddProduct'),
+  btnCloseAddProductModal: document.getElementById('btnCloseAddProductModal'),
+  btnCancelProductModal: document.getElementById('btnCancelProductModal'),
+  productModalTitle: document.getElementById('productModalTitle'),
+  piSearchInput: document.getElementById('piSearchInput'),
+  piCategoryFilter: document.getElementById('piCategoryFilter'),
+  piSubCategoryFilter: document.getElementById('piSubCategoryFilter'),
+  piStockFilter: document.getElementById('piStockFilter'),
+  piSortFilter: document.getElementById('piSortFilter'),
+  btnPiResetFilters: document.getElementById('btnPiResetFilters'),
+  piResultsCounter: document.getElementById('piResultsCounter'),
+  productsTableBody: document.getElementById('productsTableBody'),
+  productsEmptyState: document.getElementById('productsEmptyState'),
   btnPiTemplate: document.getElementById('btnPiTemplate'),
   btnPiFind: document.getElementById('btnPiFind'),
   piBarcode: document.getElementById('piBarcode'),
@@ -286,60 +324,69 @@ if (inv.navInventoryMainBtn) {
 // ========================================================
 // 1. UNIT INFO MODULE
 // ========================================================
+let unitPagination = null;
 function renderUnits() {
   const units = window.appData?.units || [];
   const q = (inv.unitSearchInput?.value || '').trim().toLowerCase();
   const filtered = units.filter(u => !q || u.name.toLowerCase().includes(q) || (u.symbol || '').toLowerCase().includes(q));
 
   if (!inv.unitTableBody) return;
-  inv.unitTableBody.innerHTML = '';
 
-  if (filtered.length === 0) {
-    if (inv.unitEmptyState) inv.unitEmptyState.classList.remove('hidden');
-    return;
+  if (!unitPagination && window.createTablePagination) {
+    unitPagination = window.createTablePagination({
+      container: '#viewUnitInfo .table-container',
+      tbody: inv.unitTableBody,
+      emptyStateEl: inv.unitEmptyState,
+      onRenderPage: (slice, startIdx) => {
+        inv.unitTableBody.innerHTML = '';
+        slice.forEach((unit, idx) => {
+          const globalSr = startIdx + idx + 1;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="col-unit-sr font-num" style="text-align: center;">${globalSr}</td>
+            <td class="col-unit-name font-bold" style="text-align: center;">
+              <span style="cursor: default;" data-full-name="${window.escapeHtml(unit.name)}">${window.escapeHtml(unit.name)}</span>
+            </td>
+            <td class="col-unit-symbol" style="text-align: center;">
+              <span class="code-pill" style="cursor: default;" data-full-name="${window.escapeHtml(unit.symbol || '-')}">${window.escapeHtml(unit.symbol || '-')}</span>
+            </td>
+            <td class="col-unit-actions col-dots-actions" style="text-align: center;">
+              <div class="dots-wrapper">
+                <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'unitMenu_${unit.id}')" title="Actions">
+                  <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="1.5"></circle>
+                    <circle cx="12" cy="5" r="1.5"></circle>
+                    <circle cx="12" cy="19" r="1.5"></circle>
+                  </svg>
+                </button>
+                <div id="unitMenu_${unit.id}" class="action-menu hidden">
+                  <button type="button" class="action-menu-item" onclick="window.openEditUnit('${unit.id}')">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    <span>Edit</span>
+                  </button>
+                  <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteUnit('${unit.id}')">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          `;
+          inv.unitTableBody.appendChild(tr);
+        });
+      }
+    });
   }
-  if (inv.unitEmptyState) inv.unitEmptyState.classList.add('hidden');
 
-  filtered.forEach((unit, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="col-unit-sr font-num" style="text-align: center;">${idx + 1}</td>
-      <td class="col-unit-name font-bold" style="text-align: center;">
-        <span style="cursor: default;" data-full-name="${window.escapeHtml(unit.name)}">${window.escapeHtml(unit.name)}</span>
-      </td>
-      <td class="col-unit-symbol" style="text-align: center;">
-        <span class="code-pill" style="cursor: default;" data-full-name="${window.escapeHtml(unit.symbol || '-')}">${window.escapeHtml(unit.symbol || '-')}</span>
-      </td>
-      <td class="col-unit-actions col-dots-actions" style="text-align: center;">
-        <div class="dots-wrapper">
-          <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'unitMenu_${unit.id}')" title="Actions">
-            <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="1.5"></circle>
-              <circle cx="12" cy="5" r="1.5"></circle>
-              <circle cx="12" cy="19" r="1.5"></circle>
-            </svg>
-          </button>
-          <div id="unitMenu_${unit.id}" class="action-menu hidden">
-            <button type="button" class="action-menu-item" onclick="window.openEditUnit('${unit.id}')">
-              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
-              <span>Edit</span>
-            </button>
-            <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteUnit('${unit.id}')">
-              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
-      </td>
-    `;
-    inv.unitTableBody.appendChild(tr);
-  });
+  if (unitPagination) {
+    unitPagination.setItems(filtered, !!q);
+  }
 }
 
 function openAddUnit() {
@@ -411,6 +458,7 @@ if (inv.unitSearchInput) inv.unitSearchInput.addEventListener('input', renderUni
 
 // 3. PRODUCT CATEGORY MODULE
 // ========================================================
+let catPagination = null;
 function renderProductCategories() {
   const categories = window.appData?.product_categories || [];
   const allSubs = window.appData?.product_sub_categories || [];
@@ -419,58 +467,66 @@ function renderProductCategories() {
 
   if (inv.badgeCategoryCount) inv.badgeCategoryCount.textContent = categories.length;
   if (!inv.categoryTableBody) return;
-  inv.categoryTableBody.innerHTML = '';
 
-  if (filtered.length === 0) {
-    if (inv.categoryEmptyState) inv.categoryEmptyState.classList.remove('hidden');
-    return;
+  if (!catPagination && window.createTablePagination) {
+    catPagination = window.createTablePagination({
+      container: '#viewProductCategory .table-container',
+      tbody: inv.categoryTableBody,
+      emptyStateEl: inv.categoryEmptyState,
+      onRenderPage: (slice, startIdx) => {
+        inv.categoryTableBody.innerHTML = '';
+        slice.forEach((cat, idx) => {
+          const globalSr = startIdx + idx + 1;
+          const subCount = allSubs.filter(s => s.categoryId === cat.id).length;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="col-cat-sr font-num" style="text-align: center;">${globalSr}</td>
+            <td class="col-cat-name font-bold" style="text-align: center;">
+              <span style="cursor: default;" data-full-name="${window.escapeHtml(cat.name)}">${window.escapeHtml(cat.name)}</span>
+            </td>
+            <td class="col-cat-code" style="text-align: center;">
+              <span class="code-pill" style="cursor: default;" data-full-name="${window.escapeHtml(cat.code || '-')}">${window.escapeHtml(cat.code || '-')}</span>
+            </td>
+            <td class="col-cat-subs" style="text-align: center;">
+              <span class="badge-tag" style="cursor: default;">${subCount} Sub Categor${subCount === 1 ? 'y' : 'ies'}</span>
+            </td>
+            <td class="col-cat-actions col-dots-actions" style="text-align: center;">
+              <div class="dots-wrapper">
+                <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'catMenu_${cat.id}')" title="Actions">
+                  <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="1.5"></circle>
+                    <circle cx="12" cy="5" r="1.5"></circle>
+                    <circle cx="12" cy="19" r="1.5"></circle>
+                  </svg>
+                </button>
+                <div id="catMenu_${cat.id}" class="action-menu hidden">
+                  <button type="button" class="action-menu-item" onclick="window.openEditCategory('${cat.id}')">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    <span>Edit</span>
+                  </button>
+                  <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteCategory('${cat.id}')">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          `;
+          inv.categoryTableBody.appendChild(tr);
+        });
+      }
+    });
   }
-  if (inv.categoryEmptyState) inv.categoryEmptyState.classList.add('hidden');
 
-  filtered.forEach((cat, idx) => {
-    const subCount = allSubs.filter(s => s.categoryId === cat.id).length;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="col-cat-sr font-num" style="text-align: center;">${idx + 1}</td>
-      <td class="col-cat-name font-bold" style="text-align: center;">
-        <span style="cursor: default;" data-full-name="${window.escapeHtml(cat.name)}">${window.escapeHtml(cat.name)}</span>
-      </td>
-      <td class="col-cat-code" style="text-align: center;">
-        <span class="code-pill" style="cursor: default;" data-full-name="${window.escapeHtml(cat.code || '-')}">${window.escapeHtml(cat.code || '-')}</span>
-      </td>
-      <td class="col-cat-subs" style="text-align: center;">
-        <span class="badge-tag" style="cursor: default;">${subCount} Sub Categor${subCount === 1 ? 'y' : 'ies'}</span>
-      </td>
-      <td class="col-cat-actions col-dots-actions" style="text-align: center;">
-        <div class="dots-wrapper">
-          <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'catMenu_${cat.id}')" title="Actions">
-            <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="1.5"></circle>
-              <circle cx="12" cy="5" r="1.5"></circle>
-              <circle cx="12" cy="19" r="1.5"></circle>
-            </svg>
-          </button>
-          <div id="catMenu_${cat.id}" class="action-menu hidden">
-            <button type="button" class="action-menu-item" onclick="window.openEditCategory('${cat.id}')">
-              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
-              <span>Edit</span>
-            </button>
-            <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteCategory('${cat.id}')">
-              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
-      </td>
-    `;
-    inv.categoryTableBody.appendChild(tr);
-  });
+  if (catPagination) {
+    catPagination.setItems(filtered, !!q);
+  }
 }
 
 function openAddCategory() {
@@ -563,58 +619,66 @@ function renderProductSubCategories() {
 
   if (inv.badgeSubCategoryCount) inv.badgeSubCategoryCount.textContent = allSubs.length;
   if (!inv.subCategoryTableBody) return;
-  inv.subCategoryTableBody.innerHTML = '';
 
-  if (filtered.length === 0) {
-    if (inv.subCategoryEmptyState) inv.subCategoryEmptyState.classList.remove('hidden');
-    return;
+  if (!window.subCatPagination && window.createTablePagination) {
+    window.subCatPagination = window.createTablePagination({
+      container: '#viewProductSubCategory .table-container',
+      tbody: inv.subCategoryTableBody,
+      emptyStateEl: inv.subCategoryEmptyState,
+      onRenderPage: (slice, startIdx) => {
+        inv.subCategoryTableBody.innerHTML = '';
+        slice.forEach((sub, idx) => {
+          const globalSr = startIdx + idx + 1;
+          const parentCat = categories.find(c => c.id === sub.categoryId);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="col-sub-sr font-num" style="text-align: center;">${globalSr}</td>
+            <td class="col-sub-name font-bold" style="text-align: center;">
+              <span style="cursor: default;" data-full-name="${window.escapeHtml(sub.name)}">${window.escapeHtml(sub.name)}</span>
+            </td>
+            <td class="col-sub-code" style="text-align: center;">
+              <span class="code-pill" style="cursor: default;" data-full-name="${window.escapeHtml(sub.code || '-')}">${window.escapeHtml(sub.code || '-')}</span>
+            </td>
+            <td class="col-sub-parent" style="text-align: center;">
+              <span class="badge-tag" style="cursor: default;" data-full-name="${window.escapeHtml(parentCat?.name || '-')}">${window.escapeHtml(parentCat?.name || '-')}</span>
+            </td>
+            <td class="col-sub-actions col-dots-actions" style="text-align: center;">
+              <div class="dots-wrapper">
+                <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'subCatMenu_${sub.id}')" title="Actions">
+                  <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="1.5"></circle>
+                    <circle cx="12" cy="5" r="1.5"></circle>
+                    <circle cx="12" cy="19" r="1.5"></circle>
+                  </svg>
+                </button>
+                <div id="subCatMenu_${sub.id}" class="action-menu hidden">
+                  <button type="button" class="action-menu-item" onclick="window.openEditSubCategory('${sub.id}')">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    <span>Edit</span>
+                  </button>
+                  <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteSubCategory('${sub.id}')">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          `;
+          inv.subCategoryTableBody.appendChild(tr);
+        });
+      }
+    });
   }
-  if (inv.subCategoryEmptyState) inv.subCategoryEmptyState.classList.add('hidden');
 
-  filtered.forEach((sub, idx) => {
-    const parentCat = categories.find(c => c.id === sub.categoryId);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="col-sub-sr font-num" style="text-align: center;">${idx + 1}</td>
-      <td class="col-sub-name font-bold" style="text-align: center;">
-        <span style="cursor: default;" data-full-name="${window.escapeHtml(sub.name)}">${window.escapeHtml(sub.name)}</span>
-      </td>
-      <td class="col-sub-code" style="text-align: center;">
-        <span class="code-pill" style="cursor: default;" data-full-name="${window.escapeHtml(sub.code || '-')}">${window.escapeHtml(sub.code || '-')}</span>
-      </td>
-      <td class="col-sub-parent" style="text-align: center;">
-        <span class="badge-tag" style="cursor: default;" data-full-name="${window.escapeHtml(parentCat?.name || '-')}">${window.escapeHtml(parentCat?.name || '-')}</span>
-      </td>
-      <td class="col-sub-actions col-dots-actions" style="text-align: center;">
-        <div class="dots-wrapper">
-          <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, 'subCatMenu_${sub.id}')" title="Actions">
-            <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="1.5"></circle>
-              <circle cx="12" cy="5" r="1.5"></circle>
-              <circle cx="12" cy="19" r="1.5"></circle>
-            </svg>
-          </button>
-          <div id="subCatMenu_${sub.id}" class="action-menu hidden">
-            <button type="button" class="action-menu-item" onclick="window.openEditSubCategory('${sub.id}')">
-              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
-              <span>Edit</span>
-            </button>
-            <button type="button" class="action-menu-item text-danger" onclick="window.confirmDeleteSubCategory('${sub.id}')">
-              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
-      </td>
-    `;
-    inv.subCategoryTableBody.appendChild(tr);
-  });
+  if (window.subCatPagination) {
+    window.subCatPagination.setItems(filtered, !!q || !!selectedCatId);
+  }
 }
 
 function openAddSubCategory() {
@@ -760,12 +824,40 @@ if (inv.btnClearUnitSearch && inv.unitSearchInput) {
 // ========================================================
 // 5. PURCHASE VOUCHER MODULE (ENTERPRISE - MODAL WORKFLOW)
 // ========================================================
+let pieSearchTypeahead = null;
+function initPieProductSearch() {
+  if (pieSearchTypeahead) return;
+  if (window.setupSearchableProductDropdown && inv.pieProductSearchInput && inv.pieProductDropdownList) {
+    pieSearchTypeahead = window.setupSearchableProductDropdown({
+      inputEl: inv.pieProductSearchInput,
+      dropdownEl: inv.pieProductDropdownList,
+      codeEl: inv.pieCode,
+      selectEl: inv.pieProductSelect,
+      compactRateOnly: true,
+      onSelect: (prod) => {
+        selectProductForPurchase(prod);
+      },
+      nextFocusEl: () => inv.piePackQty
+    });
+  }
+}
+
 function openAddPurchaseModal() {
   if (inv.modalAddPurchase) inv.modalAddPurchase.classList.remove('hidden');
+  initPieProductSearch();
   updatePurchaseHeaderBadges();
   updateModalPurchaseCount();
+  renderModalPurchaseItems();
   updateLineNetPreview();
-  setTimeout(() => { if (inv.pieCode) inv.pieCode.focus(); }, 100);
+  if (inv.purPartySelect && !inv.purPartySelect.value) {
+    setTimeout(() => { if (inv.purPartySelect) inv.purPartySelect.focus(); }, 100);
+  } else {
+    setTimeout(() => {
+      const pieSr = document.getElementById('pieSrNo');
+      if (pieSr) pieSr.value = currentPurchaseItems.length + 1;
+      if (inv.pieProductSearchInput) inv.pieProductSearchInput.focus();
+    }, 100);
+  }
 }
 
 function closeAddPurchaseModal() {
@@ -774,7 +866,7 @@ function closeAddPurchaseModal() {
 }
 
 function updatePurchaseHeaderBadges() {
-  const vNo = inv.purVoucherNo?.value || '109';
+  const vNo = inv.purVoucherNo?.value || (window.appData?.purchases?.length ? String(window.appData.purchases.length + 100) : "101");
   if (inv.purVoucherNoDisplay) inv.purVoucherNoDisplay.textContent = vNo;
   if (inv.modalPurVoucherNoDisplay) inv.modalPurVoucherNoDisplay.textContent = vNo;
 
@@ -797,11 +889,51 @@ function updateModalPurchaseCount() {
   if (inv.modalPurchaseItemCount) {
     inv.modalPurchaseItemCount.textContent = currentPurchaseItems.length;
   }
+  if (inv.modalPurchaseSubtotal) {
+    const subtotal = currentPurchaseItems.reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0);
+    inv.modalPurchaseSubtotal.textContent = 'Rs. ' + subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+}
+
+function renderModalPurchaseItems() {
+  if (!inv.modalPurchaseItemsTableBody) return;
+  inv.modalPurchaseItemsTableBody.innerHTML = '';
+
+  if (currentPurchaseItems.length === 0) {
+    if (inv.modalPurchaseEmptyState) inv.modalPurchaseEmptyState.classList.remove('hidden');
+    return;
+  }
+  if (inv.modalPurchaseEmptyState) inv.modalPurchaseEmptyState.classList.add('hidden');
+
+  currentPurchaseItems.forEach((item, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align: center;" class="font-num">${item.srNo}</td>
+      <td style="text-align: center;" class="font-num font-bold">${window.escapeHtml(item.productCode)}</td>
+      <td class="font-bold">${window.escapeHtml(item.productTitle)}</td>
+      <td style="text-align: center;" class="font-num">${item.packQty}</td>
+      <td style="text-align: center;" class="font-num">${item.unitQty}</td>
+      <td style="text-align: center;" class="font-num">${item.bonus}</td>
+      <td style="text-align: right;" class="font-num">${Number(item.tradePrice).toFixed(2)}</td>
+      <td style="text-align: right;" class="font-num">${Number(item.tradeOffer).toFixed(2)}</td>
+      <td style="text-align: right;" class="font-num">${item.discountPercent}%</td>
+      <td style="text-align: right;" class="font-num font-bold text-accent">${Number(item.netAmount).toFixed(2)}</td>
+      <td style="text-align: center;">
+        <button type="button" class="btn-icon-xs text-danger" onclick="removePurchaseLineItem(${idx})" title="Remove Line">✕</button>
+      </td>
+    `;
+    inv.modalPurchaseItemsTableBody.appendChild(tr);
+  });
 }
 
 function updateLineNetPreview() {
   const code = inv.pieCode?.value.trim();
-  const prod = (window.appData?.products || []).find(p => String(p.code).trim() === code);
+  const searchTitle = (inv.pieProductSearchInput?.value || '').trim().toLowerCase();
+  let prod = (window.appData?.products || []).find(p => String(p.code).trim() === code);
+  if (!prod && searchTitle) {
+    prod = (window.appData?.products || []).find(p => (p.titleEng || '').toLowerCase() === searchTitle);
+  }
+
   const packSize = Number(prod?.packSize) || 1;
   const pQty = Number(inv.piePackQty?.value) || 0;
   const uQty = Number(inv.pieUnitQty?.value) || 0;
@@ -815,9 +947,170 @@ function updateLineNetPreview() {
   if (discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
   const net = Math.max(0, rawAmount);
   if (inv.pieLineNetPreview) {
-    inv.pieLineNetPreview.textContent = 'Rs. ' + net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formatted = 'Rs. ' + net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if ('value' in inv.pieLineNetPreview) inv.pieLineNetPreview.value = formatted;
+    inv.pieLineNetPreview.textContent = formatted;
   }
 }
+
+let filteredPurchases = [];
+
+function applyPurchaseDateFilter() {
+  const allPurchases = window.appData?.purchases || [];
+  const selectedDate = inv.purFilterDate?.value || '';
+
+  const btnClear = document.getElementById('btnPurClearDate');
+  if (btnClear) {
+    btnClear.style.display = selectedDate ? 'inline-flex' : 'none';
+  }
+
+  if (selectedDate) {
+    filteredPurchases = allPurchases.filter(p => (p.entryDate || '').startsWith(selectedDate));
+    if (inv.histDateBadge) inv.histDateBadge.textContent = selectedDate;
+  } else {
+    filteredPurchases = [...allPurchases];
+    if (inv.histDateBadge) inv.histDateBadge.textContent = 'All Dates';
+  }
+
+  // Populate quick voucher selector & custom dropdown (showing ONLY name, NO #pv)
+  renderVoucherDropdown();
+
+  // Update nav index for filtered list
+  if (filteredPurchases.length > 0) {
+    const curVNo = inv.purVoucherNo?.value;
+    const matchIdx = filteredPurchases.findIndex(p => p.voucherNo === curVNo);
+    purchaseNavIndex = matchIdx !== -1 ? matchIdx : 0;
+  } else {
+    purchaseNavIndex = -1;
+  }
+}
+
+function renderVoucherDropdown(filterQuery = '') {
+  const list = filteredPurchases.length > 0 ? filteredPurchases : (inv.purFilterDate?.value ? [] : (window.appData?.purchases || []));
+  const activeVNo = inv.purVoucherNo?.value;
+  const menu = document.getElementById('purVoucherDropdownList');
+  const searchInput = document.getElementById('purVoucherSearchInput');
+  const quickSelect = inv.purVoucherQuickSelect || document.getElementById('purVoucherQuickSelect');
+
+  // Sync quick select (showing ONLY partyTitle / name, NO #pv)
+  if (quickSelect) {
+    if (list.length === 0) {
+      quickSelect.innerHTML = '<option value="">No Vouchers Found</option>';
+    } else {
+      quickSelect.innerHTML = '<option value="">Select Voucher</option>' +
+        list.map(p => {
+          const isSel = p.voucherNo === activeVNo ? ' selected' : '';
+          const name = window.escapeHtml(p.partyTitle || 'Supplier');
+          return `<option value="${p.voucherNo}"${isSel}>${name}</option>`;
+        }).join('');
+    }
+  }
+
+  // Update search input value if current voucher exists and input is not active
+  if (searchInput && document.activeElement !== searchInput) {
+    const curPur = list.find(p => p.voucherNo === activeVNo);
+    if (curPur) {
+      searchInput.value = curPur.partyTitle || 'Supplier';
+    } else if (!activeVNo) {
+      searchInput.value = '';
+    }
+  }
+
+  if (!menu) return;
+
+  const q = (filterQuery || '').trim().toLowerCase();
+  const matching = q ? list.filter(p => (p.partyTitle || '').toLowerCase().includes(q)) : list;
+
+  if (matching.length === 0) {
+    menu.innerHTML = '<div class="pur-voucher-dropdown-empty">No vouchers found</div>';
+    return;
+  }
+
+  menu.innerHTML = matching.map(p => {
+    const isSel = p.voucherNo === activeVNo ? ' active' : '';
+    const name = window.escapeHtml(p.partyTitle || 'Supplier');
+    return `<div class="pur-voucher-dropdown-item${isSel}" data-voucher="${p.voucherNo}">${name}</div>`;
+  }).join('');
+
+  menu.querySelectorAll('.pur-voucher-dropdown-item').forEach(item => {
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const vNo = item.getAttribute('data-voucher');
+      if (vNo) {
+        selectAndLoadPurchase(vNo);
+        if (searchInput) {
+          const matched = list.find(p => p.voucherNo === vNo);
+          searchInput.value = matched?.partyTitle || item.textContent;
+        }
+        menu.classList.add('hidden');
+      }
+    });
+  });
+}
+window.renderVoucherDropdown = renderVoucherDropdown;
+
+function openPurchaseHistoryModal() {
+  renderPurchaseHistoryTable();
+  if (inv.modalPurchaseHistory) inv.modalPurchaseHistory.classList.remove('hidden');
+}
+
+function closePurchaseHistoryModal() {
+  if (inv.modalPurchaseHistory) inv.modalPurchaseHistory.classList.add('hidden');
+}
+
+function renderPurchaseHistoryTable() {
+  if (!inv.purchaseHistoryTableBody) return;
+  inv.purchaseHistoryTableBody.innerHTML = '';
+
+  const list = filteredPurchases;
+  const count = list.length;
+  const totalAmount = list.reduce((acc, p) => acc + (Number(p.grandTotal) || 0), 0);
+
+  if (inv.histTotalCount) inv.histTotalCount.textContent = count;
+  if (inv.histTotalAmount) {
+    inv.histTotalAmount.textContent = 'Rs. ' + totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  if (count === 0) {
+    if (inv.purchaseHistoryEmptyState) inv.purchaseHistoryEmptyState.classList.remove('hidden');
+    return;
+  }
+  if (inv.purchaseHistoryEmptyState) inv.purchaseHistoryEmptyState.classList.add('hidden');
+
+  list.forEach((pur, idx) => {
+    let itemsCount = 0;
+    try {
+      const items = pur.itemsJson ? JSON.parse(pur.itemsJson) : [];
+      itemsCount = items.length;
+    } catch (_) {}
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align: center;" class="font-num">${idx + 1}</td>
+      <td style="text-align: center;" class="font-num font-bold text-primary">#${pur.voucherNo}</td>
+      <td style="text-align: center;" class="font-num">${pur.entryDate || '-'}</td>
+      <td style="text-align: left;" class="font-bold">${window.escapeHtml(pur.partyTitle || 'Supplier')}</td>
+      <td style="text-align: center;" class="font-num">${itemsCount}</td>
+      <td style="text-align: right;" class="font-num font-bold text-success">Rs. ${Number(pur.grandTotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+      <td style="text-align: center;">
+        <button type="button" class="btn btn-xs btn-primary" onclick="window.selectAndLoadPurchase('${pur.voucherNo}')">
+          View Bill
+        </button>
+      </td>
+    `;
+    inv.purchaseHistoryTableBody.appendChild(tr);
+  });
+}
+
+function selectAndLoadPurchase(voucherNo) {
+  const p = (window.appData?.purchases || []).find(it => it.voucherNo === voucherNo);
+  if (p) {
+    loadPurchaseRecord(p);
+    closePurchaseHistoryModal();
+    if (inv.purVoucherQuickSelect) inv.purVoucherQuickSelect.value = voucherNo;
+  }
+}
+window.selectAndLoadPurchase = selectAndLoadPurchase;
 
 async function initPurchaseView() {
   // Populate Parties Dropdown from General Info Parties
@@ -837,16 +1130,19 @@ async function initPurchaseView() {
     });
     const listToUse = vendors.length > 0 ? vendors : parties;
 
-    inv.purPartySelect.innerHTML = '<option value="">-- Please Select Supplier / Vendor --</option>' +
+    inv.purPartySelect.innerHTML = '<option value="">Select Party Name</option>' +
       listToUse.map(p => `<option value="${p.id}" data-contact="${window.escapeHtml(p.contactPerson || '')}" data-phone="${window.escapeHtml(p.phone || '')}" data-area="${window.escapeHtml(p.areaName || p.city || '')}">${window.escapeHtml(p.name)} [${window.escapeHtml(p.partyTypeName || 'Supplier')}]</option>`).join('');
   }
 
   // Populate Products Dropdown
   const prods = window.appData?.products || [];
   if (inv.pieProductSelect) {
-    inv.pieProductSelect.innerHTML = '<option value="">-- Select Product --</option>' +
+    inv.pieProductSelect.innerHTML = '<option value="">Select Product</option>' +
       prods.map(p => `<option value="${p.code}">${p.code} - ${window.escapeHtml(p.titleEng)}</option>`).join('');
   }
+
+  // Initialize Searchable Product Typeahead
+  initPieProductSearch();
 
   // Set default entry date
   if (inv.purEntryDate && !inv.purEntryDate.value) {
@@ -856,10 +1152,10 @@ async function initPurchaseView() {
   // Fetch Next Voucher Number
   if (inv.purVoucherNo && !inv.purVoucherNo.value) {
     try {
-      const vNo = window.api?.getNextPurchaseVoucherNo ? await window.api.getNextPurchaseVoucherNo() : '109';
+      const vNo = window.api?.getNextPurchaseVoucherNo ? await window.api.getNextPurchaseVoucherNo() : "101";
       inv.purVoucherNo.value = vNo;
     } catch (e) {
-      inv.purVoucherNo.value = '109';
+      inv.purVoucherNo.value = (window.appData?.purchases?.length ? String(window.appData.purchases.length + 100) : "101");
     }
   }
 
@@ -867,6 +1163,7 @@ async function initPurchaseView() {
   renderPurchaseLineItems();
   updatePurchaseHeaderBadges();
   updateModalPurchaseCount();
+  applyPurchaseDateFilter();
 }
 
 // When Party dropdown changes, auto-fill contact person & update badge
@@ -877,6 +1174,9 @@ if (inv.purPartySelect) {
       inv.purContactPerson.value = selected?.dataset?.contact || '';
     }
     updatePurchaseHeaderBadges();
+    if (selected && selected.value && window.togglePurchaseItemDrawer) {
+      window.togglePurchaseItemDrawer(true);
+    }
   });
 }
 
@@ -885,7 +1185,12 @@ function selectProductForPurchase(prod) {
   if (!prod) return;
   if (inv.pieCode) inv.pieCode.value = prod.code;
   if (inv.pieProductSelect) inv.pieProductSelect.value = prod.code;
-  if (inv.pieTradePrice) inv.pieTradePrice.value = Number(prod.purchasePrice || 0).toFixed(2);
+  if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = prod.titleEng || '';
+  if (inv.pieTradePrice) inv.pieTradePrice.value = Number(prod.purchasePrice || prod.tradePrice || 0).toFixed(2);
+  const pieWholesale = document.getElementById('pieWholesalePrice');
+  if (pieWholesale) pieWholesale.value = Number(prod.wholesalePrice || 0).toFixed(2);
+  const pieRetail = document.getElementById('pieRetailPrice');
+  if (pieRetail) pieRetail.value = Number(prod.retailPrice || 0).toFixed(2);
   if (inv.pieRetailPricePill) inv.pieRetailPricePill.textContent = Number(prod.retailPrice || 0).toFixed(2);
   if (inv.pieWholesalePricePill) inv.pieWholesalePricePill.textContent = Number(prod.wholesalePrice || 0).toFixed(2);
   updateLineNetPreview();
@@ -909,18 +1214,22 @@ if (inv.pieCode) {
 
 // Add Item to Voucher
 function addPurchaseLineItem() {
-  // 1. Mandatory Party Selection Check (Legacy Validation popup)
   if (!inv.purPartySelect || !inv.purPartySelect.value) {
-    showAlert('Please Select the Party Title!');
+    showAlert('Please select Party Name first!');
     inv.purPartySelect?.focus();
     return;
   }
 
   const code = inv.pieCode?.value.trim();
-  const prod = (window.appData?.products || []).find(p => String(p.code).trim() === code);
+  const searchTitle = (inv.pieProductSearchInput?.value || '').trim().toLowerCase();
+  let prod = (window.appData?.products || []).find(p => String(p.code).trim() === code);
+  if (!prod && searchTitle) {
+    prod = (window.appData?.products || []).find(p => (p.titleEng || '').toLowerCase() === searchTitle);
+  }
+
   if (!prod) {
-    showAlert('Please enter or select a valid product code!');
-    inv.pieCode?.focus();
+    showAlert('Please select a Product from the dropdown!');
+    inv.pieProductSearchInput?.focus();
     return;
   }
 
@@ -928,24 +1237,23 @@ function addPurchaseLineItem() {
   const uQty = Number(inv.pieUnitQty?.value) || 0;
   const bonus = Number(inv.pieBonus?.value) || 0;
   const tp = Number(inv.pieTradePrice?.value) || 0;
+  const wp = Number(document.getElementById('pieWholesalePrice')?.value) || Number(prod.wholesalePrice) || 0;
+  const rp = Number(document.getElementById('pieRetailPrice')?.value) || Number(prod.retailPrice) || 0;
   const tradeOffer = Number(inv.pieTradeOffer?.value) || 0;
   const discPercent = Number(inv.pieDiscPercent?.value) || 0;
 
   if (pQty === 0 && uQty === 0 && bonus === 0) {
-    showAlert('Please enter a quantity (P.Qty or U.Qty)!');
+    showAlert('Please enter quantity (Pack Qty or Unit Qty)!');
     inv.piePackQty?.focus();
     return;
   }
 
-  // Calculate Net Amount
   const totalUnits = (pQty * (Number(prod.packSize) || 1)) + uQty;
   let rawAmount = totalUnits * tp;
   if (tradeOffer > 0) rawAmount -= tradeOffer;
   if (discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
   const netAmount = Math.max(0, rawAmount);
 
-  // Profit Margin %
-  const rp = Number(prod.retailPrice) || 0;
   const marginPercent = tp > 0 ? (((rp - tp) / tp) * 100).toFixed(1) : '0';
 
   const lineItem = {
@@ -960,7 +1268,7 @@ function addPurchaseLineItem() {
     tradePrice: tp,
     profitMargin: marginPercent,
     retailPrice: rp,
-    wholesalePrice: prod.wholesalePrice || 0,
+    wholesalePrice: wp,
     tradeOffer,
     discountPercent: discPercent,
     netAmount: netAmount.toFixed(2)
@@ -970,23 +1278,66 @@ function addPurchaseLineItem() {
   renderPurchaseLineItems();
   updateModalPurchaseCount();
   updatePurchaseHeaderBadges();
+  autoSaveCurrentPurchase();
 
-  // Reset entry line inputs
+  if (window.showToast) {
+    window.showToast(`Item "${lineItem.productTitle}" added!`, 'success');
+  }
+
+  // Reset inputs
   if (inv.pieCode) inv.pieCode.value = '';
+  if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = '';
   if (inv.pieProductSelect) inv.pieProductSelect.value = '';
   if (inv.piePackQty) inv.piePackQty.value = 0;
   if (inv.pieUnitQty) inv.pieUnitQty.value = 0;
   if (inv.pieBonus) inv.pieBonus.value = 0;
   if (inv.pieTradePrice) inv.pieTradePrice.value = '0.00';
-  if (inv.pieRetailPricePill) inv.pieRetailPricePill.textContent = '0.00';
-  if (inv.pieWholesalePricePill) inv.pieWholesalePricePill.textContent = '0.00';
+  const wpEl = document.getElementById('pieWholesalePrice');
+  if (wpEl) wpEl.value = '0.00';
+  const rpEl = document.getElementById('pieRetailPrice');
+  if (rpEl) rpEl.value = '0.00';
   if (inv.pieTradeOffer) inv.pieTradeOffer.value = '0.00';
   if (inv.pieDiscPercent) inv.pieDiscPercent.value = '0.0';
   updateLineNetPreview();
-  inv.pieCode?.focus();
+  if (inv.pieProductSearchInput) inv.pieProductSearchInput.focus();
 }
 
 if (inv.btnAddPurchaseItem) inv.btnAddPurchaseItem.addEventListener('click', addPurchaseLineItem);
+
+// Toggle Add Item Drawer (Accordion / Slide Down)
+window.togglePurchaseItemDrawer = function(forceState) {
+  const drawer = document.getElementById('purItemEntryDrawer');
+  const btn = document.getElementById('btnToggleAddItem');
+  if (!drawer) return;
+
+  const isCollapsed = drawer.classList.contains('collapsed');
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : isCollapsed;
+
+  if (shouldOpen) {
+    drawer.classList.remove('collapsed');
+    if (btn) btn.classList.add('active');
+    const dropdownList = document.getElementById('pieProductDropdownList');
+    if (dropdownList) dropdownList.classList.add('hidden');
+  } else {
+    drawer.classList.add('collapsed');
+    if (btn) btn.classList.remove('active');
+    const dropdownList = document.getElementById('pieProductDropdownList');
+    if (dropdownList) dropdownList.classList.add('hidden');
+  }
+
+  // Recalculate pagination size if active
+  if (purLinePagination && typeof purLinePagination.render === 'function') {
+    setTimeout(() => purLinePagination.render(), 360);
+  }
+};
+
+const btnToggleAddItem = document.getElementById('btnToggleAddItem');
+if (btnToggleAddItem) {
+  btnToggleAddItem.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.togglePurchaseItemDrawer();
+  });
+}
 
 function removePurchaseLineItem(index) {
   currentPurchaseItems.splice(index, 1);
@@ -995,41 +1346,152 @@ function removePurchaseLineItem(index) {
   updateModalPurchaseCount();
 }
 
+let purLinePagination = null;
 function renderPurchaseLineItems() {
   if (!inv.purchaseItemsTableBody) return;
-  inv.purchaseItemsTableBody.innerHTML = '';
 
-  if (currentPurchaseItems.length === 0) {
-    if (inv.purchaseItemsEmptyState) inv.purchaseItemsEmptyState.classList.remove('hidden');
-    calculatePurchaseBill();
-    return;
+  const pieSrUpdate = document.getElementById('pieSrNo');
+  if (pieSrUpdate) pieSrUpdate.value = currentPurchaseItems.length + 1;
+
+  if (!purLinePagination && window.createTablePagination) {
+    purLinePagination = window.createTablePagination({
+      container: '.pur-items-grid',
+      tbody: inv.purchaseItemsTableBody,
+      emptyStateEl: inv.purchaseItemsEmptyState,
+      fixedPageSize: 6,
+      onRenderPage: (slice, startIdx) => {
+        inv.purchaseItemsTableBody.innerHTML = '';
+        slice.forEach((item, idx) => {
+          const actualIdx = startIdx + idx;
+          const menuId = `purRowMenu_${actualIdx}`;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="col-pur-sr font-num">${item.srNo || (actualIdx + 1)}</td>
+            <td class="col-pur-name font-bold">${window.escapeHtml(item.productTitle)}</td>
+            <td class="col-pur-pqty font-num">${item.packQty}</td>
+            <td class="col-pur-uqty font-num">${item.unitQty}</td>
+            <td class="col-pur-bonus font-num">${item.bonus || 0}</td>
+            <td class="col-pur-tprice font-num">${Number(item.tradePrice).toFixed(2)}</td>
+            <td class="col-pur-pro font-num text-success">${item.profitMargin}%</td>
+            <td class="col-pur-pprice font-num">${Number(item.retailPrice).toFixed(2)}</td>
+            <td class="col-pur-wprice font-num">${Number(item.wholesalePrice).toFixed(2)}</td>
+            <td class="col-pur-toffer font-num">${Number(item.tradeOffer).toFixed(2)}</td>
+            <td class="col-pur-disc font-num">${item.discountPercent}%</td>
+            <td class="col-pur-amount font-num font-bold text-accent">${Number(item.netAmount).toFixed(2)}</td>
+            <td class="col-pur-action" style="overflow: visible; position: relative;">
+              <div class="dots-wrapper">
+                <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, '${menuId}')" title="Actions">
+                  <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="1.5"></circle>
+                    <circle cx="12" cy="5" r="1.5"></circle>
+                    <circle cx="12" cy="19" r="1.5"></circle>
+                  </svg>
+                </button>
+                <div id="${menuId}" class="action-menu hidden">
+                  <button type="button" class="action-menu-item" onclick="window.editPurchaseLineItem(${actualIdx})">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    <span>Edit</span>
+                  </button>
+                  <button type="button" class="action-menu-item text-danger" onclick="window.removePurchaseLineItem(${actualIdx})">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          `;
+          inv.purchaseItemsTableBody.appendChild(tr);
+        });
+      }
+    });
   }
-  if (inv.purchaseItemsEmptyState) inv.purchaseItemsEmptyState.classList.add('hidden');
 
-  currentPurchaseItems.forEach((item, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="font-num text-center">${item.srNo}</td>
-      <td class="font-num text-center">${window.escapeHtml(item.productCode)}</td>
-      <td class="font-bold">${window.escapeHtml(item.productTitle)}</td>
-      <td class="font-num">${item.packQty}</td>
-      <td class="font-num">${item.unitQty}</td>
-      <td class="font-num">${item.bonus}</td>
-      <td class="font-num">${Number(item.tradePrice).toFixed(2)}</td>
-      <td class="font-num text-success">${item.profitMargin}%</td>
-      <td class="font-num">${Number(item.retailPrice).toFixed(2)}</td>
-      <td class="font-num">${Number(item.wholesalePrice).toFixed(2)}</td>
-      <td class="font-num">${Number(item.tradeOffer).toFixed(2)}</td>
-      <td class="font-num">${item.discountPercent}%</td>
-      <td class="font-num font-bold text-accent">${Number(item.netAmount).toFixed(2)}</td>
-      <td>
-        <button class="btn-icon-xs text-danger" onclick="removePurchaseLineItem(${idx})" title="Remove Line">✕</button>
-      </td>
-    `;
-    inv.purchaseItemsTableBody.appendChild(tr);
-  });
+  if (purLinePagination) {
+    purLinePagination.setItems(currentPurchaseItems, false);
+  }
 
+  renderModalPurchaseItems();
   calculatePurchaseBill();
+}
+
+function editPurchaseLineItem(index) {
+  const item = currentPurchaseItems[index];
+  if (!item) return;
+
+  if (inv.pieCode) inv.pieCode.value = item.productCode || '';
+  if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = item.productTitle || '';
+  if (inv.piePackQty) inv.piePackQty.value = item.packQty || 0;
+  if (inv.pieUnitQty) inv.pieUnitQty.value = item.unitQty || 0;
+  if (inv.pieBonus) inv.pieBonus.value = item.bonus || 0;
+  if (inv.pieTradePrice) inv.pieTradePrice.value = Number(item.tradePrice || 0).toFixed(2);
+  const wpEl = document.getElementById('pieWholesalePrice');
+  if (wpEl) wpEl.value = Number(item.wholesalePrice || 0).toFixed(2);
+  const rpEl = document.getElementById('pieRetailPrice');
+  if (rpEl) rpEl.value = Number(item.retailPrice || 0).toFixed(2);
+  if (inv.pieTradeOffer) inv.pieTradeOffer.value = Number(item.tradeOffer || 0).toFixed(2);
+  if (inv.pieDiscPercent) inv.pieDiscPercent.value = Number(item.discountPercent || 0).toFixed(1);
+
+  currentPurchaseItems.splice(index, 1);
+  currentPurchaseItems.forEach((it, i) => { it.srNo = i + 1; });
+  renderPurchaseLineItems();
+  updateLineNetPreview();
+  autoSaveCurrentPurchase();
+
+  if (inv.piePackQty) inv.piePackQty.focus();
+}
+window.editPurchaseLineItem = editPurchaseLineItem;
+
+function removePurchaseLineItem(index) {
+  currentPurchaseItems.splice(index, 1);
+  currentPurchaseItems.forEach((item, i) => { item.srNo = i + 1; });
+  renderPurchaseLineItems();
+  updateModalPurchaseCount();
+  autoSaveCurrentPurchase();
+}
+window.removePurchaseLineItem = removePurchaseLineItem;
+
+async function autoSaveCurrentPurchase() {
+  if (!inv.purPartySelect || !inv.purPartySelect.value) return;
+  const selectedParty = inv.purPartySelect.options[inv.purPartySelect.selectedIndex];
+  const partyTitle = selectedParty ? selectedParty.text : '';
+
+  const lineSum = currentPurchaseItems.reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0);
+  const vNo = inv.purVoucherNo?.value || (window.appData?.purchases?.length ? String(window.appData.purchases.length + 100) : "101");
+
+  const purchaseData = {
+    voucherNo: vNo,
+    manualNo: inv.purManualNo?.value.trim() || '',
+    entryDate: inv.purEntryDate?.value || new Date().toISOString().split('T')[0],
+    partyId: inv.purPartySelect.value,
+    partyTitle,
+    description: '',
+    storeTitle: 'Main Store',
+    receivable: 0,
+    contactPerson: '',
+    dueDate: '',
+    paymentStatus: 'Pending',
+    totalAmount: lineSum,
+    discount: 0,
+    freightDisc: 0,
+    freightExpn: 0,
+    salesTax: 0,
+    extraCharges: 0,
+    grandTotal: lineSum
+  };
+
+  try {
+    if (window.api?.savePurchase) {
+      await window.api.savePurchase(purchaseData, currentPurchaseItems);
+    }
+  } catch (err) {
+    console.warn('Auto save purchase error:', err);
+  }
 }
 
 function calculatePurchaseBill() {
@@ -1087,6 +1549,7 @@ async function savePurchaseVoucher() {
     receivable: Number(inv.purReceivable?.value) || 0,
     contactPerson: inv.purContactPerson?.value.trim() || '',
     dueDate: inv.purDueDate?.value || '',
+    paymentStatus: inv.purPaymentStatus?.value || 'Pending',
     totalAmount: lineSum,
     discount,
     freightDisc,
@@ -1102,6 +1565,7 @@ async function savePurchaseVoucher() {
     }
     await window.reloadFromDatabase();
     showAlert(`Purchase Voucher #${purchaseData.voucherNo} saved successfully! Stock updated.`, 'Success');
+    applyPurchaseDateFilter();
     resetPurchaseForm();
   } catch (err) {
     console.error('Save purchase voucher error:', err);
@@ -1113,14 +1577,17 @@ async function resetPurchaseForm() {
   currentPurchaseItems = [];
   if (inv.purVoucherNo) {
     try {
-      const vNo = window.api?.getNextPurchaseVoucherNo ? await window.api.getNextPurchaseVoucherNo() : '109';
+      const vNo = window.api?.getNextPurchaseVoucherNo ? await window.api.getNextPurchaseVoucherNo() : "101";
       inv.purVoucherNo.value = vNo;
     } catch (e) { }
   }
   if (inv.purManualNo) inv.purManualNo.value = '';
   if (inv.purPartySelect) inv.purPartySelect.value = '';
   if (inv.purContactPerson) inv.purContactPerson.value = '';
+  if (inv.purPaymentStatus) inv.purPaymentStatus.value = 'Pending';
   if (inv.purDescription) inv.purDescription.value = '';
+  if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = '';
+  if (inv.pieCode) inv.pieCode.value = '';
   if (inv.purDiscount) inv.purDiscount.value = '0.00';
   if (inv.purFreightDisc) inv.purFreightDisc.value = '0.00';
   if (inv.purFreightExpn) inv.purFreightExpn.value = '0.00';
@@ -1129,10 +1596,13 @@ async function resetPurchaseForm() {
   renderPurchaseLineItems();
   updatePurchaseHeaderBadges();
   updateModalPurchaseCount();
+  applyPurchaseDateFilter();
 }
 
 function loadPurchaseRecord(pur) {
   if (!pur) return;
+  const sInput = document.getElementById('purVoucherSearchInput');
+  if (sInput) sInput.value = pur.partyTitle || '';
   if (inv.purVoucherNo) inv.purVoucherNo.value = pur.voucherNo;
   if (inv.purManualNo) inv.purManualNo.value = pur.manualNo || '';
   if (inv.purEntryDate) inv.purEntryDate.value = pur.entryDate || '';
@@ -1141,6 +1611,7 @@ function loadPurchaseRecord(pur) {
   if (inv.purDescription) inv.purDescription.value = pur.description || '';
   if (inv.purStoreTitle) inv.purStoreTitle.value = pur.storeTitle || 'Store';
   if (inv.purDueDate) inv.purDueDate.value = pur.dueDate || '';
+  if (inv.purPaymentStatus) inv.purPaymentStatus.value = pur.paymentStatus || 'Pending';
   if (inv.purDiscount) inv.purDiscount.value = Number(pur.discount || 0).toFixed(2);
   if (inv.purFreightDisc) inv.purFreightDisc.value = Number(pur.freightDisc || 0).toFixed(2);
   if (inv.purFreightExpn) inv.purFreightExpn.value = Number(pur.freightExpn || 0).toFixed(2);
@@ -1186,45 +1657,133 @@ if (inv.btnOpenAddPurchase) inv.btnOpenAddPurchase.addEventListener('click', ope
 if (inv.btnCloseAddPurchaseModal) inv.btnCloseAddPurchaseModal.addEventListener('click', closeAddPurchaseModal);
 if (inv.btnCancelAddPurchase) inv.btnCancelAddPurchase.addEventListener('click', closeAddPurchaseModal);
 if (inv.btnDonePurchaseModal) inv.btnDonePurchaseModal.addEventListener('click', closeAddPurchaseModal);
+if (inv.btnSavePurchaseModal) {
+  inv.btnSavePurchaseModal.addEventListener('click', async () => {
+    await savePurchaseVoucher();
+    closeAddPurchaseModal();
+  });
+}
 
 // Live preview listeners for item entry inside modal
-[inv.piePackQty, inv.pieUnitQty, inv.pieTradePrice, inv.pieTradeOffer, inv.pieDiscPercent].forEach(input => {
+[inv.piePackQty, inv.pieUnitQty, inv.pieBonus, inv.pieTradePrice, document.getElementById('pieWholesalePrice'), document.getElementById('pieRetailPrice'), inv.pieTradeOffer, inv.pieDiscPercent].forEach(input => {
   if (input) input.addEventListener('input', updateLineNetPreview);
 });
 
+// Purchase Filter Toolbar Event Bindings
+if (inv.purFilterDate) {
+  inv.purFilterDate.addEventListener('change', applyPurchaseDateFilter);
+  inv.purFilterDate.addEventListener('click', () => {
+    try {
+      if (typeof inv.purFilterDate.showPicker === 'function') inv.purFilterDate.showPicker();
+    } catch (_) {}
+  });
+}
+
+const btnPurClearDate = document.getElementById('btnPurClearDate');
+if (btnPurClearDate) {
+  btnPurClearDate.addEventListener('click', () => {
+    if (inv.purFilterDate) inv.purFilterDate.value = '';
+    applyPurchaseDateFilter();
+  });
+}
+
+// Voucher Searchbar & Combobox Dropdown
+const purVoucherSearchInput = document.getElementById('purVoucherSearchInput');
+const btnToggleVoucherList = document.getElementById('btnToggleVoucherList');
+const purVoucherDropdownList = document.getElementById('purVoucherDropdownList');
+
+if (purVoucherSearchInput && purVoucherDropdownList) {
+  purVoucherSearchInput.addEventListener('focus', () => {
+    purVoucherSearchInput.select();
+    renderVoucherDropdown(purVoucherSearchInput.value);
+    purVoucherDropdownList.classList.remove('hidden');
+  });
+
+  purVoucherSearchInput.addEventListener('input', () => {
+    renderVoucherDropdown(purVoucherSearchInput.value);
+    purVoucherDropdownList.classList.remove('hidden');
+  });
+
+  purVoucherSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      purVoucherDropdownList.classList.add('hidden');
+    } else if (e.key === 'Enter') {
+      const firstItem = purVoucherDropdownList.querySelector('.pur-voucher-dropdown-item');
+      if (firstItem) {
+        firstItem.dispatchEvent(new MouseEvent('mousedown'));
+      }
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('purVoucherCombobox');
+    if (wrap && !wrap.contains(e.target)) {
+      purVoucherDropdownList.classList.add('hidden');
+    }
+  });
+}
+
+if (btnToggleVoucherList && purVoucherDropdownList) {
+  btnToggleVoucherList.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = purVoucherDropdownList.classList.contains('hidden');
+    if (isHidden) {
+      renderVoucherDropdown(purVoucherSearchInput?.value || '');
+      purVoucherDropdownList.classList.remove('hidden');
+      if (purVoucherSearchInput) purVoucherSearchInput.focus();
+    } else {
+      purVoucherDropdownList.classList.add('hidden');
+    }
+  });
+}
+
+if (inv.purVoucherQuickSelect) {
+  inv.purVoucherQuickSelect.addEventListener('change', () => {
+    const vNo = inv.purVoucherQuickSelect.value;
+    if (vNo) selectAndLoadPurchase(vNo);
+  });
+}
+if (inv.btnOpenPurchaseHistory) inv.btnOpenPurchaseHistory.addEventListener('click', openPurchaseHistoryModal);
+if (inv.btnClosePurchaseHistory) inv.btnClosePurchaseHistory.addEventListener('click', closePurchaseHistoryModal);
+if (inv.btnDonePurchaseHistory) inv.btnDonePurchaseHistory.addEventListener('click', closePurchaseHistoryModal);
+
 if (inv.btnPurFirst) {
   inv.btnPurFirst.addEventListener('click', () => {
-    const list = window.appData?.purchases || [];
+    const list = filteredPurchases.length > 0 ? filteredPurchases : (window.appData?.purchases || []);
     if (list.length > 0) {
       purchaseNavIndex = 0;
       loadPurchaseRecord(list[purchaseNavIndex]);
+      if (inv.purVoucherQuickSelect) inv.purVoucherQuickSelect.value = list[purchaseNavIndex].voucherNo;
     }
   });
 }
 if (inv.btnPurPrev) {
   inv.btnPurPrev.addEventListener('click', () => {
-    const list = window.appData?.purchases || [];
+    const list = filteredPurchases.length > 0 ? filteredPurchases : (window.appData?.purchases || []);
     if (list.length > 0) {
       purchaseNavIndex = Math.max(0, purchaseNavIndex - 1);
       loadPurchaseRecord(list[purchaseNavIndex]);
+      if (inv.purVoucherQuickSelect) inv.purVoucherQuickSelect.value = list[purchaseNavIndex].voucherNo;
     }
   });
 }
 if (inv.btnPurNext) {
   inv.btnPurNext.addEventListener('click', () => {
-    const list = window.appData?.purchases || [];
+    const list = filteredPurchases.length > 0 ? filteredPurchases : (window.appData?.purchases || []);
     if (list.length > 0) {
       purchaseNavIndex = Math.min(list.length - 1, purchaseNavIndex + 1);
       loadPurchaseRecord(list[purchaseNavIndex]);
+      if (inv.purVoucherQuickSelect) inv.purVoucherQuickSelect.value = list[purchaseNavIndex].voucherNo;
     }
   });
 }
 if (inv.btnPurLast) {
   inv.btnPurLast.addEventListener('click', () => {
-    const list = window.appData?.purchases || [];
+    const list = filteredPurchases.length > 0 ? filteredPurchases : (window.appData?.purchases || []);
     if (list.length > 0) {
       purchaseNavIndex = list.length - 1;
       loadPurchaseRecord(list[purchaseNavIndex]);
+      if (inv.purVoucherQuickSelect) inv.purVoucherQuickSelect.value = list[purchaseNavIndex].voucherNo;
     }
   });
 }
@@ -1233,29 +1792,31 @@ if (inv.btnPurLast) {
 // 7. PRODUCT INFO MASTER MODULE (LEGACY REPLICA)
 // ========================================================
 async function initProductInfoView() {
+  if (window.reloadFromDatabase) await window.reloadFromDatabase();
   populateProductInfoDropdowns();
-
-  const prods = window.appData?.products || [];
-  if (prods.length > 0 && productNavIndex === -1) {
-    productNavIndex = 0;
-    loadProductRecord(prods[0]);
-  } else if (prods.length === 0) {
-    resetProductInfoForm();
-  }
+  renderProductsTable();
 }
 
 function populateProductInfoDropdowns() {
-  // Categories
+  // Categories for Form
   const cats = window.appData?.product_categories || [];
   if (inv.piCategorySelect) {
-    inv.piCategorySelect.innerHTML = '<option value="">-- Select Category --</option>' +
+    inv.piCategorySelect.innerHTML = '<option value="">Select Category</option>' +
       cats.map(c => `<option value="${c.id}">${window.escapeHtml(c.name)}</option>`).join('');
+  }
+
+  // Categories for Top Action Bar Filter
+  if (inv.piCategoryFilter) {
+    const curVal = inv.piCategoryFilter.value;
+    inv.piCategoryFilter.innerHTML = '<option value="">All Categories</option>' +
+      cats.map(c => `<option value="${c.id}">${window.escapeHtml(c.name)}</option>`).join('');
+    if (curVal) inv.piCategoryFilter.value = curVal;
   }
 
   // Units
   const units = window.appData?.units || [];
   if (inv.piUnitSelect) {
-    inv.piUnitSelect.innerHTML = '<option value="">-- Select Unit --</option>' +
+    inv.piUnitSelect.innerHTML = '<option value="">Select Unit</option>' +
       units.map(u => `<option value="${u.id}">${window.escapeHtml(u.name)} (${u.symbol || ''})</option>`).join('');
   }
 
@@ -1266,17 +1827,211 @@ function populateProductInfoDropdowns() {
   }
 
   updateProductSubCategoryDropdown();
+  updateProductTopSubCategoryFilter();
 }
 
 function updateProductSubCategoryDropdown() {
   const catId = inv.piCategorySelect?.value;
   const subs = window.appData?.product_sub_categories || [];
-  const filtered = catId ? subs.filter(s => s.categoryId === catId) : subs;
+  const filtered = catId ? subs.filter(s => String(s.categoryId) === String(catId)) : subs;
 
   if (inv.piSubCategorySelect) {
-    inv.piSubCategorySelect.innerHTML = '<option value="">-- Select Sub Category --</option>' +
+    inv.piSubCategorySelect.innerHTML = '<option value="">Select Sub Category</option>' +
       filtered.map(s => `<option value="${s.id}">${window.escapeHtml(s.name)}</option>`).join('');
   }
+}
+
+function updateProductTopSubCategoryFilter() {
+  const catId = inv.piCategoryFilter?.value;
+  if (!inv.piSubCategoryFilter) return;
+
+  if (!catId) {
+    inv.piSubCategoryFilter.disabled = true;
+    inv.piSubCategoryFilter.innerHTML = '<option value="">All Sub Categories</option>';
+    inv.piSubCategoryFilter.value = '';
+    return;
+  }
+
+  inv.piSubCategoryFilter.disabled = false;
+  const subs = window.appData?.product_sub_categories || [];
+  const filtered = subs.filter(s => String(s.categoryId) === String(catId));
+  const curVal = inv.piSubCategoryFilter.value;
+
+  inv.piSubCategoryFilter.innerHTML = '<option value="">All Sub Categories</option>' +
+    filtered.map(s => `<option value="${s.id}">${window.escapeHtml(s.name)}</option>`).join('');
+
+  if (curVal && filtered.some(s => String(s.id) === String(curVal))) {
+    inv.piSubCategoryFilter.value = curVal;
+  } else {
+    inv.piSubCategoryFilter.value = '';
+  }
+}
+
+function renderProductsTable() {
+  const prods = window.appData?.products || [];
+  const q = (inv.piSearchInput?.value || '').trim().toLowerCase();
+  const catFilter = inv.piCategoryFilter?.value || '';
+  const subCatFilter = (catFilter && inv.piSubCategoryFilter?.value) ? inv.piSubCategoryFilter.value : '';
+
+  let filtered = prods.filter(p => {
+    // Search Filter
+    const matchesQ = !q ||
+      String(p.code || '').toLowerCase().includes(q) ||
+      (p.titleEng || '').toLowerCase().includes(q) ||
+      (p.titleUrdu || '').toLowerCase().includes(q) ||
+      (p.barcode || '').toLowerCase().includes(q) ||
+      (p.categoryName || '').toLowerCase().includes(q) ||
+      (p.subCategoryName || '').toLowerCase().includes(q);
+
+    // Category Filter
+    const matchesCat = !catFilter || String(p.categoryId) === String(catFilter);
+
+    // Sub Category Filter
+    const matchesSubCat = !subCatFilter || String(p.subCategoryId) === String(subCatFilter);
+
+    return matchesQ && matchesCat && matchesSubCat;
+  });
+
+  // Sorting: Code ascending default
+  filtered.sort((a, b) => {
+    return String(a.code || '').localeCompare(String(b.code || ''), undefined, { numeric: true });
+  });
+
+  // Results Counter Pill
+  if (inv.piResultsCounter) {
+    if (filtered.length === prods.length) {
+      inv.piResultsCounter.textContent = `${prods.length} Products`;
+    } else {
+      inv.piResultsCounter.textContent = `Showing ${filtered.length} of ${prods.length} Products`;
+    }
+  }
+
+  if (!inv.productsTableBody) return;
+
+  if (!window.prodPagination && window.createTablePagination) {
+    window.prodPagination = window.createTablePagination({
+      container: '#viewProductInfo .table-container',
+      tbody: inv.productsTableBody,
+      emptyStateEl: inv.productsEmptyState,
+      onRenderPage: (slice, startIdx) => {
+        inv.productsTableBody.innerHTML = '';
+        slice.forEach((p, idx) => {
+          const globalSr = startIdx + idx + 1;
+          const tr = document.createElement('tr');
+          const menuId = `prodMenu_${p.id || p.code || globalSr}`;
+          tr.innerHTML = `
+            <td class="col-prod-sr font-num font-bold text-center">${globalSr}</td>
+            <td class="col-prod-code font-num font-bold text-center"><span class="code-pill">${window.escapeHtml(p.code || '')}</span></td>
+            <td class="col-prod-title font-bold text-left" title="${window.escapeHtml(p.titleEng || '')}">${window.escapeHtml(p.titleEng || '')}</td>
+            <td class="col-prod-cat text-left" title="${window.escapeHtml(p.categoryName || '-')}">${window.escapeHtml(p.categoryName || '-')}</td>
+            <td class="col-prod-unit text-center font-bold" title="${window.escapeHtml(p.unitName || p.packingType || '-')}">${window.escapeHtml(p.unitName || p.packingType || '-')}</td>
+            <td class="col-prod-pack font-num text-center">${p.packSize || 1}</td>
+            <td class="col-prod-pp font-num text-right">${Number(p.purchasePrice || 0).toFixed(2)}</td>
+            <td class="col-prod-margin font-num text-success text-right font-bold">${Number(p.profitMargin || 0).toFixed(1)}%</td>
+            <td class="col-prod-rp font-num font-bold text-warning text-right">${Number(p.retailPrice || 0).toFixed(2)}</td>
+            <td class="col-prod-wp font-num font-bold text-right">${Number(p.wholesalePrice || 0).toFixed(2)}</td>
+            <td class="col-prod-stock font-num font-bold text-accent text-center">${p.stockQty || 0}</td>
+            <td class="col-prod-actions text-center" style="overflow: visible;">
+              <div class="dots-wrapper">
+                <button type="button" class="btn-dots btn-prod-dots" onclick="window.toggleRowMenu(event, '${menuId}')" title="Product Actions">
+                  <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="1.5"></circle>
+                    <circle cx="12" cy="5" r="1.5"></circle>
+                    <circle cx="12" cy="19" r="1.5"></circle>
+                  </svg>
+                </button>
+                <div id="${menuId}" class="action-menu hidden">
+                  <button type="button" class="action-menu-item btn-action-edit">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20h9"></path>
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                    <span>Edit Product</span>
+                  </button>
+                  <button type="button" class="action-menu-item text-danger btn-action-del">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    <span>Delete Product</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          `;
+
+          tr.querySelector('.btn-action-edit')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.closeAllActionMenus) window.closeAllActionMenus();
+            openEditProductModal(p);
+          });
+
+          tr.querySelector('.btn-action-del')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.closeAllActionMenus) window.closeAllActionMenus();
+            confirmDeleteProduct(p);
+          });
+
+          tr.addEventListener('dblclick', () => {
+            openEditProductModal(p);
+          });
+
+          inv.productsTableBody.appendChild(tr);
+        });
+      }
+    });
+  }
+
+  if (window.prodPagination) {
+    window.prodPagination.setItems(filtered, false);
+  }
+}
+
+async function openAddProductModal() {
+  await resetProductInfoForm();
+  populateProductInfoDropdowns();
+  if (inv.modalAddProduct) inv.modalAddProduct.classList.remove('hidden');
+  if (inv.productModalTitle) inv.productModalTitle.textContent = 'Add Product';
+  setTimeout(() => inv.piTitleEng?.focus(), 80);
+}
+
+function openEditProductModal(p) {
+  loadProductRecord(p);
+  populateProductInfoDropdowns();
+  if (inv.piCategorySelect && p.categoryId) {
+    inv.piCategorySelect.value = p.categoryId;
+    updateProductSubCategoryDropdown();
+  }
+  if (inv.piSubCategorySelect && p.subCategoryId) {
+    inv.piSubCategorySelect.value = p.subCategoryId;
+  }
+  if (inv.modalAddProduct) inv.modalAddProduct.classList.remove('hidden');
+  if (inv.productModalTitle) inv.productModalTitle.textContent = `Edit Product #${p.code}`;
+  setTimeout(() => inv.piTitleEng?.focus(), 80);
+}
+
+function closeAddProductModal() {
+  if (inv.modalAddProduct) inv.modalAddProduct.classList.add('hidden');
+}
+
+function confirmDeleteProduct(p) {
+  if (!p) return;
+  window.openConfirmModal({
+    title: 'Delete Product',
+    message: `Are you sure you want to delete Product #${p.code} (${p.titleEng})?`,
+    onConfirm: async () => {
+      try {
+        if (window.api?.deleteProduct) await window.api.deleteProduct(p.code);
+        await window.reloadFromDatabase();
+        renderProductsTable();
+        if (window.showToast) {
+          window.showToast(`Product #${p.code} deleted successfully!`, 'info');
+        }
+      } catch (e) {
+        showAlert('Error deleting product: ' + e.message);
+      }
+    }
+  });
 }
 
 if (inv.piCategorySelect) {
@@ -1439,16 +2194,12 @@ async function saveProductRecord() {
   try {
     const res = window.api?.saveProduct ? await window.api.saveProduct(prod) : null;
     await window.reloadFromDatabase();
-    showAlert(`Product [${prod.code}] ${prod.titleEng} saved successfully!`, 'Saved');
-    if (res && res.id) {
-      currentProductFormMode = 'edit';
-      currentEditingProductId = res.id;
-      if (inv.piCode) inv.piCode.value = res.code || prod.code;
-      if (inv.piFormModeBadge) {
-        inv.piFormModeBadge.textContent = `Editing: #${res.code || prod.code}`;
-        inv.piFormModeBadge.className = 'badge-price-pill bg-warning-pill font-num font-bold';
-      }
-      if (inv.btnPiSaveText) inv.btnPiSaveText.textContent = 'Save Changes (Update)';
+    renderProductsTable();
+    closeAddProductModal();
+    if (window.showToast) {
+      window.showToast(`Product [${prod.code}] ${prod.titleEng} saved successfully!`, 'success');
+    } else {
+      showAlert(`Product [${prod.code}] ${prod.titleEng} saved successfully!`, 'Saved');
     }
   } catch (err) {
     console.error('Save product error:', err);
@@ -1456,11 +2207,35 @@ async function saveProductRecord() {
   }
 }
 
-// Product Action Dock Listeners
-if (inv.btnPiNew) inv.btnPiNew.addEventListener('click', resetProductInfoForm);
+// Product Action Listeners (Top Bar & Modal)
+if (inv.btnOpenAddProduct) inv.btnOpenAddProduct.addEventListener('click', openAddProductModal);
+if (inv.btnCloseAddProductModal) inv.btnCloseAddProductModal.addEventListener('click', closeAddProductModal);
+if (inv.btnCancelProductModal) inv.btnCancelProductModal.addEventListener('click', closeAddProductModal);
+if (inv.piSearchInput) inv.piSearchInput.addEventListener('input', renderProductsTable);
+if (inv.piCategoryFilter) {
+  inv.piCategoryFilter.addEventListener('change', () => {
+    updateProductTopSubCategoryFilter();
+    renderProductsTable();
+  });
+}
+if (inv.piSubCategoryFilter) inv.piSubCategoryFilter.addEventListener('change', renderProductsTable);
+if (inv.piStockFilter) inv.piStockFilter.addEventListener('change', renderProductsTable);
+if (inv.piSortFilter) inv.piSortFilter.addEventListener('change', renderProductsTable);
+if (inv.btnPiResetFilters) {
+  inv.btnPiResetFilters.addEventListener('click', () => {
+    if (inv.piSearchInput) inv.piSearchInput.value = '';
+    if (inv.piCategoryFilter) inv.piCategoryFilter.value = '';
+    if (inv.piStockFilter) inv.piStockFilter.value = '';
+    if (inv.piSortFilter) inv.piSortFilter.value = 'code_asc';
+    updateProductTopSubCategoryFilter();
+    renderProductsTable();
+  });
+}
+
+if (inv.btnPiNew) inv.btnPiNew.addEventListener('click', openAddProductModal);
 if (inv.btnPiSave) inv.btnPiSave.addEventListener('click', saveProductRecord);
 if (inv.btnPiRefresh) inv.btnPiRefresh.addEventListener('click', resetProductInfoForm);
-if (inv.btnPiClose) inv.btnPiClose.addEventListener('click', resetProductInfoForm);
+if (inv.btnPiClose) inv.btnPiClose.addEventListener('click', closeAddProductModal);
 if (inv.btnPiDelete) {
   inv.btnPiDelete.addEventListener('click', () => {
     const code = inv.piCode?.value.trim();
@@ -1641,6 +2416,10 @@ window.confirmDeleteCategory = confirmDeleteCategory;
 window.openEditSubCategory = openEditSubCategory;
 window.confirmDeleteSubCategory = confirmDeleteSubCategory;
 window.initPurchaseView = initPurchaseView;
+window.initProductInfoView = initProductInfoView;
+window.renderProductsTable = renderProductsTable;
+window.openAddProductModal = openAddProductModal;
+window.openEditProductModal = openEditProductModal;
 window.populateProductInfoDropdowns = populateProductInfoDropdowns;
 window.resetProductInfoForm = resetProductInfoForm;
 window.removePurchaseLineItem = removePurchaseLineItem;

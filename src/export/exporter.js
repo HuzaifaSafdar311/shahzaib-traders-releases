@@ -250,15 +250,53 @@ async function exportPDF({ items = [], summary = {} }, parentWindow) {
 }
 
 /**
- * Export Product Catalog as Excel Spreadsheet (.xlsx)
+ * Helpers for Report Column Formatting
  */
-async function exportExcel({ items = [], summary = {} }, parentWindow) {
+function isCurrencyHeader(h) {
+  const lower = String(h || '').toLowerCase();
+  return lower.includes('price') || lower.includes('cost') || lower.includes('amount') ||
+         lower.includes('gross') || lower.includes('net') || lower.includes('discount') ||
+         lower.includes('paid') || lower.includes('balance') || lower.includes('total') ||
+         lower.includes('revenue') || lower.includes('profit') || lower.includes('refund') ||
+         lower.includes('val') || lower.includes('pkr') || lower.includes('rs') ||
+         lower.includes('receivable') || lower.includes('payable') || lower.includes('inflow') ||
+         lower.includes('outflow') || lower.includes('cogs') || lower.includes('recovery');
+}
+
+function isQtyHeader(h) {
+  const lower = String(h || '').toLowerCase();
+  return lower.includes('qty') || lower.includes('pieces') || lower.includes('pcs') ||
+         lower.includes('count') || lower.includes('items') || lower.includes('bills') ||
+         lower.includes('stock');
+}
+
+function isCenterHeader(h) {
+  const lower = String(h || '').toLowerCase();
+  return lower.includes('date') || lower.includes('code') || lower.includes('#') ||
+         lower.includes('voucher') || lower.includes('bill') || lower.includes('mode') ||
+         lower.includes('type') || lower.includes('unit') || lower.includes('status') ||
+         lower.includes('condition') || lower.includes('sr');
+}
+
+/**
+ * Universal Excel Spreadsheet (.xlsx) Exporter with ExcelJS
+ * Supports both dedicated Reports payloads (headers, rows, totals)
+ * and legacy Inventory Product Catalog payloads.
+ */
+async function exportExcel(payload = {}, parentWindow) {
+  // If payload contains explicit headers and rows, export as Universal Business Report
+  if (Array.isArray(payload.headers) && Array.isArray(payload.rows)) {
+    return exportGenericReportExcel(payload, parentWindow);
+  }
+
+  // Otherwise fallback to legacy Inventory Product Catalog export
+  const { items = [], summary = {} } = payload;
   const defaultFilename = `Shahzaib_Traders_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`;
 
   const { filePath, canceled } = await dialog.showSaveDialog(parentWindow, {
     title: 'Export Inventory as Excel',
     defaultPath: defaultFilename,
-    filters: [{ name: 'Excel Spreadsheets', extensions: ['xlsx'] }]
+    filters: [{ name: 'Excel Spreadsheets (*.xlsx)', extensions: ['xlsx'] }]
   });
 
   if (canceled || !filePath) {
@@ -393,6 +431,206 @@ async function exportExcel({ items = [], summary = {} }, parentWindow) {
   const widths = [12, 34, 14, 14, 18, 18, 18, 20];
   widths.forEach((w, idx) => {
     ws.getColumn(idx + 1).width = w;
+  });
+
+  await wb.xlsx.writeFile(filePath);
+  return { success: true, filePath };
+}
+
+/**
+ * Export Any Business Management Report as Styled Excel (.xlsx)
+ */
+async function exportGenericReportExcel(payload, parentWindow) {
+  const title = payload.title || 'Business Report';
+  const dateRange = payload.dateRange || `Period: ${new Date().toISOString().split('T')[0]}`;
+  const filterSummary = payload.filterSummary || '';
+  const headers = payload.headers || [];
+  const rows = payload.rows || [];
+  const totals = payload.totals || null;
+  const summaryCards = payload.summaryCards || [];
+
+  const safeTitle = title.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const defaultFilename = payload.filename || `Shahzaib_Traders_${safeTitle}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+  const { filePath, canceled } = await dialog.showSaveDialog(parentWindow, {
+    title: `Export ${title} as Excel Spreadsheet`,
+    defaultPath: defaultFilename,
+    filters: [
+      { name: 'Excel Spreadsheets (*.xlsx)', extensions: ['xlsx'] }
+    ]
+  });
+
+  if (canceled || !filePath) {
+    return { success: false, cancelled: true };
+  }
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Shahzaib Traders';
+  wb.lastModifiedBy = 'Shahzaib Traders Management System';
+  wb.created = new Date();
+  wb.modified = new Date();
+
+  const cleanSheetName = (payload.sheetName || title || 'Report').slice(0, 30).replace(/[:\\\/\?\*\[\]]/g, '');
+  const ws = wb.addWorksheet(cleanSheetName, {
+    views: [{ showGridLines: true, state: 'frozen', ySplit: summaryCards.length ? 7 : 5 }]
+  });
+
+  // Color Palette Constants
+  const brandDark = 'FF0F172A'; // Deep Navy
+  const brandHeader = 'FF1E293B'; // Header Fill
+  const brandBlue = 'FF0284C7'; // Accent Blue
+  const textMuted = 'FF64748B'; // Muted Gray
+  const borderLight = 'FFE2E8F0'; // Thin Border
+
+  const thinBorder = {
+    top: { style: 'thin', color: { argb: borderLight } },
+    left: { style: 'thin', color: { argb: borderLight } },
+    bottom: { style: 'thin', color: { argb: borderLight } },
+    right: { style: 'thin', color: { argb: borderLight } }
+  };
+
+  const totalBorder = {
+    top: { style: 'medium', color: { argb: 'FF94A3B8' } },
+    bottom: { style: 'double', color: { argb: brandDark } },
+    left: { style: 'thin', color: { argb: borderLight } },
+    right: { style: 'thin', color: { argb: borderLight } }
+  };
+
+  // Row 1: Company Header
+  ws.getCell('A1').value = 'SHAHZAIB TRADERS - WHOLESALE & RETAIL SOLUTIONS';
+  ws.getCell('A1').font = { name: 'Arial', size: 14, bold: true, color: { argb: brandDark } };
+  ws.getRow(1).height = 24;
+
+  // Row 2: Report Title & Period
+  ws.getCell('A2').value = `${title} | ${dateRange}`;
+  ws.getCell('A2').font = { name: 'Arial', size: 11, bold: true, color: { argb: brandBlue } };
+  ws.getRow(2).height = 18;
+
+  // Row 3: Generation Timestamp & Filters
+  const metaStr = `Generated on: ${new Date().toLocaleString('en-US')}${filterSummary ? ` | Filters: ${filterSummary}` : ''}`;
+  ws.getCell('A3').value = metaStr;
+  ws.getCell('A3').font = { name: 'Arial', size: 9, italic: true, color: { argb: textMuted } };
+  ws.getRow(3).height = 15;
+
+  let currentRowIdx = 5;
+
+  // Optional: Summary KPI Cards Row
+  if (Array.isArray(summaryCards) && summaryCards.length > 0) {
+    const kpiRow = ws.getRow(currentRowIdx);
+    kpiRow.height = 22;
+    let kpiCol = 1;
+    summaryCards.forEach(c => {
+      if (kpiCol <= headers.length) {
+        const cell = kpiRow.getCell(kpiCol);
+        cell.value = `${c.label || ''}: ${c.value || ''}`;
+        cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: brandDark } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0F2FE' } };
+        cell.border = thinBorder;
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        kpiCol++;
+      }
+    });
+    currentRowIdx += 2; // Add spacing after KPI cards
+  }
+
+  // Table Column Headers
+  const headerRow = ws.getRow(currentRowIdx);
+  headerRow.height = 26;
+
+  headers.forEach((h, idx) => {
+    const cell = headerRow.getCell(idx + 1);
+    cell.value = h;
+    cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: brandHeader } };
+    cell.border = thinBorder;
+
+    if (isCurrencyHeader(h)) {
+      cell.alignment = { horizontal: 'right', vertical: 'middle' };
+    } else if (isQtyHeader(h) || isCenterHeader(h)) {
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    } else {
+      cell.alignment = { horizontal: 'left', vertical: 'middle' };
+    }
+  });
+
+  currentRowIdx++;
+
+  // Data Rows
+  rows.forEach((rVals, rIdx) => {
+    const row = ws.getRow(currentRowIdx);
+    row.height = 20;
+    const isEven = rIdx % 2 === 1;
+    const rowBg = isEven ? 'FFF9FAFB' : 'FFFFFFFF';
+
+    const vals = Array.isArray(rVals) ? rVals : Object.values(rVals);
+
+    vals.forEach((val, cIdx) => {
+      const cell = row.getCell(cIdx + 1);
+      const h = headers[cIdx] || '';
+      const isNum = typeof val === 'number';
+
+      cell.value = val;
+      cell.font = { name: 'Arial', size: 9.5, color: { argb: 'FF1E293B' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+      cell.border = thinBorder;
+
+      if (isCurrencyHeader(h)) {
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        if (isNum) cell.numFmt = '"Rs. " #,##0.00';
+      } else if (isQtyHeader(h)) {
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        if (isNum) cell.numFmt = '#,##0';
+      } else if (isCenterHeader(h)) {
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      } else if (isNum) {
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        cell.numFmt = '#,##0.00';
+      } else {
+        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+      }
+    });
+
+    currentRowIdx++;
+  });
+
+  // Footer Summary / Totals Row
+  if (Array.isArray(totals) && totals.length > 0) {
+    const totalRow = ws.getRow(currentRowIdx);
+    totalRow.height = 24;
+
+    totals.forEach((val, cIdx) => {
+      const cell = totalRow.getCell(cIdx + 1);
+      const h = headers[cIdx] || '';
+      const isNum = typeof val === 'number';
+
+      cell.value = val;
+      cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: brandDark } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      cell.border = totalBorder;
+
+      if (isCurrencyHeader(h)) {
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        if (isNum) cell.numFmt = '"Rs. " #,##0.00';
+      } else if (isQtyHeader(h)) {
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        if (isNum) cell.numFmt = '#,##0';
+      } else {
+        cell.alignment = { horizontal: (cIdx === 0 ? 'left' : 'center'), vertical: 'middle' };
+      }
+    });
+
+    currentRowIdx++;
+  }
+
+  // Auto Column Widths
+  headers.forEach((h, cIdx) => {
+    let maxLen = String(h).length;
+    rows.slice(0, 150).forEach(r => {
+      const vals = Array.isArray(r) ? r : Object.values(r);
+      const cellVal = String(vals[cIdx] ?? '');
+      if (cellVal.length > maxLen) maxLen = cellVal.length;
+    });
+    ws.getColumn(cIdx + 1).width = Math.min(Math.max(maxLen + 4, 12), 42);
   });
 
   await wb.xlsx.writeFile(filePath);

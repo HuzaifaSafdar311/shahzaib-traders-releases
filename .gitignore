@@ -12,3 +12,6 @@ backups/
 *.backup*
 Shahzaib_Traders_Data.json
 Shahzaib_Traders_Complete_Data.md
+
+*.sqlite
+*.sqlite-*

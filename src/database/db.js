@@ -714,11 +714,14 @@ function getPurchaseById(id) {
 
 function getNextPurchaseVoucherNo() {
   const purchases = getAllPurchases();
-  if (!purchases || purchases.length === 0) return '109';
+  if (!purchases || purchases.length === 0) return '101';
   const numericNos = purchases
-    .map(p => parseInt(p.voucherNo, 10))
-    .filter(n => !isNaN(n) && n >= 100);
-  if (numericNos.length === 0) return '109';
+    .map(p => {
+      const match = String(p.voucherNo || '').match(/\d+/);
+      return match ? parseInt(match[0], 10) : NaN;
+    })
+    .filter(n => !isNaN(n));
+  if (numericNos.length === 0) return '101';
   const max = Math.max(...numericNos);
   return String(max + 1);
 }
@@ -1028,6 +1031,22 @@ function saveSale(saleData, items = []) {
       saleRecord.createdAt = existing.createdAt;
     }
 
+    // Stock pre-check: ensure sufficient stock for all items
+    for (const item of items) {
+      const code = String(item.productCode || item.code || '').trim();
+      const packSize = Number(item.packSize) || 1;
+      const packQty = Number(item.packQty || 0);
+      const unitQty = Number(item.unitQty || 0);
+      const totalQty = (packQty * packSize) + unitQty;
+      if (totalQty > 0) {
+        const prod = jsonData.products.find(p => (code && p.code === code) || (item.productId && p.id === item.productId));
+        const avail = prod ? (Number(prod.stockQty) || 0) : 0;
+        if (totalQty > avail) {
+          throw new Error(`Insufficient stock for "${prod ? prod.titleEng : (item.productTitle || code)}". Available: ${avail}, Requested: ${totalQty}`);
+        }
+      }
+    }
+
     jsonData.sales.unshift(saleRecord);
 
     let sr = 1;
@@ -1093,6 +1112,25 @@ function saveSale(saleData, items = []) {
         `).run(Number(oldIt.totalQty) || 0, oldIt.productCode || '', oldIt.productId || '');
       }
       dbInstance.prepare('DELETE FROM sale_items WHERE saleId = ?').run(existing.id);
+    }
+
+    // Stock pre-check: ensure sufficient stock for all items
+    for (const item of items) {
+      const code = String(item.productCode || item.code || '').trim();
+      const packSize = Number(item.packSize) || 1;
+      const packQty = Number(item.packQty || 0);
+      const unitQty = Number(item.unitQty || 0);
+      const totalQty = (packQty * packSize) + unitQty;
+      if (totalQty > 0) {
+        const prod = dbInstance.prepare('SELECT id, titleEng, stockQty FROM products WHERE code = ? OR id = ?').get(code, item.productId || '');
+        const avail = prod ? (Number(prod.stockQty) || 0) : 0;
+        if (totalQty > avail) {
+          throw new Error(`Insufficient stock for "${prod ? prod.titleEng : (item.productTitle || code)}". Available: ${avail}, Requested: ${totalQty}`);
+        }
+      }
+    }
+
+    if (existing) {
       dbInstance.prepare(`
         UPDATE sales SET
           voucherNo = ?, manualNo = ?, entryDate = ?, partyId = ?, partyTitle = ?,

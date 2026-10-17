@@ -341,399 +341,348 @@
           </section>
 
 
-          <!-- ======================================================== -->
-          <!-- TAB 6: PURCHASE (LEGACY DESKTOP REPLICA)                 -->
-          <!-- ======================================================== -->
-          <!-- ======================================================== -->
-          <!-- TAB 5: PURCHASE (CLEAN TABLE VIEW & BOTTOM NAV)          -->
+                    <!-- ======================================================== -->
+          <!-- TAB 6: PURCHASE - FULL-PAGE ENTRY (Retail Software Style) -->
           <!-- ======================================================== -->
           <section id="viewPurchase" class="subview-section">
-            <header class="section-header">
-              <div class="header-left" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <h1 class="view-title">Purchase</h1>
-                <span id="purActiveVoucherBadge" class="badge-price-pill font-num font-bold"
-                  style="background: #e2e8f0; color: #1e293b; padding: 4px 12px; font-size: 13px; border-radius: 6px;">
-                  Voucher #<span id="purVoucherNoDisplay">109</span>
-                </span>
-                <span id="purActivePartyBadge" class="badge-price-pill font-bold hidden"
-                  style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 4px 12px; font-size: 13px; border-radius: 6px;"></span>
+
+            <!-- TOP FILTER BAR (Date + Voucher Searchbar + Print on right) -->
+            <div class="purchase-top-bar">
+              <div class="purchase-top-left">
+                <!-- Date Filter -->
+                <div class="pur-filter-date-field">
+                  <label for="purFilterDate" class="pur-filter-label">
+                    <svg class="pur-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span>Date:</span>
+                  </label>
+                  <div class="pur-date-input-wrap">
+                    <input type="date" id="purFilterDate" class="form-control form-control-sm pur-filter-date-input" title="Filter vouchers by Date">
+                    <button type="button" id="btnPurClearDate" class="pur-date-clear-btn" title="Clear Date (Show All)" style="display:none;">&times;</button>
+                  </div>
+                </div>
+
+                <!-- Voucher Searchbar & Dropdown -->
+                <div class="pur-filter-voucher-field">
+                  <label for="purVoucherSearchInput" class="pur-filter-label">
+                    <svg class="pur-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <span>Voucher:</span>
+                  </label>
+                  <div class="pur-voucher-search-wrap" id="purVoucherCombobox">
+                    <input type="text" id="purVoucherSearchInput" class="form-control form-control-sm pur-voucher-search-input" placeholder="Search Voucher..." autocomplete="off">
+                    <button type="button" id="btnToggleVoucherList" class="pur-voucher-toggle-btn" title="Open Voucher List" tabindex="-1">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <div id="purVoucherDropdownList" class="pur-voucher-dropdown-menu hidden"></div>
+                    <select id="purVoucherQuickSelect" style="display:none;"></select>
+                  </div>
+                </div>
+
+                <!-- Hidden for backwards JS compatibility -->
+                <span id="purDateCountDisplay" style="display:none">0 Vouchers</span>
+                <span id="purDateTotalDisplay" style="display:none">Rs. 0.00</span>
+                <span id="purDateSummaryBadge" style="display:none"></span>
               </div>
-              <div class="header-right" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <button type="button" id="btnOpenAddPurchase" class="btn btn-primary" title="Add Purchase (Open Entry Popup)">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  <span>Add Purchase</span>
-                </button>
-                <button type="button" id="btnPurRefresh" class="btn btn-secondary" title="New / Reset Voucher">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="23 4 23 10 17 10"></polyline>
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                  </svg>
-                  <span>New</span>
-                </button>
-                <button type="button" id="btnPurPrint" class="btn btn-secondary" title="Print Voucher">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                    <rect x="6" y="14" width="12" height="8"></rect>
-                  </svg>
+              <div class="purchase-top-right">
+                <button type="button" id="btnPurPrint" class="btn btn-sm btn-outline pur-top-print-btn" title="Print Purchase Voucher">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                   <span>Print</span>
                 </button>
-                <button type="button" id="btnPurDelete" class="btn btn-danger" title="Delete Voucher">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <button type="button" id="btnOpenAddPurchase" style="display:none;"></button>
+              </div>
+            </div>
+
+            <!-- FULL-PAGE PURCHASE ENTRY FORM -->
+            <div id="purchaseEntryPage" class="purchase-entry-page">
+
+              <!-- UNIFIED ENTRY CARD (Voucher #, Party Name, Entry Date + Product Fields) -->
+              <div class="pur-entry-combined-card">
+                <!-- Hidden inputs for compatibility -->
+                <input type="hidden" id="purManualNo">
+                <input type="hidden" id="purContactPerson">
+                <input type="hidden" id="purStoreTitle" value="Main Store">
+                <input type="hidden" id="purPaymentStatus" value="Pending">
+                <input type="hidden" id="purDescription">
+                <input type="hidden" id="purDueDate">
+                <input type="hidden" id="purReceivable" value="0">
+                <span id="purVoucherNoDisplay" style="display:none"></span>
+                <span id="purActivePartyBadge" style="display:none"></span>
+                <span id="modalPurVoucherNoDisplay" style="display:none"></span>
+                <input type="hidden" id="pieCode">
+                <select id="pieProductSelect" style="display:none;">
+                  <option value="">Select Product</option>
+                </select>
+
+                <!-- Row 1: Voucher # (Auto), Party Name, Entry Date + Add Item Button (All in ONE row) -->
+                <div class="pur-entry-top-row">
+                  <!-- Voucher # (Auto) -->
+                  <div class="pur-cell pur-cell-vno">
+                    <label>Voucher #</label>
+                    <input type="text" id="purVoucherNo" class="form-control font-num font-bold pur-readonly-input" readonly placeholder="Auto Generated">
+                  </div>
+
+                  <!-- Party Name -->
+                  <div class="pur-cell pur-cell-party">
+                    <label>Party Name <span class="text-danger">*</span></label>
+                    <select id="purPartySelect" class="form-control font-bold">
+                      <option value="">Select Party Name</option>
+                    </select>
+                  </div>
+
+                  <!-- Entry Date -->
+                  <div class="pur-cell pur-cell-date">
+                    <label>Entry Date</label>
+                    <input type="date" id="purEntryDate" class="form-control font-num">
+                  </div>
+
+                  <!-- Add Item Button (Aligned right in the same row) -->
+                  <div class="pur-cell pur-cell-toggle">
+                    <button type="button" id="btnToggleAddItem" class="pur-item-tab-btn" title="Click to open or close product entry form">
+                      <svg class="tab-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      <span class="tab-label">Add Item</span>
+                      <svg class="tab-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Collapsible Drawer (Product Row + Add Item Button) -->
+                <div id="purItemEntryDrawer" class="pur-item-entry-drawer collapsed">
+                  <!-- Row 2: Product Name through Net Total in ONE row -->
+                  <div class="pur-entry-inputs-row">
+                    <!-- SR # -->
+                    <div class="pur-pie-cell pur-pie-sr">
+                      <label>SR #</label>
+                      <input type="text" id="pieSrNo" class="form-control font-num text-center pur-readonly-input" readonly placeholder="1">
+                    </div>
+
+                    <!-- Product Name (Searchable with Dropdown) -->
+                    <div class="pur-pie-cell pur-pie-prod">
+                      <label class="required-label">Product Name <span class="text-danger">*</span></label>
+                      <div class="searchable-typeahead-wrapper">
+                        <input type="text" id="pieProductSearchInput" class="form-control" placeholder="Type product name to search..." autocomplete="off">
+                        <div id="pieProductDropdownList" class="searchable-typeahead-dropdown hidden"></div>
+                      </div>
+                    </div>
+
+                    <!-- Pack Qty -->
+                    <div class="pur-pie-cell pur-pie-qty">
+                      <label>Pack Qty</label>
+                      <input type="number" id="piePackQty" class="form-control font-num text-center" min="0" value="0">
+                    </div>
+
+                    <!-- Unit Qty -->
+                    <div class="pur-pie-cell pur-pie-qty">
+                      <label>Unit Qty</label>
+                      <input type="number" id="pieUnitQty" class="form-control font-num text-center" min="0" value="0">
+                    </div>
+
+                    <!-- Bonus -->
+                    <div class="pur-pie-cell pur-pie-qty">
+                      <label>Bonus</label>
+                      <input type="number" id="pieBonus" class="form-control font-num text-center" min="0" value="0">
+                    </div>
+
+                    <!-- Trade Price -->
+                    <div class="pur-pie-cell pur-pie-rate">
+                      <label>Trade Price</label>
+                      <input type="number" id="pieTradePrice" class="form-control font-num text-right" min="0" step="0.01" value="0.00">
+                    </div>
+
+                    <!-- Whole Sale Price -->
+                    <div class="pur-pie-cell pur-pie-rate">
+                      <label>Whole Sale Price</label>
+                      <input type="number" id="pieWholesalePrice" class="form-control font-num text-right" min="0" step="0.01" value="0.00">
+                      <span id="pieWholesalePricePill" style="display:none">0.00</span>
+                    </div>
+
+                    <!-- Individual Price -->
+                    <div class="pur-pie-cell pur-pie-rate">
+                      <label>Individual Price</label>
+                      <input type="number" id="pieRetailPrice" class="form-control font-num text-right" min="0" step="0.01" value="0.00">
+                      <span id="pieRetailPricePill" style="display:none">0.00</span>
+                    </div>
+
+                    <!-- T.Offer -->
+                    <div class="pur-pie-cell pur-pie-small">
+                      <label>T.Offer</label>
+                      <input type="number" id="pieTradeOffer" class="form-control font-num text-right" min="0" step="0.01" value="0.00">
+                    </div>
+
+                    <!-- Disc % -->
+                    <div class="pur-pie-cell pur-pie-small">
+                      <label>Disc %</label>
+                      <input type="number" id="pieDiscPercent" class="form-control font-num text-right" min="0" max="100" step="0.1" value="0.0">
+                    </div>
+
+                    <!-- Net Total -->
+                    <div class="pur-pie-cell pur-pie-net">
+                      <label>Net Total</label>
+                      <input type="text" id="pieLineNetPreview" class="form-control font-num font-bold text-right pur-net-input" readonly value="Rs. 0.00">
+                    </div>
+                  </div>
+
+                  <!-- Row 3: Action Row -->
+                  <div class="pur-entry-action-row">
+                    <button type="button" id="btnAddPurchaseItem" class="btn btn-primary btn-add-voucher-line">
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                      Add Item
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ROW 3: Line Items Grid / Report -->
+              <div class="table-container voucher-grid-container gi-table-wrapper pur-items-grid">
+                <table class="data-table voucher-table gi-data-table pur-data-table">
+                  <thead>
+                    <tr>
+                      <th class="col-pur-sr">SR</th>
+                      <th class="col-pur-name">Product name</th>
+                      <th class="col-pur-pqty">P Qty</th>
+                      <th class="col-pur-uqty">U Qty</th>
+                      <th class="col-pur-bonus">Bonus</th>
+                      <th class="col-pur-tprice">T Price</th>
+                      <th class="col-pur-pro">Pro</th>
+                      <th class="col-pur-pprice">PPrice</th>
+                      <th class="col-pur-wprice">WPrice</th>
+                      <th class="col-pur-toffer">TOffer</th>
+                      <th class="col-pur-disc">Dics</th>
+                      <th class="col-pur-amount">Amount</th>
+                      <th class="col-pur-action">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="purchaseItemsTableBody"></tbody>
+                </table>
+                <div id="purchaseItemsEmptyState" class="empty-state">
+                  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#cbd5e1" stroke-width="1.5">
+                    <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                   </svg>
-                  <span>Delete</span>
-                </button>
-                <button type="button" id="btnPurSave" class="btn btn-success" title="Save Purchase Voucher" style="background: #16a34a; border-color: #16a34a;">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                    <polyline points="7 3 7 8 15 8"></polyline>
-                  </svg>
-                  <span>Save Voucher</span>
-                </button>
-              </div>
-            </header>
-
-            <!-- Line Items Grid Table (Image 2) -->
-            <div class="table-container voucher-grid-container gi-table-wrapper" style="min-height: 400px; max-height: calc(100vh - 330px); margin-top: 10px;">
-              <table class="data-table voucher-table gi-data-table">
-                <thead>
-                  <tr>
-                    <th style="width: 50px;">SR #</th>
-                    <th style="width: 90px;">CODE</th>
-                    <th>PRODUCT TITLE</th>
-                    <th style="width: 70px;">P.QTY</th>
-                    <th style="width: 70px;">U.QTY</th>
-                    <th style="width: 70px;">BONUS</th>
-                    <th style="width: 90px;">T.P</th>
-                    <th style="width: 70px;">PRO %</th>
-                    <th style="width: 90px;">R.P</th>
-                    <th style="width: 90px;">W.P</th>
-                    <th style="width: 70px;">T.O</th>
-                    <th style="width: 70px;">DISC %</th>
-                    <th style="width: 110px;">NET AMOUNT</th>
-                    <th style="width: 60px;">X</th>
-                  </tr>
-                </thead>
-                <tbody id="purchaseItemsTableBody"></tbody>
-              </table>
-              <div id="purchaseItemsEmptyState" class="empty-state">
-                <span>No line items added yet. Select party, choose product, and click Add.</span>
-              </div>
-            </div>
-
-            <!-- Voucher Summary & Totals Footer (Image 2) -->
-            <div class="voucher-footer-row card" style="margin-top: 8px;">
-              <div class="footer-summary-grid">
-                <div class="summary-item">
-                  <label>Discount</label>
-                  <input type="number" id="purDiscount" class="form-control form-control-sm font-num" min="0"
-                    value="0.00">
-                </div>
-                <div class="summary-item">
-                  <label>Freight Disc</label>
-                  <input type="number" id="purFreightDisc" class="form-control form-control-sm font-num" min="0"
-                    value="0.00">
-                </div>
-                <div class="summary-item">
-                  <label>Freight Expn</label>
-                  <input type="number" id="purFreightExpn" class="form-control form-control-sm font-num" min="0"
-                    value="0.00">
-                </div>
-                <div class="summary-item">
-                  <label>Sales Tax</label>
-                  <input type="number" id="purSalesTax" class="form-control form-control-sm font-num" min="0"
-                    value="0.00">
-                </div>
-                <div class="summary-item">
-                  <label>Extra Charges</label>
-                  <input type="number" id="purExtraCharges" class="form-control form-control-sm font-num" min="0"
-                    value="0.00">
-                </div>
-                <div class="summary-item summary-item-grand">
-                  <label>Total Amount</label>
-                  <span id="purGrandTotalDisplay" class="grand-total-val font-num">0.00</span>
+                  <span>No items added — select a product above and click <strong>+ Add Item</strong></span>
                 </div>
               </div>
-            </div>
 
-            <!-- Bottom Navigation Dock (Image 1) -->
-            <div class="purchase-bottom-nav">
-              <div class="nav-pill-group">
-                <button type="button" id="btnPurFirst" class="nav-pill-btn" title="First Voucher">|&lt;</button>
-                <button type="button" id="btnPurPrev" class="nav-pill-btn" title="Previous Voucher">&lt;&lt;</button>
-                <button type="button" id="btnPurNext" class="nav-pill-btn" title="Next Voucher">&gt;&gt;</button>
-                <button type="button" id="btnPurLast" class="nav-pill-btn" title="Last Voucher">&gt;|</button>
+              <!-- Hidden calculation compatibility inputs -->
+              <div style="display:none !important;">
+                <input type="number" id="purDiscount" value="0.00">
+                <input type="number" id="purFreightDisc" value="0.00">
+                <input type="number" id="purFreightExpn" value="0.00">
+                <input type="number" id="purSalesTax" value="0.00">
+                <input type="number" id="purExtraCharges" value="0.00">
+                <span id="purGrandTotalDisplay">0.00</span>
+                <button type="button" id="btnPurFirst"></button>
+                <button type="button" id="btnPurPrev"></button>
+                <button type="button" id="btnPurNext"></button>
+                <button type="button" id="btnPurLast"></button>
+                <button type="button" id="btnPurRefresh"></button>
+                <button type="button" id="btnPurDelete"></button>
+                <button type="button" id="btnPurSave"></button>
               </div>
-            </div>
 
+            </div><!-- /purchaseEntryPage -->
           </section>
 
           <!-- ======================================================== -->
-          <!-- TAB 7: PRODUCT INFO (LEGACY DESKTOP REPLICA)              -->
+          <!-- TAB 7: PRODUCT INFO (CATALOG TABLE VIEW)                  -->
           <!-- ======================================================== -->
           <section id="viewProductInfo" class="subview-section">
-            <header class="section-header">
-              <div class="header-left" style="display: flex; align-items: center; gap: 12px;">
-                <h1 class="view-title">Product Info</h1>
-                <span id="piFormModeBadge" class="badge-price-pill bg-green-pill font-num font-bold"
-                  style="padding: 4px 10px; font-size: 12px;">New Product</span>
-              </div>
-              <div class="header-right">
-                <div class="header-nav-btn-group">
-                  <button type="button" id="btnPiFirst" class="btn btn-secondary btn-icon-only"
-                    title="First Product">|&lt;</button>
-                  <button type="button" id="btnPiPrev" class="btn btn-secondary btn-icon-only"
-                    title="Previous Product">&lt;&lt;</button>
-                  <button type="button" id="btnPiNext" class="btn btn-secondary btn-icon-only"
-                    title="Next Product">&gt;&gt;</button>
-                  <button type="button" id="btnPiLast" class="btn btn-secondary btn-icon-only"
-                    title="Last Product">&gt;|</button>
+
+            <!-- Product Top Action Bar (Filters: Search, Category, Sub Category + Add Product) -->
+            <div class="product-top-bar">
+              <div class="product-top-left">
+                <!-- Search Filter -->
+                <div class="prod-filter-item">
+                  <label for="piSearchInput" class="prod-filter-label">
+                    <svg class="prod-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <span>Search:</span>
+                  </label>
+                  <input type="text" id="piSearchInput" class="form-control form-control-sm prod-search-input" placeholder="Search code, title, barcode...">
                 </div>
-                <button type="button" id="btnPiNew" class="btn btn-success"
-                  title="Create New Product (Clear & Next Code)">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+                <!-- Category Filter (Clean without dashes) -->
+                <div class="prod-filter-item">
+                  <label for="piCategoryFilter" class="prod-filter-label">Category:</label>
+                  <select id="piCategoryFilter" class="form-control form-control-sm prod-filter-select">
+                    <option value="">All Categories</option>
+                  </select>
+                </div>
+
+                <!-- Sub-Category Filter (Disabled until category selected, clean without dashes) -->
+                <div class="prod-filter-item">
+                  <label for="piSubCategoryFilter" class="prod-filter-label">Sub Category:</label>
+                  <select id="piSubCategoryFilter" class="form-control form-control-sm prod-filter-select" disabled title="Select category first">
+                    <option value="">All Sub Categories</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="product-top-right">
+                <span id="piResultsCounter" class="prod-results-counter">0 Products</span>
+                <button type="button" id="btnOpenAddProduct" class="btn btn-primary btn-add-product-main" title="Add New Product (Open Entry Form)">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                   </svg>
-                  <span>+ New Product</span>
-                </button>
-                <button type="button" id="btnProductInfoList" class="btn btn-secondary" title="Product Catalog (F1)">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="8" y1="6" x2="21" y2="6"></line>
-                    <line x1="8" y1="12" x2="21" y2="12"></line>
-                    <line x1="8" y1="18" x2="21" y2="18"></line>
-                  </svg>
-                  <span>Product Catalog (F1)</span>
-                </button>
-                <button type="button" id="btnPiRefresh" class="btn btn-secondary" title="Reset / Clear Form">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="23 4 23 10 17 10"></polyline>
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                  </svg>
-                  <span>Reset</span>
-                </button>
-                <button type="button" id="btnPiDelete" class="btn btn-danger" title="Delete Product">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                  <span>Delete</span>
-                </button>
-                <button type="button" id="btnPiSave" class="btn btn-primary" title="Save Product">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                    <polyline points="7 3 7 8 15 8"></polyline>
-                  </svg>
-                  <span id="btnPiSaveText">Save Product</span>
+                  <span>Add Product</span>
                 </button>
               </div>
-            </header>
-
-            <!-- Product Information Master Card (Matching Screenshot) -->
-            <div class="product-master-card card">
-              <form id="productInfoForm" autocomplete="off" onsubmit="return false;">
-                <!-- Row 1: Code, Template, Find, Barcode, Generate Barcode, Additional Code, Print Barcode -->
-                <div class="pi-row pi-row-top">
-                  <div class="pi-field pi-code-field">
-                    <label>Code</label>
-                    <input type="text" id="piCode" class="form-control form-control-sm font-num font-bold">
-                  </div>
-                  <div class="pi-field pi-btn-field">
-                    <button type="button" id="btnPiTemplate" class="btn btn-sm btn-secondary">Template</button>
-                    <button type="button" id="btnPiFind" class="btn btn-sm btn-secondary">Find</button>
-                  </div>
-                  <div class="pi-field pi-barcode-field">
-                    <label>Barcode</label>
-                    <input type="text" id="piBarcode" class="form-control form-control-sm font-num">
-                  </div>
-                  <div class="pi-field pi-btn-field">
-                    <button type="button" id="btnPiGenBarcode" class="btn btn-sm btn-secondary">Generate
-                      Barcode</button>
-                  </div>
-                  <div class="pi-field pi-addl-code-field">
-                    <label>Additional Code</label>
-                    <input type="text" id="piAdditionalCode" class="form-control form-control-sm">
-                  </div>
-                  <div class="pi-checkbox-inline">
-                    <label class="custom-checkbox">
-                      <input type="checkbox" id="piPrintBarcode">
-                      <span class="chk-label">Print Barcode</span>
-                    </label>
-                  </div>
-                </div>
-
-                <!-- Row 2: Category & Sub Category -->
-                <div class="pi-row">
-                  <div class="pi-field flex-1">
-                    <label>Product Category</label>
-                    <select id="piCategorySelect" class="form-control form-control-sm">
-                      <option value="">-- Select Category --</option>
-                    </select>
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Sub Category</label>
-                    <select id="piSubCategorySelect" class="form-control form-control-sm">
-                      <option value="">-- Select Sub Category --</option>
-                    </select>
-                  </div>
-                </div>
-
-                <!-- Row 3: Product Title & Urdu Title -->
-                <div class="pi-row">
-                  <div class="pi-field flex-2">
-                    <label class="required-label">Product Title</label>
-                    <input type="text" id="piTitleEng" class="form-control form-control-sm"
-                      placeholder="Enter product title in English">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Product Title in Urdu</label>
-                    <input type="text" id="piTitleUrdu" class="form-control form-control-sm urdu-text" dir="rtl"
-                      placeholder="پروڈکٹ کا نام (اردو)">
-                  </div>
-                </div>
-
-                <!-- Row 4: Packing Type, Measuring Unit, Pack Size, Tax -->
-                <div class="pi-row">
-                  <div class="pi-field flex-1">
-                    <label>Packing Type</label>
-                    <input type="text" id="piPackingType" class="form-control form-control-sm" value="Piece"
-                      list="packingTypeList">
-                    <datalist id="packingTypeList">
-                      <option value="Piece">
-                      <option value="Box">
-                      <option value="Roll">
-                      <option value="Packet">
-                      <option value="Meter">
-                      <option value="Dozen">
-                    </datalist>
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Measuring Unit</label>
-                    <select id="piUnitSelect" class="form-control form-control-sm">
-                      <option value="">-- Select Unit --</option>
-                    </select>
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Pack Size</label>
-                    <input type="number" id="piPackSize" class="form-control form-control-sm font-num" min="1"
-                      value="1">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Tax (%)</label>
-                    <input type="number" id="piTaxPercent" class="form-control form-control-sm font-num" min="0"
-                      step="0.1" value="0.0">
-                  </div>
-                </div>
-
-                <!-- Row 5: Pricing (Purchase Price, Profit Margin %, Retail Sale Price, Wholesale Price) -->
-                <div class="pi-row pi-row-pricing">
-                  <div class="pi-field flex-1">
-                    <label>Purchase Price</label>
-                    <input type="number" id="piPurchasePrice" class="form-control form-control-sm font-num" min="0"
-                      step="0.01" value="0.00">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label class="highlight-label">Profit Margin %</label>
-                    <input type="number" id="piProfitMargin"
-                      class="form-control form-control-sm font-num font-bold text-success" step="0.01" value="0.00">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label class="highlight-label">Retail Sale Price</label>
-                    <input type="number" id="piRetailPrice"
-                      class="form-control form-control-sm font-num font-bold text-warning" min="0" step="0.01"
-                      value="0.00">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Whole Sale Price</label>
-                    <input type="number" id="piWholesalePrice" class="form-control form-control-sm font-num font-bold"
-                      min="0" step="0.01" value="0.00">
-                  </div>
-                </div>
-
-                <!-- Row 6: Minimum Stock, ReOrder Level, Product Type -->
-                <div class="pi-row">
-                  <div class="pi-field flex-1">
-                    <label>Minimum Stock Level</label>
-                    <input type="number" id="piMinStock" class="form-control form-control-sm font-num" min="0"
-                      value="0">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>ReOrder Level</label>
-                    <input type="number" id="piReorderLevel" class="form-control form-control-sm font-num" min="0"
-                      value="0">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Product Type</label>
-                    <select id="piTypeSelect" class="form-control form-control-sm">
-                      <option value="Both">Both</option>
-                      <option value="Trading">Trading</option>
-                      <option value="Manufacturing">Manufacturing</option>
-                      <option value="Service">Service</option>
-                    </select>
-                  </div>
-                </div>
-
-                <!-- Row 7: Average Cost, Location, Short Code, Stock Qty, Short Label -->
-                <div class="pi-row">
-                  <div class="pi-field flex-1">
-                    <label>Average Cost</label>
-                    <input type="number" id="piAverageCost" class="form-control form-control-sm font-num" min="0"
-                      step="0.01" value="0.00">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Location</label>
-                    <input type="text" id="piLocation" class="form-control form-control-sm"
-                      placeholder="Enter rack or godown location">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Short Code</label>
-                    <input type="text" id="piShortCode" class="form-control form-control-sm"
-                      placeholder="Enter short code">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Stock Qty</label>
-                    <input type="number" id="piStockQty"
-                      class="form-control form-control-sm font-num font-bold text-accent" value="0">
-                  </div>
-                  <div class="pi-field flex-1">
-                    <label>Short Label</label>
-                    <input type="text" id="piShortLabel" class="form-control form-control-sm"
-                      placeholder="Enter short label">
-                  </div>
-                </div>
-
-                <!-- Row 8: Description & Checkboxes -->
-                <div class="pi-row pi-row-bottom">
-                  <div class="pi-field flex-3">
-                    <label>Description</label>
-                    <textarea id="piDescription" class="form-control form-control-sm" rows="2"
-                      placeholder="Enter item description or technical notes"></textarea>
-                  </div>
-                  <div class="pi-checkboxes-stack flex-1">
-                    <label class="custom-checkbox">
-                      <input type="checkbox" id="piBatchExpiry">
-                      <span class="chk-label">Use Batch Expiry</span>
-                    </label>
-                    <label class="custom-checkbox">
-                      <input type="checkbox" id="piLoosePackSize">
-                      <span class="chk-label">Loose Pack Size</span>
-                    </label>
-                    <label class="custom-checkbox">
-                      <input type="checkbox" id="piInActive">
-                      <span class="chk-label text-danger">InActive</span>
-                    </label>
-                  </div>
-                </div>
-              </form>
             </div>
 
+            <!-- Products Master Table Container -->
+            <div class="table-container gi-table-wrapper products-table-wrapper">
+              <table class="data-table gi-data-table products-table">
+                <thead>
+                  <tr>
+                    <th class="col-prod-sr">SR</th>
+                    <th class="col-prod-code">CODE</th>
+                    <th class="col-prod-title">PRODUCT NAME</th>
+                    <th class="col-prod-cat">CATEGORY</th>
+                    <th class="col-prod-unit">UNIT</th>
+                    <th class="col-prod-pack">PACK</th>
+                    <th class="col-prod-pp">PURCHASE (RS.)</th>
+                    <th class="col-prod-margin">MARGIN</th>
+                    <th class="col-prod-rp">RETAIL (RS.)</th>
+                    <th class="col-prod-wp">W.P (RS.)</th>
+                    <th class="col-prod-stock">STOCK</th>
+                    <th class="col-prod-actions">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTableBody"></tbody>
+              </table>
+              <div id="productsEmptyState" class="empty-state">
+                <span>No products found matching your filters. Click "Add Product" to create one.</span>
+              </div>
+            </div>
+
+            <!-- Hidden compatibility elements to maintain DOM bindings for scripts & hotkeys -->
+            <div style="display:none !important;">
+              <span id="piFormModeBadge"></span>
+              <button type="button" id="btnPiFirst"></button>
+              <button type="button" id="btnPiPrev"></button>
+              <button type="button" id="btnPiNext"></button>
+              <button type="button" id="btnPiLast"></button>
+              <button type="button" id="btnProductInfoList"></button>
+              <button type="button" id="btnPiRefresh"></button>
+              <button type="button" id="btnPiDelete"></button>
+              <span id="btnPiSaveText"></span>
+            </div>
           </section>
 
         </div>
@@ -816,6 +765,60 @@
           <!-- SUB-VIEW 1: COMPANY INFO -->
           <div id="giView-company" class="gi-sub-view active">
             <div class="company-info-container">
+              <!-- HERO BANNER: Shahzaib Traders Retail System -->
+              <div class="gi-hero-banner">
+                <div class="gi-hero-bg" style="background-image: url('assets/general-hero-bg.jpg');"></div>
+                <div class="gi-hero-overlay"></div>
+                <div class="gi-hero-content">
+                  <div class="gi-hero-badge">
+                    <span class="gi-hero-dot"></span>
+                    <span>Retail &amp; Inventory System</span>
+                  </div>
+                  <h1 class="gi-hero-title" id="ciHeroTitle">SHAHZAIB TRADERS</h1>
+                  <p class="gi-hero-subtitle" id="ciHeroSubtitle">Retail Management &amp; Point of Sale System</p>
+                  
+                  <div class="gi-hero-features">
+                    <div class="gi-hero-feat-item">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                      </svg>
+                      <span>Counter POS</span>
+                    </div>
+                    <div class="gi-hero-feat-item">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                      </svg>
+                      <span>Stock Inventory</span>
+                    </div>
+                    <div class="gi-hero-feat-item">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                      <span>Sales &amp; Bills</span>
+                    </div>
+                    <div class="gi-hero-feat-item">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                      </svg>
+                      <span>Live Ledger Reports</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="gi-hero-actions">
+                  <button type="button" id="btnHeroEditCompany" class="gi-hero-edit-btn" title="Edit Company Details">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    <span>Edit Profile</span>
+                  </button>
+                </div>
+              </div>
+
               <div class="company-card">
                 <div class="company-card-header">
                   <div class="company-card-branding">
@@ -1211,577 +1214,631 @@
               <span>Sale Return</span>
             </button>
           </nav>
-        </header>
-
-        <!-- SUBVIEW 1: Sale Information Voucher -->
+                <!-- SUBVIEW 1: Sale Information Voucher -->
         <div id="subviewSaleVoucher" class="sales-subview-panel active">
-          <!-- Top Action & Meta Bar -->
-          <header class="sale-voucher-header">
-            <div class="sale-header-actions-row">
-              <div class="sale-title-wrap">
-                <svg class="gi-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-                <h1>Sale Information Voucher</h1>
-              </div>
-              <div class="sale-header-btn-group">
-                <button type="button" id="btnSaleNew" class="btn btn-secondary" title="New Voucher (F2)">
-                  <span>+ New (F2)</span>
-                </button>
-                <button type="button" id="btnSaleHistory" class="btn btn-secondary" title="Sales History">
-                  <span>Recent Sales</span>
-                </button>
-                <button type="button" id="btnOpenEstimateModal" class="btn btn-secondary"
-                  title="Kacha Bill / Electrician Quotation">
-                  <span>📋 Kacha Bill</span>
-                </button>
-                <button type="button" id="btnOpenClosingModal" class="btn btn-secondary" title="Day-End Cash Closing">
-                  <span>💵 Day Closing</span>
-                </button>
-                <button type="button" id="btnOpenClaimsModal" class="btn btn-secondary"
-                  title="Warranty Claims (Kharab Samaan)">
-                  <span>🛡️ Claims</span>
-                </button>
-                <button type="button" id="btnSalePrint" class="btn btn-secondary" title="Print Bill (Ctrl+P)">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                    <rect x="6" y="14" width="12" height="8"></rect>
+          
+          <div id="posVoucherMainLayout" class="pos-main-container">
+            <!-- LEFT PANEL: Customer Info, Professional Filter Bar, and Product Catalog -->
+            <div class="pos-left-panel">
+              
+              <!-- 1. Professional Filter & Search Bar (At the Top) -->
+              <div class="pos-pro-filter-bar">
+                <div class="pos-pro-search-box">
+                  <svg class="pos-pro-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
-                  <span>Print Bill</span>
-                </button>
-                <button type="button" id="btnSaleSave" class="btn btn-primary" title="Save Voucher (F10 / Ctrl+S)">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                    <path d="M7 3v5h8"></path>
-                  </svg>
-                  <span>Save Voucher</span>
-                </button>
-              </div>
-            </div>
+                  <input type="text" id="posProductSearch" class="pos-pro-search-input"
+                    placeholder="Search by name, code, barcode..." autocomplete="off">
+                  <button type="button" id="posClearSearch" class="pos-pro-clear-btn" title="Clear Search">✕</button>
+                </div>
 
-            <!-- Voucher Primary Metadata -->
-            <div class="sale-meta-row-clean">
-              <div class="form-group">
-                <label>Entry Date</label>
-                <input type="date" id="saleEntryDate" class="form-control form-control-sm">
-              </div>
-              <div class="form-group">
-                <label>Voucher No</label>
-                <input type="text" id="saleVoucherNo" class="form-control form-control-sm font-num font-bold" readonly>
-              </div>
-              <div class="form-group">
-                <label class="required-label">Party Type</label>
-                <select id="salePartyTypeSelect" class="form-control form-control-sm required-input">
-                  <option value="">-- Select Party Type --</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Payment Mode</label>
-                <select id="salePaymentType" class="form-control form-control-sm">
-                  <option value="Cash">Cash Sale</option>
-                  <option value="Credit">Credit / Ledger</option>
-                  <option value="Bank">Bank Transfer</option>
-                </select>
-              </div>
-            </div>
+                <div class="pos-pro-filter-group">
+                  <div class="pos-filter-item">
+                    <label for="posCategoryFilter">Category</label>
+                    <select id="posCategoryFilter" class="form-control form-control-sm pos-filter-select" title="Filter by Category">
+                      <option value="">All Categories</option>
+                    </select>
+                  </div>
 
-            <!-- Customer & Ledger Balance Info Row -->
-            <div class="sale-meta-row-clean-2">
-              <div class="form-group">
-                <label id="salePartySelectLabel">Party / Account</label>
-                <select id="saleCustomerSelect" class="form-control form-control-sm">
-                  <option value="">-- Walk-in / Cash Customer --</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label id="saleCustomerNameLabel">Customer Name</label>
-                <input type="text" id="saleCustomerName" class="form-control form-control-sm font-bold"
-                  placeholder="Enter customer name">
-              </div>
-              <div class="form-group">
-                <label>Contact Phone</label>
-                <input type="text" id="saleCustomerPhone" class="form-control form-control-sm font-num"
-                  placeholder="Enter contact phone">
-              </div>
-              <div class="form-group">
-                <label>City / Territory</label>
-                <input type="text" id="saleCustomerArea" class="form-control form-control-sm"
-                  placeholder="Enter city / territory">
-              </div>
-              <div class="form-group">
-                <label>Ledger Balance</label>
-                <input type="text" id="saleCustomerPrevBalance"
-                  class="form-control form-control-sm font-num font-bold text-secondary" value="Rs 0.00" readonly>
-              </div>
-            </div>
-          </header>
+                  <div class="pos-filter-item">
+                    <label for="posStockFilter">Stock</label>
+                    <select id="posStockFilter" class="form-control form-control-sm pos-filter-select" title="Filter by Stock Status">
+                      <option value="all">All Stock</option>
+                      <option value="instock">In-Stock Only</option>
+                    </select>
+                  </div>
 
-          <!-- LINE ITEM ENTRY CARD WITH PURCHASE, WHOLESALE, AND RETAIL RATES -->
-          <div class="sale-item-entry-card">
-            <!-- Row 1: Code, Product Select, Stock, and Quantities -->
-            <div class="sale-entry-line-1">
-              <div class="form-group" style="width: 140px;">
-                <label>Code <span class="hotkey-hint">(F1)</span></label>
-                <div style="display: flex; gap: 4px;">
-                  <input type="text" id="saleItemCode" class="form-control form-control-sm font-num font-bold"
-                    placeholder="Enter item code">
-                  <button type="button" id="btnSaleFindProduct" class="btn btn-secondary"
-                    style="height: 32px; padding: 0 8px;" title="Search Product (F1)">Find</button>
+                  <div class="pos-filter-item">
+                    <label for="posRateModeSelect">Rate</label>
+                    <select id="posRateModeSelect" class="form-control form-control-sm pos-filter-select" title="Default Rate Mode">
+                      <option value="retail">Retail Rate</option>
+                      <option value="wholesale">Wholesale Rate</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div class="form-group" style="flex: 1; min-width: 220px;">
-                <label>Product Title</label>
-                <select id="saleProductSelect" class="form-control form-control-sm">
-                  <option value="">-- Select Product Title --</option>
-                </select>
+              <!-- 2. Customer & Payment Details Bar (Below Search & Filters) -->
+              <div class="pos-customer-bar">
+                <div class="form-group pos-cust-select-group">
+                  <label id="salePartySelectLabel" for="saleCustomerSelect">Registered Staff</label>
+                  <div class="pos-cust-select-wrapper">
+                    <select id="saleCustomerSelect" class="form-control form-control-sm">
+                      <option value="">Select Staff / Customer</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group pos-cust-name-group">
+                  <label id="saleCustomerNameLabel" for="saleCustomerName">Customer Name</label>
+                  <input type="text" id="saleCustomerName" class="form-control form-control-sm font-bold"
+                    placeholder="Enter customer name">
+                </div>
+
+                <div class="form-group pos-cust-phone-group">
+                  <label for="saleCustomerPhone">Phone Number</label>
+                  <input type="text" id="saleCustomerPhone" class="form-control form-control-sm font-num"
+                    placeholder="Enter phone number">
+                </div>
+
+                <div class="form-group pos-cust-pay-group">
+                  <label for="salePaymentType">Payment Mode</label>
+                  <select id="salePaymentType" class="form-control form-control-sm font-bold">
+                    <option value="Cash">Cash Sale</option>
+                    <option value="Credit">Credit Ledger</option>
+                    <option value="Bank">Bank Transfer</option>
+                  </select>
+                </div>
+
+                <div class="form-group pos-cust-date-group">
+                  <label for="saleEntryDate">Sale Date</label>
+                  <input type="date" id="saleEntryDate" class="form-control form-control-sm font-num">
+                </div>
+
+                <div class="form-group pos-cust-bal-group">
+                  <label>Previous Balance</label>
+                  <div class="pos-cust-bal-box" id="posPrevBalanceBox">
+                    <span id="saleCustomerPrevBalance" class="pos-bal-val font-num font-bold" data-raw-balance="0">Rs 0.00</span>
+                  </div>
+                </div>
+
+                <!-- Hidden compatibility stubs -->
+                <input type="hidden" id="salePartyTypeSelect" value="general">
+                <input type="hidden" id="saleCustomerArea">
+                <input type="hidden" id="saleManualNo">
+                <input type="hidden" id="saleStoreTitle" value="Main Store">
+                <input type="hidden" id="saleDescription">
               </div>
 
-              <div class="form-group" style="width: 110px;">
-                <label>Available Stock</label>
-                <input type="text" id="saleAvailableStock" class="form-control form-control-sm font-num text-center"
-                  value="-" readonly>
+              <!-- 3. Products Catalog Table -->
+              <div class="pos-catalog-container">
+                <div class="pos-catalog-header-strip">
+                  <span id="posProductsCountText" class="font-bold text-secondary">Loading products...</span>
+                </div>
+
+                <div class="pos-catalog-scroll">
+                  <table class="pos-catalog-table">
+                    <thead>
+                      <tr>
+                        <th class="col-code">Code</th>
+                        <th class="col-name">Product Name</th>
+                        <th class="col-cat">Category</th>
+                        <th class="col-stock">Stock</th>
+                        <th class="col-retail">Retail Rate</th>
+                        <th class="col-wholesale">Wholesale Rate</th>
+                        <th class="col-qty">Qty to Sell</th>
+                        <th class="col-action">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="posProductsTableBody">
+                      <!-- Populated dynamically via JS -->
+                    </tbody>
+                  </table>
+                  <div id="posProductsEmpty" class="pos-empty-catalog hidden">
+                    <p>No products found matching your search term.</p>
+                  </div>
+                </div>
+                <div class="pos-catalog-pagination-bar" id="posCatalogPagination"></div>
               </div>
 
-              <div class="form-group" style="width: 70px;">
-                <label>Pack</label>
-                <input type="number" id="salePackSize" class="form-control form-control-sm font-num text-center" min="1"
-                  value="1" readonly>
+              <!-- Legacy Stubs for Full JS Compatibility -->
+              <div id="posLegacyStubs" style="display: none !important;">
+                <input type="text" id="saleItemCode">
+                <button type="button" id="btnSaleFindProduct"></button>
+                <select id="saleProductSelect"></select>
+                <input type="text" id="saleProductSearchInput">
+                <div id="saleProductDropdownList"></div>
+                <input type="number" id="salePackSize" value="1">
+                <input type="number" id="salePackQty" value="1">
+                <input type="number" id="saleUnitQty" value="0">
+                <input type="number" id="saleTotalQty" value="1">
+                <span id="saleAvailableStock">0</span>
+                <div id="salePurchasePricePill">0.00</div>
+                <div id="saleWholesalePricePill">0.00</div>
+                <div id="saleRetailPricePill">0.00</div>
+                <input type="number" id="saleSalePriceInput" value="0.00">
+                <input type="number" id="saleDiscountPercent" value="0">
+                <input type="number" id="saleLineAmount" value="0.00">
+                <button type="button" id="btnSaleAddItem"></button>
+                <button type="button" id="btnSaleHistory"></button>
+                <button type="button" id="btnOpenEstimateModal"></button>
+                <button type="button" id="btnOpenClosingModal"></button>
+                <button type="button" id="btnOpenClaimsModal"></button>
               </div>
 
-              <div class="form-group" style="width: 80px;">
-                <label>P.Qty</label>
-                <input type="number" id="salePackQty" class="form-control form-control-sm font-num text-center" min="0"
-                  value="1">
-              </div>
-
-              <div class="form-group" style="width: 80px;">
-                <label>U.Qty</label>
-                <input type="number" id="saleUnitQty" class="form-control form-control-sm font-num text-center" min="0"
-                  value="0">
-              </div>
-
-              <div class="form-group" style="width: 95px;">
-                <label>Total Qty</label>
-                <input type="number" id="saleTotalQty"
-                  class="form-control form-control-sm font-num font-bold text-center" min="1" value="1" readonly>
-              </div>
             </div>
 
-            <!-- Row 2: Rate Tiers, Sale Rate, Discount %, Line Total, and Add Button -->
-            <div class="sale-entry-line-2">
-              <div class="form-group rate-pill-box" style="width: 120px;">
-                <label>Cost (Ref)</label>
-                <div id="salePurchasePricePill" class="rate-badge-btn rate-pill-cost font-num"
-                  title="Purchase Price (Cost)">0.00</div>
+            <!-- RIGHT PANEL: Real Thermal Bill Slip with Direct Sell -->
+            <div class="pos-right-panel" id="posRightPanel">
+              
+              <div id="posRightCartView" class="pos-right-slip-card">
+                
+                <!-- Slip Top Toolbar: Header & New Sale Action -->
+                <div class="pos-slip-card-topbar">
+                  <div class="pos-slip-badge-title">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span>BILL SLIP</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <button type="button" id="btnPosClearCart" class="btn btn-secondary btn-sm pos-slip-mini-btn" title="Clear all items from slip">
+                      Clear
+                    </button>
+                    <button type="button" id="btnSaleNew" class="btn btn-secondary btn-sm pos-slip-mini-btn" title="New Sale Voucher (F2)">
+                      + New (F2)
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Slip Paper Body -->
+                <div class="pos-slip-card-body">
+                  
+                  <!-- Shop Info Header -->
+                  <div class="pos-slip-header-brand">
+                    <div id="posSlipCompanyTitle" class="pos-slip-brand-title">SHAHZAIB TRADERS</div>
+                    <div id="posSlipCompanySubtitle" class="pos-slip-brand-sub">Electrical Goods &amp; Accessories</div>
+                    <div class="pos-slip-brand-meta">
+                      <span id="posSlipCompanyAddress">Main Commercial Market</span>
+                      <span class="pos-slip-dot">•</span>
+                      <span id="posSlipCompanyPhone">Ph: 0300-1234567</span>
+                    </div>
+                  </div>
+
+                  <!-- Invoice Meta Grid -->
+                  <div class="pos-slip-meta-block">
+                    <div class="pos-slip-meta-row">
+                      <span>Invoice: <strong id="saleVoucherNoDisplay">SV-0001</strong></span>
+                      <input type="hidden" id="saleVoucherNo" value="SV-0001">
+                      <span id="posSlipDateDisplay">17/10/2026</span>
+                    </div>
+                    <div class="pos-slip-meta-row">
+                      <span class="pos-slip-cust-name">Customer: <strong id="posSlipCustomerDisplay">Walk-In Cash Customer</strong></span>
+                      <span id="posSlipPaymentDisplay" class="pos-slip-pay-badge">Cash Sale</span>
+                    </div>
+                    <div class="pos-slip-meta-row" id="posSlipPrevBalRow" style="display: none;">
+                      <span>Old Balance:</span>
+                      <strong id="posSlipPrevBalDisplay" class="font-bold text-danger">Rs 0.00</strong>
+                    </div>
+                  </div>
+
+                  <!-- Fixed-Height Paginated Items Table (Never Expands Downward) -->
+                  <div class="pos-slip-table-container">
+                    <table class="pos-slip-table">
+                      <thead>
+                        <tr>
+                          <th class="pos-slip-th-item">ITEM</th>
+                          <th class="pos-slip-th-qty">QTY</th>
+                          <th class="pos-slip-th-rate">RATE</th>
+                          <th class="pos-slip-th-total">TOTAL</th>
+                          <th class="pos-slip-th-del">✕</th>
+                        </tr>
+                      </thead>
+                      <tbody id="saleItemsTableBody">
+                        <!-- Populated dynamically (max 5 rows) -->
+                      </tbody>
+                    </table>
+
+                    <div id="saleItemsEmptyState" class="pos-slip-empty-state">
+                      <div class="pos-slip-empty-icon">🧾</div>
+                      <div class="pos-slip-empty-title">Slip is Empty</div>
+                      <div class="pos-slip-empty-sub">Click <strong>+ Add</strong> on any product</div>
+                    </div>
+                  </div>
+
+                  <!-- Compact Slip Pagination Controls (Shows only when items > 5) -->
+                    <div class="pos-slip-mini-pagination" id="posSlipPaginationBar" style="display: none;">
+                      <span class="pos-slip-pag-info" id="posSlipPaginationInfo">Items 1–6 of 12</span>
+                      <div class="pos-slip-pag-btns">
+                        <button type="button" class="pos-slip-pag-btn" id="btnPosSlipPrev" onclick="window.SalesModule.changeSlipPage(-1)" title="Previous Page">‹ Prev</button>
+                        <span class="pos-slip-pag-curr" id="posSlipPaginationCurrent">Page 1 of 2</span>
+                        <button type="button" class="pos-slip-pag-btn" id="btnPosSlipNext" onclick="window.SalesModule.changeSlipPage(1)" title="Next Page">Next ›</button>
+                      </div>
+                    </div>
+
+                  <!-- Slip Totals & Calculations -->
+                  <div class="pos-slip-totals-block">
+                    <div class="pos-slip-row">
+                      <span class="pos-slip-tot-lbl">Subtotal:</span>
+                      <strong id="saleGrossTotal" class="font-num pos-slip-tot-val">Rs 0.00</strong>
+                      <span id="posSlipGrossDisplay" style="display: none;">Rs 0.00</span>
+                    </div>
+                    <div class="pos-slip-row">
+                      <span class="pos-slip-tot-lbl">Special Disc:</span>
+                      <div class="pos-slip-disc-box">
+                        <span>- Rs</span>
+                        <input type="number" id="saleSpecialDiscount" class="form-control form-control-sm font-num text-right pos-slip-disc-input" min="0" step="1" value="0">
+                      </div>
+                      <span id="posSlipDiscountDisplay" style="display: none;">- Rs 0.00</span>
+                    </div>
+                    <div class="pos-slip-net-row">
+                      <span class="pos-slip-net-lbl">NET TOTAL:</span>
+                      <span id="saleNetTotal" class="pos-slip-net-val font-num font-bold">Rs 0.00</span>
+                      <span id="posCartEstimatedNet" style="display: none;">Rs 0.00</span>
+                    </div>
+
+                    <!-- Live Cash Received / Change / Due -->
+                    <div class="pos-slip-row pos-slip-pay-row">
+                      <span class="font-bold" style="font-size: 12px; color: #0f172a;">Cash Received:</span>
+                      <div class="pos-slip-paid-wrapper">
+                        <span style="font-size: 12px; font-weight: 700; color: #475569;">Rs</span>
+                        <input type="number" id="salePaidAmount" class="pos-slip-paid-input font-num font-bold" min="0" step="1" value="0" placeholder="0">
+                      </div>
+                    </div>
+                    <div class="pos-slip-row" id="posChangeRow" style="display: none;">
+                      <span class="font-bold" style="font-size: 12px; color: #16a34a;">Return Change:</span>
+                      <strong id="saleReturnChange" class="font-num" style="color: #16a34a; font-size: 13px;">Rs 0.00</strong>
+                    </div>
+                    <div class="pos-slip-row" id="posBalanceRow">
+                      <span class="font-bold" style="font-size: 12px; color: #475569;">Balance Due:</span>
+                      <strong id="saleBalanceDue" class="font-num text-success" style="font-size: 13px;">Rs 0.00</strong>
+                    </div>
+                    <div class="pos-slip-row" id="posNewLedgerRow" style="display: none;">
+                      <span>New Ledger Balance:</span>
+                      <span id="saleFinalCustomerBalance" class="font-bold">Rs 0.00</span>
+                    </div>
+
+                    <!-- Hidden counters for JS compatibility -->
+                    <div style="display: none !important;">
+                      <span id="saleTotalItemsCount">0</span>
+                      <span id="saleTotalPiecesCount">0</span>
+                      <span id="saleTotalProfitPreview">Rs 0.00</span>
+                      <span id="posCartCountBadge">0</span>
+                      <tbody id="posSlipItemsTableBody"></tbody>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Slip Docked Action Footer (Instant Sell) -->
+                <div class="pos-slip-footer-bar">
+                  <button type="button" id="btnSaleSave" class="btn btn-primary pos-btn-sell-clean" title="Confirm Sale (Ctrl+S / F10)">
+                    <span>Sell</span>
+                  </button>
+                  <div class="pos-slip-footer-sub">
+                    <button type="button" id="btnSalePrint" class="btn btn-secondary btn-sm" title="Print Bill Only">
+                      Print Only
+                    </button>
+                    <label class="pos-checkbox-label" title="Automatically print receipt when sale is confirmed">
+                      <input type="checkbox" id="chkSalePrintReceipt" checked>
+                      <span>Auto-Print</span>
+                    </label>
+                  </div>
+                </div>
+
               </div>
 
-              <div class="form-group rate-pill-box" style="width: 130px;">
-                <label>Wholesale (Click)</label>
-                <div id="saleWholesalePricePill" class="rate-badge-btn rate-pill-wholesale font-num"
-                  title="Click to use Wholesale Price">0.00</div>
-              </div>
-
-              <div class="form-group rate-pill-box" style="width: 130px;">
-                <label>Retail (Click)</label>
-                <div id="saleRetailPricePill" class="rate-badge-btn rate-pill-retail font-num active-choice"
-                  title="Click to use Retail Price">0.00</div>
-              </div>
-
-              <div class="form-group applied-sale-price-field" style="width: 130px;">
-                <label class="required-label">Sale Rate (Rs)</label>
-                <input type="number" id="saleSalePriceInput"
-                  class="form-control form-control-sm font-num text-right font-bold" min="0" step="0.01" value="0.00">
-              </div>
-
-              <div class="form-group" style="width: 85px;">
-                <label>Disc %</label>
-                <input type="number" id="saleDiscountPercent" class="form-control form-control-sm font-num text-center"
-                  min="0" max="100" step="0.5" value="0.0">
-              </div>
-
-              <div class="form-group" style="width: 140px;">
-                <label>Net Total (Rs)</label>
-                <input type="number" id="saleLineAmount"
-                  class="form-control form-control-sm font-num font-bold text-right" value="0.00" readonly>
-              </div>
-
-              <div class="form-group" style="width: 110px;">
-                <label>&nbsp;</label>
-                <button type="button" id="btnSaleAddItem" class="btn btn-primary" style="width: 100%; height: 32px;">
-                  <span>+ Add</span>
-                </button>
-              </div>
             </div>
+
           </div>
 
-          <!-- ITEMS TABLE CONTAINER -->
-          <div class="sale-items-table-container">
-            <table class="sale-items-table">
-              <thead>
-                <tr>
-                  <th style="width: 45px; text-align: center;">SR #</th>
-                  <th style="width: 110px;">Item Code</th>
-                  <th>Product Description</th>
-                  <th style="width: 60px; text-align: center;">Pack</th>
-                  <th style="width: 80px; text-align: center;">P/U Qty</th>
-                  <th style="width: 80px; text-align: center;">Total Qty</th>
-                  <th style="width: 95px; text-align: center;" title="Purchase Cost (Internal Reference)">Cost (Ref)
-                  </th>
-                  <th style="width: 95px; text-align: center;">Wholesale</th>
-                  <th style="width: 95px; text-align: center;">Retail</th>
-                  <th style="width: 105px; text-align: right;">Applied Rate</th>
-                  <th style="width: 70px; text-align: center;">Disc</th>
-                  <th style="width: 115px; text-align: right;">Net Amount</th>
-                  <th style="width: 50px; text-align: center;">Action</th>
-                </tr>
-              </thead>
-              <tbody id="saleItemsTableBody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-            <div id="saleItemsEmptyState" class="empty-state">
-              <span>No products added to this sale voucher yet. Enter code or press F1 to search products.</span>
-            </div>
-          </div>
-
-          <!-- FINANCIAL SUMMARY & VOUCHER FOOTER -->
-          <footer class="sale-voucher-footer">
-            <div class="sale-footer-left">
-              <div class="sale-footer-stats-pills">
-                <div class="sale-stat-pill">
-                  <span class="stat-label">Total Items</span>
-                  <span id="saleTotalItemsCount" class="stat-val font-num">0</span>
-                </div>
-                <div class="sale-stat-pill">
-                  <span class="stat-label">Total Pieces</span>
-                  <span id="saleTotalPiecesCount" class="stat-val font-num">0</span>
-                </div>
-                <div class="sale-stat-pill">
-                  <span class="stat-label">Est. Profit Preview</span>
-                  <span id="saleTotalProfitPreview" class="stat-val font-num text-success">Rs 0.00</span>
-                </div>
-              </div>
-              <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: auto;">
-                <span>• Stock will be automatically deducted from inventory upon saving.</span><br>
-                <span>• Customer ledger balance will be updated automatically.</span>
-              </div>
-            </div>
-
-            <div class="sale-footer-right">
-              <div class="sale-calc-row">
-                <span class="calc-label">Gross Amount:</span>
-                <span id="saleGrossTotal" class="calc-val font-num font-bold">Rs 0.00</span>
-              </div>
-              <div class="sale-calc-row">
-                <span class="calc-label">Special Discount:</span>
-                <input type="number" id="saleSpecialDiscount" class="form-control form-control-sm font-num text-right"
-                  style="width: 110px;" min="0" step="1" value="0">
-              </div>
-              <div class="sale-calc-row highlight-net">
-                <span class="calc-label font-bold" style="font-size: 1.05rem;">Net Bill Total:</span>
-                <span id="saleNetTotal" class="calc-val font-num">Rs 0.00</span>
-              </div>
-              <div class="sale-calc-row">
-                <span class="calc-label">Paid / Received:</span>
-                <input type="number" id="salePaidAmount"
-                  class="form-control form-control-sm font-num text-right font-bold text-success" style="width: 110px;"
-                  min="0" step="1" value="0">
-              </div>
-              <div class="sale-calc-row">
-                <span class="calc-label">Bill Balance Due:</span>
-                <span id="saleBalanceDue" class="calc-val font-num font-bold text-danger">Rs 0.00</span>
-              </div>
-              <div class="sale-calc-row">
-                <span class="calc-label">Return Change:</span>
-                <span id="saleReturnChange" class="calc-val font-num">Rs 0.00</span>
-              </div>
-              <div class="sale-calc-row highlight-balance" style="margin-top: 4px;">
-                <span class="calc-label font-bold">New Customer Ledger:</span>
-                <span id="saleFinalCustomerBalance" class="calc-val font-num">Rs 0.00</span>
-              </div>
-            </div>
-          </footer>
         </div>
 
         <!-- SUBVIEW 2: Sale Return Voucher -->
         <div id="subviewSaleReturn" class="sales-subview-panel hidden">
-          <!-- Top Action & Meta Bar -->
-          <header class="sale-voucher-header">
-            <div class="sale-header-actions-row">
-              <div class="sale-title-wrap">
-                <svg class="gi-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="1 4 1 10 7 10"></polyline>
-                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                </svg>
-                <h1>Sale Return Voucher</h1>
-              </div>
-              <div class="sale-header-btn-group">
-                <button type="button" id="btnReturnNew" class="btn btn-secondary" title="New Return (F2)">
-                  <span>+ New Return</span>
-                </button>
-                <button type="button" id="btnReturnHistory" class="btn btn-secondary" title="Return History">
-                  <span>Return History</span>
-                </button>
-                <button type="button" id="btnReturnOpenEstimateModal" class="btn btn-secondary"
-                  title="Kacha Bill / Electrician Quotation">
-                  <span>📋 Kacha Bill</span>
-                </button>
-                <button type="button" id="btnReturnOpenClosingModal" class="btn btn-secondary"
-                  title="Day-End Cash Closing">
-                  <span>💵 Day Closing</span>
-                </button>
-                <button type="button" id="btnReturnOpenClaimsModal" class="btn btn-secondary"
-                  title="Warranty Claims (Kharab Samaan)">
-                  <span>🛡️ Claims</span>
-                </button>
-                <button type="button" id="btnReturnPrint" class="btn btn-secondary" title="Print Return Note">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                    <rect x="6" y="14" width="12" height="8"></rect>
+          
+          <div id="returnVoucherMainLayout" class="pos-main-container">
+            <!-- LEFT PANEL: Customer Info, Professional Filter Bar, and Product Catalog -->
+            <div class="pos-left-panel">
+              
+              <!-- 1. Professional Filter & Search Bar (At the Top) -->
+              <div class="pos-pro-filter-bar">
+                <div class="pos-pro-search-box">
+                  <svg class="pos-pro-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
-                  <span>Print Note</span>
-                </button>
-                <button type="button" id="btnReturnSave" class="btn btn-primary" title="Save Return">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                    <polyline points="7 3 7 8 15 8"></polyline>
-                  </svg>
-                  <span>Save Return</span>
-                </button>
-              </div>
-            </div>
+                  <input type="text" id="returnPosProductSearch" class="pos-pro-search-input"
+                    placeholder="Search by name, code, barcode..." autocomplete="off">
+                  <button type="button" id="returnPosClearSearch" class="pos-pro-clear-btn" title="Clear Search">✕</button>
+                </div>
 
-            <!-- Return Metadata Row 1 -->
-            <div class="sale-meta-row-clean">
-              <div class="form-group">
-                <label for="returnEntryDate">Return Date</label>
-                <input type="date" id="returnEntryDate" class="form-control form-control-sm">
-              </div>
-              <div class="form-group">
-                <label for="returnVoucherNo">Return #</label>
-                <input type="text" id="returnVoucherNo" class="form-control form-control-sm font-num font-bold" readonly
-                  value="SR-0001">
-              </div>
-              <div class="form-group">
-                <label for="returnOriginalBillRef">Orig. Sale Bill # (Ref)</label>
-                <input type="text" id="returnOriginalBillRef" class="form-control form-control-sm font-num"
-                  placeholder="Enter original bill / voucher #">
-              </div>
-              <div class="form-group">
-                <label for="returnRefundMode">Refund Mode</label>
-                <select id="returnRefundMode" class="form-control form-control-sm">
-                  <option value="Credit" selected>Credit (Customer Balance)</option>
-                  <option value="Cash">Cash (Immediate Refund)</option>
-                </select>
-              </div>
-            </div>
+                <div class="pos-pro-filter-group">
+                  <div class="pos-filter-item">
+                    <label for="returnPosCategoryFilter">Category</label>
+                    <select id="returnPosCategoryFilter" class="form-control form-control-sm pos-filter-select" title="Filter by Category">
+                      <option value="">All Categories</option>
+                    </select>
+                  </div>
 
-            <!-- Return Metadata Row 2 -->
-            <div class="sale-meta-grid-2">
-              <div class="form-group">
-                <label for="returnPartyTypeSelect" class="required-label">Party Type</label>
-                <select id="returnPartyTypeSelect" class="form-control form-control-sm required-input">
-                  <option value="">-- Select Party Type --</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="returnCustomerSelect">Customer / Account</label>
-                <select id="returnCustomerSelect" class="form-control form-control-sm">
-                  <option value="">-- Select Customer / Party --</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="returnReason">Return Reason</label>
-                <select id="returnReason" class="form-control form-control-sm">
-                  <option value="Customer Return">Customer Return / Excess</option>
-                  <option value="Defective">Defective / Damaged</option>
-                  <option value="Exchange">Exchange / Replacement</option>
-                  <option value="Wrong Item">Wrong Item Sent</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="returnDescription">Remarks / Notes</label>
-                <input type="text" id="returnDescription" class="form-control form-control-sm"
-                  placeholder="Enter return reason / notes">
-              </div>
-              <!-- Hidden compatibility targets for sales.js -->
-              <span id="returnCustomerPhone" style="display: none;"></span>
-              <span id="returnCustomerArea" style="display: none;"></span>
-              <span id="returnCustomerPrevBalance" style="display: none;"></span>
-            </div>
-          </header>
+                  <div class="pos-filter-item">
+                    <label for="returnPosStockFilter">Stock</label>
+                    <select id="returnPosStockFilter" class="form-control form-control-sm pos-filter-select" title="Filter by Stock Status">
+                      <option value="all">All Stock</option>
+                      <option value="instock">In-Stock Only</option>
+                    </select>
+                  </div>
 
-          <!-- Return Item Entry Card -->
-          <div class="sale-item-entry-card">
-            <!-- Row 1: Code, Product Select, Condition, Stock, Quantities -->
-            <div class="sale-entry-line-1">
-              <div class="form-group" style="width: 140px;">
-                <label for="returnItemCode">Code <span class="hotkey-hint">(F1)</span></label>
-                <div style="display: flex; gap: 4px;">
-                  <input type="text" id="returnItemCode" class="form-control form-control-sm font-num font-bold"
-                    placeholder="Enter item code">
-                  <button type="button" id="btnReturnFindProduct" class="btn btn-secondary"
-                    style="height: 32px; padding: 0 8px;" title="Search Product (F1)">Find</button>
+                  <div class="pos-filter-item">
+                    <label for="returnPosRateModeSelect">Rate</label>
+                    <select id="returnPosRateModeSelect" class="form-control form-control-sm pos-filter-select" title="Default Rate Mode">
+                      <option value="retail">Retail Rate</option>
+                      <option value="wholesale">Wholesale Rate</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div class="form-group" style="flex: 1; min-width: 220px;">
-                <label for="returnProductSelect">Product Description</label>
-                <select id="returnProductSelect" class="form-control form-control-sm">
-                  <option value="">-- Choose Product --</option>
-                </select>
+              <!-- 2. Customer & Return Details Bar (Below Search & Filters) -->
+              <div class="pos-customer-bar">
+                <div class="form-group pos-cust-select-group">
+                  <label id="returnPartySelectLabel" for="returnCustomerSelect">Registered Staff</label>
+                  <div class="pos-cust-select-wrapper">
+                    <select id="returnCustomerSelect" class="form-control form-control-sm">
+                      <option value="">Select Staff / Customer</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group pos-cust-name-group">
+                  <label id="returnCustomerNameLabel" for="returnCustomerName">Customer Name</label>
+                  <input type="text" id="returnCustomerName" class="form-control form-control-sm font-bold"
+                    placeholder="Enter customer name">
+                </div>
+
+                <div class="form-group pos-cust-phone-group">
+                  <label for="returnCustomerPhone">Phone Number</label>
+                  <input type="text" id="returnCustomerPhone" class="form-control form-control-sm font-num"
+                    placeholder="Enter phone number">
+                </div>
+
+                <div class="form-group pos-cust-pay-group">
+                  <label for="returnRefundMode">Refund Mode</label>
+                  <select id="returnRefundMode" class="form-control form-control-sm font-bold">
+                    <option value="Credit" selected>Credit Ledger</option>
+                    <option value="Cash">Cash Refund</option>
+                  </select>
+                </div>
+
+                <div class="form-group pos-cust-date-group">
+                  <label for="returnEntryDate">Return Date</label>
+                  <input type="date" id="returnEntryDate" class="form-control form-control-sm font-num">
+                </div>
+
+                <div class="form-group" style="width: 140px;">
+                  <label for="returnOriginalBillRef">Orig. Sale Bill #</label>
+                  <input type="text" id="returnOriginalBillRef" class="form-control form-control-sm font-num font-bold"
+                    placeholder="SV-XXXX">
+                </div>
+
+                <!-- Hidden compatibility stubs -->
+                <input type="hidden" id="returnPartyTypeSelect" value="general">
+                <input type="hidden" id="returnCustomerArea">
+                <input type="hidden" id="returnCustomerPrevBalance">
+                <input type="hidden" id="returnReason" value="Customer Return">
+                <input type="hidden" id="returnDescription">
+                <input type="hidden" id="returnVoucherNo" value="SR-0001">
               </div>
 
-              <div class="form-group" style="width: 130px;">
-                <label for="returnItemCondition">Condition</label>
-                <select id="returnItemCondition" class="form-control form-control-sm">
-                  <option value="Good" selected>Good (Restock)</option>
-                  <option value="Damaged">Damaged / Scrap</option>
-                </select>
+              <!-- 3. Products Catalog Table for Return -->
+              <div class="pos-catalog-container">
+                <div class="pos-catalog-header-strip">
+                  <span id="returnPosProductsCountText" class="font-bold text-secondary">Loading products...</span>
+                </div>
+
+                <div class="pos-catalog-scroll">
+                  <table class="pos-catalog-table">
+                    <thead>
+                      <tr>
+                        <th class="col-code">Code</th>
+                        <th class="col-name">Product Name</th>
+                        <th class="col-cat">Category</th>
+                        <th class="col-stock">Stock</th>
+                        <th class="col-retail">Retail Rate</th>
+                        <th class="col-wholesale">Wholesale Rate</th>
+                        <th class="col-qty">Qty to Return</th>
+                        <th class="col-action">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="returnPosProductsTableBody">
+                      <!-- Populated dynamically via JS -->
+                    </tbody>
+                  </table>
+                  <div id="returnPosProductsEmpty" class="pos-empty-catalog hidden">
+                    <p>No products found matching your search term.</p>
+                  </div>
+                </div>
+                <div class="pos-catalog-pagination-bar" id="returnPosCatalogPagination"></div>
               </div>
 
-              <div class="form-group" style="width: 100px;">
-                <label>Current Stock</label>
-                <input type="text" id="returnAvailableStock" class="form-control form-control-sm font-num text-center"
-                  value="0 pcs" readonly>
+              <!-- Legacy Stubs for Full Return JS Compatibility -->
+              <div id="returnLegacyStubs" style="display: none !important;">
+                <input type="text" id="returnItemCode">
+                <button type="button" id="btnReturnFindProduct"></button>
+                <select id="returnProductSelect"></select>
+                <input type="text" id="returnProductSearchInput">
+                <div id="returnProductDropdownList"></div>
+                <input type="number" id="returnPackSize" value="1">
+                <input type="number" id="returnPackQty" value="0">
+                <input type="number" id="returnUnitQty" value="1">
+                <input type="number" id="returnTotalQty" value="1">
+                <span id="returnAvailableStock">0</span>
+                <select id="returnItemCondition"><option value="Good" selected>Good</option></select>
+                <div id="returnCostPill">0.00</div>
+                <div id="returnWholesalePill">0.00</div>
+                <div id="returnRetailPill">0.00</div>
+                <input type="number" id="returnRateInput" value="0.00">
+                <input type="number" id="returnLineAmount" value="0.00">
+                <button type="button" id="btnReturnAddItem"></button>
+                <button type="button" id="btnReturnHistory"></button>
+                <button type="button" id="btnReturnOpenEstimateModal"></button>
+                <button type="button" id="btnReturnOpenClosingModal"></button>
+                <button type="button" id="btnReturnOpenClaimsModal"></button>
               </div>
 
-              <div class="form-group" style="width: 70px;">
-                <label for="returnPackSize">Pack Sz</label>
-                <input type="number" id="returnPackSize" class="form-control form-control-sm font-num text-center"
-                  min="1" value="1" readonly>
-              </div>
-
-              <div class="form-group" style="width: 80px;">
-                <label for="returnPackQty">Ret. Pack</label>
-                <input type="number" id="returnPackQty" class="form-control form-control-sm font-num text-center"
-                  min="0" step="1" value="0">
-              </div>
-
-              <div class="form-group" style="width: 80px;">
-                <label for="returnUnitQty">Ret. Unit</label>
-                <input type="number" id="returnUnitQty" class="form-control form-control-sm font-num text-center"
-                  min="0" step="1" value="0">
-              </div>
-
-              <div class="form-group" style="width: 95px;">
-                <label for="returnTotalQty">Total Pcs</label>
-                <input type="number" id="returnTotalQty"
-                  class="form-control form-control-sm font-num text-center font-bold" readonly value="0">
-              </div>
             </div>
 
-            <!-- Row 2: Rate References, Return Rate, Refund Amount, Add Button -->
-            <div class="sale-entry-line-2">
-              <div class="form-group rate-pill-box" style="width: 130px;">
-                <label>Cost (Ref)</label>
-                <div id="returnCostPill" class="rate-badge-btn rate-pill-cost font-num" title="Original Purchase Cost">
-                  0.00</div>
+            <!-- RIGHT PANEL: Real Thermal Return Slip with Direct Return -->
+            <div class="pos-right-panel" id="returnPosRightPanel">
+              
+              <div id="returnPosRightCartView" class="pos-right-slip-card return-card">
+                
+                <!-- Slip Top Toolbar: Header & New Return Action -->
+                <div class="pos-slip-card-topbar">
+                  <div class="pos-slip-badge-title" style="color: #dc2626;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="1 4 1 10 7 10"></polyline>
+                      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                    </svg>
+                    <span>RETURN SLIP</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <button type="button" id="btnReturnPosClearCart" class="btn btn-secondary btn-sm pos-slip-mini-btn" title="Clear all items from return slip">
+                      Clear
+                    </button>
+                    <button type="button" id="btnReturnNew" class="btn btn-secondary btn-sm pos-slip-mini-btn" title="New Return Voucher (F2)">
+                      + New (F2)
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Slip Paper Body -->
+                <div class="pos-slip-card-body">
+                  
+                  <!-- Shop Info Header -->
+                  <div class="pos-slip-header-brand" style="border-top: 3px solid #dc2626;">
+                    <div id="returnSlipCompanyTitle" class="pos-slip-brand-title">SHAHZAIB TRADERS</div>
+                    <div id="returnSlipCompanySubtitle" class="pos-slip-brand-sub">Electrical Goods &amp; Accessories</div>
+                    <div class="pos-slip-brand-meta">
+                      <span id="returnSlipCompanyAddress">Main Commercial Market</span>
+                      <span class="pos-slip-dot">•</span>
+                      <span id="returnSlipCompanyPhone">Ph: 0300-1234567</span>
+                    </div>
+                    <div style="margin-top: 4px; display: inline-block; padding: 2px 8px; background: #fee2e2; color: #b91c1c; border-radius: 4px; font-weight: 800; font-size: 10.5px; letter-spacing: 0.5px;">
+                      SALE RETURN VOUCHER
+                    </div>
+                  </div>
+
+                  <!-- Return Meta Grid -->
+                  <div class="pos-slip-meta-block">
+                    <div class="pos-slip-meta-row">
+                      <span>Return #: <strong id="returnSlipVoucherNoDisplay">SR-0001</strong></span>
+                      <input type="hidden" id="returnSlipVoucherNo" value="SR-0001">
+                      <span id="returnSlipDateDisplay">17/10/2026</span>
+                    </div>
+                    <div class="pos-slip-meta-row">
+                      <span class="pos-slip-cust-name">Customer: <strong id="returnSlipCustomerDisplay">Walk-in Customer</strong></span>
+                      <span id="returnSlipModeDisplay" class="pos-slip-pay-badge" style="color: #dc2626; background: #fee2e2;">Credit Ledger</span>
+                    </div>
+                    <div class="pos-slip-meta-row" id="returnSlipOrigBillRow">
+                      <span>Orig Sale Bill #:</span>
+                      <strong id="returnSlipOrigBillDisplay" class="font-bold">-</strong>
+                    </div>
+                  </div>
+
+                  <!-- Fixed-Height Paginated Items Table (Never Expands Downward) -->
+                  <div class="pos-slip-table-container">
+                    <table class="pos-slip-table">
+                      <thead>
+                        <tr>
+                          <th class="pos-slip-th-item">ITEM</th>
+                          <th class="pos-slip-th-qty">QTY</th>
+                          <th class="pos-slip-th-rate">RATE</th>
+                          <th class="pos-slip-th-total">TOTAL</th>
+                          <th class="pos-slip-th-del">✕</th>
+                        </tr>
+                      </thead>
+                      <tbody id="returnItemsTableBody">
+                        <!-- Populated dynamically (max 5 rows) -->
+                      </tbody>
+                    </table>
+
+                    <div id="returnItemsEmptyState" class="pos-slip-empty-state">
+                      <div class="pos-slip-empty-icon">🔄</div>
+                      <div class="pos-slip-empty-title">Return Slip is Empty</div>
+                      <div class="pos-slip-empty-sub">Click <strong>+ Return</strong> on any product</div>
+                    </div>
+                  </div>
+
+                  <!-- Compact Slip Pagination Controls (Shows only when items > 5) -->
+                    <div class="pos-slip-mini-pagination" id="returnPosSlipPaginationBar" style="display: none;">
+                      <span class="pos-slip-pag-info" id="returnPosSlipPaginationInfo">Items 1–6 of 12</span>
+                      <div class="pos-slip-pag-btns">
+                        <button type="button" class="pos-slip-pag-btn" id="btnReturnSlipPrev" onclick="window.SalesModule.changeReturnSlipPage(-1)" title="Previous Page">‹ Prev</button>
+                        <span class="pos-slip-pag-curr" id="returnPosSlipPaginationCurrent">Page 1 of 2</span>
+                        <button type="button" class="pos-slip-pag-btn" id="btnReturnSlipNext" onclick="window.SalesModule.changeReturnSlipPage(1)" title="Next Page">Next ›</button>
+                      </div>
+                    </div>
+
+                  <!-- Slip Totals & Calculations -->
+                  <div class="pos-slip-totals-block" style="border-top-color: #dc2626;">
+                    <div class="pos-slip-row">
+                      <span class="pos-slip-tot-lbl">Subtotal Refund:</span>
+                      <strong id="returnGrossRefund" class="font-num pos-slip-tot-val" style="color: #dc2626;">Rs 0.00</strong>
+                      <span id="returnSlipGrossDisplay" style="display: none;">Rs 0.00</span>
+                    </div>
+                    <div class="pos-slip-row" id="returnSlipDiscRow">
+                      <span class="pos-slip-tot-lbl">Deduction / Disc:</span>
+                      <div class="pos-slip-disc-box">
+                        <span>- Rs</span>
+                        <input type="number" id="returnSpecialDeduction" class="form-control form-control-sm font-num text-right pos-slip-disc-input" min="0" step="1" value="0">
+                      </div>
+                      <span id="returnSlipDiscDisplay" style="display: none;">- Rs 0.00</span>
+                    </div>
+                    <div class="pos-slip-net-row" style="background: #fef2f2; border-color: #fecaca; color: #991b1b;">
+                      <span class="pos-slip-net-lbl">NET REFUND:</span>
+                      <span id="returnSlipNetDisplay" class="pos-slip-net-val font-num font-bold" style="color: #dc2626;">Rs 0.00</span>
+                      <span id="returnEstimatedNet" style="display: none;">Rs 0.00</span>
+                    </div>
+
+                    <!-- Hidden counters for JS compatibility -->
+                    <div style="display: none !important;">
+                      <span id="returnTotalItemsCount">0</span>
+                      <span id="returnTotalPiecesCount">0</span>
+                      <span id="returnPosCartCountBadge">0</span>
+                      <span id="returnSlipBarcodeMeta">* SR-0001 *</span>
+                      <tbody id="returnSlipItemsTableBody"></tbody>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Slip Docked Action Footer (Instant Return) -->
+                <div class="pos-slip-footer-bar">
+                  <button type="button" id="btnReturnSave" class="btn btn-primary pos-btn-return-clean" title="Confirm Sale Return">
+                    <span>Return</span>
+                  </button>
+                  <div class="pos-slip-footer-sub">
+                    <button type="button" id="btnReturnPrint" class="btn btn-secondary btn-sm" title="Print Return Slip">
+                      Print Only
+                    </button>
+                    <label class="pos-checkbox-label" title="Automatically print receipt when return is saved">
+                      <input type="checkbox" id="chkReturnPrintReceipt" checked>
+                      <span>Auto-Print</span>
+                    </label>
+                  </div>
+                </div>
+
               </div>
 
-              <div class="form-group rate-pill-box" style="width: 140px;">
-                <label>Wholesale (Click)</label>
-                <div id="returnWholesalePill" class="rate-badge-btn rate-pill-wholesale font-num"
-                  title="Click to use Wholesale Rate">0.00</div>
-              </div>
-
-              <div class="form-group rate-pill-box" style="width: 140px;">
-                <label>Retail (Click)</label>
-                <div id="returnRetailPill" class="rate-badge-btn rate-pill-retail font-num"
-                  title="Click to use Retail Rate">0.00</div>
-              </div>
-
-              <div class="form-group" style="width: 130px;">
-                <label for="returnRateInput">Return Rate (Rs)</label>
-                <input type="number" id="returnRateInput"
-                  class="form-control form-control-sm font-num text-right font-bold" min="0" step="0.01" value="0.00">
-              </div>
-
-              <div class="form-group" style="width: 140px;">
-                <label for="returnLineAmount">Refund Line (Rs)</label>
-                <input type="text" id="returnLineAmount"
-                  class="form-control form-control-sm font-num text-right font-bold" readonly value="0.00">
-              </div>
-
-              <div class="form-group" style="width: 120px;">
-                <label>&nbsp;</label>
-                <button type="button" id="btnReturnAddItem" class="btn btn-primary" style="width: 100%; height: 32px;">
-                  <span>+ Add Item</span>
-                </button>
-              </div>
             </div>
           </div>
 
-          <!-- Returned Items Table -->
-          <div class="sale-items-table-container">
-            <table class="sale-items-table">
-              <thead>
-                <tr>
-                  <th style="width: 45px; text-align: center;">#</th>
-                  <th style="width: 90px;">Code</th>
-                  <th>Product Title</th>
-                  <th style="width: 100px; text-align: center;">Condition</th>
-                  <th style="width: 75px; text-align: center;">Pack Sz</th>
-                  <th style="width: 70px; text-align: center;">Packs</th>
-                  <th style="width: 70px; text-align: center;">Units</th>
-                  <th style="width: 80px; text-align: center;">Total Pcs</th>
-                  <th style="width: 105px; text-align: right;">Return Rate</th>
-                  <th style="width: 120px; text-align: right;">Refund Total</th>
-                  <th style="width: 60px; text-align: center;">Action</th>
-                </tr>
-              </thead>
-              <tbody id="returnItemsTableBody"></tbody>
-            </table>
-            <div id="returnItemsEmptyState" class="empty-state">
-              <span>No returned items added yet. Search a product (F1) and click <strong>+ Add Item</strong>.</span>
-            </div>
-          </div>
-
-          <!-- Return Footer Summary -->
-          <footer class="sale-voucher-footer">
-            <div class="sale-footer-left">
-              <div class="sale-footer-stats-pills">
-                <div class="sale-stat-pill">
-                  <span class="stat-label">Total Returned Items</span>
-                  <span id="returnTotalItemsCount" class="stat-val font-num">0</span>
-                </div>
-                <div class="sale-stat-pill">
-                  <span class="stat-label">Total Pieces Returned</span>
-                  <span id="returnTotalPiecesCount" class="stat-val font-num">0</span>
-                </div>
-              </div>
-              <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: auto;">
-                <span>• Returned stock will be automatically added back into active inventory.</span><br>
-                <span>• Customer ledger will be adjusted according to refund mode selected.</span>
-              </div>
-            </div>
-
-            <div class="sale-footer-right">
-              <div class="sale-calc-row highlight-net">
-                <span class="calc-label font-bold" style="font-size: 1.05rem;">Total Refund Value:</span>
-                <span id="returnGrossRefund" class="calc-val font-num font-bold">Rs 0.00</span>
-              </div>
-              <div class="sale-calc-row">
-                <span class="calc-label">Customer Ledger Before Return:</span>
-                <span id="returnSummaryPrevBal" class="calc-val font-num">Rs 0.00</span>
-              </div>
-              <div class="sale-calc-row">
-                <span class="calc-label font-bold">Less Return Credit:</span>
-                <span id="returnSummaryDeduction" class="calc-val font-num font-bold">- Rs 0.00</span>
-              </div>
-              <div class="sale-calc-row highlight-balance" style="margin-top: 4px;">
-                <span class="calc-label font-bold">Adjusted Customer Ledger:</span>
-                <span id="returnSummaryNewBal" class="calc-val font-num font-bold">Rs 0.00</span>
-              </div>
-            </div>
-          </footer>
         </div>
       </section>
 
@@ -2492,139 +2549,14 @@
     </div>
   </div>
 
-  <!-- Modal: Add Purchase / Purchase Entry (Popup) -->
-  <div id="modalAddPurchase" class="modal-overlay hidden">
-    <div class="modal-card modal-card-lg purchase-modal-card">
-      <div class="modal-header">
-        <div class="modal-title-wrap" style="display: flex; align-items: center; gap: 12px;">
-          <h2 class="modal-title">Add Purchase Entry</h2>
-          <span class="badge-price-pill font-num font-bold"
-            style="background: #e2e8f0; color: #0f172a; padding: 4px 10px; font-size: 13px; border-radius: 6px;">
-            Voucher #<span id="modalPurVoucherNoDisplay">109</span>
-          </span>
-        </div>
-        <button id="btnCloseAddPurchaseModal" class="modal-close-btn">&times;</button>
-      </div>
-      <div class="modal-body" style="padding: 16px 20px; max-height: calc(85vh - 120px); overflow-y: auto;">
-        
-        <!-- Section 1: Supplier & Voucher Info -->
-        <div class="modal-sub-section mb-3" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
-          <h4 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">1. Supplier & Voucher Details</h4>
-          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 10px;">
-            <div class="form-group">
-              <label for="purPartySelect" class="required-label">Party Title (Supplier)</label>
-              <select id="purPartySelect" class="form-control required-input">
-                <option value="">-- Please Select Supplier / Vendor --</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="purEntryDate">Entry Date</label>
-              <input type="date" id="purEntryDate" class="form-control">
-            </div>
-            <div class="form-group">
-              <label for="purVoucherNo">Voucher No</label>
-              <input type="text" id="purVoucherNo" class="form-control font-num font-bold" readonly>
-            </div>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1.5fr; gap: 12px;">
-            <div class="form-group">
-              <label for="purManualNo">Manual / Bilty No</label>
-              <input type="text" id="purManualNo" class="form-control" placeholder="Enter manual ref #">
-            </div>
-            <div class="form-group">
-              <label for="purDueDate">Payment Due Date</label>
-              <input type="date" id="purDueDate" class="form-control">
-            </div>
-            <div class="form-group">
-              <label for="purContactPerson">Contact Person</label>
-              <input type="text" id="purContactPerson" class="form-control" placeholder="Enter contact person">
-            </div>
-            <div class="form-group">
-              <label for="purStoreTitle">Store / Godown</label>
-              <input type="text" id="purStoreTitle" class="form-control" value="Main Store">
-            </div>
-          </div>
-          <div class="form-group" style="margin-top: 10px;">
-            <label for="purDescription">Description / Notes</label>
-            <input type="text" id="purDescription" class="form-control" placeholder="Enter purchase voucher notes / details">
-          </div>
-        </div>
-
-        <!-- Section 2: Product & Rates Entry -->
-        <div class="modal-sub-section" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h4 style="margin: 0; font-size: 13px; font-weight: 700; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px;">2. Product & Item Entry</h4>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <span style="font-size: 12px; color: #64748b;">R.Price:</span>
-              <span id="pieRetailPricePill" class="badge-price-pill bg-green-pill font-num" style="height: 24px; padding: 0 8px; font-size: 12px;">0.00</span>
-              <span style="font-size: 12px; color: #64748b; margin-left: 8px;">W.Price:</span>
-              <span id="pieWholesalePricePill" class="badge-price-pill bg-green-pill font-num" style="height: 24px; padding: 0 8px; font-size: 12px;">0.00</span>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; margin-bottom: 12px;">
-            <div class="form-group">
-              <label for="pieCode">Code <span class="hotkey-hint">(F1)</span></label>
-              <div class="input-with-btn">
-                <input type="text" id="pieCode" class="form-control font-num" placeholder="Item Code">
-                <button type="button" id="btnPieFind" class="btn btn-sm btn-secondary" title="Search Product (F1)">🔍</button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="pieProductSelect">Product Title</label>
-              <select id="pieProductSelect" class="form-control">
-                <option value="">-- Select Product --</option>
-              </select>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 12px;">
-            <div class="form-group">
-              <label for="piePackQty">P.Qty (Packs)</label>
-              <input type="number" id="piePackQty" class="form-control font-num" min="0" value="0">
-            </div>
-            <div class="form-group">
-              <label for="pieUnitQty">U.Qty (Units)</label>
-              <input type="number" id="pieUnitQty" class="form-control font-num" min="0" value="0">
-            </div>
-            <div class="form-group">
-              <label for="pieBonus">Bonus</label>
-              <input type="number" id="pieBonus" class="form-control font-num" min="0" value="0">
-            </div>
-            <div class="form-group">
-              <label for="pieTradePrice">Trade Price (T.P)</label>
-              <input type="number" id="pieTradePrice" class="form-control font-num" min="0" step="0.01" value="0.00">
-            </div>
-            <div class="form-group">
-              <label for="pieTradeOffer">Offer (T.O)</label>
-              <input type="number" id="pieTradeOffer" class="form-control font-num" min="0" step="0.01" value="0.00">
-            </div>
-            <div class="form-group">
-              <label for="pieDiscPercent">Disc %</label>
-              <input type="number" id="pieDiscPercent" class="form-control font-num" min="0" max="100" step="0.1" value="0.0">
-            </div>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 10px 14px; border-radius: 6px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 13px; font-weight: 600; color: #475569;">Line Net Amount:</span>
-              <span id="pieLineNetPreview" class="font-num font-bold text-accent" style="font-size: 16px;">Rs. 0.00</span>
-            </div>
-            <button type="button" id="btnAddPurchaseItem" class="btn btn-primary" style="padding: 6px 20px; font-weight: 700;">
-              <span>+ Add Item to Voucher</span>
-            </button>
-          </div>
-        </div>
-
-      </div>
-      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 12.5px; color: #64748b;">Items in this Voucher: <strong id="modalPurchaseItemCount">0</strong> item(s)</span>
-        <div style="display: flex; gap: 10px;">
-          <button type="button" id="btnCancelAddPurchase" class="btn btn-secondary">Close</button>
-          <button type="button" id="btnDonePurchaseModal" class="btn btn-success">Done & View Bill</button>
-        </div>
-      </div>
-    </div>
+  <!-- Modal: Add Purchase (old popup removed - now full-page entry) -->
+  <div id="modalAddPurchase" class="hidden" style="display:none !important;">
+    <button id="btnCloseAddPurchaseModal"></button>
+    <button id="btnCancelAddPurchase"></button>
+    <button id="btnSavePurchaseModal"></button>
+    <button id="btnDonePurchaseModal"></button>
+    <span id="modalPurchaseItemCount">0</span>
+    <span id="modalPurchaseSubtotal">0.00</span>
   </div>
 
   <!-- Modal: Product Search (F1 Find) -->
@@ -3133,7 +3065,7 @@
             <div class="form-group">
               <label>Product Description</label>
               <select id="estProductSelect" class="form-control form-control-sm">
-                <option value="">-- Select Product --</option>
+                <option value="">Select Product</option>
               </select>
             </div>
             <div class="form-group">
@@ -3360,6 +3292,148 @@
   <!-- Toast Notifications Container -->
   <div id="toastContainer" class="toast-container"></div>
 
+  <!-- Modal: Add / Edit Product (Popup) -->
+  <div id="modalAddProduct" class="modal-overlay hidden">
+    <div class="modal-card modal-card-lg" style="max-width: 860px; width: 92%;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="productModalTitle">Add Product</h2>
+        <button id="btnCloseAddProductModal" class="modal-close-btn" title="Close">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px 20px;">
+        <form id="productInfoForm" autocomplete="off" onsubmit="return false;">
+          <!-- Hidden inputs -->
+          <input type="hidden" id="piTitleUrdu" value="">
+
+          <!-- Row 1: Code & Barcode -->
+          <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 140px;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Product Code</label>
+              <input type="text" id="piCode" class="form-control form-control-sm font-num font-bold pur-readonly-input" readonly placeholder="Auto">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Barcode</label>
+              <input type="text" id="piBarcode" class="form-control form-control-sm font-num" placeholder="Enter barcode">
+            </div>
+            <div style="display: flex; align-items: flex-end; gap: 6px;">
+              <button type="button" id="btnPiGenBarcode" class="btn btn-sm btn-secondary" style="height: 32px;">Generate</button>
+              <button type="button" id="btnPiFind" class="btn btn-sm btn-secondary" style="height: 32px;">Find (F1)</button>
+              <button type="button" id="btnPiTemplate" style="display:none;"></button>
+            </div>
+            <div style="width: 130px;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Additional Code</label>
+              <input type="text" id="piAdditionalCode" class="form-control form-control-sm" placeholder="Addl Code">
+            </div>
+          </div>
+
+          <!-- Row 2: Category & Sub Category -->
+          <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Category <span class="text-danger">*</span></label>
+              <select id="piCategorySelect" class="form-control form-control-sm font-bold">
+                <option value="">Select Category</option>
+              </select>
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Sub Category</label>
+              <select id="piSubCategorySelect" class="form-control form-control-sm">
+                <option value="">Select Sub Category</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Row 3: Product Title -->
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Product Title <span class="text-danger">*</span></label>
+            <input type="text" id="piTitleEng" class="form-control form-control-sm font-bold" placeholder="Enter product title in English">
+          </div>
+
+          <!-- Row 4: Packing Type, Unit, Pack Size, Tax -->
+          <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Packing Type</label>
+              <input type="text" id="piPackingType" class="form-control form-control-sm" value="Piece" list="packingTypeList">
+              <datalist id="packingTypeList">
+                <option value="Piece">
+                <option value="Box">
+                <option value="Roll">
+                <option value="Packet">
+                <option value="Meter">
+                <option value="Dozen">
+              </datalist>
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Measuring Unit</label>
+              <select id="piUnitSelect" class="form-control form-control-sm">
+                <option value="">Select Unit</option>
+              </select>
+            </div>
+            <div style="width: 100px;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Pack Size</label>
+              <input type="number" id="piPackSize" class="form-control form-control-sm font-num text-center" min="1" value="1">
+            </div>
+            <div style="width: 100px;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Tax (%)</label>
+              <input type="number" id="piTaxPercent" class="form-control form-control-sm font-num text-right" min="0" step="0.1" value="0.0">
+            </div>
+          </div>
+
+          <!-- Row 5: Purchase Price, Margin, Retail Price, Wholesale Price -->
+          <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Purchase Price</label>
+              <input type="number" id="piPurchasePrice" class="form-control form-control-sm font-num text-right" min="0" step="0.01" value="0.00">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 700; color: #16a34a; text-transform: uppercase;">Profit Margin %</label>
+              <input type="number" id="piProfitMargin" class="form-control form-control-sm font-num font-bold text-success text-right" step="0.01" value="0.00">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 700; color: #d97706; text-transform: uppercase;">Retail Price</label>
+              <input type="number" id="piRetailPrice" class="form-control form-control-sm font-num font-bold text-warning text-right" min="0" step="0.01" value="0.00">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Whole Sale Price</label>
+              <input type="number" id="piWholesalePrice" class="form-control form-control-sm font-num font-bold text-right" min="0" step="0.01" value="0.00">
+            </div>
+          </div>
+
+          <!-- Row 6: Minimum Stock, Location, Description -->
+          <div style="display: flex; gap: 12px;">
+            <div style="width: 120px;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Min Stock</label>
+              <input type="number" id="piMinStock" class="form-control form-control-sm font-num text-center" min="0" value="0">
+              <input type="hidden" id="piStockQty" value="0">
+              <input type="hidden" id="piAverageCost" value="0.00">
+            </div>
+            <div style="width: 150px;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Location</label>
+              <input type="text" id="piLocation" class="form-control form-control-sm" placeholder="Location">
+              <input type="hidden" id="piShortCode" value="">
+              <input type="hidden" id="piShortLabel" value="">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Description</label>
+              <input type="text" id="piDescription" class="form-control form-control-sm" placeholder="Remarks or notes (optional)">
+              <div style="display:none;">
+                <input type="checkbox" id="piPrintBarcode">
+                <input type="checkbox" id="piBatchExpiry">
+                <input type="checkbox" id="piLoosePackSize">
+                <input type="checkbox" id="piInActive">
+                <button type="button" id="btnPiNew"></button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 12px 20px;">
+        <button type="button" id="btnCancelProductModal" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="btnPiSave" class="btn btn-primary" style="padding: 6px 20px; font-weight: 700;">Save Product</button>
+      </div>
+    </div>
+  </div>
+
   <!-- App Scripts -->
   <script src="shared/utils.js"></script>
   <script src="renderer.js"></script>
@@ -3372,5 +3446,4 @@
   <script src="reports/reports.js"></script>
   <script src="settings/settings.js"></script>
 </body>
-
 </html>
