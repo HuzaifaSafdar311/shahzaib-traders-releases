@@ -612,7 +612,7 @@
           if (cachedParties.length) state.masterData.parties = cachedParties;
           const cachedAreas = JSON.parse(localStorage.getItem('st_areas') || '[]');
           if (cachedAreas.length) state.masterData.areas = cachedAreas;
-        } catch (_) {}
+        } catch (_) { }
       }
 
       // 4. Accounts Vouchers (CRV, CPV)
@@ -621,7 +621,7 @@
       } else {
         try {
           state.masterData.vouchers = JSON.parse(localStorage.getItem('st_accounts_vouchers') || '[]');
-        } catch (_) {}
+        } catch (_) { }
       }
 
       // 5. Enrich product categories & sub-categories if missing
@@ -1897,10 +1897,10 @@
     const q = (dom.tableSearch && dom.tableSearch.value || '').trim().toLowerCase();
     const filteredRows = q
       ? allMatchingRows.filter(r => {
-          return Object.values(r).some(val =>
-            val !== null && val !== undefined && String(val).toLowerCase().includes(q)
-          );
-        })
+        return Object.values(r).some(val =>
+          val !== null && val !== undefined && String(val).toLowerCase().includes(q)
+        );
+      })
       : allMatchingRows;
 
     const totalRecords = filteredRows.length;
