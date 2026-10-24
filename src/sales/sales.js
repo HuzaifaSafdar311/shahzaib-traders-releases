@@ -231,6 +231,16 @@
   // F1 PRODUCT LOOKUP MODAL (HIGH-SPEED DUAL-PRICE BROWSER)
   // ========================================================
   async function openProductLookupModal() {
+    // Always open dedicated Find Product separate screen (never show in-page popup)
+    if (window.findProductAPI?.openWindow) {
+      const modal = document.getElementById('modalProductLookupF1');
+      if (modal && !modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
+      }
+      window.findProductAPI.openWindow(currentSaleSubTab === 'return' ? 'sale-return' : 'sale');
+      return;
+    }
+
     const modal = document.getElementById('modalProductLookupF1');
     if (!modal) return;
     modal.classList.remove('hidden');
