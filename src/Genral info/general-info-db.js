@@ -99,10 +99,19 @@ function initGeneralInfo(dbInstance, isFallback, jsonData, saveJsonCallback, che
       address TEXT DEFAULT '',
       ntn TEXT DEFAULT '',
       openingBalance REAL DEFAULT 0,
+      currentBalance REAL DEFAULT 0,
       status TEXT DEFAULT 'Active',
       createdAt TEXT NOT NULL
     );
   `);
+
+  // Migration for existing tables: ensure currentBalance column exists
+  try {
+    db.exec('ALTER TABLE parties ADD COLUMN currentBalance REAL DEFAULT 0;');
+  } catch (_) {}
+  try {
+    db.exec('UPDATE parties SET currentBalance = openingBalance WHERE currentBalance IS NULL;');
+  } catch (_) {}
 
   // Seed default company info if not present
   const checkCompany = db.prepare('SELECT COUNT(*) as count FROM company_info').get();
@@ -155,15 +164,15 @@ function initGeneralInfo(dbInstance, isFallback, jsonData, saveJsonCallback, che
   if (!checkParty || checkParty.count === 0) {
     const defParties = getDefaultParties();
     const insertParty = db.prepare(`
-      INSERT INTO parties (id, name, partyTypeId, partyTypeName, contactPerson, phone, email, provinceId, provinceName, areaId, areaName, city, address, ntn, openingBalance, status, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO parties (id, name, partyTypeId, partyTypeName, contactPerson, phone, email, provinceId, provinceName, areaId, areaName, city, address, ntn, openingBalance, currentBalance, status, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const p of defParties) {
       insertParty.run(
         p.id, p.name, p.partyTypeId, p.partyTypeName, p.contactPerson,
         p.phone, p.email, p.provinceId, p.provinceName, p.areaId,
         p.areaName, p.city, p.address, p.ntn, p.openingBalance,
-        p.status, p.createdAt
+        p.openingBalance, p.status, p.createdAt
       );
     }
   }
@@ -637,13 +646,22 @@ function deletePartyType(id) {
 // ----------------------------------------------------
 function getParties() {
   if (isJson) {
-    return [...(jsonStore.parties || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return [...(jsonStore.parties || [])]
+      .map(p => ({
+        ...p,
+        openingBalance: Number(p.openingBalance) || 0,
+        currentBalance: Number(p.currentBalance !== undefined ? p.currentBalance : p.openingBalance) || 0
+      }))
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   }
   if (!db) throw new Error('Database not initialized');
-  return db.prepare('SELECT * FROM parties ORDER BY name ASC').all();
+  return db.prepare('SELECT *, COALESCE(currentBalance, openingBalance, 0) as currentBalance FROM parties ORDER BY name ASC').all();
 }
 
 function addParty(party) {
+  const openingBalance = Number(party.openingBalance) || 0;
+  const currentBalance = Number(party.currentBalance !== undefined ? party.currentBalance : openingBalance) || 0;
+
   const record = {
     id: party.id || 'party-' + Date.now(),
     name: (party.name || '').trim(),
@@ -659,7 +677,8 @@ function addParty(party) {
     city: (party.city || '').trim(),
     address: (party.address || '').trim(),
     ntn: (party.ntn || '').trim(),
-    openingBalance: Number(party.openingBalance) || 0,
+    openingBalance,
+    currentBalance,
     status: party.status || 'Active',
     createdAt: party.createdAt || new Date().toISOString()
   };
@@ -672,20 +691,44 @@ function addParty(party) {
 
   if (!db) throw new Error('Database not initialized');
   const stmt = db.prepare(`
-    INSERT INTO parties (id, name, partyTypeId, partyTypeName, contactPerson, phone, email, provinceId, provinceName, areaId, areaName, city, address, ntn, openingBalance, status, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO parties (id, name, partyTypeId, partyTypeName, contactPerson, phone, email, provinceId, provinceName, areaId, areaName, city, address, ntn, openingBalance, currentBalance, status, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   stmt.run(
     record.id, record.name, record.partyTypeId, record.partyTypeName,
     record.contactPerson, record.phone, record.email, record.provinceId,
     record.provinceName, record.areaId, record.areaName, record.city,
-    record.address, record.ntn, record.openingBalance, record.status, record.createdAt
+    record.address, record.ntn, record.openingBalance, record.currentBalance,
+    record.status, record.createdAt
   );
   if (checkpointFn) checkpointFn();
   return { success: true, data: record };
 }
 
 function updateParty(party) {
+  let oldOpening = 0;
+  let oldCurrent = 0;
+
+  if (!isJson && db) {
+    const existingRow = db.prepare('SELECT openingBalance, currentBalance FROM parties WHERE id = ?').get(party.id);
+    if (existingRow) {
+      oldOpening = Number(existingRow.openingBalance) || 0;
+      oldCurrent = Number(existingRow.currentBalance !== null && existingRow.currentBalance !== undefined ? existingRow.currentBalance : oldOpening) || 0;
+    }
+  } else if (isJson && jsonStore && jsonStore.parties) {
+    const existingRow = jsonStore.parties.find(p => p.id === party.id);
+    if (existingRow) {
+      oldOpening = Number(existingRow.openingBalance) || 0;
+      oldCurrent = Number(existingRow.currentBalance !== undefined ? existingRow.currentBalance : oldOpening) || 0;
+    }
+  }
+
+  const newOpening = (party.openingBalance !== undefined && party.openingBalance !== null && party.openingBalance !== '')
+    ? (Number(party.openingBalance) || 0)
+    : oldOpening;
+  const openingDelta = newOpening - oldOpening;
+  const newCurrent = oldCurrent + openingDelta;
+
   const updated = {
     id: party.id,
     name: (party.name || '').trim(),
@@ -701,7 +744,8 @@ function updateParty(party) {
     city: (party.city || '').trim(),
     address: (party.address || '').trim(),
     ntn: (party.ntn || '').trim(),
-    openingBalance: Number(party.openingBalance) || 0,
+    openingBalance: newOpening,
+    currentBalance: newCurrent,
     status: party.status || 'Active'
   };
 
@@ -717,7 +761,7 @@ function updateParty(party) {
   if (!db) throw new Error('Database not initialized');
   const stmt = db.prepare(`
     UPDATE parties
-    SET name = ?, partyTypeId = ?, partyTypeName = ?, contactPerson = ?, phone = ?, email = ?, provinceId = ?, provinceName = ?, areaId = ?, areaName = ?, city = ?, address = ?, ntn = ?, openingBalance = ?, status = ?
+    SET name = ?, partyTypeId = ?, partyTypeName = ?, contactPerson = ?, phone = ?, email = ?, provinceId = ?, provinceName = ?, areaId = ?, areaName = ?, city = ?, address = ?, ntn = ?, openingBalance = ?, currentBalance = ?, status = ?
     WHERE id = ?
   `);
   stmt.run(
@@ -725,7 +769,7 @@ function updateParty(party) {
     updated.contactPerson, updated.phone, updated.email,
     updated.provinceId, updated.provinceName, updated.areaId,
     updated.areaName, updated.city, updated.address, updated.ntn,
-    updated.openingBalance, updated.status, updated.id
+    updated.openingBalance, updated.currentBalance, updated.status, updated.id
   );
   if (checkpointFn) checkpointFn();
   return { success: true, data: updated };
@@ -763,14 +807,21 @@ function updatePartyBalance(partyId, deltaBalance) {
   if (isJson) {
     const p = (jsonStore.parties || []).find(x => x.id === partyId);
     if (p) {
-      p.openingBalance = (Number(p.openingBalance) || 0) + num;
+      if (p.currentBalance === undefined) {
+        p.currentBalance = Number(p.openingBalance) || 0;
+      }
+      p.currentBalance = Number(p.currentBalance || 0) + num;
       if (saveJsonFn) saveJsonFn();
     }
     return;
   }
   if (!db) return;
   try {
-    db.prepare('UPDATE parties SET openingBalance = openingBalance + ? WHERE id = ?').run(num, String(partyId));
+    db.prepare(`
+      UPDATE parties
+      SET currentBalance = COALESCE(currentBalance, openingBalance, 0) + ?
+      WHERE id = ?
+    `).run(num, String(partyId));
     if (checkpointFn) checkpointFn();
   } catch (err) {
     console.warn('Could not update party balance in DB:', err);

@@ -368,7 +368,7 @@
       if (!isDateInRange(date, filters.fromDate, filters.toDate)) continue;
       if (filters.partyId && r.partyId !== filters.partyId) continue;
 
-      const refund = toNum(r.netRefund || r.grandTotal);
+      const refund = toNum(r.totalAmount || r.netRefund || r.grandTotal);
       const items = getItems(r);
       const count = items.length || 1;
 
@@ -951,6 +951,7 @@
     let totalCostOfGoodsSold = 0;
     let totalSalesDiscounts = 0;
     let totalRefunds = 0;
+    let totalExpenses = 0;
 
     for (const s of (sales || [])) {
       const date = (s.entryDate || s.createdAt || '').slice(0, 10);
@@ -969,12 +970,30 @@
     for (const r of (returns || [])) {
       const date = (r.entryDate || r.createdAt || '').slice(0, 10);
       if (!isDateInRange(date, filters.fromDate, filters.toDate)) continue;
-      totalRefunds += toNum(r.netRefund || r.grandTotal);
+      totalRefunds += toNum(r.totalAmount || r.netRefund || r.grandTotal);
+
+      // Revert COGS for returned goods
+      const items = getItems(r);
+      for (const it of items) {
+        const qty = toNum(it.totalQty || (toNum(it.packQty) * toNum(it.packSize || 1) + toNum(it.unitQty)));
+        totalCostOfGoodsSold -= (qty * toNum(it.purchasePrice || 0));
+      }
     }
 
-    const netSales = (totalSalesRevenue - totalSalesDiscounts - totalRefunds);
-    const grossProfit = (netSales - totalCostOfGoodsSold);
+    // Operating expenses from CPV vouchers
+    for (const v of (vouchers || [])) {
+      const vDate = (v.entryDate || v.date || v.createdAt || '').slice(0, 10);
+      if (!isDateInRange(vDate, filters.fromDate, filters.toDate)) continue;
+      if (v.voucherType === 'CPV' && (v.expenseCategory || (v.remarks && v.remarks.toLowerCase().includes('expense')))) {
+        totalExpenses += toNum(v.netAmount || v.amount);
+      }
+    }
+
+    const netSales = Math.max(0, totalSalesRevenue - totalSalesDiscounts - totalRefunds);
+    const grossProfit = (netSales - Math.max(0, totalCostOfGoodsSold));
+    const netProfit = grossProfit - totalExpenses;
     const profitMargin = netSales > 0 ? ((grossProfit / netSales) * 100) : 0;
+    const netMargin = netSales > 0 ? ((netProfit / netSales) * 100) : 0;
 
     return {
       title: 'Profit & Loss Performance Statement',
@@ -983,9 +1002,12 @@
         discountsGiven: totalSalesDiscounts,
         returnsRefunded: totalRefunds,
         netSales,
-        cogs: totalCostOfGoodsSold,
+        cogs: Math.max(0, totalCostOfGoodsSold),
         grossProfit,
-        profitMargin
+        profitMargin,
+        operatingExpenses: totalExpenses,
+        netProfit,
+        netMargin
       }
     };
   }

@@ -9,7 +9,7 @@ let selectedIndex = 0;
 // DOM Elements
 const f1SearchInput = document.getElementById('f1SearchInput');
 const f1CategoryFilter = document.getElementById('f1CategoryFilter');
-const f1GroupFilter = document.getElementById('f1GroupFilter');
+const f1StockFilter = document.getElementById('f1StockFilter');
 const btnClearSearch = document.getElementById('btnClearSearch');
 const btnResetFilters = document.getElementById('btnResetFilters');
 const btnCloseWindow = document.getElementById('btnCloseWindow');
@@ -38,13 +38,7 @@ async function initFindProductWindow() {
       populateDropdown(f1CategoryFilter, cats, 'All Categories');
     }
 
-    // 2. Load Groups for filter dropdown
-    if (window.electronAPI?.getProductGroups) {
-      const grps = await window.electronAPI.getProductGroups();
-      populateDropdown(f1GroupFilter, grps, 'All Groups / Brands');
-    }
-
-    // 3. Load all Products
+    // 2. Load all Products
     await loadProducts();
   } catch (err) {
     console.error('Error initializing Find Product window:', err);
@@ -56,8 +50,8 @@ function populateDropdown(selectEl, list, defaultLabel) {
   selectEl.innerHTML = `<option value="">${defaultLabel}</option>`;
   (list || []).forEach(item => {
     const opt = document.createElement('option');
-    opt.value = item.name;
-    opt.textContent = item.name;
+    opt.value = item.name || item.categoryName || item.id;
+    opt.textContent = item.name || item.categoryName;
     selectEl.appendChild(opt);
   });
 }
@@ -75,8 +69,8 @@ async function loadProducts() {
 // Filter and Render
 function applyFilters() {
   const query = (f1SearchInput?.value || '').trim().toLowerCase();
-  const selectedCat = f1CategoryFilter?.value || '';
-  const selectedGrp = f1GroupFilter?.value || '';
+  const selectedCat = (f1CategoryFilter?.value || '').trim().toLowerCase();
+  const stockOnly = f1StockFilter?.value === 'instock';
 
   // Toggle clear button
   if (btnClearSearch) {
@@ -85,19 +79,30 @@ function applyFilters() {
   }
 
   filteredProducts = (allProducts || []).filter(p => {
-    const matchesCat = !selectedCat || (p.categoryName || '') === selectedCat;
-    const matchesGrp = !selectedGrp || (p.groupName || '') === selectedGrp;
-    if (!matchesCat || !matchesGrp) return false;
+    const stock = Number(p.stockQty || 0);
+    if (stockOnly && stock <= 0) return false;
+
+    if (selectedCat) {
+      const pCat = String(p.categoryName || p.categoryId || '').trim().toLowerCase();
+      if (pCat !== selectedCat) return false;
+    }
 
     if (!query) return true;
 
+    const code = String(p.code || '').toLowerCase();
+    const barcode = String(p.barcode || '').toLowerCase();
+    const titleEng = String(p.titleEng || '').toLowerCase();
+    const titleUrdu = String(p.titleUrdu || '').toLowerCase();
+    const catName = String(p.categoryName || '').toLowerCase();
+    const loc = String(p.location || '').toLowerCase();
+
     return (
-      String(p.code || '').toLowerCase().includes(query) ||
-      (p.titleEng || '').toLowerCase().includes(query) ||
-      (p.categoryName || '').toLowerCase().includes(query) ||
-      (p.groupName || '').toLowerCase().includes(query) ||
-      (p.location || '').toLowerCase().includes(query) ||
-      String(p.barcode || '').toLowerCase().includes(query)
+      code.includes(query) ||
+      barcode.includes(query) ||
+      titleEng.includes(query) ||
+      titleUrdu.includes(query) ||
+      catName.includes(query) ||
+      loc.includes(query)
     );
   });
 
@@ -130,38 +135,55 @@ function renderTable() {
 
   filteredProducts.forEach((p, idx) => {
     const tr = document.createElement('tr');
+    tr.className = `fp-table-row ${idx === selectedIndex ? 'selected-row' : ''}`;
     tr.dataset.index = idx;
-    if (idx === selectedIndex) {
-      tr.classList.add('selected-row');
-    }
+
+    const stock = Number(p.stockQty || 0);
+    const isOut = stock <= 0;
+    const isLow = stock > 0 && stock <= 5;
+    const stockPillClass = isOut ? 'stock-out' : (isLow ? 'stock-low' : 'stock-in');
+    const stockPillText = isOut ? '0 (Out)' : stock;
+
+    const rp = Number(p.retailPrice || 0);
+    const wp = Number(p.wholesalePrice || 0);
 
     tr.innerHTML = `
-      <td class="col-f1-code font-num font-bold" style="width: 7%; text-align: left; padding-left: 20px;">
-        ${escapeHtml(p.code)}
+      <td class="col-f1-code font-num font-bold" style="text-align: left; padding-left: 14px;">
+        <span class="f1-code-badge">${escapeHtml(p.code || '')}</span>
       </td>
-      <td class="col-f1-title font-bold" style="width: 32%; text-align: left; padding-left: 14px;" title="${escapeHtml(p.titleEng)}">
-        ${escapeHtml(p.titleEng)}
+      <td class="col-f1-title" style="text-align: left; padding-left: 14px;">
+        <div class="f1-prod-title">${escapeHtml(p.titleEng || 'Untitled')}</div>
+        <div class="f1-prod-sub">
+          ${p.packSize > 1 ? `<span class="pack-sub">Pack of ${p.packSize}</span>` : ''}
+        </div>
       </td>
-      <td class="col-f1-category" style="width: 16%; text-align: center;">
-        ${escapeHtml(p.categoryName || '-')}
+      <td class="col-f1-category" style="text-align: center;">
+        <span class="f1-cat-tag">
+          ${escapeHtml(p.categoryName || 'General')}
+        </span>
       </td>
-      <td class="col-f1-group text-secondary" style="width: 15%; text-align: center;">
-        ${escapeHtml(p.groupName || '-')}
+      <td class="col-f1-stock font-num" style="text-align: center;">
+        <span class="pos-stock-pill ${stockPillClass}">${stockPillText}</span>
       </td>
-      <td class="col-f1-pack font-num" style="width: 5%; text-align: center;">
-        ${p.packSize || 1}
+      <td class="col-f1-retail font-num" style="text-align: center;">
+        <div class="f1-price-cell f1-price-retail">
+          <span class="price-val">Rs ${rp.toLocaleString()}</span>
+          <span class="price-lbl">Retail</span>
+        </div>
       </td>
-      <td class="col-f1-purchase font-num" style="width: 7%; text-align: center;">
-        ${Number(p.purchasePrice || 0).toFixed(2)}
+      <td class="col-f1-wholesale font-num" style="text-align: center;">
+        <div class="f1-price-cell f1-price-wholesale">
+          <span class="price-val">Rs ${wp.toLocaleString()}</span>
+          <span class="price-lbl">Wholesale</span>
+        </div>
       </td>
-      <td class="col-f1-retail font-num font-bold text-warning" style="width: 7%; text-align: center;">
-        ${Number(p.retailPrice || 0).toFixed(2)}
-      </td>
-      <td class="col-f1-wholesale font-num font-bold" style="width: 6%; text-align: center;">
-        ${Number(p.wholesalePrice || 0).toFixed(2)}
-      </td>
-      <td class="col-f1-stock font-num font-bold text-accent" style="width: 5%; text-align: center;">
-        ${p.stockQty || 0}
+      <td class="col-f1-actions" style="text-align: center;">
+        <button type="button" class="btn-f1-add ${isOut ? 'disabled' : ''}" 
+          ${isOut ? 'disabled' : ''}
+          onclick="event.stopPropagation(); selectProduct(filteredProducts[${idx}]);" 
+          title="Add to Bill">
+          + Add
+        </button>
       </td>
     `;
 
@@ -170,9 +192,10 @@ function renderTable() {
       setSelectedIndex(idx);
     });
 
-    // Double-click: select into main app
-    tr.addEventListener('dblclick', () => {
-      selectProduct(p);
+    // Double-click: select into main app with retail
+    tr.addEventListener('dblclick', (e) => {
+      const mode = e.shiftKey ? 'wholesale' : 'retail';
+      selectProduct(p, mode);
     });
 
     f1TableBody.appendChild(tr);
@@ -201,10 +224,11 @@ function scrollSelectedIntoView() {
   }
 }
 
-function selectProduct(product) {
+function selectProduct(product, rateMode = 'retail') {
   if (!product) return;
+  const productWithRate = Object.assign({}, product, { _chosenRateType: rateMode });
   if (window.findProductAPI?.selectProduct) {
-    window.findProductAPI.selectProduct(product);
+    window.findProductAPI.selectProduct(productWithRate);
   }
 }
 
@@ -223,8 +247,8 @@ if (f1CategoryFilter) {
   });
 }
 
-if (f1GroupFilter) {
-  f1GroupFilter.addEventListener('change', () => {
+if (f1StockFilter) {
+  f1StockFilter.addEventListener('change', () => {
     selectedIndex = 0;
     applyFilters();
   });
@@ -244,7 +268,7 @@ if (btnResetFilters) {
   btnResetFilters.addEventListener('click', () => {
     if (f1SearchInput) f1SearchInput.value = '';
     if (f1CategoryFilter) f1CategoryFilter.value = '';
-    if (f1GroupFilter) f1GroupFilter.value = '';
+    if (f1StockFilter) f1StockFilter.value = 'all';
     applyFilters();
     if (f1SearchInput) f1SearchInput.focus();
   });
@@ -273,7 +297,8 @@ window.addEventListener('keydown', (e) => {
   } else if (e.key === 'Enter') {
     e.preventDefault();
     if (filteredProducts[selectedIndex]) {
-      selectProduct(filteredProducts[selectedIndex]);
+      const mode = e.shiftKey ? 'wholesale' : 'retail';
+      selectProduct(filteredProducts[selectedIndex], mode);
     }
   } else if (e.key === 'Escape') {
     e.preventDefault();

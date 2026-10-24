@@ -80,7 +80,7 @@ function initDatabase(dbPath) {
     const res = initJsonFallback(dbPath);
     generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
     accountsDb.initAccountsDb(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint, generalInfoDb);
-    tradeFeaturesDb.initTradeFeatures(dbInstance);
+    tradeFeaturesDb.initTradeFeatures(dbInstance, isJsonFallback, jsonData, saveJsonData);
     return res;
   }
 
@@ -238,6 +238,7 @@ function initDatabase(dbPath) {
         netAmount REAL DEFAULT 0,
         paidAmount REAL DEFAULT 0,
         balanceDue REAL DEFAULT 0,
+        billStatus TEXT DEFAULT 'Paid',
         itemsJson TEXT DEFAULT '[]',
         createdAt TEXT NOT NULL
       );
@@ -316,21 +317,35 @@ function initDatabase(dbPath) {
         value TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       );
+
+      CREATE INDEX IF NOT EXISTS idx_sale_items_saleId ON sale_items (saleId);
+      CREATE INDEX IF NOT EXISTS idx_sale_items_productId ON sale_items (productId);
+      CREATE INDEX IF NOT EXISTS idx_purchase_items_purchaseId ON purchase_items (purchaseId);
+      CREATE INDEX IF NOT EXISTS idx_purchase_items_productId ON purchase_items (productId);
+      CREATE INDEX IF NOT EXISTS idx_sales_party_date ON sales (partyId, entryDate);
+      CREATE INDEX IF NOT EXISTS idx_purchases_party_date ON purchases (partyId, entryDate);
+      CREATE INDEX IF NOT EXISTS idx_sales_returns_party_date ON sales_returns (partyId, entryDate);
+      CREATE INDEX IF NOT EXISTS idx_sale_return_items_returnId ON sale_return_items (returnId);
+      CREATE INDEX IF NOT EXISTS idx_products_code ON products (code);
     `);
+
+    try {
+      db.exec("ALTER TABLE sales ADD COLUMN billStatus TEXT DEFAULT 'Paid';");
+    } catch (_) {}
 
     seedDefaultAppSettings(db);
 
     dbInstance = db;
     generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
     accountsDb.initAccountsDb(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint, generalInfoDb);
-    tradeFeaturesDb.initTradeFeatures(dbInstance);
+    tradeFeaturesDb.initTradeFeatures(dbInstance, isJsonFallback, jsonData, saveJsonData);
     return dbInstance;
   } catch (err) {
     console.warn('SQLite init failed, falling back to JSON database:', err);
     const res = initJsonFallback(dbPath);
     generalInfoDb.initGeneralInfo(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint);
     accountsDb.initAccountsDb(dbInstance, isJsonFallback, jsonData, saveJsonData, checkpoint, generalInfoDb);
-    tradeFeaturesDb.initTradeFeatures(dbInstance);
+    tradeFeaturesDb.initTradeFeatures(dbInstance, isJsonFallback, jsonData, saveJsonData);
     return res;
   }
 }
@@ -757,7 +772,22 @@ function savePurchase(purchaseData, items = []) {
       createdAt: pIdx !== -1 ? jsonData.purchases[pIdx].createdAt : now
     };
 
+    let oldGrandTotal = 0;
+    let oldPartyId = '';
     if (pIdx !== -1) {
+      const oldPur = jsonData.purchases[pIdx];
+      oldGrandTotal = Number(oldPur.grandTotal) || 0;
+      oldPartyId = oldPur.partyId || '';
+      const oldItems = jsonData.purchase_items.filter(pi => pi.purchaseId === oldPur.id);
+      for (const oldIt of oldItems) {
+        let packSize = 1;
+        const prod = jsonData.products.find(p => p.code === oldIt.productCode || p.id === oldIt.productId);
+        if (prod && Number(prod.packSize) > 0) packSize = Number(prod.packSize);
+        const oldIncoming = (Number(oldIt.packQty || 0) * packSize) + Number(oldIt.unitQty || 0) + Number(oldIt.bonus || 0);
+        if (prod && oldIncoming > 0) {
+          prod.stockQty = Math.max(0, (Number(prod.stockQty) || 0) - oldIncoming);
+        }
+      }
       jsonData.purchases[pIdx] = purchaseRecord;
     } else {
       jsonData.purchases.push(purchaseRecord);
@@ -811,13 +841,46 @@ function savePurchase(purchaseData, items = []) {
     }
 
     saveJsonData();
+    const isRegParty = purchaseData.partyId && purchaseData.partyId !== 'walk-in' && !purchaseData.partyId.startsWith('pt-');
+    if (pIdx !== -1) {
+      if (oldPartyId === purchaseData.partyId) {
+        const delta = (Number(purchaseData.grandTotal) || 0) - oldGrandTotal;
+        if (delta !== 0 && isRegParty) {
+          generalInfoDb.updatePartyBalance(purchaseData.partyId, delta);
+        }
+      } else {
+        if (oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-') && oldGrandTotal > 0) {
+          generalInfoDb.updatePartyBalance(oldPartyId, -oldGrandTotal);
+        }
+        if (isRegParty && (Number(purchaseData.grandTotal) || 0) > 0) {
+          generalInfoDb.updatePartyBalance(purchaseData.partyId, Number(purchaseData.grandTotal));
+        }
+      }
+    } else if (isRegParty && Number(purchaseData.grandTotal) > 0) {
+      generalInfoDb.updatePartyBalance(purchaseData.partyId, Number(purchaseData.grandTotal));
+    }
     return { success: true, id, voucherNo };
   }
 
   dbInstance.exec('BEGIN TRANSACTION;');
   try {
-    const existing = dbInstance.prepare('SELECT id FROM purchases WHERE id = ? OR voucherNo = ?').get(id, voucherNo);
+    let oldGrandTotal = 0;
+    let oldPartyId = '';
+    const existing = dbInstance.prepare('SELECT id, grandTotal, partyId FROM purchases WHERE id = ? OR voucherNo = ?').get(id, voucherNo);
     if (existing) {
+      oldGrandTotal = Number(existing.grandTotal) || 0;
+      oldPartyId = existing.partyId || '';
+      const oldItems = dbInstance.prepare('SELECT productCode, productId, packQty, unitQty, bonus FROM purchase_items WHERE purchaseId = ?').all(existing.id);
+      for (const oldIt of oldItems) {
+        let packSize = 1;
+        const pRec = dbInstance.prepare('SELECT packSize FROM products WHERE code = ? OR id = ?').get(oldIt.productCode || '', oldIt.productId || '');
+        if (pRec && Number(pRec.packSize) > 0) packSize = Number(pRec.packSize);
+        const oldIncoming = (Number(oldIt.packQty || 0) * packSize) + Number(oldIt.unitQty || 0) + Number(oldIt.bonus || 0);
+        if (oldIncoming > 0) {
+          dbInstance.prepare('UPDATE products SET stockQty = MAX(0, stockQty - ?) WHERE code = ? OR id = ?').run(oldIncoming, oldIt.productCode || '', oldIt.productId || '');
+        }
+      }
+
       const stmt = dbInstance.prepare(`
         UPDATE purchases SET
           voucherNo = ?, manualNo = ?, entryDate = ?, partyId = ?, partyTitle = ?,
@@ -910,8 +973,23 @@ function savePurchase(purchaseData, items = []) {
 
     dbInstance.exec('COMMIT;');
     checkpoint();
-    if (purchaseData.partyId && Number(purchaseData.grandTotal) > 0) {
-      generalInfoDb.updatePartyBalance(purchaseData.partyId, -Number(purchaseData.grandTotal));
+    const isRegPartySql = purchaseData.partyId && purchaseData.partyId !== 'walk-in' && !purchaseData.partyId.startsWith('pt-');
+    if (existing) {
+      if (oldPartyId === purchaseData.partyId) {
+        const delta = (Number(purchaseData.grandTotal) || 0) - oldGrandTotal;
+        if (delta !== 0 && isRegPartySql) {
+          generalInfoDb.updatePartyBalance(purchaseData.partyId, delta);
+        }
+      } else {
+        if (oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-') && oldGrandTotal > 0) {
+          generalInfoDb.updatePartyBalance(oldPartyId, -oldGrandTotal);
+        }
+        if (isRegPartySql && (Number(purchaseData.grandTotal) || 0) > 0) {
+          generalInfoDb.updatePartyBalance(purchaseData.partyId, Number(purchaseData.grandTotal));
+        }
+      }
+    } else if (isRegPartySql && Number(purchaseData.grandTotal) > 0) {
+      generalInfoDb.updatePartyBalance(purchaseData.partyId, Number(purchaseData.grandTotal));
     }
     return { success: true, id, voucherNo };
   } catch (err) {
@@ -923,20 +1001,44 @@ function savePurchase(purchaseData, items = []) {
 function deletePurchase(id) {
   if (isJsonFallback) {
     const p = jsonData.purchases.find(pr => pr.id === id || pr.voucherNo === id);
-    if (p && p.partyId && Number(p.grandTotal) > 0) {
-      generalInfoDb.updatePartyBalance(p.partyId, Number(p.grandTotal));
+    if (p) {
+      const isRegParty = p.partyId && p.partyId !== 'walk-in' && !p.partyId.startsWith('pt-');
+      if (isRegParty && Number(p.grandTotal) > 0) {
+        generalInfoDb.updatePartyBalance(p.partyId, -Number(p.grandTotal));
+      }
+      const items = jsonData.purchase_items.filter(pi => pi.purchaseId === p.id);
+      for (const it of items) {
+        let packSize = 1;
+        const prod = jsonData.products.find(pr => pr.code === it.productCode || pr.id === it.productId);
+        if (prod && Number(prod.packSize) > 0) packSize = Number(prod.packSize);
+        const incoming = (Number(it.packQty || 0) * packSize) + Number(it.unitQty || 0) + Number(it.bonus || 0);
+        if (prod && incoming > 0) {
+          prod.stockQty = Math.max(0, (Number(prod.stockQty) || 0) - incoming);
+        }
+      }
+      jsonData.purchases = jsonData.purchases.filter(pr => pr.id !== p.id);
+      jsonData.purchase_items = jsonData.purchase_items.filter(pi => pi.purchaseId !== p.id);
+      saveJsonData();
     }
-    jsonData.purchases = jsonData.purchases.filter(p => p.id !== id && p.voucherNo !== id);
-    jsonData.purchase_items = jsonData.purchase_items.filter(pi => pi.purchaseId !== id);
-    saveJsonData();
     return { success: true };
   }
   dbInstance.exec('BEGIN TRANSACTION;');
   try {
     const p = dbInstance.prepare('SELECT id, partyId, grandTotal FROM purchases WHERE id = ? OR voucherNo = ?').get(id, id);
     if (p) {
-      if (p.partyId && Number(p.grandTotal) > 0) {
-        generalInfoDb.updatePartyBalance(p.partyId, Number(p.grandTotal));
+      const isRegPartySql = p.partyId && p.partyId !== 'walk-in' && !p.partyId.startsWith('pt-');
+      if (isRegPartySql && Number(p.grandTotal) > 0) {
+        generalInfoDb.updatePartyBalance(p.partyId, -Number(p.grandTotal));
+      }
+      const items = dbInstance.prepare('SELECT productCode, productId, packQty, unitQty, bonus FROM purchase_items WHERE purchaseId = ?').all(p.id);
+      for (const it of items) {
+        let packSize = 1;
+        const pRec = dbInstance.prepare('SELECT packSize FROM products WHERE code = ? OR id = ?').get(it.productCode || '', it.productId || '');
+        if (pRec && Number(pRec.packSize) > 0) packSize = Number(pRec.packSize);
+        const incoming = (Number(it.packQty || 0) * packSize) + Number(it.unitQty || 0) + Number(it.bonus || 0);
+        if (incoming > 0) {
+          dbInstance.prepare('UPDATE products SET stockQty = MAX(0, stockQty - ?) WHERE code = ? OR id = ?').run(incoming, it.productCode || '', it.productId || '');
+        }
       }
       dbInstance.prepare('DELETE FROM purchase_items WHERE purchaseId = ?').run(p.id);
       dbInstance.prepare('DELETE FROM purchases WHERE id = ?').run(p.id);
@@ -994,6 +1096,9 @@ function saveSale(saleData, items = []) {
   const now = new Date().toISOString();
   const itemsJson = JSON.stringify(items);
 
+  const billStatus = saleData.billStatus === 'Estimated' ? 'Estimated' : 'Paid';
+  const isEstimated = (billStatus === 'Estimated');
+
   const saleRecord = {
     id,
     voucherNo,
@@ -1012,18 +1117,26 @@ function saveSale(saleData, items = []) {
     netAmount: Number(saleData.netAmount) || 0,
     paidAmount: Number(saleData.paidAmount) || 0,
     balanceDue: Number(saleData.balanceDue) || 0,
+    billStatus,
     itemsJson,
     createdAt: now
   };
 
   if (isJsonFallback) {
+    let oldBalanceDue = 0;
+    let oldPartyId = '';
     const existing = jsonData.sales.find(s => s.id === id || s.voucherNo === voucherNo);
     if (existing) {
-      const oldItems = jsonData.sale_items.filter(it => it.saleId === existing.id);
-      for (const oldIt of oldItems) {
-        const prod = jsonData.products.find(p => p.id === oldIt.productId || p.code === oldIt.productCode);
-        if (prod) {
-          prod.stockQty = (Number(prod.stockQty) || 0) + (Number(oldIt.totalQty) || 0);
+      oldBalanceDue = Number(existing.balanceDue) || 0;
+      oldPartyId = existing.partyId || '';
+      const wasEstimated = (existing.billStatus === 'Estimated');
+      if (!wasEstimated) {
+        const oldItems = jsonData.sale_items.filter(it => it.saleId === existing.id);
+        for (const oldIt of oldItems) {
+          const prod = jsonData.products.find(p => p.id === oldIt.productId || p.code === oldIt.productCode);
+          if (prod) {
+            prod.stockQty = (Number(prod.stockQty) || 0) + (Number(oldIt.totalQty) || 0);
+          }
         }
       }
       jsonData.sales = jsonData.sales.filter(s => s.id !== existing.id);
@@ -1031,18 +1144,20 @@ function saveSale(saleData, items = []) {
       saleRecord.createdAt = existing.createdAt;
     }
 
-    // Stock pre-check: ensure sufficient stock for all items
-    for (const item of items) {
-      const code = String(item.productCode || item.code || '').trim();
-      const packSize = Number(item.packSize) || 1;
-      const packQty = Number(item.packQty || 0);
-      const unitQty = Number(item.unitQty || 0);
-      const totalQty = (packQty * packSize) + unitQty;
-      if (totalQty > 0) {
-        const prod = jsonData.products.find(p => (code && p.code === code) || (item.productId && p.id === item.productId));
-        const avail = prod ? (Number(prod.stockQty) || 0) : 0;
-        if (totalQty > avail) {
-          throw new Error(`Insufficient stock for "${prod ? prod.titleEng : (item.productTitle || code)}". Available: ${avail}, Requested: ${totalQty}`);
+    // Stock pre-check: ensure sufficient stock for all items (only if not an estimated bill)
+    if (!isEstimated) {
+      for (const item of items) {
+        const code = String(item.productCode || item.code || '').trim();
+        const packSize = Number(item.packSize) || 1;
+        const packQty = Number(item.packQty || 0);
+        const unitQty = Number(item.unitQty || 0);
+        const totalQty = (packQty * packSize) + unitQty;
+        if (totalQty > 0) {
+          const prod = jsonData.products.find(p => (code && p.code === code) || (item.productId && p.id === item.productId));
+          const avail = prod ? (Number(prod.stockQty) || 0) : 0;
+          if (totalQty > avail) {
+            throw new Error(`Insufficient stock for "${prod ? prod.titleEng : (item.productTitle || code)}". Available: ${avail}, Requested: ${totalQty}`);
+          }
         }
       }
     }
@@ -1085,7 +1200,7 @@ function saveSale(saleData, items = []) {
         createdAt: now
       });
 
-      if (totalQty > 0) {
+      if (!isEstimated && totalQty > 0) {
         const prod = jsonData.products.find(p => (code && p.code === code) || (item.productId && p.id === item.productId));
         if (prod) {
           prod.stockQty = Math.max(0, (Number(prod.stockQty) || 0) - totalQty);
@@ -1095,54 +1210,88 @@ function saveSale(saleData, items = []) {
     }
 
     saveJsonData();
-    if (saleRecord.balanceDue > 0 && saleRecord.partyId) {
-      generalInfoDb.updatePartyBalance(saleRecord.partyId, saleRecord.balanceDue);
+    const isRegParty = saleRecord.partyId && saleRecord.partyId !== 'walk-in' && !saleRecord.partyId.startsWith('pt-');
+    if (isEstimated) {
+      // If converting from a previously paid bill with balance due, revert the old balance
+      if (existing && existing.billStatus !== 'Estimated' && oldBalanceDue > 0 && oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-')) {
+        generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
+      }
+    } else if (existing) {
+      if (existing.billStatus === 'Estimated') {
+        if (isRegParty && (Number(saleRecord.balanceDue) || 0) > 0) {
+          generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
+        }
+      } else if (oldPartyId === saleRecord.partyId) {
+        const delta = (Number(saleRecord.balanceDue) || 0) - oldBalanceDue;
+        if (delta !== 0 && isRegParty) {
+          generalInfoDb.updatePartyBalance(saleRecord.partyId, delta);
+        }
+      } else {
+        if (oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-') && oldBalanceDue > 0) {
+          generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
+        }
+        if (isRegParty && (Number(saleRecord.balanceDue) || 0) > 0) {
+          generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
+        }
+      }
+    } else if (isRegParty && (Number(saleRecord.balanceDue) || 0) > 0) {
+      generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
     }
     return { success: true, id, voucherNo };
   }
 
   dbInstance.exec('BEGIN TRANSACTION;');
   try {
-    const existing = dbInstance.prepare('SELECT id, createdAt FROM sales WHERE id = ? OR voucherNo = ?').get(id, voucherNo);
+    let oldBalanceDue = 0;
+    let oldPartyId = '';
+    const existing = dbInstance.prepare('SELECT id, createdAt, balanceDue, partyId, billStatus FROM sales WHERE id = ? OR voucherNo = ?').get(id, voucherNo);
     if (existing) {
-      const oldItems = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_items WHERE saleId = ?').all(existing.id);
-      for (const oldIt of oldItems) {
-        dbInstance.prepare(`
-          UPDATE products SET stockQty = stockQty + ? WHERE code = ? OR id = ?
-        `).run(Number(oldIt.totalQty) || 0, oldIt.productCode || '', oldIt.productId || '');
+      oldBalanceDue = Number(existing.balanceDue) || 0;
+      oldPartyId = existing.partyId || '';
+      const wasEstimated = (existing.billStatus === 'Estimated');
+      if (!wasEstimated) {
+        const oldItems = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_items WHERE saleId = ?').all(existing.id);
+        for (const oldIt of oldItems) {
+          dbInstance.prepare(`
+            UPDATE products SET stockQty = stockQty + ? WHERE code = ? OR id = ?
+          `).run(Number(oldIt.totalQty) || 0, oldIt.productCode || '', oldIt.productId || '');
+        }
       }
       dbInstance.prepare('DELETE FROM sale_items WHERE saleId = ?').run(existing.id);
     }
 
-    // Stock pre-check: ensure sufficient stock for all items
-    for (const item of items) {
-      const code = String(item.productCode || item.code || '').trim();
-      const packSize = Number(item.packSize) || 1;
-      const packQty = Number(item.packQty || 0);
-      const unitQty = Number(item.unitQty || 0);
-      const totalQty = (packQty * packSize) + unitQty;
-      if (totalQty > 0) {
-        const prod = dbInstance.prepare('SELECT id, titleEng, stockQty FROM products WHERE code = ? OR id = ?').get(code, item.productId || '');
-        const avail = prod ? (Number(prod.stockQty) || 0) : 0;
-        if (totalQty > avail) {
-          throw new Error(`Insufficient stock for "${prod ? prod.titleEng : (item.productTitle || code)}". Available: ${avail}, Requested: ${totalQty}`);
+    // Stock pre-check: ensure sufficient stock for all items (only if not an estimated bill)
+    if (!isEstimated) {
+      for (const item of items) {
+        const code = String(item.productCode || item.code || '').trim();
+        const packSize = Number(item.packSize) || 1;
+        const packQty = Number(item.packQty || 0);
+        const unitQty = Number(item.unitQty || 0);
+        const totalQty = (packQty * packSize) + unitQty;
+        if (totalQty > 0) {
+          const prod = dbInstance.prepare('SELECT id, titleEng, stockQty FROM products WHERE code = ? OR id = ?').get(code, item.productId || '');
+          const avail = prod ? (Number(prod.stockQty) || 0) : 0;
+          if (totalQty > avail) {
+            throw new Error(`Insufficient stock for "${prod ? prod.titleEng : (item.productTitle || code)}". Available: ${avail}, Requested: ${totalQty}`);
+          }
         }
       }
     }
 
+    const actualSaleId = existing ? existing.id : id;
     if (existing) {
       dbInstance.prepare(`
         UPDATE sales SET
           voucherNo = ?, manualNo = ?, entryDate = ?, partyId = ?, partyTitle = ?,
           customerPhone = ?, areaName = ?, description = ?, storeTitle = ?, paymentType = ?,
           previousBalance = ?, grossAmount = ?, discount = ?, netAmount = ?,
-          paidAmount = ?, balanceDue = ?, itemsJson = ?
+          paidAmount = ?, balanceDue = ?, billStatus = ?, itemsJson = ?
         WHERE id = ?
       `).run(
         voucherNo, saleRecord.manualNo, saleRecord.entryDate, saleRecord.partyId, saleRecord.partyTitle,
         saleRecord.customerPhone, saleRecord.areaName, saleRecord.description, saleRecord.storeTitle, saleRecord.paymentType,
         saleRecord.previousBalance, saleRecord.grossAmount, saleRecord.discount, saleRecord.netAmount,
-        saleRecord.paidAmount, saleRecord.balanceDue, itemsJson, existing.id
+        saleRecord.paidAmount, saleRecord.balanceDue, billStatus, itemsJson, actualSaleId
       );
     } else {
       dbInstance.prepare(`
@@ -1150,18 +1299,18 @@ function saveSale(saleData, items = []) {
           id, voucherNo, manualNo, entryDate, partyId, partyTitle,
           customerPhone, areaName, description, storeTitle, paymentType,
           previousBalance, grossAmount, discount, netAmount,
-          paidAmount, balanceDue, itemsJson, createdAt
+          paidAmount, balanceDue, billStatus, itemsJson, createdAt
         ) VALUES (
           ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?,
           ?, ?, ?, ?,
-          ?, ?, ?, ?
+          ?, ?, ?, ?, ?
         )
       `).run(
-        id, voucherNo, saleRecord.manualNo, saleRecord.entryDate, saleRecord.partyId, saleRecord.partyTitle,
+        actualSaleId, voucherNo, saleRecord.manualNo, saleRecord.entryDate, saleRecord.partyId, saleRecord.partyTitle,
         saleRecord.customerPhone, saleRecord.areaName, saleRecord.description, saleRecord.storeTitle, saleRecord.paymentType,
         saleRecord.previousBalance, saleRecord.grossAmount, saleRecord.discount, saleRecord.netAmount,
-        saleRecord.paidAmount, saleRecord.balanceDue, itemsJson, now
+        saleRecord.paidAmount, saleRecord.balanceDue, billStatus, itemsJson, now
       );
     }
 
@@ -1195,13 +1344,13 @@ function saveSale(saleData, items = []) {
       const netAmount = Number(item.netAmount || (totalQty * salePrice - discountAmount));
 
       insertItem.run(
-        itemId, id, sr, item.productId || '', code, item.productTitle || '',
+        itemId, actualSaleId, sr, item.productId || '', code, item.productTitle || '',
         packSize, packQty, unitQty, totalQty,
         purchasePrice, wholesalePrice, retailPrice, salePrice,
         discountPercent, discountAmount, netAmount, now
       );
 
-      if (totalQty > 0) {
+      if (!isEstimated && totalQty > 0) {
         deductStock.run(totalQty, code, item.productId || '');
       }
       sr++;
@@ -1209,10 +1358,34 @@ function saveSale(saleData, items = []) {
 
     dbInstance.exec('COMMIT;');
     checkpoint();
-    if (saleRecord.balanceDue > 0 && saleRecord.partyId) {
-      generalInfoDb.updatePartyBalance(saleRecord.partyId, saleRecord.balanceDue);
+    const isRegPartySql = saleRecord.partyId && saleRecord.partyId !== 'walk-in' && !saleRecord.partyId.startsWith('pt-');
+    if (isEstimated) {
+      // If converting from a previously paid bill, revert the old balance
+      if (existing && existing.billStatus !== 'Estimated' && oldBalanceDue > 0 && oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-')) {
+        generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
+      }
+    } else if (existing) {
+      if (existing.billStatus === 'Estimated') {
+        if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) > 0) {
+          generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
+        }
+      } else if (oldPartyId === saleRecord.partyId) {
+        const delta = (Number(saleRecord.balanceDue) || 0) - oldBalanceDue;
+        if (delta !== 0 && isRegPartySql) {
+          generalInfoDb.updatePartyBalance(saleRecord.partyId, delta);
+        }
+      } else {
+        if (oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-') && oldBalanceDue > 0) {
+          generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
+        }
+        if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) > 0) {
+          generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
+        }
+      }
+    } else if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) > 0) {
+      generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
     }
-    return { success: true, id, voucherNo };
+    return { success: true, id: actualSaleId, voucherNo };
   } catch (err) {
     dbInstance.exec('ROLLBACK;');
     throw err;
@@ -1223,14 +1396,17 @@ function deleteSale(id) {
   if (isJsonFallback) {
     const existing = jsonData.sales.find(s => s.id === id || s.voucherNo === id);
     if (existing) {
-      if (existing.balanceDue > 0 && existing.partyId) {
-        generalInfoDb.updatePartyBalance(existing.partyId, -Number(existing.balanceDue));
-      }
-      const items = jsonData.sale_items.filter(it => it.saleId === existing.id);
-      for (const it of items) {
-        const prod = jsonData.products.find(p => p.id === it.productId || p.code === it.productCode);
-        if (prod) {
-          prod.stockQty = (Number(prod.stockQty) || 0) + (Number(it.totalQty) || 0);
+      const wasEstimated = (existing.billStatus === 'Estimated');
+      if (!wasEstimated) {
+        if (existing.balanceDue > 0 && existing.partyId) {
+          generalInfoDb.updatePartyBalance(existing.partyId, -Number(existing.balanceDue));
+        }
+        const items = jsonData.sale_items.filter(it => it.saleId === existing.id);
+        for (const it of items) {
+          const prod = jsonData.products.find(p => p.id === it.productId || p.code === it.productCode);
+          if (prod) {
+            prod.stockQty = (Number(prod.stockQty) || 0) + (Number(it.totalQty) || 0);
+          }
         }
       }
       jsonData.sales = jsonData.sales.filter(s => s.id !== existing.id);
@@ -1242,16 +1418,19 @@ function deleteSale(id) {
 
   dbInstance.exec('BEGIN TRANSACTION;');
   try {
-    const s = dbInstance.prepare('SELECT id, partyId, balanceDue FROM sales WHERE id = ? OR voucherNo = ?').get(id, id);
+    const s = dbInstance.prepare('SELECT id, partyId, balanceDue, billStatus FROM sales WHERE id = ? OR voucherNo = ?').get(id, id);
     if (s) {
-      if (s.balanceDue > 0 && s.partyId) {
-        generalInfoDb.updatePartyBalance(s.partyId, -Number(s.balanceDue));
-      }
-      const items = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_items WHERE saleId = ?').all(s.id);
-      for (const it of items) {
-        dbInstance.prepare(`
-          UPDATE products SET stockQty = stockQty + ? WHERE code = ? OR id = ?
-        `).run(Number(it.totalQty) || 0, it.productCode || '', it.productId || '');
+      const wasEstimated = (s.billStatus === 'Estimated');
+      if (!wasEstimated) {
+        if (s.balanceDue > 0 && s.partyId) {
+          generalInfoDb.updatePartyBalance(s.partyId, -Number(s.balanceDue));
+        }
+        const items = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_items WHERE saleId = ?').all(s.id);
+        for (const it of items) {
+          dbInstance.prepare(`
+            UPDATE products SET stockQty = stockQty + ? WHERE code = ? OR id = ?
+          `).run(Number(it.totalQty) || 0, it.productCode || '', it.productId || '');
+        }
       }
       dbInstance.prepare('DELETE FROM sale_items WHERE saleId = ?').run(s.id);
       dbInstance.prepare('DELETE FROM sales WHERE id = ?').run(s.id);
@@ -1381,9 +1560,13 @@ function saveSaleReturn(returnData, items = []) {
       createdAt: returnData.createdAt || now
     };
 
-    // If updating, revert previous return stock addition first
+    // If updating, revert previous return stock addition and previous credit party balance first
     const existingIdx = jsonData.sales_returns.findIndex(r => r.id === id);
     if (existingIdx !== -1) {
+      const existing = jsonData.sales_returns[existingIdx];
+      if (existing && existing.refundMode === 'Credit' && existing.partyId && Number(existing.totalAmount) > 0) {
+        generalInfoDb.updatePartyBalance(existing.partyId, Number(existing.totalAmount));
+      }
       const oldItems = jsonData.sale_return_items.filter(it => it.returnId === id);
       for (const it of oldItems) {
         const prod = jsonData.products.find(p => p.id === it.productId || p.code === it.productCode);
@@ -1429,15 +1612,27 @@ function saveSaleReturn(returnData, items = []) {
       sr++;
     }
 
+    if (returnData.refundMode === 'Credit' && returnData.partyId && Number(returnData.totalAmount) > 0) {
+      generalInfoDb.updatePartyBalance(returnData.partyId, -Number(returnData.totalAmount));
+    }
+
     saveJsonData();
     return { success: true, id, returnNo };
   }
 
   // SQLite execution with transaction
+  let oldPartyId = null;
+  let oldRefundMode = null;
+  let oldTotalAmount = 0;
+
   dbInstance.exec('BEGIN TRANSACTION;');
   try {
-    const existing = dbInstance.prepare('SELECT id FROM sales_returns WHERE id = ?').get(id);
+    const existing = dbInstance.prepare('SELECT id, partyId, refundMode, totalAmount FROM sales_returns WHERE id = ?').get(id);
     if (existing) {
+      oldPartyId = existing.partyId;
+      oldRefundMode = existing.refundMode;
+      oldTotalAmount = Number(existing.totalAmount) || 0;
+
       const oldItems = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_return_items WHERE returnId = ?').all(id);
       for (const it of oldItems) {
         dbInstance.prepare(`
@@ -1484,10 +1679,10 @@ function saveSaleReturn(returnData, items = []) {
     for (const item of items) {
       const itemId = `sri-${Date.now()}-${sr}`;
       const code = String(item.productCode || item.code || '').trim();
-      const packSize = Number(item.packSize) || 1;
       const packQty = Number(item.packQty || 0);
       const unitQty = Number(item.unitQty || 0);
-      const totalQty = (packQty * packSize) + unitQty;
+      const packSize = Number(item.packSize) || 1;
+      const totalQty = Number(item.totalQty) > 0 ? Number(item.totalQty) : (((packQty * packSize) + unitQty) || 1);
       const returnRate = Number(item.returnRate || item.salePrice || 0);
       const netAmount = Number(item.netAmount || (totalQty * returnRate));
 
@@ -1505,6 +1700,12 @@ function saveSaleReturn(returnData, items = []) {
 
     dbInstance.exec('COMMIT;');
     checkpoint();
+
+    // Revert previous credit return if needed
+    if (oldPartyId && oldRefundMode === 'Credit' && oldTotalAmount > 0) {
+      generalInfoDb.updatePartyBalance(oldPartyId, oldTotalAmount);
+    }
+    // Apply new credit return if needed
     if (returnData.refundMode === 'Credit' && returnData.partyId && Number(returnData.totalAmount) > 0) {
       generalInfoDb.updatePartyBalance(returnData.partyId, -Number(returnData.totalAmount));
     }
@@ -1519,6 +1720,9 @@ function deleteSaleReturn(id) {
   if (isJsonFallback) {
     const existing = (jsonData.sales_returns || []).find(r => r.id === id || r.returnNo === id);
     if (existing) {
+      if (existing.refundMode === 'Credit' && existing.partyId && Number(existing.totalAmount) > 0) {
+        generalInfoDb.updatePartyBalance(existing.partyId, Number(existing.totalAmount));
+      }
       const items = (jsonData.sale_return_items || []).filter(it => it.returnId === existing.id);
       for (const it of items) {
         const prod = jsonData.products.find(p => p.id === it.productId || p.code === it.productCode);
@@ -1533,10 +1737,17 @@ function deleteSaleReturn(id) {
     return { success: true };
   }
 
+  let creditPartyId = null;
+  let creditAmount = 0;
+
   dbInstance.exec('BEGIN TRANSACTION;');
   try {
-    const r = dbInstance.prepare('SELECT id FROM sales_returns WHERE id = ? OR returnNo = ?').get(id, id);
+    const r = dbInstance.prepare('SELECT id, partyId, refundMode, totalAmount FROM sales_returns WHERE id = ? OR returnNo = ?').get(id, id);
     if (r) {
+      if (r.refundMode === 'Credit' && r.partyId && Number(r.totalAmount) > 0) {
+        creditPartyId = r.partyId;
+        creditAmount = Number(r.totalAmount);
+      }
       const items = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_return_items WHERE returnId = ?').all(r.id);
       for (const it of items) {
         dbInstance.prepare(`
@@ -1548,6 +1759,10 @@ function deleteSaleReturn(id) {
     }
     dbInstance.exec('COMMIT;');
     checkpoint();
+
+    if (creditPartyId && creditAmount > 0) {
+      generalInfoDb.updatePartyBalance(creditPartyId, creditAmount);
+    }
     return { success: true };
   } catch (err) {
     dbInstance.exec('ROLLBACK;');
@@ -1578,7 +1793,15 @@ const DEFAULT_APP_SETTINGS = {
   receiptHeaderTitle: 'SHAHZAIB TRADERS',
   receiptSubtitle: 'Dealers in Electrical Goods & Accessories',
   receiptFooterNote: 'Thank you for your business!\nGoods once sold cannot be returned without bill.\nNo warranty on burnt or short-circuit electrical items.',
-  invoiceTerms: '1. Please inspect all items upon receipt.\n2. In case of return, original sale slip is required within 7 days.'
+  invoiceTerms: '1. Please inspect all items upon receipt.\n2. In case of return, original sale slip is required within 7 days.',
+  invoiceHeading: 'Sale Tax Invoice',
+  invoiceHeadingA5: 'Sale Memo',
+  estimateHeading: 'Estimate / Quotation',
+  previousBillLabel: 'Previous Bill / Balance',
+  netPayableLabel: 'TOTAL NET PAYABLE',
+  signatureLabel1: 'Prepared By',
+  signatureLabel2: 'Checked By',
+  signatureLabel3: 'Customer Signature'
 };
 
 function seedDefaultAppSettings(db) {
@@ -1596,8 +1819,63 @@ function seedDefaultAppSettings(db) {
   }
 }
 
+function getAppPin() {
+  if (isJsonFallback) {
+    if (jsonData.app_settings && jsonData.app_settings.adminPin) {
+      return String(jsonData.app_settings.adminPin).trim();
+    }
+    return String(process.env.APP_PIN || '1996').trim();
+  }
+  if (!dbInstance) return String(process.env.APP_PIN || '1996').trim();
+  try {
+    const row = dbInstance.prepare("SELECT value FROM app_settings WHERE key = 'adminPin'").get();
+    if (row && row.value) return String(row.value).trim();
+  } catch (_e) {}
+  return String(process.env.APP_PIN || '1996').trim();
+}
+
+function setAppPin(newPin) {
+  const cleanPin = String(newPin).trim();
+  const now = new Date().toISOString();
+  if (isJsonFallback) {
+    jsonData.app_settings = jsonData.app_settings || {};
+    jsonData.app_settings.adminPin = cleanPin;
+    saveJsonData();
+    return true;
+  }
+  if (!dbInstance) return false;
+  try {
+    dbInstance.prepare(`
+      INSERT INTO app_settings (key, value, updatedAt)
+      VALUES ('adminPin', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt
+    `).run(cleanPin, now);
+    checkpoint();
+    return true;
+  } catch (err) {
+    console.error('Failed to set app PIN in db:', err);
+    return false;
+  }
+}
+
 function getAppSettings() {
   const result = { ...DEFAULT_APP_SETTINGS };
+
+  // Overlay live company info if available as fallback defaults
+  try {
+    const comp = generalInfoDb.getCompanyInfo();
+    if (comp && comp.name) {
+      if (comp.name) result.storeName = comp.name;
+      if (comp.tagline) result.storeTagline = comp.tagline;
+      if (comp.phone) result.contactPhone = comp.phone;
+      if (comp.altPhone) result.altPhone = comp.altPhone;
+      if (comp.address) result.address = comp.address;
+      if (comp.ntn) result.ntn = comp.ntn;
+      if (comp.strn) result.strn = comp.strn;
+      if (comp.email) result.contactEmail = comp.email;
+      if (comp.contactPerson) result.contactPerson = comp.contactPerson;
+    }
+  } catch (_compErr) {}
 
   if (isJsonFallback) {
     if (jsonData.app_settings && typeof jsonData.app_settings === 'object') {
@@ -1613,23 +1891,6 @@ function getAppSettings() {
     for (const row of rows) {
       result[row.key] = row.value;
     }
-
-    // Overlay live company info if available
-    try {
-      const comp = generalInfoDb.getCompanyInfo();
-      if (comp && comp.name) {
-        if (!result.storeName || result.storeName === DEFAULT_APP_SETTINGS.storeName) result.storeName = comp.name;
-        if (comp.tagline) result.storeTagline = comp.tagline;
-        if (comp.phone) result.contactPhone = comp.phone;
-        if (comp.altPhone) result.altPhone = comp.altPhone;
-        if (comp.address) result.address = comp.address;
-        if (comp.ntn) result.ntn = comp.ntn;
-        if (comp.strn) result.strn = comp.strn;
-        if (comp.email) result.contactEmail = comp.email;
-        if (comp.contactPerson) result.contactPerson = comp.contactPerson;
-      }
-    } catch (_compErr) {}
-
     return result;
   } catch (err) {
     console.error('Failed to get app settings:', err);
@@ -1742,11 +2003,13 @@ function backupDatabase(dbPath) {
       throw new Error(`Database file not found at: ${dbPath}`);
     }
 
-    // Flush WAL to disk first
+    // Flush WAL to disk completely with TRUNCATE to avoid stale WAL
     if (dbInstance && typeof dbInstance.exec === 'function') {
       try {
-        dbInstance.exec('PRAGMA wal_checkpoint(FULL);');
+        dbInstance.exec('PRAGMA wal_checkpoint(TRUNCATE);');
       } catch (_e) {}
+    } else if (isJsonFallback) {
+      saveJsonData();
     }
 
     const backupDir = path.join(path.dirname(dbPath), 'backups');
@@ -1755,7 +2018,8 @@ function backupDatabase(dbPath) {
     const now = new Date();
     const pad = (n) => String(n).padStart(2, '0');
     const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-    const filename = `inventory_backup_${dateStr}.db`;
+    const ext = path.extname(dbPath) || (isJsonFallback ? '.json' : '.db');
+    const filename = `inventory_backup_${dateStr}${ext}`;
     const targetPath = path.join(backupDir, filename);
 
     fs.copyFileSync(dbPath, targetPath);
@@ -1920,6 +2184,8 @@ module.exports = {
   // Settings & System Maintenance
   getAppSettings,
   saveAppSettings,
+  getAppPin,
+  setAppPin,
   getDbStats,
   backupDatabase,
   optimizeDatabase,

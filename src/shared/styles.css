@@ -3811,7 +3811,13 @@ th.col-hist-action, td.col-hist-action { text-align: center !important; }
   #receiptPageView,
   #receiptPageView .receipt-page-container,
   #receiptPageSheet,
-  #receiptPageSheet * {
+  #receiptPageSheet *,
+  .invoice-container,
+  .invoice-container *,
+  .sale-doc-thermal,
+  .sale-doc-thermal *,
+  .invoice-a4,
+  .invoice-a4 * {
     visibility: visible !important;
   }
   #modalViewInvoice {

@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
 // Expose Auth API for PIN login and logout
 contextBridge.exposeInMainWorld('authAPI', {
@@ -57,6 +57,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getNextSaleReturnNo: () => ipcRenderer.invoke('get-next-sale-return-no'),
   saveSaleReturn: (returnData, items) => ipcRenderer.invoke('save-sale-return', returnData, items),
   deleteSaleReturn: (id) => ipcRenderer.invoke('delete-sale-return', id),
+
+  // Groups / Brands fallback for older UI
+  getProductGroups: () => ipcRenderer.invoke('get-product-sub-categories'),
 
   // Exports
   exportPDF: (data) => ipcRenderer.invoke('export-pdf', data),
@@ -164,5 +167,28 @@ contextBridge.exposeInMainWorld('settingsAPI', {
   changeAppPin: (currentPin, newPin) => ipcRenderer.invoke('change-app-pin', { currentPin, newPin }),
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
   exportAllDataJson: () => ipcRenderer.invoke('export-all-data-json')
+});
+
+// Expose Reports API
+contextBridge.exposeInMainWorld('reportsAPI', {
+  getReportsMasterData: () => ipcRenderer.invoke('get-reports-master-data')
+});
+
+// Expose Display & Font Zoom API
+contextBridge.exposeInMainWorld('displayAPI', {
+  setZoomFactor: (factor) => {
+    try {
+      webFrame.setZoomFactor(Number(factor));
+    } catch (e) {
+      console.warn('setZoomFactor error:', e);
+    }
+  },
+  getZoomFactor: () => {
+    try {
+      return webFrame.getZoomFactor();
+    } catch (_) {
+      return 1.0;
+    }
+  }
 });
 

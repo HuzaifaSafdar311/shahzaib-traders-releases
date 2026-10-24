@@ -161,6 +161,46 @@ function getVoucherById(id) {
   }
 }
 
+// Helper: Check if party is a Supplier / Vendor
+function isSupplierParty(partyId, fallbackType = '') {
+  if (!partyId && !fallbackType) return false;
+  if (isJson) {
+    const p = (jsonStore.parties || []).find(x => x.id === partyId);
+    if (p) {
+      const t = String(p.partyTypeName || p.partyType || '').toLowerCase();
+      const tid = String(p.partyTypeId || '').toLowerCase();
+      return t.includes('vendor') || t.includes('supplier') || tid === 'pt-2';
+    }
+  } else if (db) {
+    try {
+      const p = db.prepare('SELECT partyTypeId, partyTypeName FROM parties WHERE id = ?').get(String(partyId));
+      if (p) {
+        const t = String(p.partyTypeName || '').toLowerCase();
+        const tid = String(p.partyTypeId || '').toLowerCase();
+        return t.includes('vendor') || t.includes('supplier') || tid === 'pt-2';
+      }
+    } catch (_e) {}
+  }
+  const fb = String(fallbackType || '').toLowerCase();
+  return fb.includes('vendor') || fb.includes('supplier') || fb === 'pt-2';
+}
+
+// Balance delta calculation:
+// Customer:
+//   CRV (Cash receipt): Customer pays, balance decreases (-netAmount)
+//   CPV (Cash payment): Paid to customer, balance increases (+netAmount)
+// Supplier:
+//   CRV (Cash receipt/refund): Supplier refunds, payable/balance increases (+netAmount)
+//   CPV (Cash payment): Paid to supplier, payable/balance decreases (-netAmount)
+function getVoucherBalanceDelta(isSupp, voucherType, netAmount) {
+  const net = Number(netAmount) || 0;
+  if (isSupp) {
+    return voucherType === 'CRV' ? +net : -net;
+  } else {
+    return voucherType === 'CRV' ? -net : +net;
+  }
+}
+
 // Save Accounts Voucher (CRV or CPV)
 function saveVoucher(voucherData) {
   if (!voucherData) throw new Error('Voucher data is required');
@@ -182,25 +222,27 @@ function saveVoucher(voucherData) {
   const amount = Number(voucherData.amount) || 0;
   const discount = Number(voucherData.discount) || 0;
   const netAmount = Number(voucherData.netAmount) || (amount + discount);
-  const newBalance = Number(voucherData.newBalance) || (voucherType === 'CRV' ? prevBalance - netAmount : prevBalance - netAmount);
+
+  const isSupp = isSupplierParty(partyId, partyType);
+  const balanceDelta = getVoucherBalanceDelta(isSupp, voucherType, netAmount);
+  const newBalance = Number(voucherData.newBalance !== undefined ? voucherData.newBalance : (prevBalance + balanceDelta));
 
   const paymentMode = String(voucherData.paymentMode || 'Cash').trim();
   const accountTitle = String(voucherData.accountTitle || 'Main Cash Account').trim();
   const chequeOrRefNo = String(voucherData.chequeOrRefNo || '').trim();
   const remarks = String(voucherData.remarks || '').trim();
 
-  // Balance delta calculation:
-  // For CRV (Cash received from party): Party balance decreases by netAmount (-netAmount)
-  // For CPV (Cash paid to party): Party payable decreases, so balance reduces by netAmount (-netAmount)
-  const balanceDelta = -netAmount;
-
   if (isJson) {
     const existingIndex = (jsonStore.accounts_vouchers || []).findIndex(v => v.id === id || v.voucherNo === voucherNo);
-    let oldNetAmount = 0;
+    let oldDelta = 0;
+    let oldPartyId = '';
 
     if (existingIndex >= 0) {
       const oldVoucher = jsonStore.accounts_vouchers[existingIndex];
-      oldNetAmount = Number(oldVoucher.netAmount) || 0;
+      oldPartyId = oldVoucher.partyId;
+      const wasOldSupp = isSupplierParty(oldVoucher.partyId, oldVoucher.partyType);
+      oldDelta = getVoucherBalanceDelta(wasOldSupp, oldVoucher.voucherType, oldVoucher.netAmount);
+
       jsonStore.accounts_vouchers[existingIndex] = {
         ...oldVoucher,
         voucherType,
@@ -253,12 +295,15 @@ function saveVoucher(voucherData) {
     if (saveJsonFn) saveJsonFn();
 
     // Update Party Balance in General Info
-    if (partyId && generalInfoRef && generalInfoRef.updatePartyBalance) {
+    if (generalInfoRef && generalInfoRef.updatePartyBalance) {
       if (existingIndex >= 0) {
-        // Revert old effect then apply new
-        const netAdjustment = -(netAmount - oldNetAmount);
-        generalInfoRef.updatePartyBalance(partyId, netAdjustment);
-      } else {
+        if (oldPartyId === partyId) {
+          generalInfoRef.updatePartyBalance(partyId, balanceDelta - oldDelta);
+        } else {
+          if (oldPartyId) generalInfoRef.updatePartyBalance(oldPartyId, -oldDelta);
+          if (partyId) generalInfoRef.updatePartyBalance(partyId, balanceDelta);
+        }
+      } else if (partyId) {
         generalInfoRef.updatePartyBalance(partyId, balanceDelta);
       }
     }
@@ -270,11 +315,15 @@ function saveVoucher(voucherData) {
 
   db.exec('BEGIN TRANSACTION;');
   try {
-    const existing = db.prepare('SELECT id, netAmount, partyId FROM accounts_vouchers WHERE id = ? OR voucherNo = ?').get(id, voucherNo);
-    let oldNetAmount = 0;
+    const existing = db.prepare('SELECT id, voucherType, partyType, partyId, netAmount FROM accounts_vouchers WHERE id = ? OR voucherNo = ?').get(id, voucherNo);
+    let oldDelta = 0;
+    let oldPartyId = '';
 
     if (existing) {
-      oldNetAmount = Number(existing.netAmount) || 0;
+      oldPartyId = existing.partyId;
+      const wasOldSupp = isSupplierParty(existing.partyId, existing.partyType);
+      oldDelta = getVoucherBalanceDelta(wasOldSupp, existing.voucherType, existing.netAmount);
+
       db.prepare(`
         UPDATE accounts_vouchers SET
           voucherType = ?, manualNo = ?, entryDate = ?, partyId = ?, partyTitle = ?,
@@ -306,11 +355,15 @@ function saveVoucher(voucherData) {
     if (checkpointFn) checkpointFn();
 
     // Adjust Party Balance
-    if (partyId && generalInfoRef && generalInfoRef.updatePartyBalance) {
+    if (generalInfoRef && generalInfoRef.updatePartyBalance) {
       if (existing) {
-        const netAdjustment = -(netAmount - oldNetAmount);
-        generalInfoRef.updatePartyBalance(partyId, netAdjustment);
-      } else {
+        if (oldPartyId === partyId) {
+          generalInfoRef.updatePartyBalance(partyId, balanceDelta - oldDelta);
+        } else {
+          if (oldPartyId) generalInfoRef.updatePartyBalance(oldPartyId, -oldDelta);
+          if (partyId) generalInfoRef.updatePartyBalance(partyId, balanceDelta);
+        }
+      } else if (partyId) {
         generalInfoRef.updatePartyBalance(partyId, balanceDelta);
       }
     }
@@ -331,9 +384,11 @@ function deleteVoucher(id) {
       jsonStore.accounts_vouchers = jsonStore.accounts_vouchers.filter(x => x.id !== v.id);
       if (saveJsonFn) saveJsonFn();
 
-      // Revert party balance: when voucher was created it did -netAmount, so now +netAmount
-      if (v.partyId && v.netAmount && generalInfoRef && generalInfoRef.updatePartyBalance) {
-        generalInfoRef.updatePartyBalance(v.partyId, Number(v.netAmount) || 0);
+      // Revert party balance
+      if (v.partyId && generalInfoRef && generalInfoRef.updatePartyBalance) {
+        const isSupp = isSupplierParty(v.partyId, v.partyType);
+        const delta = getVoucherBalanceDelta(isSupp, v.voucherType, v.netAmount);
+        generalInfoRef.updatePartyBalance(v.partyId, -delta);
       }
     }
     return { success: true };
@@ -343,14 +398,16 @@ function deleteVoucher(id) {
 
   db.exec('BEGIN TRANSACTION;');
   try {
-    const v = db.prepare('SELECT id, partyId, netAmount FROM accounts_vouchers WHERE id = ? OR voucherNo = ?').get(id, id);
+    const v = db.prepare('SELECT id, voucherType, partyType, partyId, netAmount FROM accounts_vouchers WHERE id = ? OR voucherNo = ?').get(id, id);
     if (v) {
       db.prepare('DELETE FROM accounts_vouchers WHERE id = ?').run(v.id);
       db.exec('COMMIT;');
       if (checkpointFn) checkpointFn();
 
-      if (v.partyId && v.netAmount && generalInfoRef && generalInfoRef.updatePartyBalance) {
-        generalInfoRef.updatePartyBalance(v.partyId, Number(v.netAmount) || 0);
+      if (v.partyId && generalInfoRef && generalInfoRef.updatePartyBalance) {
+        const isSupp = isSupplierParty(v.partyId, v.partyType);
+        const delta = getVoucherBalanceDelta(isSupp, v.voucherType, v.netAmount);
+        generalInfoRef.updatePartyBalance(v.partyId, -delta);
       }
     } else {
       db.exec('COMMIT;');
@@ -375,13 +432,13 @@ function getPartyLedger(partyId, fromDate = '', toDate = '') {
 
   const entries = [];
 
-  // 1. Gather Sales for this party
+  // 1. Gather Sales for this party (excluding estimates)
   let sales = [];
   if (isJson) {
-    sales = (jsonStore.sales || []).filter(s => s.partyId === partyId);
+    sales = (jsonStore.sales || []).filter(s => s.partyId === partyId && s.billStatus !== 'Estimated');
   } else if (db) {
     try {
-      sales = db.prepare('SELECT * FROM sales WHERE partyId = ?').all(partyId);
+      sales = db.prepare("SELECT * FROM sales WHERE partyId = ? AND (billStatus IS NULL OR billStatus != 'Estimated')").all(partyId);
     } catch (_e) { sales = []; }
   }
 
@@ -408,13 +465,15 @@ function getPartyLedger(partyId, fromDate = '', toDate = '') {
   }
 
   for (const r of returns) {
+    const isCredit = (r.refundMode || 'Credit') === 'Credit';
+    const amount = Number(r.totalAmount ?? r.netRefund ?? r.grandTotal ?? 0);
     entries.push({
       date: r.entryDate || (r.createdAt ? r.createdAt.slice(0, 10) : ''),
       voucherNo: r.returnNo,
       type: 'Sale Return',
-      description: `Sales Return Refund (${r.remarks || 'Returned Goods'})`,
-      debit: 0,
-      credit: Number(r.netRefund || r.grandTotal || 0),
+      description: `Sales Return (${r.refundMode || 'Credit'}) - ${r.description || r.remarks || 'Returned Goods'}`,
+      debit: isCredit ? 0 : amount,
+      credit: amount,
       createdAt: r.createdAt || ''
     });
   }
@@ -471,23 +530,25 @@ function getPartyLedger(partyId, fromDate = '', toDate = '') {
     return (a.createdAt || '').localeCompare(b.createdAt || '');
   });
 
-  // The party's stored balance in 'parties' represents their current balance.
-  // Base opening balance prior to any transactions is stored balance minus net transaction movements.
-  const totalAllNet = entries.reduce((sum, e) => sum + (e.debit - e.credit), 0);
-  let baseOpeningBal = (Number(party ? party.openingBalance : 0) || 0) - totalAllNet;
+  // Base opening balance is the party's initial opening balance registered in parties.
+  let baseOpeningBal = Number(party ? party.openingBalance : 0) || 0;
   let openingBal = baseOpeningBal;
   let runningBal = openingBal;
   let totalDebit = 0;
   let totalCredit = 0;
 
   const filteredEntries = [];
+  const isSupp = isSupplierParty(partyId, party ? party.partyTypeName : '');
 
   for (const entry of entries) {
     const entryDate = entry.date || '';
+    // For Customer: Debit increases receivable (+), Credit decreases receivable (-)
+    // For Supplier: Credit increases payable (+), Debit decreases payable (-)
+    const entryDelta = isSupp ? (entry.credit - entry.debit) : (entry.debit - entry.credit);
 
     if (fromDate && entryDate < fromDate) {
       // Prior to window, accumulate into opening balance
-      openingBal += (entry.debit - entry.credit);
+      openingBal += entryDelta;
       continue;
     }
 
@@ -495,7 +556,7 @@ function getPartyLedger(partyId, fromDate = '', toDate = '') {
       continue;
     }
 
-    runningBal = (filteredEntries.length === 0 ? openingBal : runningBal) + (entry.debit - entry.credit);
+    runningBal = (filteredEntries.length === 0 ? openingBal : runningBal) + entryDelta;
     entry.balance = runningBal;
     totalDebit += entry.debit;
     totalCredit += entry.credit;

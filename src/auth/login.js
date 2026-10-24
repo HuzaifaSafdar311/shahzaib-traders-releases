@@ -1,4 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Auto-apply saved font scale if present
+  try {
+    const savedScale = localStorage.getItem('app_font_scale_percent');
+    if (savedScale) {
+      const factor = Number(savedScale) / 100;
+      if (window.displayAPI) window.displayAPI.setZoomFactor(factor);
+      document.documentElement.style.zoom = factor;
+    }
+  } catch (_) {}
+
   const loginContainer = document.getElementById('loginContainer');
   const pinDisplay = document.getElementById('pinDisplay');
   const pinBoxes = document.querySelectorAll('.pin-box');
@@ -97,13 +107,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       let isValid = false;
+      let errorText = 'Wrong PIN';
+      let isLocked = false;
 
       if (window.authAPI && typeof window.authAPI.verifyPin === 'function') {
-        isValid = await window.authAPI.verifyPin(currentPin);
+        const res = await window.authAPI.verifyPin(currentPin);
+        if (typeof res === 'object' && res !== null) {
+          isValid = !!res.success;
+          if (res.message) errorText = res.message;
+          if (res.locked) isLocked = true;
+        } else {
+          isValid = !!res;
+        }
       } else {
-        // Fallback for standalone preview (e.g., in browser)
-        console.warn('authAPI IPC not detected, verifying fallback');
-        isValid = currentPin === '1996';
+        console.warn('authAPI IPC not detected');
+        isValid = false;
+        errorText = 'Access denied: Standalone mode';
       }
 
       if (isValid) {
@@ -126,32 +145,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 200);
       } else {
         // Wrong PIN
-        showError();
+        showError(errorText, isLocked);
       }
     } catch (err) {
       console.error('Error during PIN verification:', err);
-      showError();
+      showError('System error verifying PIN', false);
     }
   }
 
   // Display error shake animation and reset
-  function showError() {
+  function showError(message, locked) {
     pinBoxes.forEach(box => {
       box.classList.remove('focused', 'success');
       box.classList.add('error');
     });
 
     pinDisplay.classList.add('shake');
-    errorMsg.classList.add('visible');
+    if (errorMsg) {
+      errorMsg.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>${message || 'Wrong PIN'}</span>
+      `;
+      errorMsg.classList.add('visible');
+    }
 
-    // Reset after shake finishes
+    // Reset after delay
+    const resetDelay = locked ? 1200 : 450;
     setTimeout(() => {
       pinDisplay.classList.remove('shake');
       currentPin = '';
       isSubmitting = false;
       updatePinBoxes();
       focusInput();
-    }, 450);
+    }, resetDelay);
   }
 
   // Handle Physical Keyboard Events

@@ -1091,7 +1091,12 @@
     document.getElementById('partyProvinceSelect').value = '';
     updateModalPartyAreaDropdown('');
     document.getElementById('partyCityInput').value = '';
-    document.getElementById('partyOpeningBalanceInput').value = '0';
+    const obInput = document.getElementById('partyOpeningBalanceInput');
+    if (obInput) {
+      obInput.value = '0';
+      obInput.readOnly = false;
+      obInput.title = 'Initial opening balance';
+    }
     document.getElementById('partyAddressInput').value = '';
     modal.classList.remove('hidden');
   }
@@ -1114,7 +1119,12 @@
     document.getElementById('partyProvinceSelect').value = p.provinceId || '';
     updateModalPartyAreaDropdown(p.areaId || '');
     document.getElementById('partyCityInput').value = p.city || '';
-    document.getElementById('partyOpeningBalanceInput').value = p.openingBalance ?? 0;
+    const editObInput = document.getElementById('partyOpeningBalanceInput');
+    if (editObInput) {
+      editObInput.value = p.openingBalance ?? 0;
+      editObInput.readOnly = true;
+      editObInput.title = 'Current balance (Locked to protect ledger audit trail)';
+    }
     document.getElementById('partyAddressInput').value = p.address || '';
     modal.classList.remove('hidden');
   }

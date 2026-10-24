@@ -235,18 +235,23 @@ async function exportPDF({ items = [], summary = {} }, parentWindow) {
     webPreferences: { nodeIntegration: false }
   });
 
-  await printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+  try {
+    await printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
 
-  const pdfBuffer = await printWin.webContents.printToPDF({
-    pageSize: 'A4',
-    landscape: false,
-    printBackground: true,
-    margins: { top: 0.3, bottom: 0.3, left: 0.3, right: 0.3 }
-  });
+    const pdfBuffer = await printWin.webContents.printToPDF({
+      pageSize: 'A4',
+      landscape: false,
+      printBackground: true,
+      margins: { top: 0.3, bottom: 0.3, left: 0.3, right: 0.3 }
+    });
 
-  printWin.close();
-  fs.writeFileSync(filePath, pdfBuffer);
-  return { success: true, filePath };
+    fs.writeFileSync(filePath, pdfBuffer);
+    return { success: true, filePath };
+  } finally {
+    if (printWin && !printWin.isDestroyed()) {
+      printWin.close();
+    }
+  }
 }
 
 /**

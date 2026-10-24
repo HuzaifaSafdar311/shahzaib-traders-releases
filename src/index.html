@@ -393,6 +393,13 @@
                 <span id="purDateSummaryBadge" style="display:none"></span>
               </div>
               <div class="purchase-top-right">
+                <button type="button" id="btnOpenPurchaseHistory" class="btn btn-sm btn-secondary pur-top-print-btn" title="View Purchase Invoices & History">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <span>History</span>
+                </button>
                 <button type="button" id="btnPurPrint" class="btn btn-sm btn-outline pur-top-print-btn" title="Print Purchase Voucher">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                   <span>Print</span>
@@ -630,6 +637,36 @@
                   <select id="piSubCategoryFilter" class="form-control form-control-sm prod-filter-select" disabled title="Select category first">
                     <option value="">All Sub Categories</option>
                   </select>
+                </div>
+
+                <!-- Stock Filter -->
+                <div class="prod-filter-item">
+                  <label for="piStockFilter" class="prod-filter-label">Stock:</label>
+                  <select id="piStockFilter" class="form-control form-control-sm prod-filter-select">
+                    <option value="">All Stock</option>
+                    <option value="in_stock">In Stock</option>
+                    <option value="low_stock">Low Stock (≤ 5)</option>
+                    <option value="out_of_stock">Out of Stock</option>
+                  </select>
+                </div>
+
+                <!-- Sort Filter -->
+                <div class="prod-filter-item">
+                  <label for="piSortFilter" class="prod-filter-label">Sort:</label>
+                  <select id="piSortFilter" class="form-control form-control-sm prod-filter-select">
+                    <option value="code_asc">Code (Asc)</option>
+                    <option value="code_desc">Code (Desc)</option>
+                    <option value="name_asc">Name (A-Z)</option>
+                    <option value="name_desc">Name (Z-A)</option>
+                    <option value="stock_desc">Stock (High-Low)</option>
+                    <option value="stock_asc">Stock (Low-High)</option>
+                    <option value="price_desc">Price (High-Low)</option>
+                    <option value="price_asc">Price (Low-High)</option>
+                  </select>
+                </div>
+
+                <div class="prod-filter-item" style="display: flex; align-items: flex-end;">
+                  <button type="button" id="btnPiResetFilters" class="btn btn-sm btn-secondary" style="height: 32px;" title="Reset Product Filters">Reset</button>
                 </div>
               </div>
 
@@ -1112,36 +1149,10 @@
               </svg>
               <span>Sales Management</span>
             </div>
-            <div class="sale-top-tools-actions">
-              <button type="button" id="btnTopEstimateModal" class="btn btn-secondary sale-top-tool-btn"
-                title="Kacha Bill / Electrician Quotation">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-                <span>📋 Kacha Bill</span>
-              </button>
-              <button type="button" id="btnTopClosingModal" class="btn btn-secondary sale-top-tool-btn"
-                title="Day-End Cash Closing & Counter Handover">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="1" x2="12" y2="23"></line>
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-                <span>💵 Day Closing</span>
-              </button>
-              <button type="button" id="btnTopClaimsModal" class="btn btn-secondary sale-top-tool-btn"
-                title="Warranty Claims (Kharab Samaan)">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
-                <span>🛡️ Claims</span>
-              </button>
-            </div>
+
           </div>
 
-          <!-- 2 Sub-Tabs: Sale Voucher & Sale Return -->
+          <!-- 3 Sub-Tabs: Sale Voucher, Sale Return, Sales History -->
           <nav class="gi-sub-tabs" role="tablist">
             <button type="button" class="gi-tab-btn active" id="saleSubTabBtnVoucher" data-salesub="voucher">
               <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1159,632 +1170,707 @@
               </svg>
               <span>Sale Return</span>
             </button>
+            <button type="button" class="gi-tab-btn" id="saleSubTabBtnHistory" data-salesub="history">
+              <svg class="gi-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>Sales History & Invoices</span>
+            </button>
           </nav>
-                <!-- SUBVIEW 1: Sale Information Voucher -->
+        </header>
+
+        <!-- SUBVIEW 1: Sale Information Voucher (Redesigned Pro Billing System) -->
         <div id="subviewSaleVoucher" class="sales-subview-panel active">
           
-          <div id="posVoucherMainLayout" class="pos-main-container">
-            <!-- LEFT PANEL: Customer Info, Professional Filter Bar, and Product Catalog -->
-            <div class="pos-left-panel">
-              
-              <!-- 1. Professional Filter & Search Bar (At the Top) -->
-              <div class="pos-pro-filter-bar">
-                <div class="pos-pro-search-box">
-                  <svg class="pos-pro-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <!-- TOP FILTER & COMMAND BAR (Matches purchase-top-bar in Inventory) -->
+          <div class="purchase-top-bar sale-top-bar">
+            <div class="purchase-top-left">
+              <!-- Date Filter -->
+              <div class="pur-filter-date-field">
+                <label for="saleEntryDate" class="pur-filter-label">
+                  <svg class="pur-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  <span>Date:</span>
+                </label>
+                <div class="pur-date-input-wrap">
+                  <input type="date" id="saleEntryDate" class="form-control form-control-sm pur-filter-date-input" title="Sale Date">
+                </div>
+              </div>
+
+              <!-- Voucher / Invoice # Searchbar & Input -->
+              <div class="pur-filter-voucher-field">
+                <label class="pur-filter-label">
+                  <svg class="pur-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
-                  <input type="text" id="posProductSearch" class="pos-pro-search-input"
-                    placeholder="Search by name, code, barcode..." autocomplete="off">
-                  <button type="button" id="posClearSearch" class="pos-pro-clear-btn" title="Clear Search">✕</button>
-                </div>
-
-                <div class="pos-pro-filter-group">
-                  <div class="pos-filter-item">
-                    <label for="posCategoryFilter">Category</label>
-                    <select id="posCategoryFilter" class="form-control form-control-sm pos-filter-select" title="Filter by Category">
-                      <option value="">All Categories</option>
-                    </select>
-                  </div>
-
-                  <div class="pos-filter-item">
-                    <label for="posStockFilter">Stock</label>
-                    <select id="posStockFilter" class="form-control form-control-sm pos-filter-select" title="Filter by Stock Status">
-                      <option value="all">All Stock</option>
-                      <option value="instock">In-Stock Only</option>
-                    </select>
-                  </div>
-
-                  <div class="pos-filter-item">
-                    <label for="posRateModeSelect">Rate</label>
-                    <select id="posRateModeSelect" class="form-control form-control-sm pos-filter-select" title="Default Rate Mode">
-                      <option value="retail">Retail Rate</option>
-                      <option value="wholesale">Wholesale Rate</option>
-                    </select>
-                  </div>
+                  <span>Invoice #:</span>
+                </label>
+                <div class="pur-voucher-search-wrap" style="width: 145px;">
+                  <input type="text" id="saleVoucherNo" class="form-control form-control-sm pur-voucher-search-input pur-readonly-input font-num font-bold" readonly value="SV-0001">
+                  <span id="saleVoucherNoDisplay" style="display:none;">SV-0001</span>
                 </div>
               </div>
 
-              <!-- 2. Customer & Payment Details Bar (Below Search & Filters) -->
-              <div class="pos-customer-bar">
-                <div class="form-group pos-cust-select-group">
-                  <label id="salePartySelectLabel" for="saleCustomerSelect">Registered Staff</label>
-                  <div class="pos-cust-select-wrapper">
-                    <select id="saleCustomerSelect" class="form-control form-control-sm">
-                      <option value="">Select Staff / Customer</option>
-                    </select>
+              <!-- Dual Pricing Mode Switcher (Retail vs Wholesale) -->
+              <div class="pur-filter-rate-field" style="display: flex; align-items: center; gap: 8px;">
+                <label class="pur-filter-label">
+                  <svg class="pur-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                  </svg>
+                  <span>Rate Mode:</span>
+                </label>
+                <div class="sale-rate-segmented-control" role="group" aria-label="Bill Pricing Mode">
+                  <button type="button" id="btnModeRetail" class="sale-rate-seg-btn active" data-mode="retail" title="Use Retail Pricing">
+                    <span class="seg-icon">🏷️</span>
+                    <span class="seg-text">Retail</span>
+                  </button>
+                  <button type="button" id="btnModeWholesale" class="sale-rate-seg-btn" data-mode="wholesale" title="Use Wholesale Pricing">
+                    <span class="seg-icon">📦</span>
+                    <span class="seg-text">Wholesale</span>
+                  </button>
+                </div>
+                <select id="posRateModeSelect" style="display: none;">
+                  <option value="retail">Retail Rate</option>
+                  <option value="wholesale">Wholesale Rate</option>
+                </select>
+              </div>
+
+              <!-- Active Rate Mode Summary Pill -->
+              <span id="posActiveRateModeLabel" class="pur-summary-pill" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; border-radius: 6px;">
+                Retail Rate
+              </span>
+            </div>
+
+            <div class="purchase-top-right" style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" id="btnF1ProductLookup" class="btn btn-sm btn-primary pur-top-print-btn" title="Open Product Catalog (F1)">
+                <span style="background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: 800; font-size: 10px; margin-right: 4px;">F1</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span>Products (F1)</span>
+              </button>
+              <button type="button" id="btnOpenSalesHistory" class="btn btn-sm btn-secondary pur-top-print-btn" title="View Sales History & Invoices" onclick="window.SalesModule.openHistoryModal()">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>History</span>
+              </button>
+              <button type="button" id="btnSalePrint" class="btn btn-sm btn-outline pur-top-print-btn" title="Print Bill Slip">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print</span>
+              </button>
+              <button type="button" id="btnSaleNew" class="btn btn-sm btn-outline pur-top-print-btn" title="New Sale Voucher (F2)">
+                <span style="font-weight: 800; margin-right: 4px;">+</span>
+                <span>New Bill (F2)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- FULL-PAGE SALE ENTRY PAGE (Matches purchase-entry-page in Inventory) -->
+          <div id="saleEntryPage" class="purchase-entry-page" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; padding: 4px 0 12px; gap: 8px;">
+
+            <!-- UNIFIED ENTRY CARD (Voucher #, Party Name, Date, Customer Details + Collapsible Product Inputs) -->
+            <div class="pur-entry-combined-card">
+              <!-- Row 1: Party/Customer, Buyer Name, Phone, Payment Mode, Khata Balance, Add Item Toggle -->
+              <div class="pur-entry-top-row">
+                <!-- Party / Customer Select with Walk-In shortcut -->
+                <div class="pur-cell pur-cell-party" style="flex: 1.5; min-width: 220px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label id="salePartySelectLabel" style="margin-bottom: 0;">PARTY / CUSTOMER <span class="text-danger">*</span></label>
+                    <button type="button" id="btnQuickWalkIn" class="btn btn-xs btn-outline" style="padding: 1px 7px; font-size: 10px; height: 18px; line-height: 1;" title="Reset to Walk-in Cash Customer">Walk-In</button>
                   </div>
-                </div>
-
-                <div class="form-group pos-cust-name-group">
-                  <label id="saleCustomerNameLabel" for="saleCustomerName">Customer Name</label>
-                  <input type="text" id="saleCustomerName" class="form-control form-control-sm font-bold"
-                    placeholder="Enter customer name">
-                </div>
-
-                <div class="form-group pos-cust-phone-group">
-                  <label for="saleCustomerPhone">Phone Number</label>
-                  <input type="text" id="saleCustomerPhone" class="form-control form-control-sm font-num"
-                    placeholder="Enter phone number">
-                </div>
-
-                <div class="form-group pos-cust-pay-group">
-                  <label for="salePaymentType">Payment Mode</label>
-                  <select id="salePaymentType" class="form-control form-control-sm font-bold">
-                    <option value="Cash">Cash Sale</option>
-                    <option value="Credit">Credit Ledger</option>
-                    <option value="Bank">Bank Transfer</option>
+                  <select id="saleCustomerSelect" class="form-control font-bold">
+                    <option value="">Walk-in Cash Customer</option>
                   </select>
                 </div>
 
-                <div class="form-group pos-cust-date-group">
-                  <label for="saleEntryDate">Sale Date</label>
-                  <input type="date" id="saleEntryDate" class="form-control form-control-sm font-num">
+                <!-- Buyer / Customer Name -->
+                <div class="pur-cell" style="flex: 1.2; min-width: 150px;">
+                  <label id="saleCustomerNameLabel">BUYER NAME</label>
+                  <input type="text" id="saleCustomerName" class="form-control font-bold" placeholder="Walk-in Cash Customer" value="Walk-in Cash Customer">
                 </div>
 
-                <div class="form-group pos-cust-bal-group">
-                  <label>Previous Balance</label>
-                  <div class="pos-cust-bal-box" id="posPrevBalanceBox">
-                    <span id="saleCustomerPrevBalance" class="pos-bal-val font-num font-bold" data-raw-balance="0">Rs 0.00</span>
+                <!-- Phone / Mobile -->
+                <div class="pur-cell" style="width: 130px; flex-shrink: 0;">
+                  <label>PHONE</label>
+                  <input type="text" id="saleCustomerPhone" class="form-control font-num" placeholder="03xx-xxxxxxx">
+                </div>
+
+                <!-- Payment Mode -->
+                <div class="pur-cell" style="width: 135px; flex-shrink: 0;">
+                  <label>PAYMENT MODE</label>
+                  <select id="salePaymentType" class="form-control font-bold">
+                    <option value="Cash">Cash Sale</option>
+                    <option value="Credit">Credit Ledger</option>
+                    <option value="Bank">Bank / Online</option>
+                  </select>
+                </div>
+
+                <!-- Bill Status (Paid vs Estimated) -->
+                <div class="pur-cell" style="width: 145px; flex-shrink: 0;">
+                  <label>BILL STATUS</label>
+                  <select id="saleBillStatus" class="form-control font-bold" style="background: #f0fdf4; color: #166534; border-color: #86efac;" title="Choose between Paid Bill (Deducts Inventory) and Estimated Bill (No Stock Deducted)">
+                    <option value="Paid">💳 Paid Bill</option>
+                    <option value="Estimated">📋 Estimated Bill</option>
+                  </select>
+                </div>
+
+                <!-- Khata Balance -->
+                <div class="pur-cell" style="width: 140px; flex-shrink: 0;">
+                  <label>KHATA BALANCE</label>
+                  <div class="pos-cust-bal-box" id="posPrevBalanceBox" style="height: 34px; display: flex; align-items: center; justify-content: flex-end; padding: 0 10px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px;">
+                    <span id="saleCustomerPrevBalance" class="pos-bal-val font-num font-bold" data-raw-balance="0" style="color: #0284c7; font-size: 13px;">Rs 0.00</span>
                   </div>
                 </div>
-
-                <!-- Hidden compatibility stubs -->
-                <input type="hidden" id="salePartyTypeSelect" value="general">
-                <input type="hidden" id="saleCustomerArea">
-                <input type="hidden" id="saleManualNo">
-                <input type="hidden" id="saleStoreTitle" value="Main Store">
-                <input type="hidden" id="saleDescription">
               </div>
-
-              <!-- 3. Products Catalog Table -->
-              <div class="pos-catalog-container">
-                <div class="pos-catalog-header-strip">
-                  <span id="posProductsCountText" class="font-bold text-secondary">Loading products...</span>
-                </div>
-
-                <div class="pos-catalog-scroll">
-                  <table class="pos-catalog-table">
-                    <thead>
-                      <tr>
-                        <th class="col-code">Code</th>
-                        <th class="col-name">Product Name</th>
-                        <th class="col-cat">Category</th>
-                        <th class="col-stock">Stock</th>
-                        <th class="col-retail">Retail Rate</th>
-                        <th class="col-wholesale">Wholesale Rate</th>
-                        <th class="col-qty">Qty to Sell</th>
-                        <th class="col-action">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody id="posProductsTableBody">
-                      <!-- Populated dynamically via JS -->
-                    </tbody>
-                  </table>
-                  <div id="posProductsEmpty" class="pos-empty-catalog hidden">
-                    <p>No products found matching your search term.</p>
-                  </div>
-                </div>
-                <div class="pos-catalog-pagination-bar" id="posCatalogPagination"></div>
-              </div>
-
-              <!-- Legacy Stubs for Full JS Compatibility -->
-              <div id="posLegacyStubs" style="display: none !important;">
-                <input type="text" id="saleItemCode">
-                <button type="button" id="btnSaleFindProduct"></button>
-                <select id="saleProductSelect"></select>
-                <input type="text" id="saleProductSearchInput">
-                <div id="saleProductDropdownList"></div>
-                <input type="number" id="salePackSize" value="1">
-                <input type="number" id="salePackQty" value="1">
-                <input type="number" id="saleUnitQty" value="0">
-                <input type="number" id="saleTotalQty" value="1">
-                <span id="saleAvailableStock">0</span>
-                <div id="salePurchasePricePill">0.00</div>
-                <div id="saleWholesalePricePill">0.00</div>
-                <div id="saleRetailPricePill">0.00</div>
-                <input type="number" id="saleSalePriceInput" value="0.00">
-                <input type="number" id="saleDiscountPercent" value="0">
-                <input type="number" id="saleLineAmount" value="0.00">
-                <button type="button" id="btnSaleAddItem"></button>
-                <button type="button" id="btnSaleHistory"></button>
-                <button type="button" id="btnOpenEstimateModal"></button>
-                <button type="button" id="btnOpenClosingModal"></button>
-                <button type="button" id="btnOpenClaimsModal"></button>
-              </div>
-
             </div>
 
-            <!-- RIGHT PANEL: Real Thermal Bill Slip with Direct Sell -->
-            <div class="pos-right-panel" id="posRightPanel">
-              
-              <div id="posRightCartView" class="pos-right-slip-card">
-                
-                <!-- Slip Top Toolbar: Header & New Sale Action -->
-                <div class="pos-slip-card-topbar">
-                  <div class="pos-slip-badge-title">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14 2 14 8 20 8"></polyline>
-                      <line x1="16" y1="13" x2="8" y2="13"></line>
-                      <line x1="16" y1="17" x2="8" y2="17"></line>
-                      <polyline points="10 9 9 9 8 9"></polyline>
-                    </svg>
-                    <span>BILL SLIP</span>
+            <!-- ROW 2: ACTIVE LINE ITEMS GRID / REPORT TABLE (Matches pur-items-grid) -->
+            <div class="table-container voucher-grid-container gi-table-wrapper pur-items-grid" style="flex: 1; min-height: 240px; margin: 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+              <div class="pur-bill-header-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: #f8fafc; border-bottom: 1.5px solid #e2e8f0;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="font-size: 12.5px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.02em;">🛒 Bill Line Items</strong>
+                  <span id="posBillItemCountBadge" class="pur-summary-pill" style="padding: 2px 8px; font-size: 11.5px; font-weight: 700;">0 Items</span>
+                </div>
+                <div>
+                  <button type="button" id="btnPosClearCart" class="btn btn-xs btn-outline" style="color: #dc2626; border-color: #fca5a5;" title="Clear all items from bill">Clear Bill</button>
+                </div>
+              </div>
+              <table class="data-table voucher-table gi-data-table pur-data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 44px; text-align: center;">SR</th>
+                    <th style="width: 110px; text-align: left; padding-left: 10px;">CODE</th>
+                    <th style="text-align: left; padding-left: 10px;">PRODUCT DESCRIPTION</th>
+                    <th style="width: 80px; text-align: center;">STOCK</th>
+                    <th style="width: 165px; text-align: center;">RATE TYPE</th>
+                    <th style="width: 125px; text-align: right; padding-right: 14px;">UNIT RATE</th>
+                    <th style="width: 130px; text-align: center;">QUANTITY</th>
+                    <th style="width: 85px; text-align: center;">DISC %</th>
+                    <th style="width: 125px; text-align: right; padding-right: 14px;">AMOUNT</th>
+                    <th style="width: 46px; text-align: center;">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody id="saleItemsTableBody"></tbody>
+              </table>
+
+              <!-- Dedicated Clean Empty State matching Inventory -->
+              <div id="saleItemsEmptyState" class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 42px 16px; width: 100%;">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#cbd5e1" stroke-width="1.5">
+                  <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <span style="font-size: 13.5px; color: #94a3b8;">No items added — scan barcode, search product above, or press <strong>F1</strong></span>
+                <button type="button" class="btn btn-primary btn-sm" onclick="window.SalesModule.openProductLookupModal()" style="margin-top: 4px;">
+                  <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; font-weight: 800; margin-right: 4px;">F1</span> Browse Product Catalog
+                </button>
+              </div>
+            </div>
+
+            <!-- ROW 3: BILLING SETTLEMENT & SUMMARY DECK (Clean card matching pur-entry-combined-card) -->
+            <div class="pur-entry-combined-card sale-settlement-deck" style="padding: 12px 16px;">
+              <div style="display: grid; grid-template-columns: 1.2fr 1.2fr 1.3fr 1.1fr; gap: 16px; align-items: center;">
+                <!-- Column 1: Meta stats & notes -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <div class="pur-summary-pill" style="padding: 4px 10px; font-size: 12px;">
+                      <span class="pill-label">Total Items:</span>
+                      <strong id="saleTotalItemsCount" class="pill-count font-num">0</strong>
+                    </div>
+                    <div class="pur-summary-pill" style="padding: 4px 10px; font-size: 12px;">
+                      <span class="pill-label">Total Pieces:</span>
+                      <strong id="saleTotalPiecesCount" class="pill-count font-num">0</strong>
+                    </div>
                   </div>
-                  <div style="display: flex; align-items: center; gap: 6px;">
-                    <button type="button" id="btnPosClearCart" class="btn btn-secondary btn-sm pos-slip-mini-btn" title="Clear all items from slip">
-                      Clear
-                    </button>
-                    <button type="button" id="btnSaleNew" class="btn btn-secondary btn-sm pos-slip-mini-btn" title="New Sale Voucher (F2)">
-                      + New (F2)
-                    </button>
+                  <div>
+                    <input type="text" id="saleRemarksInput" class="form-control form-control-sm" placeholder="Bill Notes / Remarks (Optional)..." style="height: 34px; font-size: 12.5px;">
                   </div>
                 </div>
 
-                <!-- Slip Paper Body -->
-                <div class="pos-slip-card-body">
-                  
-                  <!-- Shop Info Header -->
-                  <div class="pos-slip-header-brand">
-                    <div id="posSlipCompanyTitle" class="pos-slip-brand-title">SHAHZAIB TRADERS</div>
-                    <div id="posSlipCompanySubtitle" class="pos-slip-brand-sub">Electrical Goods &amp; Accessories</div>
-                    <div class="pos-slip-brand-meta">
-                      <span id="posSlipCompanyAddress">Main Commercial Market</span>
-                      <span class="pos-slip-dot">•</span>
-                      <span id="posSlipCompanyPhone">Ph: 0300-1234567</span>
+                <!-- Column 2: Financial breakdown -->
+                <div style="display: flex; flex-direction: column; gap: 6px; padding: 0 10px; border-left: 1px dashed #cbd5e1; border-right: 1px dashed #cbd5e1;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;">
+                    <span style="color: #64748b; font-weight: 600;">Subtotal (Gross):</span>
+                    <strong id="saleGrossTotal" class="font-num" style="color: #1e293b; font-size: 13.5px;">Rs 0.00</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;">
+                    <span style="color: #64748b; font-weight: 600;">Special Discount:</span>
+                    <div style="display: inline-flex; align-items: center; gap: 4px;">
+                      <span style="font-size: 11px; color: #94a3b8;">- Rs</span>
+                      <input type="number" id="saleSpecialDiscount" class="form-control form-control-sm font-num text-right" min="0" step="1" value="0" style="width: 85px; height: 28px; font-weight: 700;">
                     </div>
                   </div>
-
-                  <!-- Invoice Meta Grid -->
-                  <div class="pos-slip-meta-block">
-                    <div class="pos-slip-meta-row">
-                      <span>Invoice: <strong id="saleVoucherNoDisplay">SV-0001</strong></span>
-                      <input type="hidden" id="saleVoucherNo" value="SV-0001">
-                      <span id="posSlipDateDisplay">17/10/2026</span>
-                    </div>
-                    <div class="pos-slip-meta-row">
-                      <span class="pos-slip-cust-name">Customer: <strong id="posSlipCustomerDisplay">Walk-In Cash Customer</strong></span>
-                      <span id="posSlipPaymentDisplay" class="pos-slip-pay-badge">Cash Sale</span>
-                    </div>
-                    <div class="pos-slip-meta-row" id="posSlipPrevBalRow" style="display: none;">
-                      <span>Old Balance:</span>
-                      <strong id="posSlipPrevBalDisplay" class="font-bold text-danger">Rs 0.00</strong>
-                    </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
+                    <span style="font-size: 12.5px; font-weight: 800; color: #1e40af; text-transform: uppercase;">NET PAYABLE:</span>
+                    <span id="saleNetTotal" class="pur-net-input" style="display: inline-flex; align-items: center; justify-content: flex-end; width: 140px; height: 32px; font-size: 15px; font-weight: 800;">Rs 0.00</span>
                   </div>
-
-                  <!-- Fixed-Height Paginated Items Table (Never Expands Downward) -->
-                  <div class="pos-slip-table-container">
-                    <table class="pos-slip-table">
-                      <thead>
-                        <tr>
-                          <th class="pos-slip-th-item">ITEM</th>
-                          <th class="pos-slip-th-qty">QTY</th>
-                          <th class="pos-slip-th-rate">RATE</th>
-                          <th class="pos-slip-th-total">TOTAL</th>
-                          <th class="pos-slip-th-del">✕</th>
-                        </tr>
-                      </thead>
-                      <tbody id="saleItemsTableBody">
-                        <!-- Populated dynamically (max 5 rows) -->
-                      </tbody>
-                    </table>
-
-                    <div id="saleItemsEmptyState" class="pos-slip-empty-state">
-                      <div class="pos-slip-empty-icon">🧾</div>
-                      <div class="pos-slip-empty-title">Slip is Empty</div>
-                      <div class="pos-slip-empty-sub">Click <strong>+ Add</strong> on any product</div>
-                    </div>
-                  </div>
-
-                  <!-- Compact Slip Pagination Controls (Shows only when items > 5) -->
-                    <div class="pos-slip-mini-pagination" id="posSlipPaginationBar" style="display: none;">
-                      <span class="pos-slip-pag-info" id="posSlipPaginationInfo">Items 1–6 of 12</span>
-                      <div class="pos-slip-pag-btns">
-                        <button type="button" class="pos-slip-pag-btn" id="btnPosSlipPrev" onclick="window.SalesModule.changeSlipPage(-1)" title="Previous Page">‹ Prev</button>
-                        <span class="pos-slip-pag-curr" id="posSlipPaginationCurrent">Page 1 of 2</span>
-                        <button type="button" class="pos-slip-pag-btn" id="btnPosSlipNext" onclick="window.SalesModule.changeSlipPage(1)" title="Next Page">Next ›</button>
-                      </div>
-                    </div>
-
-                  <!-- Slip Totals & Calculations -->
-                  <div class="pos-slip-totals-block">
-                    <div class="pos-slip-row">
-                      <span class="pos-slip-tot-lbl">Subtotal:</span>
-                      <strong id="saleGrossTotal" class="font-num pos-slip-tot-val">Rs 0.00</strong>
-                      <span id="posSlipGrossDisplay" style="display: none;">Rs 0.00</span>
-                    </div>
-                    <div class="pos-slip-row">
-                      <span class="pos-slip-tot-lbl">Special Disc:</span>
-                      <div class="pos-slip-disc-box">
-                        <span>- Rs</span>
-                        <input type="number" id="saleSpecialDiscount" class="form-control form-control-sm font-num text-right pos-slip-disc-input" min="0" step="1" value="0">
-                      </div>
-                      <span id="posSlipDiscountDisplay" style="display: none;">- Rs 0.00</span>
-                    </div>
-                    <div class="pos-slip-net-row">
-                      <span class="pos-slip-net-lbl">NET TOTAL:</span>
-                      <span id="saleNetTotal" class="pos-slip-net-val font-num font-bold">Rs 0.00</span>
-                      <span id="posCartEstimatedNet" style="display: none;">Rs 0.00</span>
-                    </div>
-
-                    <!-- Live Cash Received / Change / Due -->
-                    <div class="pos-slip-row pos-slip-pay-row">
-                      <span class="font-bold" style="font-size: 12px; color: #0f172a;">Cash Received:</span>
-                      <div class="pos-slip-paid-wrapper">
-                        <span style="font-size: 12px; font-weight: 700; color: #475569;">Rs</span>
-                        <input type="number" id="salePaidAmount" class="pos-slip-paid-input font-num font-bold" min="0" step="1" value="0" placeholder="0">
-                      </div>
-                    </div>
-                    <div class="pos-slip-row" id="posChangeRow" style="display: none;">
-                      <span class="font-bold" style="font-size: 12px; color: #16a34a;">Return Change:</span>
-                      <strong id="saleReturnChange" class="font-num" style="color: #16a34a; font-size: 13px;">Rs 0.00</strong>
-                    </div>
-                    <div class="pos-slip-row" id="posBalanceRow">
-                      <span class="font-bold" style="font-size: 12px; color: #475569;">Balance Due:</span>
-                      <strong id="saleBalanceDue" class="font-num text-success" style="font-size: 13px;">Rs 0.00</strong>
-                    </div>
-                    <div class="pos-slip-row" id="posNewLedgerRow" style="display: none;">
-                      <span>New Ledger Balance:</span>
-                      <span id="saleFinalCustomerBalance" class="font-bold">Rs 0.00</span>
-                    </div>
-
-                    <!-- Hidden counters for JS compatibility -->
-                    <div style="display: none !important;">
-                      <span id="saleTotalItemsCount">0</span>
-                      <span id="saleTotalPiecesCount">0</span>
-                      <span id="saleTotalProfitPreview">Rs 0.00</span>
-                      <span id="posCartCountBadge">0</span>
-                      <tbody id="posSlipItemsTableBody"></tbody>
-                    </div>
-                  </div>
-
                 </div>
 
-                <!-- Slip Docked Action Footer (Instant Sell) -->
-                <div class="pos-slip-footer-bar">
-                  <button type="button" id="btnSaleSave" class="btn btn-primary pos-btn-sell-clean" title="Confirm Sale (Ctrl+S / F10)">
-                    <span>Sell</span>
+                <!-- Column 3: Payment settlement -->
+                <div style="display: flex; flex-direction: column; gap: 6px; padding-right: 10px; border-right: 1px dashed #cbd5e1;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;">
+                    <span style="color: #64748b; font-weight: 600;">Cash Received:</span>
+                    <div style="display: inline-flex; align-items: center; gap: 4px;">
+                      <span style="font-size: 11px; color: #94a3b8;">Rs</span>
+                      <input type="number" id="salePaidAmount" class="form-control form-control-sm font-num font-bold text-right" min="0" step="1" value="0" placeholder="0" style="width: 110px; height: 30px;">
+                    </div>
+                  </div>
+                  <div id="posChangeRow" style="display: none; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="color: #16a34a; font-weight: 700;">Return Change:</span>
+                    <strong id="saleReturnChange" class="font-num" style="color: #16a34a; font-size: 13.5px;">Rs 0.00</strong>
+                  </div>
+                  <div id="posBalanceRow" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="color: #64748b; font-weight: 600;">Balance Due / Ledger:</span>
+                    <strong id="saleBalanceDue" class="font-num text-success" style="font-size: 13px;">Rs 0.00</strong>
+                  </div>
+                  <div id="posNewLedgerRow" style="display: none; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="color: #475569; font-weight: 600;">New Ledger Balance:</span>
+                    <strong id="saleFinalCustomerBalance" class="font-num font-bold">Rs 0.00</strong>
+                  </div>
+                </div>
+
+                <!-- Column 4: Actions (Confirm Sale, Print, Auto-print) -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <button type="button" id="btnSaleSave" class="btn btn-primary btn-add-voucher-line" style="height: 38px; font-size: 13.5px; font-weight: 800; justify-content: center; width: 100%; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);" title="Confirm Sale (Ctrl+S / F10)">
+                    <span style="font-size: 15px;">✓</span>
+                    <span>Confirm Sale</span>
                   </button>
-                  <div class="pos-slip-footer-sub">
-                    <button type="button" id="btnSalePrint" class="btn btn-secondary btn-sm" title="Print Bill Only">
-                      Print Only
-                    </button>
-                    <label class="pos-checkbox-label" title="Automatically print receipt when sale is confirmed">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="pos-checkbox-label" style="font-size: 12px; font-weight: 600; color: #475569; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" title="Automatically print thermal receipt when sale is confirmed">
                       <input type="checkbox" id="chkSalePrintReceipt" checked>
                       <span>Auto-Print</span>
                     </label>
+                    <span style="font-size: 10.5px; color: #94a3b8; font-weight: 600;">Ctrl+S / F10</span>
                   </div>
                 </div>
-
               </div>
-
             </div>
 
-          </div>
+            <!-- Compatibility / Stubs -->
+            <div id="posLegacyStubs" style="display: none !important;">
+              <input type="hidden" id="salePartyTypeSelect" value="general">
+              <input type="hidden" id="saleCustomerArea">
+              <input type="hidden" id="saleManualNo">
+              <input type="hidden" id="saleStoreTitle" value="Main Store">
+              <input type="hidden" id="saleDescription">
+              <input type="text" id="saleItemCode">
+              <button type="button" id="btnSaleFindProduct"></button>
+              <select id="saleProductSelect"></select>
+              <input type="text" id="saleProductSearchInput">
+              <div id="saleProductDropdownList"></div>
+              <input type="number" id="salePackSize" value="1">
+              <input type="number" id="salePackQty" value="1">
+              <input type="number" id="saleUnitQty" value="0">
+              <input type="number" id="saleTotalQty" value="1">
+              <span id="saleAvailableStock">0</span>
+              <div id="salePurchasePricePill">0.00</div>
+              <div id="saleWholesalePricePill">0.00</div>
+              <div id="saleRetailPricePill">0.00</div>
+              <input type="number" id="saleSalePriceInput" value="0.00">
+              <input type="number" id="saleDiscountPercent" value="0">
+              <input type="number" id="saleLineAmount" value="0.00">
+              <button type="button" id="btnSaleAddItem"></button>
+              <button type="button" id="btnSaleHistory"></button>
+              <span id="posSlipGrossDisplay"></span>
+              <span id="posSlipDiscountDisplay"></span>
+              <span id="posCartEstimatedNet"></span>
+              <span id="posCartCountBadge">0</span>
+              <span id="saleTotalProfitPreview">Rs 0.00</span>
+              <div id="posSlipItemsTableBody"></div>
+              <div id="posSlipPaginationBar"></div>
+            </div>
+
+          </div><!-- /saleEntryPage -->
 
         </div>
 
         <!-- SUBVIEW 2: Sale Return Voucher -->
         <div id="subviewSaleReturn" class="sales-subview-panel hidden">
           
-          <div id="returnVoucherMainLayout" class="pos-main-container">
-            <!-- LEFT PANEL: Customer Info, Professional Filter Bar, and Product Catalog -->
-            <div class="pos-left-panel">
-              
-              <!-- 1. Professional Filter & Search Bar (At the Top) -->
-              <div class="pos-pro-filter-bar">
-                <div class="pos-pro-search-box">
-                  <svg class="pos-pro-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <!-- TOP FILTER & COMMAND BAR (Matches purchase-top-bar in Inventory & Sales) -->
+          <div class="purchase-top-bar sale-top-bar sale-return-top-bar">
+            <div class="purchase-top-left">
+              <!-- Date Filter -->
+              <div class="pur-filter-date-field">
+                <label for="returnEntryDate" class="pur-filter-label">
+                  <svg class="pur-filter-icon" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
                   </svg>
-                  <input type="text" id="returnPosProductSearch" class="pos-pro-search-input"
-                    placeholder="Search by name, code, barcode..." autocomplete="off">
-                  <button type="button" id="returnPosClearSearch" class="pos-pro-clear-btn" title="Clear Search">✕</button>
-                </div>
-
-                <div class="pos-pro-filter-group">
-                  <div class="pos-filter-item">
-                    <label for="returnPosCategoryFilter">Category</label>
-                    <select id="returnPosCategoryFilter" class="form-control form-control-sm pos-filter-select" title="Filter by Category">
-                      <option value="">All Categories</option>
-                    </select>
-                  </div>
-
-                  <div class="pos-filter-item">
-                    <label for="returnPosStockFilter">Stock</label>
-                    <select id="returnPosStockFilter" class="form-control form-control-sm pos-filter-select" title="Filter by Stock Status">
-                      <option value="all">All Stock</option>
-                      <option value="instock">In-Stock Only</option>
-                    </select>
-                  </div>
-
-                  <div class="pos-filter-item">
-                    <label for="returnPosRateModeSelect">Rate</label>
-                    <select id="returnPosRateModeSelect" class="form-control form-control-sm pos-filter-select" title="Default Rate Mode">
-                      <option value="retail">Retail Rate</option>
-                      <option value="wholesale">Wholesale Rate</option>
-                    </select>
-                  </div>
+                  <span>Return Date:</span>
+                </label>
+                <div class="pur-date-input-wrap">
+                  <input type="date" id="returnEntryDate" class="form-control form-control-sm pur-filter-date-input" title="Return Date">
                 </div>
               </div>
 
-              <!-- 2. Customer & Return Details Bar (Below Search & Filters) -->
-              <div class="pos-customer-bar">
-                <div class="form-group pos-cust-select-group">
-                  <label id="returnPartySelectLabel" for="returnCustomerSelect">Registered Staff</label>
-                  <div class="pos-cust-select-wrapper">
-                    <select id="returnCustomerSelect" class="form-control form-control-sm">
-                      <option value="">Select Staff / Customer</option>
-                    </select>
+              <!-- Return Voucher # Input -->
+              <div class="pur-filter-voucher-field">
+                <label class="pur-filter-label">
+                  <svg class="pur-filter-icon" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                  </svg>
+                  <span>Return #:</span>
+                </label>
+                <div class="pur-voucher-search-wrap" style="width: 145px;">
+                  <input type="text" id="returnVoucherNo" class="form-control form-control-sm pur-voucher-search-input pur-readonly-input font-num font-bold text-danger" readonly value="SR-0001">
+                  <span id="returnSlipVoucherNoDisplay" style="display:none;">SR-0001</span>
+                </div>
+              </div>
+
+              <!-- Original Sale Bill Reference -->
+              <div class="pur-filter-ref-field" style="display: flex; align-items: center; gap: 8px;">
+                <label class="pur-filter-label">
+                  <svg class="pur-filter-icon" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                  </svg>
+                  <span>Orig. Sale Bill #:</span>
+                </label>
+                <div style="width: 135px;">
+                  <input type="text" id="returnOriginalBillRef" class="form-control form-control-sm font-num font-bold" placeholder="e.g. SV-0001" title="Original Sale Voucher Reference (Optional)">
+                </div>
+              </div>
+
+              <!-- Return Badge Pill -->
+              <span class="pur-summary-pill" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 6px;">
+                🔄 SALE RETURN & RESTOCK
+              </span>
+            </div>
+
+            <div class="purchase-top-right" style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" id="btnReturnF1ProductLookup" class="btn btn-sm btn-primary pur-top-print-btn" style="background: #dc2626; border-color: #dc2626;" title="Open Product Catalog (F1)" onclick="window.SalesModule.openProductLookupModal()">
+                <span style="background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: 800; font-size: 10px; margin-right: 4px;">F1</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span>Products (F1)</span>
+              </button>
+              <button type="button" id="btnReturnHistory" class="btn btn-sm btn-secondary pur-top-print-btn" title="View Sale Returns History" onclick="window.SalesModule.openReturnHistoryModal()">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Returns History</span>
+              </button>
+              <button type="button" id="btnReturnPrint" class="btn btn-sm btn-outline pur-top-print-btn" title="Print Return Memo">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Print Memo</span>
+              </button>
+              <button type="button" id="btnReturnNew" class="btn btn-sm btn-outline pur-top-print-btn" title="New Return Voucher (F2)">
+                <span style="font-weight: 800; margin-right: 4px;">+</span>
+                <span>New Return (F2)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- FULL-PAGE SALE RETURN ENTRY PAGE (Matches saleEntryPage) -->
+          <div id="returnEntryPage" class="purchase-entry-page" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; padding: 4px 0 12px; gap: 8px;">
+
+            <!-- UNIFIED ENTRY CARD: Customer Info, Refund Mode, Khata Balance -->
+            <div class="pur-entry-combined-card">
+              <div class="pur-entry-top-row">
+                <!-- Party / Customer Select with Walk-In shortcut -->
+                <div class="pur-cell pur-cell-party" style="flex: 1.5; min-width: 220px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label id="returnPartySelectLabel" style="margin-bottom: 0;">CUSTOMER / PARTY <span class="text-danger">*</span></label>
+                    <button type="button" id="btnReturnQuickWalkIn" class="btn btn-xs btn-outline" style="padding: 1px 7px; font-size: 10px; height: 18px; line-height: 1;" title="Reset to Walk-in Customer">Walk-In</button>
                   </div>
+                  <select id="returnCustomerSelect" class="form-control font-bold">
+                    <option value="">Walk-in Customer</option>
+                  </select>
                 </div>
 
-                <div class="form-group pos-cust-name-group">
-                  <label id="returnCustomerNameLabel" for="returnCustomerName">Customer Name</label>
-                  <input type="text" id="returnCustomerName" class="form-control form-control-sm font-bold"
-                    placeholder="Enter customer name">
+                <!-- Customer Name -->
+                <div class="pur-cell" style="flex: 1.2; min-width: 150px;">
+                  <label id="returnCustomerNameLabel">CUSTOMER NAME</label>
+                  <input type="text" id="returnCustomerName" class="form-control font-bold" placeholder="Walk-in Customer" value="Walk-in Customer">
                 </div>
 
-                <div class="form-group pos-cust-phone-group">
-                  <label for="returnCustomerPhone">Phone Number</label>
-                  <input type="text" id="returnCustomerPhone" class="form-control form-control-sm font-num"
-                    placeholder="Enter phone number">
+                <!-- Phone / Mobile -->
+                <div class="pur-cell" style="width: 130px; flex-shrink: 0;">
+                  <label>PHONE</label>
+                  <input type="text" id="returnCustomerPhone" class="form-control font-num" placeholder="03xx-xxxxxxx">
                 </div>
 
-                <div class="form-group pos-cust-pay-group">
-                  <label for="returnRefundMode">Refund Mode</label>
-                  <select id="returnRefundMode" class="form-control form-control-sm font-bold">
+                <!-- Refund Mode -->
+                <div class="pur-cell" style="width: 145px; flex-shrink: 0;">
+                  <label>REFUND MODE</label>
+                  <select id="returnRefundMode" class="form-control font-bold">
                     <option value="Credit" selected>Credit Ledger</option>
                     <option value="Cash">Cash Refund</option>
                   </select>
                 </div>
 
-                <div class="form-group pos-cust-date-group">
-                  <label for="returnEntryDate">Return Date</label>
-                  <input type="date" id="returnEntryDate" class="form-control form-control-sm font-num">
-                </div>
-
-                <div class="form-group" style="width: 140px;">
-                  <label for="returnOriginalBillRef">Orig. Sale Bill #</label>
-                  <input type="text" id="returnOriginalBillRef" class="form-control form-control-sm font-num font-bold"
-                    placeholder="SV-XXXX">
-                </div>
-
-                <!-- Hidden compatibility stubs -->
-                <input type="hidden" id="returnPartyTypeSelect" value="general">
-                <input type="hidden" id="returnCustomerArea">
-                <input type="hidden" id="returnCustomerPrevBalance">
-                <input type="hidden" id="returnReason" value="Customer Return">
-                <input type="hidden" id="returnDescription">
-                <input type="hidden" id="returnVoucherNo" value="SR-0001">
-              </div>
-
-              <!-- 3. Products Catalog Table for Return -->
-              <div class="pos-catalog-container">
-                <div class="pos-catalog-header-strip">
-                  <span id="returnPosProductsCountText" class="font-bold text-secondary">Loading products...</span>
-                </div>
-
-                <div class="pos-catalog-scroll">
-                  <table class="pos-catalog-table">
-                    <thead>
-                      <tr>
-                        <th class="col-code">Code</th>
-                        <th class="col-name">Product Name</th>
-                        <th class="col-cat">Category</th>
-                        <th class="col-stock">Stock</th>
-                        <th class="col-retail">Retail Rate</th>
-                        <th class="col-wholesale">Wholesale Rate</th>
-                        <th class="col-qty">Qty to Return</th>
-                        <th class="col-action">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody id="returnPosProductsTableBody">
-                      <!-- Populated dynamically via JS -->
-                    </tbody>
-                  </table>
-                  <div id="returnPosProductsEmpty" class="pos-empty-catalog hidden">
-                    <p>No products found matching your search term.</p>
+                <!-- Khata Balance -->
+                <div class="pur-cell" style="width: 140px; flex-shrink: 0;">
+                  <label>KHATA BALANCE</label>
+                  <div class="pos-cust-bal-box" id="returnPrevBalanceBox" style="height: 34px; display: flex; align-items: center; justify-content: flex-end; padding: 0 10px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px;">
+                    <span id="returnCustomerPrevBalance" class="pos-bal-val font-num font-bold" data-raw-balance="0" style="color: #0284c7; font-size: 13px;">Rs 0.00</span>
                   </div>
                 </div>
-                <div class="pos-catalog-pagination-bar" id="returnPosCatalogPagination"></div>
               </div>
-
-              <!-- Legacy Stubs for Full Return JS Compatibility -->
-              <div id="returnLegacyStubs" style="display: none !important;">
-                <input type="text" id="returnItemCode">
-                <button type="button" id="btnReturnFindProduct"></button>
-                <select id="returnProductSelect"></select>
-                <input type="text" id="returnProductSearchInput">
-                <div id="returnProductDropdownList"></div>
-                <input type="number" id="returnPackSize" value="1">
-                <input type="number" id="returnPackQty" value="0">
-                <input type="number" id="returnUnitQty" value="1">
-                <input type="number" id="returnTotalQty" value="1">
-                <span id="returnAvailableStock">0</span>
-                <select id="returnItemCondition"><option value="Good" selected>Good</option></select>
-                <div id="returnCostPill">0.00</div>
-                <div id="returnWholesalePill">0.00</div>
-                <div id="returnRetailPill">0.00</div>
-                <input type="number" id="returnRateInput" value="0.00">
-                <input type="number" id="returnLineAmount" value="0.00">
-                <button type="button" id="btnReturnAddItem"></button>
-                <button type="button" id="btnReturnHistory"></button>
-                <button type="button" id="btnReturnOpenEstimateModal"></button>
-                <button type="button" id="btnReturnOpenClosingModal"></button>
-                <button type="button" id="btnReturnOpenClaimsModal"></button>
-              </div>
-
             </div>
 
-            <!-- RIGHT PANEL: Real Thermal Return Slip with Direct Return -->
-            <div class="pos-right-panel" id="returnPosRightPanel">
-              
-              <div id="returnPosRightCartView" class="pos-right-slip-card return-card">
-                
-                <!-- Slip Top Toolbar: Header & New Return Action -->
-                <div class="pos-slip-card-topbar">
-                  <div class="pos-slip-badge-title" style="color: #dc2626;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="1 4 1 10 7 10"></polyline>
-                      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                    </svg>
-                    <span>RETURN SLIP</span>
+            <!-- ROW 2: ACTIVE RETURN ITEMS GRID / REPORT TABLE -->
+            <div class="table-container voucher-grid-container gi-table-wrapper pur-items-grid" style="flex: 1; min-height: 240px; margin: 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+              <div class="pur-bill-header-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: #fff5f5; border-bottom: 1.5px solid #fecaca;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="font-size: 12.5px; color: #991b1b; text-transform: uppercase; letter-spacing: 0.02em;">🔄 Return Line Items</strong>
+                  <span id="returnBillItemCountBadge" class="pur-summary-pill" style="padding: 2px 8px; font-size: 11.5px; font-weight: 700; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;">0 Items</span>
+                </div>
+                <div>
+                  <button type="button" id="btnReturnClearCart" class="btn btn-xs btn-outline" style="color: #dc2626; border-color: #fca5a5;" title="Clear all returned items">Clear Return Slip</button>
+                </div>
+              </div>
+              <table class="data-table voucher-table gi-data-table pur-data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 44px; text-align: center;">SR</th>
+                    <th style="width: 110px; text-align: left; padding-left: 10px;">CODE</th>
+                    <th style="text-align: left; padding-left: 10px;">PRODUCT DESCRIPTION</th>
+                    <th style="width: 75px; text-align: center;">STOCK</th>
+                    <th style="width: 130px; text-align: center;">CONDITION</th>
+                    <th style="width: 130px; text-align: right; padding-right: 14px;">RETURN RATE</th>
+                    <th style="width: 135px; text-align: center;">RETURN QTY</th>
+                    <th style="width: 135px; text-align: right; padding-right: 16px;">REFUND AMOUNT</th>
+                    <th style="width: 55px; text-align: center;">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody id="returnItemsTableBody"></tbody>
+              </table>
+
+              <!-- Dedicated Clean Empty State matching Inventory & Sales -->
+              <div id="returnItemsEmptyState" class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 42px 16px; width: 100%;">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#fca5a5" stroke-width="1.5">
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                <span style="font-size: 13.5px; color: #94a3b8;">No items returned yet — press <strong>F1</strong> to select products from catalog</span>
+                <button type="button" class="btn btn-primary btn-sm" onclick="window.SalesModule.openProductLookupModal()" style="background: #dc2626; border-color: #dc2626; margin-top: 4px;">
+                  <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; font-weight: 800; margin-right: 4px;">F1</span> Browse Product Catalog
+                </button>
+              </div>
+            </div>
+
+            <!-- ROW 3: REFUND SETTLEMENT & SUMMARY DECK -->
+            <div class="pur-entry-combined-card sale-settlement-deck" style="padding: 12px 16px;">
+              <div style="display: grid; grid-template-columns: 1.2fr 1.2fr 1.3fr 1.1fr; gap: 16px; align-items: center;">
+                <!-- Column 1: Meta stats & notes -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <div class="pur-summary-pill" style="padding: 4px 10px; font-size: 12px;">
+                      <span class="pill-label">Total Items:</span>
+                      <strong id="returnTotalItemsCount" class="pill-count font-num">0</strong>
+                    </div>
+                    <div class="pur-summary-pill" style="padding: 4px 10px; font-size: 12px;">
+                      <span class="pill-label">Total Pieces:</span>
+                      <strong id="returnTotalPiecesCount" class="pill-count font-num">0</strong>
+                    </div>
                   </div>
-                  <div style="display: flex; align-items: center; gap: 6px;">
-                    <button type="button" id="btnReturnPosClearCart" class="btn btn-secondary btn-sm pos-slip-mini-btn" title="Clear all items from return slip">
-                      Clear
-                    </button>
-                    <button type="button" id="btnReturnNew" class="btn btn-secondary btn-sm pos-slip-mini-btn" title="New Return Voucher (F2)">
-                      + New (F2)
-                    </button>
+                  <div>
+                    <input type="text" id="returnRemarksInput" class="form-control form-control-sm" placeholder="Return Reason / Remarks (Optional)..." style="height: 34px; font-size: 12.5px;">
                   </div>
                 </div>
 
-                <!-- Slip Paper Body -->
-                <div class="pos-slip-card-body">
-                  
-                  <!-- Shop Info Header -->
-                  <div class="pos-slip-header-brand" style="border-top: 3px solid #dc2626;">
-                    <div id="returnSlipCompanyTitle" class="pos-slip-brand-title">SHAHZAIB TRADERS</div>
-                    <div id="returnSlipCompanySubtitle" class="pos-slip-brand-sub">Electrical Goods &amp; Accessories</div>
-                    <div class="pos-slip-brand-meta">
-                      <span id="returnSlipCompanyAddress">Main Commercial Market</span>
-                      <span class="pos-slip-dot">•</span>
-                      <span id="returnSlipCompanyPhone">Ph: 0300-1234567</span>
-                    </div>
-                    <div style="margin-top: 4px; display: inline-block; padding: 2px 8px; background: #fee2e2; color: #b91c1c; border-radius: 4px; font-weight: 800; font-size: 10.5px; letter-spacing: 0.5px;">
-                      SALE RETURN VOUCHER
+                <!-- Column 2: Financial breakdown -->
+                <div style="display: flex; flex-direction: column; gap: 6px; padding: 0 10px; border-left: 1px dashed #cbd5e1; border-right: 1px dashed #cbd5e1;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;">
+                    <span style="color: #64748b; font-weight: 600;">Gross Refund:</span>
+                    <strong id="returnGrossRefund" class="font-num" style="color: #1e293b; font-size: 13.5px;">Rs 0.00</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;">
+                    <span style="color: #64748b; font-weight: 600;">Deduction / Fee:</span>
+                    <div style="display: inline-flex; align-items: center; gap: 4px;">
+                      <span style="font-size: 11px; color: #94a3b8;">- Rs</span>
+                      <input type="number" id="returnSpecialDeduction" class="form-control form-control-sm font-num text-right" min="0" step="1" value="0" style="width: 85px; height: 28px; font-weight: 700;">
                     </div>
                   </div>
-
-                  <!-- Return Meta Grid -->
-                  <div class="pos-slip-meta-block">
-                    <div class="pos-slip-meta-row">
-                      <span>Return #: <strong id="returnSlipVoucherNoDisplay">SR-0001</strong></span>
-                      <input type="hidden" id="returnSlipVoucherNo" value="SR-0001">
-                      <span id="returnSlipDateDisplay">17/10/2026</span>
-                    </div>
-                    <div class="pos-slip-meta-row">
-                      <span class="pos-slip-cust-name">Customer: <strong id="returnSlipCustomerDisplay">Walk-in Customer</strong></span>
-                      <span id="returnSlipModeDisplay" class="pos-slip-pay-badge" style="color: #dc2626; background: #fee2e2;">Credit Ledger</span>
-                    </div>
-                    <div class="pos-slip-meta-row" id="returnSlipOrigBillRow">
-                      <span>Orig Sale Bill #:</span>
-                      <strong id="returnSlipOrigBillDisplay" class="font-bold">-</strong>
-                    </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
+                    <span style="font-size: 12.5px; font-weight: 800; color: #b91c1c; text-transform: uppercase;">NET REFUND:</span>
+                    <span id="returnNetTotal" class="pur-net-input" style="display: inline-flex; align-items: center; justify-content: flex-end; width: 140px; height: 32px; font-size: 15px; font-weight: 800; color: #b91c1c; background: #fef2f2; border: 1.5px solid #fecaca;">Rs 0.00</span>
                   </div>
-
-                  <!-- Fixed-Height Paginated Items Table (Never Expands Downward) -->
-                  <div class="pos-slip-table-container">
-                    <table class="pos-slip-table">
-                      <thead>
-                        <tr>
-                          <th class="pos-slip-th-item">ITEM</th>
-                          <th class="pos-slip-th-qty">QTY</th>
-                          <th class="pos-slip-th-rate">RATE</th>
-                          <th class="pos-slip-th-total">TOTAL</th>
-                          <th class="pos-slip-th-del">✕</th>
-                        </tr>
-                      </thead>
-                      <tbody id="returnItemsTableBody">
-                        <!-- Populated dynamically (max 5 rows) -->
-                      </tbody>
-                    </table>
-
-                    <div id="returnItemsEmptyState" class="pos-slip-empty-state">
-                      <div class="pos-slip-empty-icon">🔄</div>
-                      <div class="pos-slip-empty-title">Return Slip is Empty</div>
-                      <div class="pos-slip-empty-sub">Click <strong>+ Return</strong> on any product</div>
-                    </div>
-                  </div>
-
-                  <!-- Compact Slip Pagination Controls (Shows only when items > 5) -->
-                    <div class="pos-slip-mini-pagination" id="returnPosSlipPaginationBar" style="display: none;">
-                      <span class="pos-slip-pag-info" id="returnPosSlipPaginationInfo">Items 1–6 of 12</span>
-                      <div class="pos-slip-pag-btns">
-                        <button type="button" class="pos-slip-pag-btn" id="btnReturnSlipPrev" onclick="window.SalesModule.changeReturnSlipPage(-1)" title="Previous Page">‹ Prev</button>
-                        <span class="pos-slip-pag-curr" id="returnPosSlipPaginationCurrent">Page 1 of 2</span>
-                        <button type="button" class="pos-slip-pag-btn" id="btnReturnSlipNext" onclick="window.SalesModule.changeReturnSlipPage(1)" title="Next Page">Next ›</button>
-                      </div>
-                    </div>
-
-                  <!-- Slip Totals & Calculations -->
-                  <div class="pos-slip-totals-block" style="border-top-color: #dc2626;">
-                    <div class="pos-slip-row">
-                      <span class="pos-slip-tot-lbl">Subtotal Refund:</span>
-                      <strong id="returnGrossRefund" class="font-num pos-slip-tot-val" style="color: #dc2626;">Rs 0.00</strong>
-                      <span id="returnSlipGrossDisplay" style="display: none;">Rs 0.00</span>
-                    </div>
-                    <div class="pos-slip-row" id="returnSlipDiscRow">
-                      <span class="pos-slip-tot-lbl">Deduction / Disc:</span>
-                      <div class="pos-slip-disc-box">
-                        <span>- Rs</span>
-                        <input type="number" id="returnSpecialDeduction" class="form-control form-control-sm font-num text-right pos-slip-disc-input" min="0" step="1" value="0">
-                      </div>
-                      <span id="returnSlipDiscDisplay" style="display: none;">- Rs 0.00</span>
-                    </div>
-                    <div class="pos-slip-net-row" style="background: #fef2f2; border-color: #fecaca; color: #991b1b;">
-                      <span class="pos-slip-net-lbl">NET REFUND:</span>
-                      <span id="returnSlipNetDisplay" class="pos-slip-net-val font-num font-bold" style="color: #dc2626;">Rs 0.00</span>
-                      <span id="returnEstimatedNet" style="display: none;">Rs 0.00</span>
-                    </div>
-
-                    <!-- Hidden counters for JS compatibility -->
-                    <div style="display: none !important;">
-                      <span id="returnTotalItemsCount">0</span>
-                      <span id="returnTotalPiecesCount">0</span>
-                      <span id="returnPosCartCountBadge">0</span>
-                      <span id="returnSlipBarcodeMeta">* SR-0001 *</span>
-                      <tbody id="returnSlipItemsTableBody"></tbody>
-                    </div>
-                  </div>
-
                 </div>
 
-                <!-- Slip Docked Action Footer (Instant Return) -->
-                <div class="pos-slip-footer-bar">
-                  <button type="button" id="btnReturnSave" class="btn btn-primary pos-btn-return-clean" title="Confirm Sale Return">
-                    <span>Return</span>
+                <!-- Column 3: Settlement info -->
+                <div style="display: flex; flex-direction: column; gap: 6px; padding-right: 10px; border-right: 1px dashed #cbd5e1;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;">
+                    <span style="color: #64748b; font-weight: 600;">Refund Settlement:</span>
+                    <span id="returnSettlementModeBadge" class="badge-price-pill" style="font-size: 11px; background: #e0f2fe; color: #0369a1; font-weight: 700;">Credit Ledger</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="color: #64748b; font-weight: 600;">Stock Action:</span>
+                    <span class="badge-condition-good" style="background: #dcfce7; color: #166534; font-size: 11px; font-weight: 700;">+ Restock to Inventory</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="color: #475569; font-weight: 600;">Khata Adjustment:</span>
+                    <strong id="returnKhataAdjustPreview" class="font-num font-bold text-success">Deduct from Due</strong>
+                  </div>
+                </div>
+
+                <!-- Column 4: Actions -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <button type="button" id="btnReturnSave" class="btn btn-primary btn-add-voucher-line" style="height: 38px; font-size: 13.5px; font-weight: 800; justify-content: center; width: 100%; background: #dc2626; border-color: #dc2626; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);" title="Confirm Sale Return (Ctrl+S / F10)">
+                    <span style="font-size: 15px;">✓</span>
+                    <span>Confirm Return</span>
                   </button>
-                  <div class="pos-slip-footer-sub">
-                    <button type="button" id="btnReturnPrint" class="btn btn-secondary btn-sm" title="Print Return Slip">
-                      Print Only
-                    </button>
-                    <label class="pos-checkbox-label" title="Automatically print receipt when return is saved">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="pos-checkbox-label" style="font-size: 12px; font-weight: 600; color: #475569; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" title="Automatically print return credit memo">
                       <input type="checkbox" id="chkReturnPrintReceipt" checked>
                       <span>Auto-Print</span>
                     </label>
+                    <span style="font-size: 10.5px; color: #94a3b8; font-weight: 600;">Ctrl+S / F10</span>
                   </div>
                 </div>
-
               </div>
+            </div>
 
+            <!-- Legacy compatibility stubs for background handlers -->
+            <div id="returnLegacyStubs" style="display: none !important;">
+              <input type="hidden" id="returnPartyTypeSelect" value="general">
+              <input type="hidden" id="returnCustomerArea">
+              <input type="hidden" id="returnReason" value="Customer Return">
+              <input type="hidden" id="returnDescription">
+              <input type="text" id="returnItemCode">
+              <button type="button" id="btnReturnFindProduct"></button>
+              <select id="returnProductSelect"></select>
+              <input type="text" id="returnProductSearchInput">
+              <div id="returnProductDropdownList"></div>
+              <input type="number" id="returnPackSize" value="1">
+              <input type="number" id="returnPackQty" value="0">
+              <input type="number" id="returnUnitQty" value="1">
+              <input type="number" id="returnTotalQty" value="1">
+              <span id="returnAvailableStock">0</span>
+              <select id="returnItemCondition"><option value="Good" selected>Good</option></select>
+              <div id="returnCostPill">0.00</div>
+              <div id="returnWholesalePill">0.00</div>
+              <div id="returnRetailPill">0.00</div>
+              <input type="number" id="returnRateInput" value="0.00">
+              <input type="number" id="returnLineAmount" value="0.00">
+              <button type="button" id="btnReturnAddItem"></button>
+              <span id="returnSlipGrossDisplay"></span>
+              <span id="returnSlipDiscDisplay"></span>
+              <span id="returnSlipNetDisplay"></span>
+              <span id="returnEstimatedNet"></span>
+              <span id="returnPosCartCountBadge">0</span>
+              <span id="returnSlipCustomerDisplay"></span>
+              <span id="returnSlipModeDisplay"></span>
+              <span id="returnSlipOrigBillDisplay"></span>
+              <div id="returnSlipItemsTableBody"></div>
+              <div id="returnPosSlipPaginationBar"></div>
+            </div>
+
+          </div><!-- /returnEntryPage -->
+
+        </div>
+
+        <!-- SUBVIEW 3: Sales Invoices & History -->
+        <div id="subviewSaleHistory" class="sales-subview-panel hidden" style="padding: 16px 20px;">
+          <!-- Quick Status Tabs / Switcher -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button type="button" id="btnSaleTabFilterAll" class="btn btn-sm btn-secondary active font-bold" style="border-radius: 6px; padding: 5px 12px;">
+                <span>All Invoices</span>
+                <span id="badgeCountAllSales" class="badge-price-pill" style="margin-left: 6px; font-size: 11px;">0</span>
+              </button>
+              <button type="button" id="btnSaleTabFilterPaid" class="btn btn-sm btn-outline font-bold" style="border-radius: 6px; padding: 5px 12px; color: #166534; border-color: #86efac; background: #f0fdf4;">
+                <span>✓ Paid Bills</span>
+                <span id="badgeCountPaidSales" class="badge-price-pill" style="margin-left: 6px; font-size: 11px; background: #dcfce7; color: #166534;">0</span>
+              </button>
+              <button type="button" id="btnSaleTabFilterEstimated" class="btn btn-sm btn-outline font-bold" style="border-radius: 6px; padding: 5px 12px; color: #b45309; border-color: #fde68a; background: #fffbeb;">
+                <span>📋 Estimated Bills (تخمینہ بل)</span>
+                <span id="badgeCountEstimatedSales" class="badge-price-pill" style="margin-left: 6px; font-size: 11px; background: #fef3c7; color: #b45309; font-weight: 800;">0</span>
+              </button>
+            </div>
+            <div style="font-size: 12px; color: #64748b;">
+              <span>Tip: Click <strong>"Convert to Paid"</strong> on any estimated bill when the customer returns to finalize sale and deduct stock.</span>
             </div>
           </div>
 
+          <div class="product-top-bar" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div class="product-top-left" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <div class="prod-search-wrap">
+                <input type="text" id="saleFilterSearch" class="form-control form-control-sm prod-search-input" placeholder="Search voucher #, customer, phone...">
+              </div>
+
+              <div class="prod-filter-item">
+                <input type="date" id="saleFilterDate" class="form-control form-control-sm prod-filter-select">
+              </div>
+
+              <div class="prod-filter-item">
+                <select id="saleFilterMode" class="form-control form-control-sm prod-filter-select">
+                  <option value="">All Payments</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Credit">Credit</option>
+                </select>
+              </div>
+
+              <div class="prod-filter-item">
+                <select id="saleFilterStatus" class="form-control form-control-sm prod-filter-select">
+                  <option value="">All Bill Types</option>
+                  <option value="Paid">Paid Bills Only</option>
+                  <option value="Estimated">Estimated Bills Only</option>
+                </select>
+              </div>
+
+              <button type="button" id="btnSaleFilterToday" class="btn btn-sm btn-secondary">Today</button>
+              <button type="button" id="btnSaleFilterAll" class="btn btn-sm btn-secondary">All Time</button>
+              <button type="button" id="btnSaleResetFilters" class="btn btn-sm btn-secondary">Reset</button>
+            </div>
+
+            <div class="product-top-right">
+              <span id="saleResultsCounter" class="prod-results-counter font-bold">0 Invoices</span>
+            </div>
+          </div>
+
+          <div class="table-container gi-table-wrapper products-table-wrapper">
+            <table class="data-table gi-data-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px; text-align: center;">SR</th>
+                  <th style="width: 120px; text-align: center;">VOUCHER #</th>
+                  <th style="width: 100px; text-align: center;">DATE</th>
+                  <th>CUSTOMER</th>
+                  <th>CONTACT / AREA</th>
+                  <th style="width: 70px; text-align: center;">ITEMS</th>
+                  <th style="width: 110px; text-align: right;">GROSS</th>
+                  <th style="width: 90px; text-align: right;">DISC</th>
+                  <th style="width: 120px; text-align: right;">NET TOTAL</th>
+                  <th style="width: 110px; text-align: right;">PAID</th>
+                  <th style="width: 150px; text-align: center;">PAYMENT & STATUS</th>
+                  <th style="width: 130px; text-align: center;">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="salesMasterTableBody"></tbody>
+            </table>
+            <div id="salesEmptyState" class="empty-state hidden" style="padding: 40px; text-align: center;">
+              <h3>No Sales Vouchers Found</h3>
+              <p>No invoices match your selected search criteria.</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1868,6 +1954,14 @@
               </svg>
               System & About
             </button>
+            <button type="button" class="settings-tab-btn" data-tab="display">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 7V4h16v3"></path>
+                <path d="M9 20h6"></path>
+                <path d="M12 4v16"></path>
+              </svg>
+              Display & Font Size
+            </button>
           </div>
         </header>
 
@@ -1894,42 +1988,108 @@
                 </div>
                 <div class="settings-card-body">
                   <div class="settings-form-row">
-                    <label class="settings-label" for="setPaperSize">Paper / Print Type</label>
+                    <label class="settings-label" for="setPaperSize">Default Paper / Print Type</label>
                     <select id="setPaperSize" class="settings-select">
                       <option value="80mm">80mm Thermal Receipt (Standard POS Roll)</option>
                       <option value="58mm">58mm Thermal Receipt (Mini POS)</option>
                       <option value="A4">A4 Full Page Detailed Tax Invoice</option>
                     </select>
                   </div>
+
+                  <div style="margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1.5px solid #e2e8f0; font-size: 12px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.05em;">
+                    🏪 Store Identity & Header Information
+                  </div>
                   <div class="settings-form-row">
-                    <label class="settings-label" for="setReceiptTitle">Receipt Header Title</label>
+                    <label class="settings-label" for="setReceiptTitle">Store / Header Title</label>
                     <input type="text" id="setReceiptTitle" class="settings-input"
-                      placeholder="Enter receipt header title">
+                      placeholder="e.g. SHAHZAIB TRADERS">
                   </div>
                   <div class="settings-form-row">
-                    <label class="settings-label" for="setReceiptSubtitle">Subtitle / Dealings Note</label>
+                    <label class="settings-label" for="setReceiptSubtitle">Subtitle / Dealings Tagline</label>
                     <input type="text" id="setReceiptSubtitle" class="settings-input"
-                      placeholder="Enter business dealings subtitle">
+                      placeholder="e.g. Dealers in Electrical Goods & Accessories">
                   </div>
                   <div class="settings-form-row">
-                    <label class="settings-label" for="setReceiptPhone">Receipt Contact Number</label>
+                    <label class="settings-label" for="setReceiptPhone">Contact Phone Number(s)</label>
                     <input type="text" id="setReceiptPhone" class="settings-input"
-                      placeholder="Enter receipt contact numbers">
+                      placeholder="e.g. 0300-1234567, 042-37654321">
                   </div>
                   <div class="settings-form-row">
-                    <label class="settings-label" for="setReceiptAddress">Receipt Address Line</label>
+                    <label class="settings-label" for="setReceiptAddress">Shop / Market Address</label>
                     <input type="text" id="setReceiptAddress" class="settings-input"
-                      placeholder="Enter receipt shop address">
+                      placeholder="e.g. Main Bazar, Electrical Market, Lahore">
                   </div>
                   <div class="settings-form-row">
-                    <label class="settings-label" for="setReceiptFooter">Receipt Footer Thank You & Policy Note</label>
+                    <label class="settings-label" for="setReceiptTaxNo">NTN / STRN / Tax Registration Number</label>
+                    <input type="text" id="setReceiptTaxNo" class="settings-input"
+                      placeholder="e.g. NTN: 7654321-9 | STRN: 32-77-8765-432-1">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setReceiptEmail">Official Business Email</label>
+                    <input type="email" id="setReceiptEmail" class="settings-input"
+                      placeholder="e.g. info@shahzaibtraders.com">
+                  </div>
+
+                  <div style="margin: 20px 0 8px; padding-bottom: 4px; border-bottom: 1.5px solid #e2e8f0; font-size: 12px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.05em;">
+                    🏷️ Bill Headings & Labels
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setInvoiceHeading">A4 Invoice Heading</label>
+                    <input type="text" id="setInvoiceHeading" class="settings-input"
+                      placeholder="e.g. Sale Tax Invoice or Cash Memo">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setEstimateHeading">Estimated Bill Heading</label>
+                    <input type="text" id="setEstimateHeading" class="settings-input"
+                      placeholder="e.g. Estimate / Quotation">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setPrevBillLabel">Previous Bill / Balance Label</label>
+                    <input type="text" id="setPrevBillLabel" class="settings-input"
+                      placeholder="e.g. Previous Bill / Balance">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setNetPayableLabel">Grand Total / Net Payable Label</label>
+                    <input type="text" id="setNetPayableLabel" class="settings-input"
+                      placeholder="e.g. TOTAL NET PAYABLE">
+                  </div>
+
+                  <div style="margin: 20px 0 8px; padding-bottom: 4px; border-bottom: 1.5px solid #e2e8f0; font-size: 12px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.05em;">
+                    📜 Terms, Policies & Signatures
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setReceiptFooter">Thermal Slip Footer & Message</label>
                     <textarea id="setReceiptFooter" class="settings-textarea" rows="3"
                       placeholder="Enter footer thank you note & policy"></textarea>
                   </div>
                   <div class="settings-form-row">
-                    <label class="settings-label" for="setInvoiceTerms">A4 Invoice Terms & Conditions</label>
+                    <label class="settings-label" for="setInvoiceTerms">A4 Invoice Special Notes & Instructions</label>
                     <textarea id="setInvoiceTerms" class="settings-textarea" rows="2"
                       placeholder="Enter invoice terms & conditions"></textarea>
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setChecksPayableNote">A4 "Checks Payable" Text</label>
+                    <input type="text" id="setChecksPayableNote" class="settings-input"
+                      placeholder="e.g. Make all checks payable to SHAHZAIB TRADERS">
+                  </div>
+                  <div class="settings-form-row">
+                    <label class="settings-label" for="setInvoiceEnquiriesNote">A4 Enquiries Contact Line</label>
+                    <input type="text" id="setInvoiceEnquiriesNote" class="settings-input"
+                      placeholder="e.g. Should you have any enquiries concerning this invoice, please contact 0300-1234567">
+                  </div>
+                  <div class="settings-form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <div>
+                      <label class="settings-label" for="setSigLabel1" style="font-size: 11px;">Signature 1</label>
+                      <input type="text" id="setSigLabel1" class="settings-input" placeholder="Prepared By">
+                    </div>
+                    <div>
+                      <label class="settings-label" for="setSigLabel2" style="font-size: 11px;">Signature 2</label>
+                      <input type="text" id="setSigLabel2" class="settings-input" placeholder="Checked By">
+                    </div>
+                    <div>
+                      <label class="settings-label" for="setSigLabel3" style="font-size: 11px;">Signature 3</label>
+                      <input type="text" id="setSigLabel3" class="settings-input" placeholder="Customer Signature">
+                    </div>
                   </div>
 
                   <div class="setting-toggle-row">
@@ -1952,7 +2112,7 @@
                 </div>
               </div>
 
-              <!-- Right: Live Thermal Slip Preview -->
+              <!-- Right: Live Bill & Receipt Preview Station -->
               <div class="settings-card">
                 <div class="settings-card-header">
                   <div>
@@ -1961,83 +2121,31 @@
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="4"></circle>
                       </svg>
-                      Live 80mm Thermal Slip Preview
+                      Live Bill & Receipt Preview
                     </h3>
-                    <p class="settings-card-subtitle">Real-time simulation of receipt printed on thermal roll.</p>
+                    <p class="settings-card-subtitle">Real-time simulation of both bills updating with your settings.</p>
+                  </div>
+                  <div class="settings-preview-toggle-bar">
+                    <button type="button" class="btn-settings-tpl-tab active" id="btnSetTplA4" data-tpl="a4">
+                      📄 A4 Invoice
+                    </button>
+                    <button type="button" class="btn-settings-tpl-tab" id="btnSetTplThermal" data-tpl="thermal">
+                      🧾 Thermal Slip
+                    </button>
                   </div>
                 </div>
-                <div class="settings-card-body" style="background: #f1f5f9;">
-                  <div class="thermal-slip-preview-container">
-                    <div class="thermal-slip-paper">
-                      <div class="thermal-slip-header">
-                        <div id="prevSlipTitle" class="thermal-slip-title">SHAHZAIB TRADERS</div>
-                        <div id="prevSlipSubtitle" class="thermal-slip-meta">Electrical Goods & Accessories</div>
-                        <div id="prevSlipAddress" class="thermal-slip-meta">Main Bazar, Lahore</div>
-                        <div id="prevSlipPhone" class="thermal-slip-meta">Ph: 0300-1234567</div>
-                      </div>
+                <div class="settings-card-body settings-preview-card-body">
+                  <div class="settings-preview-subbar">
+                    <span class="preview-mode-label">Document Preview Mode:</span>
+                    <div class="settings-doc-type-toggle">
+                      <button type="button" class="btn-doc-type-pill active" id="btnSetDocInvoice">Paid Invoice</button>
+                      <button type="button" class="btn-doc-type-pill" id="btnSetDocEstimate">Estimate Bill</button>
+                    </div>
+                  </div>
 
-                      <div class="thermal-slip-row">
-                        <span>Invoice: <strong>ST-SV-0042</strong></span>
-                        <span id="prevSlipDate">14/10/2026 19:45</span>
-                      </div>
-                      <div class="thermal-slip-row">
-                        <span>Customer: <strong>Mian Electric Store</strong></span>
-                        <span>Cash Sale</span>
-                      </div>
-
-                      <table class="thermal-slip-table">
-                        <thead>
-                          <tr>
-                            <th>Item</th>
-                            <th style="text-align: center;">Qty</th>
-                            <th style="text-align: right;">Rate</th>
-                            <th style="text-align: right;">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td>Pakistan Cable 7/29 Single Core</td>
-                            <td style="text-align: center;">2</td>
-                            <td style="text-align: right;">14,500</td>
-                            <td style="text-align: right;">29,000</td>
-                          </tr>
-                          <tr>
-                            <td>Philips LED Bulb 18W (Daylight)</td>
-                            <td style="text-align: center;">10</td>
-                            <td style="text-align: right;">450</td>
-                            <td style="text-align: right;">4,500</td>
-                          </tr>
-                          <tr>
-                            <td>Schneider Breaker 20A SP</td>
-                            <td style="text-align: center;">4</td>
-                            <td style="text-align: right;">650</td>
-                            <td style="text-align: right;">2,600</td>
-                          </tr>
-                        </tbody>
-                      </table>
-
-                      <div class="thermal-slip-totals">
-                        <div class="thermal-slip-row">
-                          <span>Subtotal:</span>
-                          <span>Rs 36,100</span>
-                        </div>
-                        <div class="thermal-slip-row">
-                          <span>Special Discount:</span>
-                          <span>- Rs 1,100</span>
-                        </div>
-                        <div class="thermal-slip-grandtotal">
-                          <span>NET TOTAL:</span>
-                          <span>Rs 35,000</span>
-                        </div>
-                      </div>
-
-                      <div class="thermal-slip-barcode">||||| | |||| ||| |||||</div>
-                      <div class="thermal-slip-meta" style="text-align: center;">* ST-0042-2026 *</div>
-
-                      <div id="prevSlipFooter" class="thermal-slip-footer">
-                        Thank you for your business!&#10;Goods once sold cannot be returned without bill.&#10;No
-                        warranty on burnt electrical items.
-                      </div>
+                  <div class="settings-bill-preview-wrapper">
+                    <div id="settingsBillPreviewViewport" class="settings-bill-preview-viewport view-a4">
+                      <!-- Rendered live HTML -->
                     </div>
                   </div>
                 </div>
@@ -2375,6 +2483,163 @@
                       High-Performance Wholesale & Retail Operations.</div>
                     <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 6px;">Developed by Arham Solution &copy;
                       2026. All rights reserved.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-TAB 5: DISPLAY & FONT SIZE (WORD-STYLE ACCESSIBILITY ZOOM) -->
+          <div id="setPanel-display" class="settings-tab-panel">
+            <div class="settings-grid-2col">
+              <!-- Left: Font Controls -->
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <div>
+                    <h3 class="settings-card-title">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 7V4h16v3"></path>
+                        <path d="M9 20h6"></path>
+                        <path d="M12 4v16"></path>
+                      </svg>
+                      Program Font Size &amp; Visual Scaling (Word-Style)
+                    </h3>
+                    <p class="settings-card-subtitle">
+                      پورے سافٹ ویئر کا فونٹ سائز اور ویو بڑھائیں یا کم کریں۔ Adjust text and interface size across all menus, forms, tables, and buttons for easy readability.
+                    </p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <!-- Big Current Value Display -->
+                  <div class="font-size-hero-card">
+                    <div class="font-size-hero-left">
+                      <div class="font-size-hero-label">Current Font Size / Zoom</div>
+                      <div class="font-size-hero-value" id="dispFontSizeValue">100%</div>
+                      <div class="font-size-hero-desc" id="dispFontSizeDesc">Default Standard View</div>
+                    </div>
+                    <div class="font-size-hero-actions">
+                      <button type="button" id="btnFontDecrease" class="btn-font-step" title="Decrease Font Size (-5%)">
+                        <span class="step-icon">A-</span>
+                        <span class="step-sub">Smaller</span>
+                      </button>
+                      <button type="button" id="btnFontIncrease" class="btn-font-step btn-font-step-primary" title="Increase Font Size (+5%)">
+                        <span class="step-icon">A+</span>
+                        <span class="step-sub">Bigger</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Slider Range -->
+                  <div class="settings-form-row" style="margin-top: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                      <label class="settings-label" for="sliderFontScale" style="margin: 0; font-weight: 700;">
+                        Fine-Tune Font Scale Slider
+                      </label>
+                      <span style="font-size: 11px; color: #64748b; font-weight: 600;">75% to 160%</span>
+                    </div>
+                    <input type="range" id="sliderFontScale" min="75" max="160" step="5" value="100" class="font-scale-slider">
+                    <div class="slider-ticks">
+                      <span>75%<br>Compact</span>
+                      <span>85%<br>Small</span>
+                      <span class="tick-default">100%<br>Default</span>
+                      <span>115%<br>Medium</span>
+                      <span>130%<br>Large</span>
+                      <span>145%<br>X-Large</span>
+                      <span>160%<br>Max</span>
+                    </div>
+                  </div>
+
+                  <!-- Quick 1-Click Presets -->
+                  <div style="margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 1.5px solid #e2e8f0; font-size: 12px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.05em;">
+                    ⚡ Quick Presets (ایک کلک سے فونٹ سائز منتخب کریں)
+                  </div>
+                  <div class="font-preset-grid">
+                    <button type="button" class="btn-font-preset" data-size="85">
+                      <span class="preset-name">Small (85%)</span>
+                      <span class="preset-hint">Compact view for high resolution</span>
+                    </button>
+                    <button type="button" class="btn-font-preset active" data-size="100">
+                      <span class="preset-name">Default (100%)</span>
+                      <span class="preset-hint">Standard factory view</span>
+                    </button>
+                    <button type="button" class="btn-font-preset" data-size="115">
+                      <span class="preset-name">Medium (115%)</span>
+                      <span class="preset-hint">Clear text &amp; relaxed reading</span>
+                    </button>
+                    <button type="button" class="btn-font-preset" data-size="130">
+                      <span class="preset-name">Large (130%)</span>
+                      <span class="preset-hint">Recommended for vision issues</span>
+                    </button>
+                    <button type="button" class="btn-font-preset" data-size="145">
+                      <span class="preset-name">Extra Large (145%)</span>
+                      <span class="preset-hint">High visibility bold mode</span>
+                    </button>
+                    <button type="button" class="btn-font-preset" data-size="160">
+                      <span class="preset-name">Maximum (160%)</span>
+                      <span class="preset-hint">Maximum readability</span>
+                    </button>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="settings-card-actions" style="margin-top: 24px; display: flex; gap: 10px; align-items: center;">
+                    <button type="button" id="btnResetFontSize" class="btn btn-secondary" style="margin-right: auto; padding: 8px 18px;">
+                      Reset to Normal (100%)
+                    </button>
+                    <button type="button" id="btnSaveFontSize" class="btn btn-primary" style="padding: 8px 22px; font-weight: 700;">
+                      Save Font Size Preference
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: Real-time Live Preview Card -->
+              <div class="settings-card">
+                <div class="settings-card-header">
+                  <div>
+                    <h3 class="settings-card-title">Live Preview (لائیو نمونہ)</h3>
+                    <p class="settings-card-subtitle">Real-time sample of how text, numbers, buttons, and tables appear.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="font-preview-box" id="fontPreviewContainer">
+                    <div class="preview-header">
+                      <h4>Shahzaib Traders - Sale Bill Preview</h4>
+                      <span class="preview-badge">Live System Scale</span>
+                    </div>
+                    <p class="preview-text">
+                      Customer: <strong>Rajpoot Marketing (Wah Cantt)</strong> • Contact: <strong>0310-6452193</strong>
+                    </p>
+                    <table class="preview-table">
+                      <thead>
+                        <tr>
+                          <th>Item Description</th>
+                          <th style="text-align: center;">Qty</th>
+                          <th style="text-align: right;">Rate</th>
+                          <th style="text-align: right;">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><strong>CHARGING BULB 18W</strong></td>
+                          <td style="text-align: center;">15</td>
+                          <td style="text-align: right;">Rs 650</td>
+                          <td style="text-align: right;"><strong>Rs 9,750</strong></td>
+                        </tr>
+                        <tr>
+                          <td><strong>Ceiling Lights SMD 7W</strong></td>
+                          <td style="text-align: center;">15</td>
+                          <td style="text-align: right;">Rs 180</td>
+                          <td style="text-align: right;"><strong>Rs 2,700</strong></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div class="preview-total-row">
+                      <span>Total Bill Amount:</span>
+                      <span class="preview-total-val">Rs 12,450</span>
+                    </div>
+                    <div class="preview-info-note">
+                      💡 <em>Notice: As you change font size using the slider, A+/A- buttons, or presets, the entire software interface (Sales, Inventory, Reports, Accounts) scales instantly for comfortable reading.</em>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2836,22 +3101,315 @@
   </div>
 
 
-  <!-- Modal: Sale Receipt (Thermal Print) -->
-  <div id="modalSaleReceipt" class="modal-overlay hidden">
-    <div class="modal-card sale-receipt-modal-content">
-      <div class="modal-header">
-        <h2 class="modal-title">Sale Bill Receipt</h2>
-        <button id="btnCloseSaleReceipt" class="modal-close-btn">&times;</button>
+  <!-- ======================================================== -->
+  <!-- MODAL: HIGH-SPEED PRODUCT CATALOG LOOKUP (F1)              -->
+  <!-- ======================================================== -->
+  <div id="modalProductLookupF1" class="modal-overlay hidden">
+    <div class="modal-card pos-f1-modal-card">
+      <div class="modal-header pos-f1-modal-header">
+        <div class="f1-title-wrap">
+          <span class="f1-glow-badge">F1</span>
+          <div>
+            <h2 class="modal-title" style="margin: 0; font-size: 1.15rem;">Product Catalog &amp; Dual-Price Selection</h2>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+              Select items at Retail Price or Wholesale Price
+            </div>
+          </div>
+          <span id="f1ModalProductCountBadge" class="f1-count-pill">0 Products</span>
+        </div>
+        <div class="f1-header-actions" style="display: flex; gap: 8px; align-items: center;">
+          <button type="button" id="btnF1PopoutWindow" class="btn btn-xs btn-secondary" title="Open in separate OS window">
+            ⧉ Popout Window
+          </button>
+          <button type="button" id="btnCloseProductLookupF1" class="modal-close-btn">&times;</button>
+        </div>
       </div>
-      <div id="thermalReceiptPrintArea" class="modal-body" style="padding: 0;">
-        <!-- Dynamically rendered receipt -->
+
+      <div class="modal-body pos-f1-modal-body">
+        <!-- Search & Filter bar -->
+        <div class="f1-m-toolbar">
+          <div class="f1-m-search-wrap">
+            <svg class="f1-m-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="f1ModalSearchInput" class="form-control f1-m-search-input"
+              placeholder="Search by Code, Product Name, Urdu Name, Category, Barcode..." autocomplete="off">
+            <button type="button" id="btnF1ModalClearSearch" class="f1-m-clear-btn hidden" title="Clear">✕</button>
+          </div>
+
+          <div class="f1-m-filter-group">
+            <select id="f1ModalCategoryFilter" class="form-control form-control-sm f1-m-select">
+              <option value="">All Categories</option>
+            </select>
+            <select id="f1ModalStockFilter" class="form-control form-control-sm f1-m-select">
+              <option value="all">All Stock Status</option>
+              <option value="instock">In-Stock Only</option>
+            </select>
+            <button type="button" id="btnF1ModalReset" class="btn btn-xs btn-secondary">Reset</button>
+          </div>
+        </div>
+
+        <!-- Products table with dual pricing -->
+        <div class="f1-m-table-wrap">
+          <table class="data-table f1-m-table" id="f1ModalTable">
+            <thead>
+              <tr>
+                <th style="width: 80px; text-align: left; padding-left: 14px;">Code</th>
+                <th style="text-align: left; padding-left: 14px;">Product Title &amp; Details</th>
+                <th style="width: 130px; text-align: center;">Category</th>
+                <th style="width: 80px; text-align: center;">Stock</th>
+                <th style="width: 140px; text-align: center; color: #0284c7;">Retail Price</th>
+                <th style="width: 140px; text-align: center; color: #7c3aed;">Wholesale Price</th>
+                <th style="width: 105px; text-align: center;">Add to Bill</th>
+              </tr>
+            </thead>
+            <tbody id="f1ModalTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+
+          <div id="f1ModalEmptyState" class="f1-m-empty-state hidden">
+            <div class="empty-icon">🔍</div>
+            <h3>No Products Found</h3>
+            <p id="f1ModalEmptyMsg">No products match your search query.</p>
+          </div>
+        </div>
       </div>
-      <div class="modal-footer" style="justify-content: space-between;">
-        <span style="font-size: 0.75rem; color: var(--text-secondary);">Thermal 80mm & A4 compatible</span>
+
+      <div class="modal-footer pos-f1-modal-footer">
+        <div class="f1-footer-hints">
+          <span>Navigate: <kbd>↑</kbd> <kbd>↓</kbd> Rows</span>
+          <span>•</span>
+          <span>Add at Active Mode: <kbd>Enter</kbd></span>
+          <span>•</span>
+          <span>Add at Wholesale: <kbd>Shift + Enter</kbd></span>
+          <span>•</span>
+          <span>Close: <kbd>Esc</kbd></span>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalProductLookupF1').classList.add('hidden')">
+          Close (Esc)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: FAST RATE SELECTION ON ITEM ADD (RETAIL vs WHOLESALE) -->
+  <!-- ======================================================== -->
+  <div id="modalSelectRateOnAdd" class="modal-overlay hidden" style="z-index: 10500;">
+    <div class="modal-card pos-rate-choice-card-modal">
+      <div class="modal-header pos-rate-choice-header">
+        <div class="rate-choice-header-title">
+          <span class="rate-choice-icon">⚡</span>
+          <div>
+            <h3 class="modal-title" style="margin: 0; font-size: 1.15rem; color: #ffffff;">Select Pricing for Bill</h3>
+            <p class="modal-subtitle" style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Choose whether to make this bill in Retailer Price or Wholesale Price</p>
+          </div>
+        </div>
+        <button type="button" id="btnCloseRateChoiceModal" class="modal-close-btn" title="Cancel">&times;</button>
+      </div>
+
+      <div class="modal-body pos-rate-choice-body">
+        <!-- Product Quick Preview -->
+        <div class="rate-choice-prod-box">
+          <div class="rate-choice-code-badge" id="rateChoiceProductCode">CODE-001</div>
+          <div class="rate-choice-names">
+            <div class="rate-choice-title font-bold" id="rateChoiceProductTitle">Product Title</div>
+            <div class="rate-choice-urdu font-urdu text-muted" id="rateChoiceProductUrdu" style="display: none;"></div>
+          </div>
+          <div class="rate-choice-stock">
+            <span class="stock-label">Stock:</span>
+            <span id="rateChoiceStockBadge" class="pos-stock-badge badge-in font-num font-bold">0</span>
+          </div>
+        </div>
+
+        <!-- Quantity Stepper in Modal -->
+        <div class="rate-choice-qty-strip">
+          <label for="rateChoiceQtyInput">Quantity to Add:</label>
+          <div class="rate-choice-qty-stepper">
+            <button type="button" id="btnRateChoiceQtyMinus" class="rc-qty-btn">−</button>
+            <input type="number" id="rateChoiceQtyInput" class="rc-qty-inp font-num font-bold" value="1" min="1" step="1">
+            <button type="button" id="btnRateChoiceQtyPlus" class="rc-qty-btn">+</button>
+          </div>
+        </div>
+
+        <!-- The Two Main Option Cards -->
+        <div class="rate-choice-cards-grid">
+          <!-- Option 1: Retail Price -->
+          <div id="cardChoiceRetail" class="rate-option-card retail-option" role="button" tabindex="0">
+            <div class="opt-badge">🏷️ RETAIL</div>
+            <div class="opt-title">Retailer Price</div>
+            <div class="opt-price font-num font-bold" id="rateChoiceRetailPrice">Rs 0.00</div>
+            <div class="opt-sub">For general walk-in retail customers</div>
+            <div class="opt-action">
+              <span class="btn-select-pill pill-retail">Select Retailer Price</span>
+              <span class="opt-kbd">Press <kbd>1</kbd> or <kbd>R</kbd></span>
+            </div>
+          </div>
+
+          <!-- Option 2: Wholesale Price -->
+          <div id="cardChoiceWholesale" class="rate-option-card wholesale-option" role="button" tabindex="0">
+            <div class="opt-badge">📦 WHOLESALE</div>
+            <div class="opt-title">Wholesale Price</div>
+            <div class="opt-price font-num font-bold" id="rateChoiceWholesalePrice">Rs 0.00</div>
+            <div class="opt-sub">For shopkeepers, contractors & bulk buyers</div>
+            <div class="opt-action">
+              <span class="btn-select-pill pill-wholesale">Select Wholesale Price</span>
+              <span class="opt-kbd">Press <kbd>2</kbd> or <kbd>W</kbd></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Apply to entire bill option -->
+        <div class="rate-choice-footer-options">
+          <label class="rate-apply-bill-label">
+            <input type="checkbox" id="chkRateApplyToEntireBill" checked>
+            <span><strong>Apply to entire bill</strong></span>
+          </label>
+          <label class="rate-always-ask-label">
+            <input type="checkbox" id="chkRateModalAlwaysAsk" checked>
+            <span>Ask when adding items</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Select Bill Status (Paid Bill vs Estimated Bill) -->
+  <div id="modalSaleBillStatusChoice" class="modal-overlay hidden" style="z-index: 10005;">
+    <div class="modal-card" style="max-width: 520px; border-radius: 14px; overflow: hidden; box-shadow: 0 20px 45px rgba(0,0,0,0.28);">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #fff; padding: 16px 20px;">
+        <div>
+          <h2 class="modal-title" style="color: #fff; font-size: 1.15rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <span>📋</span> Select Bill Status
+          </h2>
+          <p style="margin: 3px 0 0; font-size: 0.8rem; color: #94a3b8;">Choose whether to confirm as a Paid Bill or an Estimated Bill</p>
+        </div>
+        <button id="btnCloseSaleBillStatusModal" type="button" class="modal-close-btn" style="color: #cbd5e1;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px; background: #f8fafc;">
+        <!-- Option 1: Paid Bill -->
+        <div id="btnChoosePaidBill" class="bill-status-choice-card paid-card" tabindex="0" role="button">
+          <div class="choice-card-icon" style="background: #dcfce7; color: #15803d;">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M20 6L9 17l-5-5"></path>
+            </svg>
+          </div>
+          <div class="choice-card-content">
+            <div class="choice-card-header">
+              <span class="choice-card-title">Paid Bill (Final Bill)</span>
+              <span class="choice-badge badge-paid">Key [ 1 ] or Enter</span>
+            </div>
+            <p class="choice-card-desc">
+              <strong>Stock will be deducted</strong> from inventory. Bill is recorded as a final confirmed sale.
+            </p>
+          </div>
+        </div>
+
+        <!-- Option 2: Estimated Bill -->
+        <div id="btnChooseEstimatedBill" class="bill-status-choice-card estimated-card" tabindex="0" role="button">
+          <div class="choice-card-icon" style="background: #fef3c7; color: #b45309;">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </div>
+          <div class="choice-card-content">
+            <div class="choice-card-header">
+              <span class="choice-card-title">Estimated Bill (Quotation)</span>
+              <span class="choice-badge badge-estimate">Key [ 2 ] or E</span>
+            </div>
+            <p class="choice-card-desc">
+              <strong>Nothing will be deducted</strong> from inventory. Generates an estimated price quotation for the customer.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="background: #ffffff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0;">
+        <span style="font-size: 0.75rem; color: #64748b;">Press <strong>Esc</strong> to cancel</span>
+        <button type="button" id="btnCancelSaleBillStatusModal" class="btn btn-secondary btn-sm">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Sale Bill Print Studio & Multi-Template Preview Panel -->
+  <div id="modalSaleReceipt" class="modal-overlay hidden" style="z-index: 10006;">
+    <div class="modal-card sale-print-studio-modal" style="max-width: 980px; width: 95vw; height: 92vh; display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.35);">
+      <!-- Print Studio Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="background: rgba(2, 132, 199, 0.25); border: 1px solid #0284c7; width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 17px;">
+            🖨️
+          </div>
+          <div>
+            <h2 class="modal-title" style="color: #fff; font-size: 1.1rem; font-weight: 800; margin: 0; line-height: 1.2;">Sale Bill Print Studio</h2>
+            <span id="printStudioVoucherBadge" style="font-size: 11px; color: #94a3b8; font-weight: 600;">Interactive Preview & Template Selection</span>
+          </div>
+        </div>
+        <button id="btnCloseSaleReceipt" type="button" class="modal-close-btn" style="color: #cbd5e1; font-size: 24px; padding: 0 6px;">&times;</button>
+      </div>
+
+      <!-- Print Studio Toolbar -->
+      <div class="sale-print-toolbar" style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; padding: 10px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; flex-shrink: 0;">
+        <!-- Template Selection Segment -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.03em;">Template:</span>
+          <div class="sale-tpl-btn-group" style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 8px; gap: 2px;">
+            <button type="button" class="sale-tpl-btn active" data-tpl="a4" title="Full Page A4 Official Invoice">
+              📄 A4 Full Page
+            </button>
+            <button type="button" class="sale-tpl-btn" data-tpl="thermal" title="Continuous Thermal Receipt Roll">
+              🧾 Thermal Roll
+            </button>
+          </div>
+
+          <!-- Thermal Width Sub-Option -->
+          <div id="saleThermalWidthBox" style="display: none; align-items: center; gap: 6px; margin-left: 6px;">
+            <label style="font-size: 11.5px; font-weight: 600; color: #64748b; margin: 0;">Roll Width:</label>
+            <select id="saleThermalWidthSelect" class="form-control form-control-sm" style="width: 85px; height: 28px; font-size: 11.5px; font-weight: 700;">
+              <option value="80mm" selected>80mm</option>
+              <option value="58mm">58mm</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Previous Bill / Balance Option (User's specific requirement) -->
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div id="salePrevBillControlBox" style="display: inline-flex; align-items: center; gap: 8px; background: #ffffff; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #1e293b; cursor: pointer; margin: 0;" title="Click to include previous balance on this bill">
+              <input type="checkbox" id="chkSaleIncludePrevBill" style="cursor: pointer; width: 15px; height: 15px; accent-color: #0284c7;">
+              <span>Include Previous Bill</span>
+            </label>
+            <div id="salePrevBillInputWrap" style="display: none; align-items: center; gap: 4px; margin-left: 4px; border-left: 1px solid #e2e8f0; padding-left: 8px;">
+              <span style="font-size: 11px; color: #64748b; font-weight: 700;">Rs</span>
+              <input type="number" id="inpSalePrevBillAmount" class="form-control form-control-sm font-num font-bold text-right" placeholder="0" min="0" step="1" style="width: 110px; height: 28px; font-size: 12.5px;" title="Previous bill / balance amount to add to invoice">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dynamic Live Print Preview Container -->
+      <div id="thermalReceiptPrintArea" class="modal-body sale-print-preview-viewport" style="flex: 1; min-height: 0; padding: 24px; overflow-y: auto; background: #475569; display: flex; justify-content: center; align-items: flex-start;">
+        <!-- Live rendered document injected here -->
+      </div>
+
+      <!-- Print Studio Footer -->
+      <div class="modal-footer" style="background: #ffffff; border-top: 1px solid #e2e8f0; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 11.5px; color: #64748b;">Shortcuts: <kbd style="background: #f1f5f9; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 700;">Ctrl+P</kbd> Print | <kbd style="background: #f1f5f9; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 700;">Esc</kbd> Close</span>
+        </div>
         <div style="display: flex; gap: 8px;">
-          <button type="button" class="btn btn-secondary"
-            onclick="document.getElementById('modalSaleReceipt').classList.add('hidden')">Close</button>
-          <button type="button" id="btnDoPrintSaleReceipt" class="btn btn-primary">🖨️ Print Now</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modalSaleReceipt').classList.add('hidden')">Cancel</button>
+          <button type="button" id="btnDoPrintSaleReceipt" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 18px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);">
+            <span>🖨️</span>
+            <span>Print Bill</span>
+          </button>
         </div>
       </div>
     </div>
@@ -2859,31 +3417,42 @@
 
   <!-- Modal: Sales History -->
   <div id="modalSaleHistory" class="modal-overlay hidden">
-    <div class="modal-card modal-card-lg">
+    <div class="modal-card modal-card-lg" style="max-width: 980px; width: 95vw;">
       <div class="modal-header">
-        <h2 class="modal-title">Recent Sales History</h2>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">📋</span>
+          <h2 class="modal-title">Recent Sales History & Estimates</h2>
+        </div>
         <button id="btnCloseSaleHistory" class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="search-box mb-3">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" id="saleHistorySearchInput" placeholder="Search by Voucher #, Customer, or Ref..."
-            autocomplete="off">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+          <div class="search-box" style="flex: 1; min-width: 260px; margin-bottom: 0;">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="saleHistorySearchInput" placeholder="Search by Voucher #, Customer, or Phone..."
+              autocomplete="off">
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button type="button" id="btnModalHistFilterAll" class="btn btn-xs btn-secondary active font-bold" style="padding: 4px 10px;">All Bills</button>
+            <button type="button" id="btnModalHistFilterPaid" class="btn btn-xs btn-outline font-bold" style="padding: 4px 10px; color: #166534; border-color: #86efac; background: #f0fdf4;">✓ Paid Bills</button>
+            <button type="button" id="btnModalHistFilterEstimated" class="btn btn-xs btn-outline font-bold" style="padding: 4px 10px; color: #b45309; border-color: #fde68a; background: #fffbeb;">📋 Estimated Bills</button>
+          </div>
         </div>
-        <div class="table-container" style="max-height: 420px; overflow-y: auto;">
+        <div class="table-container" style="max-height: 440px; overflow-y: auto;">
           <table class="data-table">
             <thead>
               <tr>
-                <th style="width: 120px;">Voucher #</th>
-                <th style="width: 110px;">Date</th>
+                <th style="width: 110px; text-align: center;">Voucher #</th>
+                <th style="width: 100px; text-align: center;">Date</th>
                 <th>Customer Name</th>
-                <th style="width: 80px; text-align: center;">Items</th>
-                <th style="width: 130px; text-align: right;">Net Amount</th>
-                <th style="width: 120px; text-align: right;">Paid</th>
-                <th style="width: 140px; text-align: center;">Actions</th>
+                <th style="width: 100px; text-align: center;">Status</th>
+                <th style="width: 60px; text-align: center;">Items</th>
+                <th style="width: 120px; text-align: right;">Net Amount</th>
+                <th style="width: 100px; text-align: right;">Paid</th>
+                <th style="width: 160px; text-align: center;">Actions</th>
               </tr>
             </thead>
             <tbody id="saleHistoryTableBody">
@@ -3230,6 +3799,128 @@
             </thead>
             <tbody id="claimsTableBody"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: Daily Shop Expenses (Dukan Kharchay)               -->
+  <!-- ======================================================== -->
+  <div id="modalExpenses" class="modal-overlay hidden">
+    <div class="modal-card modal-card-xl" style="width: 980px; max-width: 95vw;">
+      <div class="modal-header">
+        <h2 class="modal-title">🧾 Daily Shop Expenses (Dukan Kharchay)</h2>
+        <button type="button" id="btnCloseExpensesModal" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body modal-scroll-body" style="padding: 16px 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+          <div class="sale-meta-row-clean" style="flex: 1; min-width: 500px; display: grid; grid-template-columns: 130px 140px 1.5fr 130px; gap: 10px;">
+            <div class="form-group">
+              <label>Voucher #</label>
+              <input type="text" id="expVoucherNo" class="form-control form-control-sm font-bold font-num" readonly value="EXP-0001">
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="expDate" class="form-control form-control-sm font-num">
+            </div>
+            <div class="form-group">
+              <label>Expense Category (Account)</label>
+              <select id="expCategorySelect" class="form-control form-control-sm font-bold"></select>
+            </div>
+            <div class="form-group">
+              <label>Payment Mode</label>
+              <select id="expPaymentMode" class="form-control form-control-sm">
+                <option value="Cash">Cash</option>
+                <option value="Bank">Bank Transfer</option>
+                <option value="Cheque">Cheque</option>
+              </select>
+            </div>
+          </div>
+          <div class="sale-header-btn-group" style="margin-bottom: 2px;">
+            <button type="button" id="btnExpenseNew" class="btn btn-secondary"><span>+ New</span></button>
+            <button type="button" id="btnExpenseSave" class="btn btn-primary"><span>Save Expense</span></button>
+          </div>
+        </div>
+
+        <div class="sale-item-entry-card" style="margin-bottom: 14px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <div style="display: grid; grid-template-columns: 1.2fr 180px 2fr; gap: 12px; align-items: end;">
+            <div class="form-group">
+              <label>Paid To (Person / Vendor)</label>
+              <input type="text" id="expPaidTo" class="form-control form-control-sm" placeholder="e.g. Electrician, Tea Boy, Landlord...">
+            </div>
+            <div class="form-group">
+              <label>Expense Amount (Rs) <span class="text-danger">*</span></label>
+              <input type="number" id="expAmount" class="form-control form-control-sm font-num font-bold text-right" min="0" step="1" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Remarks / Notes</label>
+              <input type="text" id="expRemarks" class="form-control form-control-sm" placeholder="Purpose or details of expense...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Expenses List Table -->
+        <div class="table-container gi-table-wrapper" style="max-height: 280px; overflow-y: auto;">
+          <table class="data-table gi-data-table">
+            <thead>
+              <tr>
+                <th style="width: 110px; text-align: center;">VOUCHER #</th>
+                <th style="width: 100px; text-align: center;">DATE</th>
+                <th>EXPENSE HEAD / ACCOUNT</th>
+                <th>PAID TO</th>
+                <th style="width: 100px; text-align: center;">PAYMENT</th>
+                <th style="width: 120px; text-align: right;">AMOUNT</th>
+                <th>REMARKS</th>
+                <th style="width: 80px; text-align: center;">ACTION</th>
+              </tr>
+            </thead>
+            <tbody id="expensesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: Purchase History & Bills List                     -->
+  <!-- ======================================================== -->
+  <div id="modalPurchaseHistory" class="modal-overlay hidden">
+    <div class="modal-card modal-card-xl" style="width: 980px; max-width: 95vw;">
+      <div class="modal-header">
+        <h2 class="modal-title">📦 Purchase Invoices & History</h2>
+        <button type="button" id="btnClosePurchaseHistory" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span id="histDateBadge" class="badge-price-pill bg-primary-pill font-num" style="padding: 4px 10px; font-weight: 600;">All Purchases</span>
+            <span style="font-size: 13px; color: #64748b;">Total: <strong id="histTotalCount" class="font-num" style="color: #0f172a;">0</strong> Vouchers</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 14px; font-weight: 700; color: #166534;">Grand Total: <span id="histTotalAmount" class="font-num">Rs. 0.00</span></span>
+            <button type="button" id="btnDonePurchaseHistory" class="btn btn-sm btn-secondary">Done</button>
+          </div>
+        </div>
+
+        <div class="table-container gi-table-wrapper" style="max-height: 400px; overflow-y: auto;">
+          <table class="data-table gi-data-table">
+            <thead>
+              <tr>
+                <th style="width: 50px; text-align: center;">SR #</th>
+                <th style="width: 120px; text-align: center;">VOUCHER #</th>
+                <th style="width: 110px; text-align: center;">DATE</th>
+                <th>SUPPLIER / PARTY</th>
+                <th style="width: 80px; text-align: center;">ITEMS</th>
+                <th style="width: 130px; text-align: right;">GRAND TOTAL</th>
+                <th style="width: 100px; text-align: center;">ACTION</th>
+              </tr>
+            </thead>
+            <tbody id="purchaseHistoryTableBody"></tbody>
+          </table>
+          <div id="purchaseHistoryEmptyState" class="empty-state hidden" style="padding: 30px; text-align: center;">
+            <p style="color: #64748b;">No purchase invoices found for this date.</p>
+          </div>
         </div>
       </div>
     </div>

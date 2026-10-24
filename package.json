@@ -5,7 +5,46 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"No tests specified\" && exit 0"
+    "test": "echo \"No tests specified\" && exit 0",
+    "dist": "electron-builder --win",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.shahzaibtraders.app",
+    "productName": "Shahzaib Traders",
+    "copyright": "Copyright © 2026 Shahzaib Traders",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "src/assets/circle-logo.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Shahzaib Traders"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "inventory.db",
+        "to": "inventory.db"
+      },
+      {
+        "from": ".env",
+        "to": ".env"
+      }
+    ]
   },
   "repository": {
     "type": "git",
@@ -17,10 +56,11 @@
     "electron",
     "desktop"
   ],
-  "author": "",
+  "author": "Shahzaib Traders",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^44.7.0"
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3"
   },
   "dependencies": {
     "dotenv": "^18.0.7",

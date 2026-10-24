@@ -1889,13 +1889,37 @@ function renderProductsTable() {
     // Sub Category Filter
     const matchesSubCat = !subCatFilter || String(p.subCategoryId) === String(subCatFilter);
 
-    return matchesQ && matchesCat && matchesSubCat;
+    // Stock Filter
+    const stockVal = inv.piStockFilter?.value || '';
+    let matchesStock = true;
+    const stockQty = Number(p.stockQty) || 0;
+    if (stockVal === 'in_stock') matchesStock = stockQty > 0;
+    else if (stockVal === 'out_of_stock') matchesStock = stockQty <= 0;
+    else if (stockVal === 'low_stock') matchesStock = stockQty > 0 && stockQty <= 5;
+
+    return matchesQ && matchesCat && matchesSubCat && matchesStock;
   });
 
-  // Sorting: Code ascending default
-  filtered.sort((a, b) => {
-    return String(a.code || '').localeCompare(String(b.code || ''), undefined, { numeric: true });
-  });
+  // Sorting based on piSortFilter
+  const sortVal = inv.piSortFilter?.value || 'code_asc';
+  if (sortVal === 'name_asc') {
+    filtered.sort((a, b) => String(a.titleEng || '').localeCompare(String(b.titleEng || '')));
+  } else if (sortVal === 'name_desc') {
+    filtered.sort((a, b) => String(b.titleEng || '').localeCompare(String(a.titleEng || '')));
+  } else if (sortVal === 'stock_desc') {
+    filtered.sort((a, b) => (Number(b.stockQty) || 0) - (Number(a.stockQty) || 0));
+  } else if (sortVal === 'stock_asc') {
+    filtered.sort((a, b) => (Number(a.stockQty) || 0) - (Number(b.stockQty) || 0));
+  } else if (sortVal === 'price_desc') {
+    filtered.sort((a, b) => (Number(b.retailPrice) || 0) - (Number(a.retailPrice) || 0));
+  } else if (sortVal === 'price_asc') {
+    filtered.sort((a, b) => (Number(a.retailPrice) || 0) - (Number(b.retailPrice) || 0));
+  } else if (sortVal === 'code_desc') {
+    filtered.sort((a, b) => String(b.code || '').localeCompare(String(a.code || ''), undefined, { numeric: true }));
+  } else {
+    // code_asc default
+    filtered.sort((a, b) => String(a.code || '').localeCompare(String(b.code || ''), undefined, { numeric: true }));
+  }
 
   // Results Counter Pill
   if (inv.piResultsCounter) {
@@ -2315,13 +2339,16 @@ function closeProductSearchModal() {
 if (window.findProductAPI?.onProductSelected) {
   window.findProductAPI.onProductSelected((p) => {
     if (!p) return;
-    if (window.currentTab === 'sale' && window.SalesModule?.selectProduct) {
-      window.SalesModule.selectProduct(p);
-    } else if (currentSubTab === 'purchase') {
-      selectProductForPurchase(p);
-    } else {
-      switchSubTab('product-info');
-      loadProductRecord(p);
+    const isInventoryActive = window.currentTab === 'inventory' ||
+      (!window.currentTab && document.getElementById('inventoryView') && !document.getElementById('inventoryView').classList.contains('hidden'));
+
+    if (isInventoryActive) {
+      if (currentSubTab === 'purchase') {
+        selectProductForPurchase(p);
+      } else {
+        switchSubTab('product-info');
+        loadProductRecord(p);
+      }
     }
   });
 }
@@ -2394,11 +2421,9 @@ window.addEventListener('keydown', (e) => {
     }
 
     const inventoryView = document.getElementById('inventoryView');
-    const salesView = document.getElementById('salesView');
     const isInvActive = inventoryView && inventoryView.classList.contains('active');
-    const isSalesActive = salesView && salesView.classList.contains('active');
 
-    if (isInvActive || isSalesActive) {
+    if (isInvActive) {
       e.preventDefault();
       openProductSearchModal();
     }

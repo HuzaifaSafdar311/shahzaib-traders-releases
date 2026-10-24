@@ -470,6 +470,86 @@
         </div>
       </div>
 
+      <!-- ============================================== -->
+      <!-- LEDGER PRINT TEMPLATE SELECTOR MODAL           -->
+      <!-- User chooses A4 or Thermal Receipt (80/58mm)   -->
+      <!-- ============================================== -->
+      <div id="accLedgerPrintModal" class="acc-modal-overlay hidden">
+        <div class="acc-modal-box acc-modal-print-template">
+          <div class="acc-modal-header" style="background: #0f172a; padding: 14px 18px; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              <span style="font-weight: 700; font-size: 1.05rem; color: #ffffff;">Print Ledger Statement</span>
+            </div>
+            <button type="button" id="btnAccClosePrintModal" class="acc-modal-close-btn">&times;</button>
+          </div>
+
+          <div style="padding: 16px 20px;">
+            <div id="accPrintPartySub" style="margin-bottom: 14px; font-size: 0.85rem; color: #475569; font-weight: 500;">
+              Select print template and paper format
+            </div>
+
+            <!-- Template Choice Cards -->
+            <div class="acc-print-template-options">
+              <label class="acc-template-card" id="cardTplA4">
+                <input type="radio" name="accLedgerTemplateRadio" value="a4" checked>
+                <div class="acc-template-card-content">
+                  <div class="acc-template-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  </div>
+                  <div>
+                    <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">A4 Statement (Full Page)</div>
+                    <div style="font-size: 0.78rem; color: #64748b; margin-top: 2px;">
+                      Full page with Date, Voucher #, Description, Debit, Credit, and Balance.
+                    </div>
+                  </div>
+                </div>
+              </label>
+
+              <label class="acc-template-card" id="cardTplThermal">
+                <input type="radio" name="accLedgerTemplateRadio" value="thermal">
+                <div class="acc-template-card-content">
+                  <div class="acc-template-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                  </div>
+                  <div>
+                    <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">Thermal Receipt (Narrow Roll)</div>
+                    <div style="font-size: 0.78rem; color: #64748b; margin-top: 2px;">
+                      Continuous roll for shop bills with wrapped descriptions so nothing is cut off.
+                    </div>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Thermal Paper Width (80mm vs 58mm) -->
+            <div id="accThermalWidthOptions" class="acc-thermal-width-box" style="margin-top: 14px; padding: 12px 14px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: none;">
+              <div style="font-size: 0.825rem; font-weight: 600; color: #334155; margin-bottom: 8px;">
+                Paper Roll Width:
+              </div>
+              <div style="display: flex; gap: 20px;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer;">
+                  <input type="radio" name="accThermalPaperWidth" value="80mm" checked>
+                  <span><strong>80mm</strong> (Standard POS Roll)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer;">
+                  <input type="radio" name="accThermalPaperWidth" value="58mm">
+                  <span><strong>58mm</strong> (Compact Roll)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+            <button type="button" id="btnAccCancelPrintModal" class="acc-btn" style="background: #e2e8f0; color: #334155;">Cancel</button>
+            <button type="button" id="btnAccConfirmPrintLedger" class="acc-btn acc-btn-print" style="background: #0284c7; color: #ffffff;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              Print
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Hidden Printable Thermal Receipt & Voucher Container -->
       <div id="accountsPrintArea" class="acc-print-container"></div>
     `;
@@ -553,8 +633,16 @@
       historyTableBody: document.getElementById('accHistoryTableBody'),
       historyCount: document.getElementById('accHistoryCount'),
 
-      // Print Area
-      printArea: document.getElementById('accountsPrintArea')
+      // Print Elements
+      printArea: document.getElementById('accountsPrintArea'),
+      printModal: document.getElementById('accLedgerPrintModal'),
+      btnClosePrintModal: document.getElementById('btnAccClosePrintModal'),
+      btnCancelPrintModal: document.getElementById('btnAccCancelPrintModal'),
+      btnConfirmPrintLedger: document.getElementById('btnAccConfirmPrintLedger'),
+      cardTplA4: document.getElementById('cardTplA4'),
+      cardTplThermal: document.getElementById('cardTplThermal'),
+      thermalWidthOptions: document.getElementById('accThermalWidthOptions'),
+      printPartySub: document.getElementById('accPrintPartySub')
     };
   }
 
@@ -638,6 +726,18 @@
     }
   }
 
+  // Helper: Check if party is Supplier / Vendor
+  function isSupplierParty(party) {
+    if (!party) return false;
+    if (typeof party === 'string') {
+      const s = party.toLowerCase();
+      return s.includes('vendor') || s.includes('supplier') || s === 'pt-2';
+    }
+    const pType = String(party.partyTypeName || party.partyType || '').toLowerCase();
+    const pId = String(party.partyTypeId || party.id || '').toLowerCase();
+    return pType.includes('vendor') || pType.includes('supplier') || pId === 'pt-2';
+  }
+
   // Update Party Banner
   function updatePartyBanner(party) {
     if (!party) {
@@ -651,37 +751,66 @@
       return;
     }
 
-    const prevBal = Number(party.openingBalance) || 0;
+    const isSupp = isSupplierParty(party);
+    const prevBal = Number(party.currentBalance !== undefined ? party.currentBalance : party.openingBalance) || 0;
     dom.bannerPartyTitle.textContent = party.name || '--';
-    dom.bannerPartyType.textContent = `${party.partyTypeName || 'Party'} | Contact: ${party.contactPerson || 'N/A'}`;
+    dom.bannerPartyType.textContent = `${party.partyTypeName || (isSupp ? 'Vendor / Supplier' : 'Customer')} | Contact: ${party.contactPerson || 'N/A'}`;
     dom.bannerAreaCity.textContent = `${party.areaName || ''}${party.city ? `, ${party.city}` : ''}` || '--';
     dom.bannerPhone.textContent = party.phone || '--';
 
     const balFormatted = formatMoney(Math.abs(prevBal));
-    const balTag = prevBal > 0 ? `${balFormatted} (Dr / Receivable)` : prevBal < 0 ? `${balFormatted} (Cr / Payable)` : 'Rs. 0.00 (Nil)';
+    let balTag = 'Rs. 0.00 (Nil)';
+    let balClass = '';
+    if (prevBal !== 0) {
+      if (isSupp) {
+        balTag = prevBal > 0 ? `${balFormatted} (Cr / Payable)` : `${balFormatted} (Dr / Advance Paid)`;
+        balClass = prevBal > 0 ? 'cr' : 'dr';
+      } else {
+        balTag = prevBal > 0 ? `${balFormatted} (Dr / Receivable)` : `${balFormatted} (Cr / Advance Received)`;
+        balClass = prevBal > 0 ? 'dr' : 'cr';
+      }
+    }
     dom.bannerPrevBalance.textContent = balTag;
-    dom.bannerPrevBalance.className = `acc-banner-val ${prevBal > 0 ? 'dr' : prevBal < 0 ? 'cr' : ''}`;
+    dom.bannerPrevBalance.className = `acc-banner-val ${balClass}`;
     dom.calcPrevBalDisplay.textContent = balTag;
   }
 
   // Recalculate Voucher Amounts
   function recalculateAmounts() {
-    const prevBal = state.selectedParty ? (Number(state.selectedParty.openingBalance) || 0) : 0;
+    const isSupp = isSupplierParty(state.selectedParty);
+    const prevBal = state.selectedParty ? (Number(state.selectedParty.currentBalance !== undefined ? state.selectedParty.currentBalance : state.selectedParty.openingBalance) || 0) : 0;
     const amount = Number(dom.amountInput?.value) || 0;
     const discount = Number(dom.discountInput?.value) || 0;
     const netSettlement = amount + discount;
 
     dom.netSettlementDisplay.textContent = formatMoney(netSettlement);
 
-    // New Remaining Balance Calculation:
-    // For CRV (Cash received from customer): Reduces receivable
-    // For CPV (Cash paid to supplier): Reduces payable
-    let newBal = prevBal - netSettlement;
+    // Remaining Balance Calculation:
+    // Party     | CRV (Cash Receipt)          | CPV (Cash Payment)
+    // Customer  | Balance decreases (credit)  | Balance increases (debit)
+    // Supplier  | Balance increases (credit)  | Balance decreases (debit)
+    const voucherType = state.activeTab === 'cpv' ? 'CPV' : 'CRV';
+    let newBal = prevBal;
+    if (isSupp) {
+      newBal = voucherType === 'CRV' ? (prevBal + netSettlement) : (prevBal - netSettlement);
+    } else {
+      newBal = voucherType === 'CRV' ? (prevBal - netSettlement) : (prevBal + netSettlement);
+    }
 
     const newBalFormatted = formatMoney(Math.abs(newBal));
-    const newBalTag = newBal > 0 ? `${newBalFormatted} (Dr)` : newBal < 0 ? `${newBalFormatted} (Cr)` : 'Rs. 0.00';
+    let newBalTag = 'Rs. 0.00';
+    let newBalClass = '';
+    if (newBal !== 0) {
+      if (isSupp) {
+        newBalTag = newBal > 0 ? `${newBalFormatted} (Cr / Payable)` : `${newBalFormatted} (Dr / Advance Paid)`;
+        newBalClass = newBal > 0 ? 'negative' : 'positive';
+      } else {
+        newBalTag = newBal > 0 ? `${newBalFormatted} (Dr / Receivable)` : `${newBalFormatted} (Cr / Advance)`;
+        newBalClass = newBal > 0 ? 'negative' : 'positive';
+      }
+    }
     dom.newBalanceDisplay.textContent = newBalTag;
-    dom.newBalanceDisplay.className = `acc-calc-val-large ${newBal > 0 ? 'negative' : newBal < 0 ? 'positive' : ''}`;
+    dom.newBalanceDisplay.className = `acc-calc-val-large ${newBalClass}`;
   }
 
   // ========================================================
@@ -761,9 +890,19 @@
 
     dom.modalPartiesTableBody.innerHTML = state.searchFilteredParties.map((p, idx) => {
       const isSelected = idx === state.searchSelectedIndex;
-      const bal = Number(p.openingBalance) || 0;
-      const balStr = formatMoney(Math.abs(bal)) + (bal > 0 ? ' (Dr)' : bal < 0 ? ' (Cr)' : '');
-      const balClass = bal > 0 ? 'acc-badge-dr' : bal < 0 ? 'acc-badge-cr' : '';
+      const isSupp = isSupplierParty(p);
+      const bal = Number(p.currentBalance !== undefined ? p.currentBalance : p.openingBalance) || 0;
+      let balStr = formatMoney(Math.abs(bal));
+      let balClass = '';
+      if (bal !== 0) {
+        if (isSupp) {
+          balStr += bal > 0 ? ' (Cr / Payable)' : ' (Dr / Adv)';
+          balClass = bal > 0 ? 'acc-badge-cr' : 'acc-badge-dr';
+        } else {
+          balStr += bal > 0 ? ' (Dr / Rec)' : ' (Cr / Adv)';
+          balClass = bal > 0 ? 'acc-badge-dr' : 'acc-badge-cr';
+        }
+      }
 
       return `
         <tr class="${isSelected ? 'selected' : ''}" data-index="${idx}">
@@ -772,7 +911,7 @@
             <strong>${p.name || ''}</strong>
             ${p.contactPerson ? `<div style="font-size: 0.75rem; color: #64748b;">Contact: ${p.contactPerson}</div>` : ''}
           </td>
-          <td><span class="acc-badge-pill" style="font-size: 0.7rem; padding: 2px 8px; background: #f1f5f9; color: #334155;">${p.partyTypeName || 'Party'}</span></td>
+          <td><span class="acc-badge-pill" style="font-size: 0.7rem; padding: 2px 8px; background: #f1f5f9; color: #334155;">${p.partyTypeName || (isSupp ? 'Vendor / Supplier' : 'Customer')}</span></td>
           <td>${p.areaName || ''}${p.city ? `, ${p.city}` : ''}</td>
           <td>${p.phone || '--'}</td>
           <td style="text-align: right;" class="${balClass}"><strong>${balStr}</strong></td>
@@ -798,6 +937,7 @@
       dom.partyInput.value = party.name;
       updatePartyBanner(party);
       recalculateAmounts();
+      if (dom.amountInput) dom.amountInput.focus();
     }
 
     closePartyHelpModal();
@@ -824,8 +964,14 @@
     }
 
     const voucherType = state.activeTab === 'cpv' ? 'CPV' : 'CRV';
-    const prevBal = Number(state.selectedParty.openingBalance) || 0;
-    const newBal = prevBal - netAmount;
+    const isSupp = isSupplierParty(state.selectedParty);
+    const prevBal = Number(state.selectedParty.currentBalance !== undefined ? state.selectedParty.currentBalance : state.selectedParty.openingBalance) || 0;
+    let newBal = prevBal;
+    if (isSupp) {
+      newBal = voucherType === 'CRV' ? (prevBal + netAmount) : (prevBal - netAmount);
+    } else {
+      newBal = voucherType === 'CRV' ? (prevBal - netAmount) : (prevBal + netAmount);
+    }
 
     const voucherData = {
       id: state.voucherId,
@@ -860,7 +1006,9 @@
         state.voucherNo = res.voucherNo;
 
         // Update local party object's balance
-        state.selectedParty.openingBalance = newBal;
+        state.selectedParty.currentBalance = newBal;
+        const inList = (state.partiesList || []).find(p => p.id === state.selectedParty.id);
+        if (inList) inList.currentBalance = newBal;
         updatePartyBanner(state.selectedParty);
 
         if (dom.btnAccDelete) dom.btnAccDelete.classList.remove('hidden');
@@ -893,6 +1041,13 @@
     try {
       await api.deleteVoucher(state.voucherId);
       showToast(`Voucher #${state.voucherNo} deleted. Balance reverted.`, 'success');
+
+      state.partiesList = await api.getParties();
+      const inList = (state.partiesList || []).find(p => p.id === state.selectedParty?.id);
+      if (inList) {
+        state.selectedParty = inList;
+        updatePartyBanner(inList);
+      }
       await resetVoucher();
     } catch (err) {
       console.error('Error deleting voucher:', err);
@@ -916,8 +1071,18 @@
     const amount = Number(dom.amountInput.value) || 0;
     const discount = Number(dom.discountInput.value) || 0;
     const net = amount + discount;
-    const prevBal = Number(state.selectedParty.openingBalance) || 0;
-    const newBal = prevBal - net;
+
+    const isSupp = isSupplierParty(state.selectedParty);
+    const prevBal = Number(state.selectedParty.currentBalance !== undefined ? state.selectedParty.currentBalance : state.selectedParty.openingBalance) || 0;
+    let newBal = prevBal;
+    if (isSupp) {
+      newBal = voucherType === 'CRV' ? (prevBal + net) : (prevBal - net);
+    } else {
+      newBal = voucherType === 'CRV' ? (prevBal - net) : (prevBal + net);
+    }
+
+    setPrintPageStyle('80mm auto');
+    dom.printArea.className = 'acc-print-container acc-print-thermal-80mm';
 
     dom.printArea.innerHTML = `
       <div class="acc-thermal-slip">
@@ -1023,14 +1188,24 @@
       return;
     }
 
+    const isSupp = isSupplierParty(state.selectedParty);
+
     // Update KPI summary cards
     dom.kpiOpening.textContent = formatMoney(ledger.openingBalance);
     dom.kpiDebit.textContent = formatMoney(ledger.totalDebit);
     dom.kpiCredit.textContent = formatMoney(ledger.totalCredit);
 
     const closeFormatted = formatMoney(Math.abs(ledger.closingBalance));
-    dom.kpiClosing.textContent = `${closeFormatted} ${ledger.closingBalance > 0 ? '(Dr)' : ledger.closingBalance < 0 ? '(Cr)' : ''}`;
-    dom.kpiClosing.className = `acc-kpi-val ${ledger.closingBalance > 0 ? 'red' : 'green'}`;
+    let closingTag = 'Rs. 0.00';
+    if (ledger.closingBalance !== 0) {
+      if (isSupp) {
+        closingTag = `${closeFormatted} ${ledger.closingBalance > 0 ? '(Cr / Payable)' : '(Dr / Advance)'}`;
+      } else {
+        closingTag = `${closeFormatted} ${ledger.closingBalance > 0 ? '(Dr / Receivable)' : '(Cr / Advance)'}`;
+      }
+    }
+    dom.kpiClosing.textContent = closingTag;
+    dom.kpiClosing.className = `acc-kpi-val ${ledger.closingBalance !== 0 ? 'red' : 'green'}`;
 
     if (!ledger.entries || ledger.entries.length === 0) {
       dom.ledgerTableBody.innerHTML = `
@@ -1045,8 +1220,16 @@
 
     // Render Rows
     dom.ledgerTableBody.innerHTML = ledger.entries.map((e, idx) => {
-      const balStr = formatMoney(Math.abs(e.balance)) + (e.balance > 0 ? ' (Dr)' : e.balance < 0 ? ' (Cr)' : '');
-      const balClass = e.balance > 0 ? 'acc-badge-dr' : e.balance < 0 ? 'acc-badge-cr' : '';
+      let balStr = formatMoney(Math.abs(e.balance));
+      if (e.balance !== 0) {
+        if (isSupp) {
+          balStr += (e.balance > 0 ? ' (Cr)' : ' (Dr)');
+        } else {
+          balStr += (e.balance > 0 ? ' (Dr)' : ' (Cr)');
+        }
+      }
+      const isPayable = isSupp ? (e.balance > 0) : (e.balance < 0);
+      const balClass = isPayable ? 'acc-badge-cr' : 'acc-badge-dr';
 
       return `
         <tr>
@@ -1062,71 +1245,296 @@
     }).join('');
   }
 
-  // Print Complete Ledger Statement
+  // Helper to inject/update print page style tag
+  function setPrintPageStyle(sizeRule) {
+    let styleEl = document.getElementById('accDynamicPrintStyle');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'accDynamicPrintStyle';
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = `@page { size: ${sizeRule}; margin: ${sizeRule.includes('mm') ? '2.5mm' : '8mm'}; }`;
+  }
+
+  // Open Ledger Print Modal
   function handlePrintLedger() {
     if (!state.currentLedgerData || !state.selectedParty) {
       showToast('Select party and generate ledger first', 'warning');
       return;
     }
 
-    const ledger = state.currentLedgerData;
     const party = state.selectedParty;
     const fromDate = dom.ledgerFromDate.value || 'Beginning';
     const toDate = dom.ledgerToDate.value || 'Today';
 
+    if (dom.printPartySub) {
+      dom.printPartySub.textContent = `Statement for ${party.name} (${fromDate} to ${toDate})`;
+    }
+
+    // Retrieve last used preferences from localStorage
+    const lastTemplate = localStorage.getItem('acc_ledger_last_template') || 'a4';
+    const lastWidth = localStorage.getItem('acc_ledger_paper_width') || '80mm';
+
+    const radioTpl = dom.printModal.querySelector(`input[name="accLedgerTemplateRadio"][value="${lastTemplate}"]`);
+    if (radioTpl) radioTpl.checked = true;
+
+    const radioWidth = dom.printModal.querySelector(`input[name="accThermalPaperWidth"][value="${lastWidth}"]`);
+    if (radioWidth) radioWidth.checked = true;
+
+    updatePrintModalUI();
+    dom.printModal.classList.remove('hidden');
+  }
+
+  function closePrintModal() {
+    if (dom.printModal) dom.printModal.classList.add('hidden');
+  }
+
+  function updatePrintModalUI() {
+    const selectedTpl = dom.printModal.querySelector('input[name="accLedgerTemplateRadio"]:checked')?.value || 'a4';
+    if (dom.cardTplA4) dom.cardTplA4.classList.toggle('active', selectedTpl === 'a4');
+    if (dom.cardTplThermal) dom.cardTplThermal.classList.toggle('active', selectedTpl === 'thermal');
+    if (dom.thermalWidthOptions) {
+      dom.thermalWidthOptions.style.display = (selectedTpl === 'thermal') ? 'block' : 'none';
+    }
+  }
+
+  function executeLedgerPrint() {
+    const selectedTpl = dom.printModal.querySelector('input[name="accLedgerTemplateRadio"]:checked')?.value || 'a4';
+    const selectedWidth = dom.printModal.querySelector('input[name="accThermalPaperWidth"]:checked')?.value || '80mm';
+
+    // Remember user choice in localStorage
+    localStorage.setItem('acc_ledger_last_template', selectedTpl);
+    localStorage.setItem('acc_ledger_paper_width', selectedWidth);
+
+    closePrintModal();
+
+    if (selectedTpl === 'thermal') {
+      renderThermalLedger(selectedWidth);
+    } else {
+      renderA4Ledger();
+    }
+  }
+
+  // Render A4 Full Page Ledger Template
+  function renderA4Ledger() {
+    const ledger = state.currentLedgerData;
+    const party = state.selectedParty;
+    const fromDate = dom.ledgerFromDate.value || 'Beginning';
+    const toDate = dom.ledgerToDate.value || 'Today';
+    const isSupp = isSupplierParty(party);
+
+    setPrintPageStyle('A4 portrait');
+    dom.printArea.className = 'acc-print-container acc-print-a4';
+
+    const opBalFormatted = formatMoney(Math.abs(ledger.openingBalance));
+    const opBalTag = ledger.openingBalance !== 0
+      ? `${opBalFormatted} ${ledger.openingBalance > 0 ? (isSupp ? '(Cr / Payable)' : '(Dr / Receivable)') : (isSupp ? '(Dr / Advance)' : '(Cr / Advance)')}`
+      : 'Rs. 0.00';
+
+    const closeFormatted = formatMoney(Math.abs(ledger.closingBalance));
+    const closeTag = ledger.closingBalance !== 0
+      ? `${closeFormatted} ${ledger.closingBalance > 0 ? (isSupp ? '(Cr / Payable)' : '(Dr / Receivable)') : (isSupp ? '(Dr / Advance)' : '(Cr / Advance)')}`
+      : 'Rs. 0.00';
+
     dom.printArea.innerHTML = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; color: #000;">
-        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px;">
-          <h2 style="margin: 0; font-size: 20px;">SHAHZAIB TRADERS</h2>
-          <p style="margin: 2px 0; font-size: 13px;">Wholesale & Retail Trading Solutions - Wah Cantt</p>
-          <h3 style="margin: 8px 0 0; font-size: 16px;">PARTY ACCOUNT LEDGER STATEMENT</h3>
-          <p style="margin: 2px 0; font-size: 12px;">Period: ${fromDate} to ${toDate}</p>
+      <div style="font-family: Arial, sans-serif; color: #000; width: 100%;">
+        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
+          <h2 style="margin: 0; font-size: 20px; font-weight: bold; letter-spacing: 0.05em;">SHAHZAIB TRADERS</h2>
+          <p style="margin: 3px 0; font-size: 13px;">Wholesale & Retail Commercial Market, Wah Cantt</p>
+          <p style="margin: 2px 0; font-size: 12px;">Phone: 0300-1234567 / Email: info@shahzaibtraders.com</p>
+          <h3 style="margin: 8px 0 0; font-size: 16px; text-decoration: underline;">PARTY ACCOUNT LEDGER STATEMENT</h3>
+          <p style="margin: 3px 0; font-size: 12px;"><strong>Period:</strong> ${fromDate} to ${toDate}</p>
         </div>
 
-        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 13px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 12.5px; background: #f8fafc; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px;">
           <div>
-            <strong>Party:</strong> ${party.name}<br>
-            <strong>Type:</strong> ${party.partyTypeName || 'Party'} | <strong>Contact:</strong> ${party.contactPerson || '--'}<br>
-            <strong>City/Area:</strong> ${party.areaName || ''} ${party.city || ''} | <strong>Phone:</strong> ${party.phone || '--'}
+            <div><strong>Party Name:</strong> ${party.name}</div>
+            <div><strong>Party Type:</strong> ${party.partyTypeName || (isSupp ? 'Vendor / Supplier' : 'Customer')}</div>
+            <div><strong>Contact Person:</strong> ${party.contactPerson || '--'}</div>
+            <div><strong>City / Area:</strong> ${party.areaName || ''} ${party.city ? `, ${party.city}` : ''}</div>
+            <div><strong>Phone / Mobile:</strong> ${party.phone || '--'}</div>
           </div>
           <div style="text-align: right;">
-            <strong>Opening Balance:</strong> ${formatMoney(ledger.openingBalance)}<br>
-            <strong>Total Debits (Dr):</strong> ${formatMoney(ledger.totalDebit)}<br>
-            <strong>Total Credits (Cr):</strong> ${formatMoney(ledger.totalCredit)}<br>
-            <strong>Closing Balance:</strong> <strong>${formatMoney(ledger.closingBalance)}</strong>
+            <div><strong>Opening Balance:</strong> ${opBalTag}</div>
+            <div><strong>Total Debits (Dr):</strong> ${formatMoney(ledger.totalDebit)}</div>
+            <div><strong>Total Credits (Cr):</strong> ${formatMoney(ledger.totalCredit)}</div>
+            <div style="margin-top: 4px; font-size: 14px;"><strong>Closing Balance:</strong> <strong style="color: #0f172a;">${closeTag}</strong></div>
           </div>
         </div>
 
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px;" border="1">
+        <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 10px;" border="1" cellpadding="5">
           <thead>
-            <tr style="background: #f1f5f9;">
-              <th style="padding: 6px;">Date</th>
-              <th style="padding: 6px;">Voucher #</th>
-              <th style="padding: 6px;">Type</th>
-              <th style="padding: 6px;">Description</th>
-              <th style="padding: 6px; text-align: right;">Debit (Dr)</th>
-              <th style="padding: 6px; text-align: right;">Credit (Cr)</th>
-              <th style="padding: 6px; text-align: right;">Balance</th>
+            <tr style="background: #e2e8f0;">
+              <th style="width: 75px; text-align: left;">Date</th>
+              <th style="width: 90px; text-align: left;">Voucher #</th>
+              <th style="width: 110px; text-align: left;">Type</th>
+              <th style="text-align: left;">Description</th>
+              <th style="width: 95px; text-align: right;">Debit (Dr)</th>
+              <th style="width: 95px; text-align: right;">Credit (Cr)</th>
+              <th style="width: 115px; text-align: right;">Balance</th>
             </tr>
           </thead>
           <tbody>
-            ${(ledger.entries || []).map(e => `
-              <tr>
-                <td style="padding: 5px;">${e.date || '--'}</td>
-                <td style="padding: 5px;">${e.voucherNo || '--'}</td>
-                <td style="padding: 5px;">${e.type || '--'}</td>
-                <td style="padding: 5px;">${e.description || '--'}</td>
-                <td style="padding: 5px; text-align: right;">${e.debit > 0 ? e.debit.toLocaleString() : '-'}</td>
-                <td style="padding: 5px; text-align: right;">${e.credit > 0 ? e.credit.toLocaleString() : '-'}</td>
-                <td style="padding: 5px; text-align: right; font-weight: bold;">${Math.abs(e.balance).toLocaleString()} ${e.balance >= 0 ? 'Dr' : 'Cr'}</td>
-              </tr>
-            `).join('')}
+            <tr>
+              <td colspan="4" style="font-weight: bold; background: #f1f5f9;">Opening Balance</td>
+              <td style="text-align: right;">-</td>
+              <td style="text-align: right;">-</td>
+              <td style="text-align: right; font-weight: bold;">${opBalTag}</td>
+            </tr>
+            ${(ledger.entries || []).map(e => {
+              let balStr = formatMoney(Math.abs(e.balance));
+              if (e.balance !== 0) {
+                balStr += e.balance > 0 ? (isSupp ? ' Cr' : ' Dr') : (isSupp ? ' Dr' : ' Cr');
+              }
+              return `
+                <tr>
+                  <td>${e.date || '--'}</td>
+                  <td><strong>${e.voucherNo || '--'}</strong></td>
+                  <td>${e.type || '--'}</td>
+                  <td style="word-break: break-word;">${e.description || '--'}</td>
+                  <td style="text-align: right;">${e.debit > 0 ? e.debit.toLocaleString() : '-'}</td>
+                  <td style="text-align: right;">${e.credit > 0 ? e.credit.toLocaleString() : '-'}</td>
+                  <td style="text-align: right; font-weight: bold;">${balStr}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background: #e2e8f0; font-weight: bold;">
+              <td colspan="4" style="text-align: right;">PERIOD TOTALS:</td>
+              <td style="text-align: right;">${formatMoney(ledger.totalDebit)}</td>
+              <td style="text-align: right;">${formatMoney(ledger.totalCredit)}</td>
+              <td style="text-align: right; font-weight: 800;">${closeTag}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 50px; font-size: 12px; padding-top: 10px;">
+          <div>
+            <div style="border-top: 1px solid #000; width: 180px; text-align: center; padding-top: 4px;">
+              Prepared By
+            </div>
+          </div>
+          <div>
+            <div style="border-top: 1px solid #000; width: 180px; text-align: center; padding-top: 4px;">
+              Authorized Signature
+            </div>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 25px; font-size: 10px; color: #64748b;">
+          Generated from Shahzaib Traders Inventory & Accounts System on ${new Date().toLocaleString()}
+        </div>
+      </div>
+    `;
+
+    window.print();
+  }
+
+  // Render Thermal Receipt Ledger Template (80mm / 58mm roll)
+  function renderThermalLedger(paperWidth = '80mm') {
+    const ledger = state.currentLedgerData;
+    const party = state.selectedParty;
+    const fromDate = dom.ledgerFromDate.value || 'Beginning';
+    const toDate = dom.ledgerToDate.value || 'Today';
+    const isSupp = isSupplierParty(party);
+
+    const is58 = (paperWidth === '58mm');
+    setPrintPageStyle(is58 ? '58mm auto' : '80mm auto');
+    dom.printArea.className = `acc-print-container ${is58 ? 'acc-print-thermal-58mm' : 'acc-print-thermal-80mm'}`;
+
+    const opBalFormatted = formatMoney(Math.abs(ledger.openingBalance));
+    const opBalTag = ledger.openingBalance !== 0
+      ? `${opBalFormatted} ${ledger.openingBalance > 0 ? (isSupp ? 'Cr' : 'Dr') : (isSupp ? 'Dr' : 'Cr')}`
+      : 'Rs. 0';
+
+    const closeFormatted = formatMoney(Math.abs(ledger.closingBalance));
+    const closeTag = ledger.closingBalance !== 0
+      ? `${closeFormatted} ${ledger.closingBalance > 0 ? (isSupp ? 'Cr / Payable' : 'Dr / Receivable') : (isSupp ? 'Dr / Advance' : 'Cr / Advance')}`
+      : 'Rs. 0.00';
+
+    dom.printArea.innerHTML = `
+      <div class="acc-thermal-slip">
+        <div class="acc-thermal-header">
+          <div class="acc-thermal-title">SHAHZAIB TRADERS</div>
+          <div style="font-size: 0.85em;">Wholesale & Retail Trading - Wah Cantt</div>
+          <div style="font-size: 0.8em;">Phone: 0300-1234567</div>
+          <div style="margin-top: 4px; font-weight: bold; font-size: 1.05em;">*** PARTY LEDGER ***</div>
+        </div>
+
+        <div class="acc-thermal-row">
+          <span>Party:</span>
+          <strong>${party.name}</strong>
+        </div>
+        <div class="acc-thermal-row">
+          <span>Type:</span>
+          <span>${party.partyTypeName || (isSupp ? 'Supplier' : 'Customer')}</span>
+        </div>
+        ${party.phone ? `
+        <div class="acc-thermal-row">
+          <span>Phone:</span>
+          <span>${party.phone}</span>
+        </div>` : ''}
+        <div class="acc-thermal-row">
+          <span>Period:</span>
+          <span>${fromDate} to ${toDate}</span>
+        </div>
+
+        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 3px 0; margin: 4px 0;">
+          <div class="acc-thermal-row" style="font-weight: bold;">
+            <span>Opening Balance:</span>
+            <span>${opBalTag}</span>
+          </div>
+        </div>
+
+        <table class="acc-thermal-table">
+          <thead>
+            <tr>
+              <th style="width: 20%;">Date</th>
+              <th style="width: 32%;">Description</th>
+              <th style="width: 16%; text-align: right;">Dr</th>
+              <th style="width: 16%; text-align: right;">Cr</th>
+              <th style="width: 16%; text-align: right;">Bal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(ledger.entries || []).map(e => {
+              let balStr = Math.abs(e.balance).toLocaleString();
+              if (e.balance !== 0) {
+                balStr += e.balance > 0 ? (isSupp ? 'C' : 'D') : (isSupp ? 'D' : 'C');
+              }
+              const desc = (e.description || e.type || '--').replace(/^(Cash Received|Paid Cash) via Cash\s*/i, '').trim() || e.type;
+              return `
+                <tr>
+                  <td>${e.date ? e.date.slice(5) : '--'}</td>
+                  <td class="acc-thermal-desc">${desc}</td>
+                  <td style="text-align: right;">${e.debit > 0 ? e.debit.toLocaleString() : '-'}</td>
+                  <td style="text-align: right;">${e.credit > 0 ? e.credit.toLocaleString() : '-'}</td>
+                  <td style="text-align: right; font-weight: bold;">${balStr}</td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
 
-        <div style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 12px;">
-          <div>Prepared By: ___________________</div>
-          <div>Authorized Signature: ___________________</div>
+        <div class="acc-thermal-total">
+          <div class="acc-thermal-row">
+            <span>Total Debits (Dr):</span>
+            <span>Rs. ${ledger.totalDebit.toLocaleString()}</span>
+          </div>
+          <div class="acc-thermal-row">
+            <span>Total Credits (Cr):</span>
+            <span>Rs. ${ledger.totalCredit.toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div class="acc-thermal-closing">
+          <span>CLOSING BALANCE:</span>
+          <span>${closeTag}</span>
+        </div>
+
+        <div style="text-align: center; margin-top: 8px; font-size: 0.8em; border-top: 1px dashed #000; padding-top: 4px;">
+          Printed: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br>
+          *** Shahzaib Traders ***
         </div>
       </div>
     `;
@@ -1334,6 +1742,60 @@
     });
     dom.btnLedgerPrintStatement.addEventListener('click', handlePrintLedger);
 
+    // Ledger Print Modal Events
+    if (dom.btnClosePrintModal) dom.btnClosePrintModal.addEventListener('click', closePrintModal);
+    if (dom.btnCancelPrintModal) dom.btnCancelPrintModal.addEventListener('click', closePrintModal);
+    if (dom.btnConfirmPrintLedger) dom.btnConfirmPrintLedger.addEventListener('click', executeLedgerPrint);
+
+    if (dom.cardTplA4) {
+      dom.cardTplA4.addEventListener('click', () => {
+        const r = dom.printModal.querySelector('input[name="accLedgerTemplateRadio"][value="a4"]');
+        if (r) r.checked = true;
+        updatePrintModalUI();
+      });
+    }
+    if (dom.cardTplThermal) {
+      dom.cardTplThermal.addEventListener('click', () => {
+        const r = dom.printModal.querySelector('input[name="accLedgerTemplateRadio"][value="thermal"]');
+        if (r) r.checked = true;
+        updatePrintModalUI();
+      });
+    }
+
+    if (dom.printModal) {
+      dom.printModal.querySelectorAll('input[name="accLedgerTemplateRadio"]').forEach(r => {
+        r.addEventListener('change', updatePrintModalUI);
+      });
+
+      dom.printModal.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          executeLedgerPrint();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          closePrintModal();
+        }
+      });
+    }
+
+    // Party inputs Enter triggers F1 help modal
+    if (dom.partyInput) {
+      dom.partyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          openPartyHelpModal();
+        }
+      });
+    }
+    if (dom.ledgerPartyInput) {
+      dom.ledgerPartyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          openPartyHelpModal();
+        }
+      });
+    }
+
     // History View Controls
     dom.historySearch.addEventListener('input', loadVouchersHistory);
     dom.historyTypeFilter.addEventListener('change', loadVouchersHistory);
@@ -1356,7 +1818,11 @@
           }
         }
       } else if (e.key === 'Escape') {
-        if (!dom.helpModal.classList.contains('hidden')) {
+        if (dom.printModal && !dom.printModal.classList.contains('hidden')) {
+          e.preventDefault();
+          e.stopPropagation();
+          closePrintModal();
+        } else if (dom.helpModal && !dom.helpModal.classList.contains('hidden')) {
           e.preventDefault();
           e.stopPropagation();
           closePartyHelpModal();

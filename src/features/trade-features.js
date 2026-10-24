@@ -87,8 +87,20 @@
     });
     if (btnCloseClm) btnCloseClm.onclick = () => closeModal('modalClaims');
 
+    // 4. Daily Expenses Modal Triggers
+    const btnOpenExpTop = document.getElementById('btnTopExpensesModal');
+    const btnCloseExp = document.getElementById('btnCloseExpensesModal');
+    if (btnOpenExpTop) btnOpenExpTop.onclick = () => openModal('modalExpenses', initExpensesModule);
+    if (btnCloseExp) btnCloseExp.onclick = () => closeModal('modalExpenses');
+
+    const btnExpSave = document.getElementById('btnExpenseSave');
+    if (btnExpSave) btnExpSave.onclick = saveExpenseRecord;
+
+    const btnExpNew = document.getElementById('btnExpenseNew');
+    if (btnExpNew) btnExpNew.onclick = resetExpenseForm;
+
     // Close on backdrop click
-    ['modalEstimate', 'modalClosing', 'modalClaims'].forEach(id => {
+    ['modalEstimate', 'modalClosing', 'modalClaims', 'modalExpenses'].forEach(id => {
       const modal = document.getElementById(id);
       if (modal) {
         modal.addEventListener('click', (e) => {
@@ -100,7 +112,7 @@
     // Close on Escape key
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        ['modalEstimate', 'modalClosing', 'modalClaims'].forEach(id => closeModal(id));
+        ['modalEstimate', 'modalClosing', 'modalClaims', 'modalExpenses'].forEach(id => closeModal(id));
       }
     });
   }
@@ -295,14 +307,26 @@
       notify('No items in estimate to convert', 'error');
       return;
     }
+    const customer = (document.getElementById('estCustomerName')?.value || '').trim() || 'Walk-in Customer';
+    const phone = (document.getElementById('estPhone')?.value || '').trim();
+    const items = [...state.estimateItems];
+
     // Close modal
     closeModal('modalEstimate');
 
-    // Fill customer name in main sale voucher
-    const custInput = document.getElementById('saleCustomerName');
-    if (custInput) custInput.value = document.getElementById('estCustomerName').value;
+    // Switch view to Sales module
+    const salesNavBtn = document.getElementById('navSalesMainBtn');
+    if (salesNavBtn) {
+      salesNavBtn.click();
+    }
 
-    notify('Estimate converted! Items ready for final sale billing.');
+    // Load items into sales bill
+    if (window.SalesModule && typeof window.SalesModule.loadEstimateIntoBill === 'function') {
+      window.SalesModule.loadEstimateIntoBill(customer, phone, items);
+      notify(`Estimate with ${items.length} item(s) converted to Sale Bill!`);
+    } else {
+      notify('Sales module is not ready to receive estimate items', 'error');
+    }
   }
 
   // ========================================================
@@ -506,6 +530,109 @@
       notify(`Claim [${res.claimNo}] saved successfully!`);
       resetClaimForm();
       loadClaimsList();
+    }
+  }
+
+  // ========================================================
+  // 4. DAILY EXPENSES (DUKAN KHARCHAY) LOGIC
+  // ========================================================
+  async function initExpensesModule() {
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('expDate');
+    if (dateInput && !dateInput.value) dateInput.value = today;
+
+    const vNoInput = document.getElementById('expVoucherNo');
+    if (vNoInput && api.getNextExpenseVoucherNo) {
+      vNoInput.value = await api.getNextExpenseVoucherNo();
+    }
+
+    const catSelect = document.getElementById('expCategorySelect');
+    if (catSelect && api.getChartOfAccounts) {
+      const coaList = await api.getChartOfAccounts();
+      catSelect.innerHTML = (coaList || []).map(c => `<option value="${c.code}" data-title="${c.title}">${c.title} (${c.code})</option>`).join('');
+    }
+
+    loadExpensesList();
+  }
+
+  async function loadExpensesList() {
+    const tbody = document.getElementById('expensesTableBody');
+    if (!tbody || !api.getExpenses) return;
+    tbody.innerHTML = '';
+    const list = await api.getExpenses();
+    if (!list || list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color: var(--text-muted, #94a3b8);">No shop expenses recorded yet.</td></tr>';
+      return;
+    }
+    list.forEach(e => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="font-bold font-num">${e.voucherNo || '-'}</td>
+        <td class="font-num">${e.entryDate || '-'}</td>
+        <td class="font-bold">${e.accountTitle || e.category || '-'}</td>
+        <td>${e.paidTo || '-'}</td>
+        <td><span class="tf-badge ${e.paymentMode === 'Cash' ? 'status-received' : 'status-factory'}">${e.paymentMode || 'Cash'}</span></td>
+        <td class="text-right font-num font-bold text-danger">Rs. ${Number(e.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        <td style="font-size: 12px; color: var(--text-muted, #64748b);">${e.remarks || '-'}</td>
+        <td style="text-align: center;">
+          <button type="button" class="btn-table-action action-danger" onclick="window.deleteTradeExpense('${e.id}')">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function saveExpenseRecord() {
+    const amount = Number(document.getElementById('expAmount').value) || 0;
+    if (amount <= 0) {
+      notify('Please enter a valid expense amount greater than 0', 'error');
+      return;
+    }
+
+    const catSelect = document.getElementById('expCategorySelect');
+    const selectedOpt = catSelect ? catSelect.options[catSelect.selectedIndex] : null;
+    const accountTitle = selectedOpt ? selectedOpt.getAttribute('data-title') || selectedOpt.text : 'General Expense';
+    const accountCode = catSelect ? catSelect.value : '';
+
+    const payload = {
+      voucherNo: document.getElementById('expVoucherNo').value,
+      entryDate: document.getElementById('expDate').value,
+      accountCode,
+      accountTitle,
+      category: accountTitle,
+      amount,
+      paymentMode: document.getElementById('expPaymentMode').value,
+      paidTo: document.getElementById('expPaidTo').value,
+      remarks: document.getElementById('expRemarks').value
+    };
+
+    const res = await api.saveExpense(payload);
+    if (res && res.success) {
+      notify(`Expense [${res.voucherNo}] recorded successfully!`);
+      resetExpenseForm();
+      loadExpensesList();
+    }
+  }
+
+  window.deleteTradeExpense = async function(id) {
+    if (!confirm('Are you sure you want to delete this expense record?')) return;
+    const res = await api.deleteExpense(id);
+    if (res && res.success) {
+      notify('Expense deleted successfully');
+      loadExpensesList();
+    }
+  };
+
+  async function resetExpenseForm() {
+    const amt = document.getElementById('expAmount');
+    if (amt) amt.value = '';
+    const pt = document.getElementById('expPaidTo');
+    if (pt) pt.value = '';
+    const rem = document.getElementById('expRemarks');
+    if (rem) rem.value = '';
+    if (api.getNextExpenseVoucherNo) {
+      const vNo = document.getElementById('expVoucherNo');
+      if (vNo) vNo.value = await api.getNextExpenseVoucherNo();
     }
   }
 

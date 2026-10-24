@@ -72,7 +72,9 @@ function openFindProductWindow() {
       event.preventDefault();
     }
     if (input.control && input.shift && input.key.toLowerCase() === 'i') {
-      findProductWindow.webContents.toggleDevTools();
+      if (!app.isPackaged || process.env.ENABLE_DEVTOOLS === 'true') {
+        findProductWindow.webContents.toggleDevTools();
+      }
       event.preventDefault();
     }
     if (input.key === 'Escape') {
@@ -91,20 +93,40 @@ function openFindProductWindow() {
 function getDbFilePath() {
   if (app.isPackaged) {
     const userDataDir = app.getPath('userData');
-    return path.join(userDataDir, 'inventory.db');
+    const targetDb = path.join(userDataDir, 'inventory.db');
+    if (!fs.existsSync(targetDb)) {
+      try {
+        fs.mkdirSync(userDataDir, { recursive: true });
+        const bundledDb = path.join(process.resourcesPath, 'inventory.db');
+        const asarDb = path.join(__dirname, '..', 'inventory.db');
+        if (fs.existsSync(bundledDb)) {
+          fs.copyFileSync(bundledDb, targetDb);
+        } else if (fs.existsSync(asarDb)) {
+          fs.copyFileSync(asarDb, targetDb);
+        }
+      } catch (err) {
+        console.warn('Initial database seed skipped/failed:', err);
+      }
+    }
+    return targetDb;
   }
   // When running locally in development, use the project root database
   const localDb = path.join(__dirname, '..', 'inventory.db');
   return localDb;
 }
 
-// Timing-safe PIN verification against process.env.APP_PIN
-function verifyPin(inputPin) {
+let failedPinAttempts = 0;
+let lockoutUntil = 0;
+
+// Timing-safe PIN verification against persistent database setting
+function checkPinMatch(inputPin) {
   if (typeof inputPin !== 'string' && typeof inputPin !== 'number') {
     return false;
   }
   const cleanInput = String(inputPin).trim();
-  const configuredPin = String(process.env.APP_PIN || '1996').trim();
+  const configuredPin = (db && typeof db.getAppPin === 'function')
+    ? db.getAppPin()
+    : String(process.env.APP_PIN || '1996').trim();
 
   const expectedHash = crypto.createHash('sha256').update(configuredPin).digest();
   const inputHash = crypto.createHash('sha256').update(cleanInput).digest();
@@ -113,6 +135,29 @@ function verifyPin(inputPin) {
     return crypto.timingSafeEqual(expectedHash, inputHash);
   } catch (err) {
     return false;
+  }
+}
+
+function verifyPin(inputPin) {
+  const now = Date.now();
+  if (now < lockoutUntil) {
+    const remainingSeconds = Math.ceil((lockoutUntil - now) / 1000);
+    return { success: false, locked: true, message: `Too many attempts. Wait ${remainingSeconds}s.` };
+  }
+  const isMatch = checkPinMatch(inputPin);
+  if (isMatch) {
+    failedPinAttempts = 0;
+    lockoutUntil = 0;
+    return { success: true };
+  } else {
+    failedPinAttempts++;
+    if (failedPinAttempts >= 5) {
+      lockoutUntil = Date.now() + 30000; // 30s lockout
+      failedPinAttempts = 0;
+      return { success: false, locked: true, message: 'Too many failed attempts. Locked out for 30s.' };
+    }
+    const left = 5 - failedPinAttempts;
+    return { success: false, locked: false, message: `Wrong PIN (${left} attempt${left === 1 ? '' : 's'} left)` };
   }
 }
 
@@ -145,7 +190,9 @@ function createWindow() {
       event.preventDefault();
     }
     if (input.control && input.shift && input.key.toLowerCase() === 'i') {
-      mainWindow.webContents.toggleDevTools();
+      if (!app.isPackaged || process.env.ENABLE_DEVTOOLS === 'true') {
+        mainWindow.webContents.toggleDevTools();
+      }
       event.preventDefault();
     }
   });
@@ -163,7 +210,7 @@ function createWindow() {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.loadFile(path.join(__dirname, 'auth', 'login.html'));
     }
-  }, 4800);
+  }, 1500);
 
   mainWindow.on('closed', () => {
     if (findProductWindow && !findProductWindow.isDestroyed()) {
@@ -430,7 +477,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('change-app-pin', async (_event, { currentPin, newPin }) => {
-    if (!verifyPin(currentPin)) {
+    if (!checkPinMatch(currentPin)) {
       return { success: false, message: 'Current PIN is incorrect. Please re-enter current PIN.' };
     }
     const cleanNewPin = String(newPin || '').trim();
@@ -440,11 +487,18 @@ app.whenReady().then(() => {
 
     try {
       process.env.APP_PIN = cleanNewPin;
-      fs.writeFileSync(envPath, `APP_PIN=${cleanNewPin}\n`, 'utf8');
+      db.setAppPin(cleanNewPin);
+      try {
+        if (!app.isPackaged && fs.existsSync(envPath)) {
+          fs.writeFileSync(envPath, `APP_PIN=${cleanNewPin}\n`, 'utf8');
+        }
+      } catch (e) {
+        // Safe to ignore in packaged environments where .env is read-only
+      }
       return { success: true, message: 'Access PIN updated successfully to ' + cleanNewPin };
     } catch (err) {
-      console.error('Failed to update .env:', err);
-      return { success: false, message: 'Failed to write updated PIN to disk: ' + err.message };
+      console.error('Failed to update PIN:', err);
+      return { success: false, message: 'Failed to update PIN: ' + err.message };
     }
   });
 

@@ -719,63 +719,207 @@
 }
 
 /* ========================================================
-   Print Templates (Thermal Slip & Standard Voucher)
+   Print Templates (A4 & Thermal 80mm / 58mm)
    ======================================================== */
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  #accountsPrintArea, #accountsPrintArea * {
-    visibility: visible;
-  }
-  #accountsPrintArea {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 10px;
-  }
+.acc-modal-print-template {
+  max-width: 520px;
+  width: 95%;
 }
 
+.acc-print-template-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.acc-template-card {
+  display: flex;
+  align-items: center;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.acc-template-card:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+}
+
+.acc-template-card.active,
+.acc-template-card:has(input[type="radio"]:checked) {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 1px #0284c7;
+}
+
+.acc-template-card input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 12px;
+  accent-color: #0284c7;
+  cursor: pointer;
+}
+
+.acc-template-card-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.acc-template-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.acc-thermal-width-box {
+  transition: all 0.2s ease;
+}
+
+.acc-thermal-width-box input[type="radio"] {
+  accent-color: #0284c7;
+  cursor: pointer;
+}
+
+/* Print Container & @media print */
 .acc-print-container {
   display: none;
 }
 
-/* Thermal Receipt Styling */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #accountsPrintArea, #accountsPrintArea * {
+    visibility: visible !important;
+  }
+  #accountsPrintArea {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+    box-sizing: border-box;
+    background: #ffffff;
+    color: #000000;
+  }
+
+  /* A4 Print Layout */
+  #accountsPrintArea.acc-print-a4 {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 8mm !important;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  /* Thermal 80mm Print Layout (Shop Bill roll) */
+  #accountsPrintArea.acc-print-thermal-80mm {
+    width: 76mm !important;
+    max-width: 76mm !important;
+    margin: 0 auto !important;
+    padding: 2.5mm !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+    font-size: 10.5px !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Thermal 58mm Print Layout */
+  #accountsPrintArea.acc-print-thermal-58mm {
+    width: 52mm !important;
+    max-width: 52mm !important;
+    margin: 0 auto !important;
+    padding: 1.5mm !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+    font-size: 9px !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/* Thermal Statement Content Styles */
 .acc-thermal-slip {
-  width: 78mm;
-  margin: 0 auto;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 12px;
+  width: 100%;
+  box-sizing: border-box;
   color: #000;
-  padding: 6px;
-  line-height: 1.35;
+  padding: 2px;
+  line-height: 1.3;
 }
 
 .acc-thermal-header {
   text-align: center;
   border-bottom: 1px dashed #000;
-  padding-bottom: 6px;
-  margin-bottom: 6px;
+  padding-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .acc-thermal-title {
   font-size: 15px;
-  font-weight: bold;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
 .acc-thermal-row {
   display: flex;
   justify-content: space-between;
-  margin: 3px 0;
+  margin: 2px 0;
+  font-size: 0.95em;
+}
+
+.acc-thermal-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 5px 0;
+  font-size: 0.9em;
+}
+
+.acc-thermal-table th {
+  border-top: 1px dashed #000;
+  border-bottom: 1px dashed #000;
+  padding: 3px 1px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.acc-thermal-table td {
+  padding: 2px 1px;
+  vertical-align: top;
+  border-bottom: 1px dotted #ccc;
+}
+
+.acc-thermal-desc {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .acc-thermal-total {
   border-top: 1px dashed #000;
   border-bottom: 1px dashed #000;
-  padding: 6px 0;
-  margin: 6px 0;
+  padding: 4px 0;
+  margin: 4px 0;
   font-weight: bold;
-  font-size: 13px;
 }
+
+.acc-thermal-closing {
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  padding: 5px 0;
+  margin: 6px 0;
+  font-weight: 900;
+  font-size: 1.1em;
+  display: flex;
+  justify-content: space-between;
+}
+

@@ -545,3 +545,89 @@ function createTablePagination({
 }
 
 window.createTablePagination = createTablePagination;
+
+// ========================================================
+// GLOBAL PROGRAM-WIDE FONT SIZE & ZOOM SCALING (WORD-STYLE)
+// ========================================================
+window.applyGlobalFontScale = function (percent, save = true) {
+  const p = Math.max(75, Math.min(170, Math.round(Number(percent) || 100)));
+  const factor = p / 100;
+
+  // 1. Electron Chromium native webFrame zoom
+  if (window.displayAPI && typeof window.displayAPI.setZoomFactor === 'function') {
+    try {
+      window.displayAPI.setZoomFactor(factor);
+    } catch (_) {}
+  }
+
+  // 2. CSS documentElement zoom (ensures instant redraw across all views)
+  try {
+    document.documentElement.style.zoom = factor;
+    document.documentElement.dataset.fontScale = String(p);
+  } catch (_) {}
+
+  // 3. Save to localStorage & database
+  if (save) {
+    try {
+      localStorage.setItem('app_font_scale_percent', String(p));
+      if (window.settingsAPI && typeof window.settingsAPI.saveSettings === 'function') {
+        window.settingsAPI.saveSettings({ appFontSizePercent: String(p) });
+      }
+    } catch (_) {}
+  }
+
+  // 4. Notify any active settings UI elements
+  if (window.dispatchEvent) {
+    window.dispatchEvent(new CustomEvent('app-font-scale-changed', { detail: { percent: p, factor } }));
+  }
+
+  return p;
+};
+
+window.getGlobalFontScale = function () {
+  try {
+    const saved = localStorage.getItem('app_font_scale_percent');
+    if (saved) return Number(saved);
+  } catch (_) {}
+  return 100;
+};
+
+// Auto-apply saved font scale immediately upon loading
+(function initGlobalFontScale() {
+  try {
+    const saved = localStorage.getItem('app_font_scale_percent');
+    if (saved) {
+      window.applyGlobalFontScale(Number(saved), false);
+    }
+  } catch (_) {}
+})();
+
+// Keyboard Shortcuts: Ctrl + Plus/Minus/0 for quick font zoom
+window.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && !e.shiftKey && !e.altKey) {
+    if (e.key === '=' || e.key === '+' || e.code === 'NumpadAdd') {
+      e.preventDefault();
+      const cur = window.getGlobalFontScale();
+      const next = Math.min(160, cur + 5);
+      window.applyGlobalFontScale(next, true);
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Font Size: ${next}%`, 'info');
+      }
+    } else if (e.key === '-' || e.code === 'NumpadSubtract') {
+      e.preventDefault();
+      const cur = window.getGlobalFontScale();
+      const next = Math.max(75, cur - 5);
+      window.applyGlobalFontScale(next, true);
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Font Size: ${next}%`, 'info');
+      }
+    } else if (e.key === '0' || e.code === 'Numpad0') {
+      e.preventDefault();
+      window.applyGlobalFontScale(100, true);
+      if (typeof window.showToast === 'function') {
+        window.showToast('Font Size Reset: 100%', 'info');
+      }
+    }
+  }
+});
+

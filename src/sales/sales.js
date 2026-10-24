@@ -13,282 +13,441 @@
     items: [],
     selectedProduct: null,
     selectedCustomer: null,
-    rateMode: 'retail', // 'retail' | 'wholesale' | 'custom'
-    salesList: [],
-    slipCurrentPage: 1,
-    slipPageSize: 9
+    rateMode: 'retail', // 'retail' | 'wholesale'
+    pendingAddProduct: null,
+    salesList: []
   };
 
   // DOM Elements Cache
   const el = {};
 
-  
-  // POS Live Product Catalog State
-  let posCatalogState = {
+  // F1 Product Catalog Lookup Modal State
+  let f1ModalState = {
+    selectedIndex: 0,
+    filteredProducts: [],
     searchQuery: '',
     selectedCategory: '',
-    stockFilter: 'all', // 'all' | 'instock'
-    defaultRateMode: 'retail', // 'retail' | 'wholesale'
-    rowRates: {}, // productId -> 'retail' | 'wholesale'
-    currentPage: 1,
-    pageSize: 10
+    stockFilter: 'all'
   };
 
-  function renderCatalogPagination(containerId, currentPage, totalPages, totalItems, pageSize, onPageChange) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+  // ========================================================
+  // DUAL PRICING MODE MANAGEMENT (RETAIL vs WHOLESALE)
+  // ========================================================
+  function setBillPricingMode(mode, convertExisting = false) {
+    saleState.rateMode = mode;
+    const btnRetail = document.getElementById('btnModeRetail');
+    const btnWholesale = document.getElementById('btnModeWholesale');
+    const btnEntryRetail = document.getElementById('btnEntryRateRetail');
+    const btnEntryWholesale = document.getElementById('btnEntryRateWholesale');
+    const lblActive = document.getElementById('posActiveRateModeLabel');
+    const posRateSelect = document.getElementById('posRateModeSelect');
 
-    if (totalItems === 0) {
-      container.innerHTML = '';
-      return;
+    if (btnRetail) btnRetail.classList.toggle('active', mode === 'retail');
+    if (btnWholesale) btnWholesale.classList.toggle('active', mode === 'wholesale');
+    if (btnEntryRetail) btnEntryRetail.classList.toggle('active', mode === 'retail');
+    if (btnEntryWholesale) btnEntryWholesale.classList.toggle('active', mode === 'wholesale');
+
+    if (lblActive) {
+      lblActive.textContent = mode === 'wholesale' ? 'Wholesale Rate' : 'Retail Rate';
+      lblActive.className = mode === 'wholesale' ? 'text-purple font-bold' : 'text-accent font-bold';
     }
+    if (posRateSelect) posRateSelect.value = mode;
 
-    const startIdx = (currentPage - 1) * pageSize + 1;
-    const endIdx = Math.min(currentPage * pageSize, totalItems);
-
-    let pages = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      if (currentPage > 3) pages.push('...');
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-      for (let i = start; i <= end; i++) {
-        if (!pages.includes(i)) pages.push(i);
-      }
-      if (currentPage < totalPages - 2) pages.push('...');
-      if (!pages.includes(totalPages)) pages.push(totalPages);
-    }
-
-    let html = `
-      <div class="pos-pagination-info">
-        Showing <strong>${startIdx}–${endIdx}</strong> of <strong>${totalItems}</strong> products (Page <strong>${currentPage}</strong> of <strong>${totalPages}</strong>)
-      </div>
-      <div class="pos-pagination-controls">
-        <button type="button" class="pos-page-btn pos-page-nav" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''} title="Previous Page">
-          ‹ Prev
-        </button>
-    `;
-
-    pages.forEach(p => {
-      if (p === '...') {
-        html += `<span class="pos-page-ellipsis">…</span>`;
-      } else {
-        const isActive = p === currentPage;
-        html += `
-          <button type="button" class="pos-page-btn ${isActive ? 'active' : ''}" data-page="${p}" ${isActive ? 'disabled' : ''}>
-            ${p}
-          </button>
-        `;
-      }
-    });
-
-    html += `
-        <button type="button" class="pos-page-btn pos-page-nav" data-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''} title="Next Page">
-          Next ›
-        </button>
-      </div>
-    `;
-
-    container.innerHTML = html;
-
-    container.querySelectorAll('button[data-page]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const targetPage = Number(btn.getAttribute('data-page'));
-        if (targetPage && targetPage >= 1 && targetPage <= totalPages && targetPage !== currentPage) {
-          onPageChange(targetPage);
+    if (convertExisting && saleState.items.length > 0) {
+      saleState.items.forEach(it => {
+        const prod = (window.appData?.products || []).find(pr => String(pr.id) === String(it.productId) || String(pr.code) === String(it.productCode));
+        if (prod) {
+          const wp = Number(prod.wholesalePrice || 0);
+          const rp = Number(prod.retailPrice || 0);
+          const newRate = mode === 'wholesale' ? (wp || rp) : (rp || wp);
+          it.rateType = mode;
+          it.salePrice = newRate;
+          const discAmt = (newRate * it.totalQty) * ((it.discountPercent || 0) / 100);
+          it.discountAmount = discAmt;
+          it.netAmount = (newRate * it.totalQty) - discAmt;
         }
       });
-    });
+      renderItemsTable();
+      updateVoucherTotals();
+      if (window.showToast) window.showToast(`Converted all items in bill to ${mode === 'wholesale' ? 'Wholesale' : 'Retail'} rates.`, 'info');
+    }
   }
 
-  function getFilteredProducts() {
-    const prods = window.appData?.products || [];
-    const q = (posCatalogState.searchQuery || '').trim().toLowerCase();
-    const cat = posCatalogState.selectedCategory;
-    const stockOnly = posCatalogState.stockFilter === 'instock';
+  // ========================================================
+  // RATE SELECTION ON ITEM ADD (RETAILER vs WHOLESALE DIALOG)
+  // ========================================================
+  function openRateChoiceModal(product, quantity = 1) {
+    if (!product) return;
+    const fresh = (window.appData?.products || []).find(p => String(p.id) === String(product.id) || String(p.code) === String(product.code)) || product;
+    saleState.pendingAddProduct = { product: fresh, quantity };
 
-    return prods.filter(p => {
+    const modal = document.getElementById('modalSelectRateOnAdd');
+    if (!modal) return;
+
+    const codeEl = document.getElementById('rateChoiceProductCode');
+    const titleEl = document.getElementById('rateChoiceProductTitle');
+    const urduEl = document.getElementById('rateChoiceProductUrdu');
+    const stockEl = document.getElementById('rateChoiceStockBadge');
+    const rpEl = document.getElementById('rateChoiceRetailPrice');
+    const wpEl = document.getElementById('rateChoiceWholesalePrice');
+    const qtyInp = document.getElementById('rateChoiceQtyInput');
+
+    const stock = Number(fresh.stockQty || 0);
+    const rp = Number(fresh.retailPrice || 0);
+    const wp = Number(fresh.wholesalePrice || 0);
+
+    if (codeEl) codeEl.textContent = fresh.code || '-';
+    if (titleEl) titleEl.textContent = fresh.titleEng || 'Product';
+    if (urduEl) urduEl.textContent = fresh.titleUrdu || '';
+    if (stockEl) {
+      stockEl.textContent = stock;
+      stockEl.className = `pos-stock-badge ${stock <= 0 ? 'badge-out' : (stock <= 5 ? 'badge-low' : 'badge-in')} font-num font-bold`;
+    }
+    if (rpEl) rpEl.textContent = `Rs ${rp.toLocaleString()}`;
+    if (wpEl) wpEl.textContent = `Rs ${wp.toLocaleString()}`;
+    if (qtyInp) {
+      qtyInp.value = Math.max(1, Number(quantity) || 1);
+      qtyInp.max = stock > 0 ? stock : 999999;
+    }
+
+    modal.classList.remove('hidden');
+
+    setTimeout(() => {
+      const preferredCard = saleState.rateMode === 'wholesale' 
+        ? document.getElementById('cardChoiceWholesale') 
+        : document.getElementById('cardChoiceRetail');
+      if (preferredCard) preferredCard.focus();
+    }, 50);
+  }
+
+  function closeRateChoiceModal() {
+    const modal = document.getElementById('modalSelectRateOnAdd');
+    if (modal) modal.classList.add('hidden');
+    saleState.pendingAddProduct = null;
+    const barcodeInput = document.getElementById('posBarcodeInput');
+    if (barcodeInput) barcodeInput.focus();
+  }
+
+  function confirmRateChoice(chosenMode) {
+    if (!saleState.pendingAddProduct) {
+      closeRateChoiceModal();
+      return;
+    }
+    const { product } = saleState.pendingAddProduct;
+    const qtyInp = document.getElementById('rateChoiceQtyInput');
+    const qty = Math.max(1, Number(qtyInp?.value) || 1);
+
+    const chkApplyEntire = document.getElementById('chkRateApplyToEntireBill');
+    const shouldApplyEntire = chkApplyEntire ? chkApplyEntire.checked : true;
+
+    if (shouldApplyEntire) {
+      setBillPricingMode(chosenMode, saleState.items.length > 0);
+    }
+
+    // Add item with chosen mode (bypasses modal)
+    addProductToCart(product.id, qty, chosenMode, true);
+    closeRateChoiceModal();
+  }
+
+  // Row-level rate toggling (e.g. user wants wholesale rate on a specific line item)
+  function toggleItemRate(idx, targetMode) {
+    const it = saleState.items[idx];
+    if (!it) return;
+    const prod = (window.appData?.products || []).find(pr => String(pr.id) === String(it.productId) || String(pr.code) === String(it.productCode));
+    if (!prod) return;
+
+    const mode = targetMode || (it.rateType === 'wholesale' ? 'retail' : 'wholesale');
+    it.rateType = mode;
+    const wp = Number(prod.wholesalePrice || 0);
+    const rp = Number(prod.retailPrice || 0);
+    const newRate = mode === 'wholesale' ? (wp || rp) : (rp || wp);
+
+    it.salePrice = newRate;
+    const discAmt = (newRate * it.totalQty) * ((it.discountPercent || 0) / 100);
+    it.discountAmount = discAmt;
+    it.netAmount = (newRate * it.totalQty) - discAmt;
+
+    renderItemsTable();
+    updateVoucherTotals();
+  }
+
+  function changeItemRate(idx, newRate) {
+    const it = saleState.items[idx];
+    if (!it) return;
+    const rate = Math.max(0, Number(newRate) || 0);
+    it.salePrice = rate;
+    const discAmt = (rate * it.totalQty) * ((it.discountPercent || 0) / 100);
+    it.discountAmount = discAmt;
+    it.netAmount = (rate * it.totalQty) - discAmt;
+
+    renderItemsTable();
+    updateVoucherTotals();
+  }
+
+  function changeItemQty(idx, newQty) {
+    const it = saleState.items[idx];
+    if (!it) return;
+    const prod = (window.appData?.products || []).find(pr => String(pr.id) === String(it.productId) || String(pr.code) === String(it.productCode));
+    const stock = prod ? Number(prod.stockQty || 0) : 999999;
+
+    let qty = Number(newQty) || 1;
+    if (qty <= 0) {
+      removeSaleItem(idx);
+      return;
+    }
+    if (qty > stock) {
+      if (window.showToast) window.showToast(`Only ${stock} available in stock for "${it.productTitle}".`, 'warning');
+      qty = stock;
+    }
+
+    it.totalQty = qty;
+    const packSize = it.packSize || 1;
+    it.packQty = Math.floor(qty / packSize);
+    it.unitQty = qty % packSize;
+
+    const discAmt = (it.salePrice * qty) * ((it.discountPercent || 0) / 100);
+    it.discountAmount = discAmt;
+    it.netAmount = (it.salePrice * qty) - discAmt;
+
+    renderItemsTable();
+    updateVoucherTotals();
+  }
+
+  function changeItemDisc(idx, discPct) {
+    const it = saleState.items[idx];
+    if (!it) return;
+    const pct = Math.max(0, Math.min(100, Number(discPct) || 0));
+    it.discountPercent = pct;
+    const gross = it.salePrice * it.totalQty;
+    const discAmt = gross * (pct / 100);
+    it.discountAmount = discAmt;
+    it.netAmount = gross - discAmt;
+
+    renderItemsTable();
+    updateVoucherTotals();
+  }
+
+  // ========================================================
+  // F1 PRODUCT LOOKUP MODAL (HIGH-SPEED DUAL-PRICE BROWSER)
+  // ========================================================
+  async function openProductLookupModal() {
+    const modal = document.getElementById('modalProductLookupF1');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    if ((!window.appData?.products || window.appData.products.length === 0) && window.electronAPI?.getAllData) {
+      try {
+        window.appData = await window.electronAPI.getAllData();
+      } catch (err) {}
+    }
+
+    // Populate Category dropdown
+    const catSelect = document.getElementById('f1ModalCategoryFilter');
+    if (catSelect) {
+      catSelect.innerHTML = '<option value="">All Categories</option>';
+      (window.appData?.product_categories || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.categoryName || c.name;
+        catSelect.appendChild(opt);
+      });
+    }
+
+    f1ModalState.selectedIndex = 0;
+    filterF1ModalProducts();
+
+    const searchInp = document.getElementById('f1ModalSearchInput');
+    if (searchInp) {
+      setTimeout(() => {
+        searchInp.focus();
+        searchInp.select();
+      }, 50);
+    }
+  }
+
+  function closeProductLookupModal() {
+    const modal = document.getElementById('modalProductLookupF1');
+    if (modal) modal.classList.add('hidden');
+    const itemCode = document.getElementById(currentSaleSubTab === 'return' ? 'returnItemCode' : 'saleItemCode');
+    if (itemCode) itemCode.focus();
+  }
+
+  function filterF1ModalProducts() {
+    const all = window.appData?.products || [];
+    const q = (f1ModalState.searchQuery || '').trim().toLowerCase();
+    const cat = f1ModalState.selectedCategory;
+    const stockOnly = f1ModalState.stockFilter === 'instock';
+
+    f1ModalState.filteredProducts = all.filter(p => {
       if (stockOnly && Number(p.stockQty || 0) <= 0) return false;
       if (cat && String(p.categoryId) !== String(cat)) return false;
       if (q) {
-        const code = (p.code || '').toLowerCase();
-        const barcode = (p.barcode || '').toLowerCase();
-        const title = (p.titleEng || '').toLowerCase();
-        const titleUrdu = (p.titleUrdu || '').toLowerCase();
-        const catName = (p.categoryName || '').toLowerCase();
-        if (!code.includes(q) && !barcode.includes(q) && !title.includes(q) && !titleUrdu.includes(q) && !catName.includes(q)) {
+        const code = String(p.code || '').toLowerCase();
+        const barcode = String(p.barcode || '').toLowerCase();
+        const titleEng = String(p.titleEng || '').toLowerCase();
+        const titleUrdu = String(p.titleUrdu || '').toLowerCase();
+        const catName = String(p.categoryName || '').toLowerCase();
+        const loc = String(p.location || '').toLowerCase();
+        if (!code.includes(q) && !barcode.includes(q) && !titleEng.includes(q) && !titleUrdu.includes(q) && !catName.includes(q) && !loc.includes(q)) {
           return false;
         }
       }
       return true;
     });
-  }
 
-  function renderPosProductCatalog() {
-    const tbody = document.getElementById('posProductsTableBody');
-    const emptyEl = document.getElementById('posProductsEmpty');
-    const countText = document.getElementById('posProductsCountText');
-    if (!tbody) return;
-
-    const filtered = getFilteredProducts();
-    const totalCount = (window.appData?.products || []).length;
-
-    if (countText) {
-      if (filtered.length === totalCount) {
-        countText.textContent = `Showing all ${totalCount} products`;
-      } else {
-        countText.textContent = `Filtered ${filtered.length} of ${totalCount} products`;
-      }
+    if (f1ModalState.selectedIndex >= f1ModalState.filteredProducts.length) {
+      f1ModalState.selectedIndex = Math.max(0, f1ModalState.filteredProducts.length - 1);
     }
 
-    if (filtered.length === 0) {
-      tbody.innerHTML = '';
+    renderF1ModalProducts();
+  }
+
+  function renderF1ModalProducts() {
+    const tbody = document.getElementById('f1ModalTableBody');
+    const emptyEl = document.getElementById('f1ModalEmptyState');
+    const countBadge = document.getElementById('f1ModalProductCountBadge');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const list = f1ModalState.filteredProducts || [];
+    const totalCount = (window.appData?.products || []).length;
+    if (countBadge) {
+      countBadge.textContent = `${list.length} of ${totalCount} Products`;
+    }
+
+    if (list.length === 0) {
       if (emptyEl) emptyEl.classList.remove('hidden');
-      const pag = document.getElementById('posCatalogPagination');
-      if (pag) pag.innerHTML = '';
       return;
     }
     if (emptyEl) emptyEl.classList.add('hidden');
 
-    const pageSize = posCatalogState.pageSize || 10;
-    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-    if (posCatalogState.currentPage > totalPages) {
-      posCatalogState.currentPage = totalPages;
-    }
-    if (posCatalogState.currentPage < 1) {
-      posCatalogState.currentPage = 1;
-    }
-
-    const startIdx = (posCatalogState.currentPage - 1) * pageSize;
-    const endIdx = startIdx + pageSize;
-    const displaySlice = filtered.slice(startIdx, endIdx);
-
-    tbody.innerHTML = '';
-
-    displaySlice.forEach(p => {
+    list.forEach((p, idx) => {
       const stock = Number(p.stockQty || 0);
-      const unit = p.unitName || 'pcs';
-      let stockClass = 'stock-in';
-      let stockText = `${stock} ${unit}`;
-      if (stock <= 0) {
-        stockClass = 'stock-out';
-        stockText = `0 ${unit}`;
-      } else if (stock <= 10) {
-        stockClass = 'stock-low';
-        stockText = `${stock} ${unit}`;
-      }
+      const isReturnMode = currentSaleSubTab === 'return';
+      const isOut = !isReturnMode && stock <= 0;
+      const isLow = stock > 0 && stock <= 5;
+      const stockBadge = isOut 
+        ? `<span class="pos-stock-pill stock-out">0 (Out)</span>`
+        : (isLow ? `<span class="pos-stock-pill stock-low">${stock}</span>` : `<span class="pos-stock-pill stock-in">${stock}</span>`);
 
       const rp = Number(p.retailPrice || 0);
       const wp = Number(p.wholesalePrice || 0);
-      const selectedMode = posCatalogState.rowRates[p.id] || posCatalogState.defaultRateMode;
-      const inSlipItem = (saleState.items || []).find(it => String(it.productId) === String(p.id) || String(it.productCode) === String(p.code));
-      const inSlipQty = inSlipItem ? Number(inSlipItem.totalQty || 0) : 0;
-      const remainingStock = Math.max(0, stock - inSlipQty);
-      const isOutOfStock = stock <= 0;
-      const isMaxInCart = !isOutOfStock && remainingStock <= 0;
+
+      const inBillItem = isReturnMode
+        ? (returnState.items || []).find(it => String(it.productId) === String(p.id) || String(it.productCode) === String(p.code))
+        : (saleState.items || []).find(it => String(it.productId) === String(p.id) || String(it.productCode) === String(p.code));
+      const inBillQty = inBillItem ? Number(inBillItem.totalQty || 0) : 0;
+
+      const isSelected = idx === f1ModalState.selectedIndex;
 
       const tr = document.createElement('tr');
-      tr.id = `pos-row-${p.id}`;
+      tr.className = `f1-m-row ${isSelected ? 'selected-row' : ''}`;
+      tr.dataset.index = idx;
       tr.innerHTML = `
-        <td class="col-code font-num" style="text-align: center;">
-          <span class="pos-code-clean">${window.escapeHtml(p.code || '')}</span>
+        <td class="font-num font-bold" style="text-align: left; padding-left: 14px;">
+          <span class="f1-code-badge">${window.escapeHtml(p.code || '')}</span>
         </td>
-        <td class="col-name" style="text-align: left;">
-          <div class="pos-prod-name">${window.escapeHtml(p.titleEng || 'Untitled')}</div>
-          ${p.packSize > 1 ? `<div class="pos-prod-sub">Pack: ${p.packSize}</div>` : ''}
-        </td>
-        <td class="col-cat" style="text-align: left;">
-          <span class="pos-cat-clean">${window.escapeHtml(p.categoryName || 'General')}</span>
-        </td>
-        <td class="col-stock" style="text-align: center;">
-          <span class="pos-stock-clean ${stockClass}">${stockText}</span>
-        </td>
-        <td class="col-retail font-num" style="text-align: center;">
-          <button type="button" class="pos-rate-btn-clean pos-rp-btn ${selectedMode === 'retail' ? 'selected' : ''}"
-            onclick="window.SalesModule.setRowRate('${p.id}', 'retail')" title="Select Retail Rate">
-            ${selectedMode === 'retail' ? '<span class="rate-dot">●</span> ' : ''}Rs ${rp.toLocaleString()}
-          </button>
-        </td>
-        <td class="col-wholesale font-num" style="text-align: center;">
-          <button type="button" class="pos-rate-btn-clean pos-wp-btn ${selectedMode === 'wholesale' ? 'selected' : ''}"
-            onclick="window.SalesModule.setRowRate('${p.id}', 'wholesale')" title="Select Wholesale Rate">
-            ${selectedMode === 'wholesale' ? '<span class="rate-dot">●</span> ' : ''}Rs ${wp.toLocaleString()}
-          </button>
-        </td>
-        <td class="col-qty" style="text-align: center;">
-          <div class="pos-qty-stepper-clean ${isOutOfStock || isMaxInCart ? 'is-disabled' : ''}">
-            <button type="button" class="pos-qty-btn-clean" ${isOutOfStock || isMaxInCart ? 'disabled' : ''} onclick="window.SalesModule.stepInputQty('${p.id}', -1)" title="Decrease">−</button>
-            <input type="number" id="pos-qty-${p.id}" class="pos-qty-input-clean font-num" min="${isOutOfStock || isMaxInCart ? 0 : 1}" max="${remainingStock}" step="1" value="${isOutOfStock || isMaxInCart ? 0 : 1}" ${isOutOfStock || isMaxInCart ? 'disabled' : ''}>
-            <button type="button" class="pos-qty-btn-clean" ${isOutOfStock || isMaxInCart ? 'disabled' : ''} onclick="window.SalesModule.stepInputQty('${p.id}', 1)" title="Increase">+</button>
+        <td style="text-align: left; padding-left: 14px;">
+          <div class="f1-prod-title">${window.escapeHtml(p.titleEng || 'Untitled')}</div>
+          <div class="f1-prod-sub">
+            ${p.packSize > 1 ? `<span class="pack-sub">Pack of ${p.packSize}</span>` : ''}
+            ${inBillQty > 0 ? `<span class="in-bill-tag">${isReturnMode ? '✓ In Return' : '✓ In Bill'} (${inBillQty})</span>` : ''}
           </div>
         </td>
-        <td class="col-action" style="text-align: center;">
-          ${isOutOfStock ? `
-            <button type="button" id="pos-btn-add-${p.id}" class="pos-btn-add-clean pos-btn-disabled" disabled title="Product is Out of Stock">
-              Out of Stock
-            </button>
-          ` : isMaxInCart ? `
-            <button type="button" id="pos-btn-add-${p.id}" class="pos-btn-add-clean pos-btn-disabled" disabled title="Max stock already added in slip (${inSlipQty})">
-              In Slip (${inSlipQty})
-            </button>
-          ` : `
-            <button type="button" id="pos-btn-add-${p.id}" class="pos-btn-add-clean"
-              onclick="window.SalesModule.handleAddClick('${p.id}')" title="Add to Voucher Cart">
-              + Add ${inSlipQty > 0 ? `(${inSlipQty})` : ''}
-            </button>
-          `}
+        <td style="text-align: center;">
+          <span class="f1-cat-tag">${window.escapeHtml(p.categoryName || 'General')}</span>
+        </td>
+        <td style="text-align: center;">
+          ${stockBadge}
+        </td>
+        <td class="font-num" style="text-align: center;">
+          <div class="f1-price-cell f1-price-retail">
+            <span class="price-val">Rs ${rp.toLocaleString()}</span>
+            <span class="price-lbl">Retail</span>
+          </div>
+        </td>
+        <td class="font-num" style="text-align: center;">
+          <div class="f1-price-cell f1-price-wholesale">
+            <span class="price-val">Rs ${wp.toLocaleString()}</span>
+            <span class="price-lbl">Wholesale</span>
+          </div>
+        </td>
+        <td style="text-align: center;">
+          <button type="button" class="btn-f1-add ${isOut ? 'disabled' : ''}" ${isOut ? 'disabled' : ''}
+            onclick="event.stopPropagation(); window.SalesModule.selectF1Product(${idx})"
+            title="${isReturnMode ? 'Add to Return Voucher' : 'Add to Bill'}">
+            + Add
+          </button>
         </td>
       `;
 
-      if (!isOutOfStock && !isMaxInCart) {
-        const qtyInput = tr.querySelector(`#pos-qty-${p.id}`);
-        if (qtyInput) {
-          qtyInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              window.SalesModule.handleAddClick(p.id);
-            }
-          });
-          qtyInput.addEventListener('change', () => {
-            let val = Number(qtyInput.value) || 1;
-            if (val < 1) val = 1;
-            if (val > remainingStock) {
-              if (window.showToast) window.showToast(`Only ${remainingStock} available in stock for "${p.titleEng}".`, 'warning');
-              val = remainingStock;
-            }
-            qtyInput.value = val;
-          });
-        }
-      }
+      tr.addEventListener('click', () => {
+        setF1SelectedIndex(idx);
+      });
+
+      tr.addEventListener('dblclick', () => {
+        selectF1Product(idx, saleState.rateMode || 'retail');
+        closeProductLookupModal();
+      });
 
       tbody.appendChild(tr);
     });
 
-    renderCatalogPagination(
-      'posCatalogPagination',
-      posCatalogState.currentPage,
-      totalPages,
-      filtered.length,
-      pageSize,
-      (newPage) => {
-        posCatalogState.currentPage = newPage;
-        renderPosProductCatalog();
-      }
-    );
+    scrollF1SelectedIntoView();
   }
 
-  function addProductToCart(productId, quantity = 1, forcedRate = null) {
-    const p = (window.appData?.products || []).find(pr => String(pr.id) === String(productId) || String(pr.code) === String(productId));
+  function setF1SelectedIndex(idx) {
+    if (idx < 0 || idx >= f1ModalState.filteredProducts.length) return;
+    f1ModalState.selectedIndex = idx;
+
+    const rows = document.querySelectorAll('#f1ModalTableBody tr');
+    rows.forEach((r, i) => {
+      r.classList.toggle('selected-row', i === idx);
+    });
+
+    scrollF1SelectedIntoView();
+  }
+
+  function scrollF1SelectedIntoView() {
+    const row = document.querySelector(`#f1ModalTableBody tr[data-index="${f1ModalState.selectedIndex}"]`);
+    if (row) row.scrollIntoView({ block: 'nearest' });
+  }
+
+  function selectF1Product(idx, forcedRateMode = null) {
+    const p = f1ModalState.filteredProducts[idx];
+    if (!p) return;
+    if (currentSaleSubTab === 'return') {
+      addReturnProductToCart(p.id, 1);
+      selectReturnProduct(p);
+    } else {
+      const mode = forcedRateMode || saleState.rateMode || 'retail';
+      addProductToCart(p.id, 1, mode);
+      selectProduct(p);
+    }
+    renderF1ModalProducts();
+  }
+
+  // ========================================================
+  // ADD PRODUCT TO BILL / CART
+  // ========================================================
+  function addProductToCart(productId, quantity = 1, forcedRate = null, bypassModal = false) {
+    const p = (window.appData?.products || []).find(pr => String(pr.id) === String(productId) || String(pr.code) === String(productId) || String(pr.barcode) === String(productId));
     if (!p) {
-      if (window.showToast) window.showToast('Product not found', 'warning');
+      if (window.showToast) window.showToast('Product not found in inventory', 'warning');
       return;
     }
 
     const stock = Number(p.stockQty || 0);
     if (stock <= 0) {
       if (window.showToast) window.showToast(`Cannot add: "${p.titleEng}" is Out of Stock (0 available).`, 'error');
+      return;
+    }
+
+    // Prompt user to select Retailer or Wholesale rate if not bypassed and not explicitly forced
+    const chkAsk = document.getElementById('chkRateModalAlwaysAsk');
+    const alwaysAsk = chkAsk ? chkAsk.checked : true;
+    if (!bypassModal && !forcedRate && alwaysAsk) {
+      openRateChoiceModal(p, quantity);
       return;
     }
 
@@ -300,35 +459,39 @@
     if (existingQty + requestedQty > stock) {
       const canAdd = Math.max(0, stock - existingQty);
       if (canAdd <= 0) {
-        if (window.showToast) {
-          window.showToast(`Cannot add: "${p.titleEng}" is already at maximum available stock (${stock}) in slip.`, 'warning');
-        }
+        if (window.showToast) window.showToast(`Cannot add: "${p.titleEng}" is already at maximum available stock (${stock}) in bill.`, 'warning');
         return;
       }
       qtyToAdd = canAdd;
-      if (window.showToast) {
-        window.showToast(`Only ${canAdd} more "${p.titleEng}" added (Stock: ${stock}, already in slip: ${existingQty}).`, 'warning');
-      }
+      if (window.showToast) window.showToast(`Only ${canAdd} more "${p.titleEng}" added (Stock: ${stock}, In bill: ${existingQty}).`, 'warning');
     }
 
     const costPrice = Number(p.purchasePrice || p.averageCost || 0);
     const wholesalePrice = Number(p.wholesalePrice || 0);
     const retailPrice = Number(p.retailPrice || 0);
 
-    let rate = forcedRate;
-    if (!rate) {
-      const chosenMode = posCatalogState.rowRates[p.id] || posCatalogState.defaultRateMode;
-      rate = chosenMode === 'wholesale' ? (wholesalePrice || retailPrice) : (retailPrice || wholesalePrice);
+    let rateType = 'retail';
+    let rate = 0;
+    if (forcedRate === 'wholesale' || forcedRate === 'retail') {
+      rateType = forcedRate;
+      rate = forcedRate === 'wholesale' ? (wholesalePrice || retailPrice) : (retailPrice || wholesalePrice);
+    } else if (typeof forcedRate === 'number' && forcedRate > 0) {
+      rate = forcedRate;
+      rateType = (rate === wholesalePrice) ? 'wholesale' : 'retail';
+    } else {
+      rateType = saleState.rateMode || 'retail';
+      rate = rateType === 'wholesale' ? (wholesalePrice || retailPrice) : (retailPrice || wholesalePrice);
     }
-    rate = Number(rate) || 0;
 
-    const pageSize = saleState.slipPageSize || 9;
     if (existingIdx !== -1) {
       saleState.items[existingIdx].totalQty += qtyToAdd;
-      saleState.items[existingIdx].packQty = Math.floor(saleState.items[existingIdx].totalQty / (p.packSize || 1));
-      saleState.items[existingIdx].unitQty = saleState.items[existingIdx].totalQty % (p.packSize || 1);
-      saleState.items[existingIdx].netAmount = saleState.items[existingIdx].totalQty * saleState.items[existingIdx].salePrice;
-      saleState.slipCurrentPage = Math.floor(existingIdx / pageSize) + 1;
+      const packSize = p.packSize || 1;
+      saleState.items[existingIdx].packQty = Math.floor(saleState.items[existingIdx].totalQty / packSize);
+      saleState.items[existingIdx].unitQty = saleState.items[existingIdx].totalQty % packSize;
+      const lineGross = saleState.items[existingIdx].totalQty * saleState.items[existingIdx].salePrice;
+      const discAmt = lineGross * ((saleState.items[existingIdx].discountPercent || 0) / 100);
+      saleState.items[existingIdx].discountAmount = discAmt;
+      saleState.items[existingIdx].netAmount = lineGross - discAmt;
     } else {
       const grossLine = qtyToAdd * rate;
       saleState.items.push({
@@ -336,6 +499,7 @@
         productId: p.id,
         productCode: p.code,
         productTitle: p.titleEng,
+        titleUrdu: p.titleUrdu || '',
         packSize: p.packSize || 1,
         packQty: Math.floor(qtyToAdd / (p.packSize || 1)),
         unitQty: qtyToAdd % (p.packSize || 1),
@@ -344,27 +508,19 @@
         wholesalePrice: wholesalePrice,
         retailPrice: retailPrice,
         salePrice: rate,
+        rateType: rateType,
         discountPercent: 0,
         discountAmount: 0,
         netAmount: grossLine
       });
-      saleState.slipCurrentPage = Math.ceil(saleState.items.length / pageSize);
     }
 
     renderItemsTable();
     updateVoucherTotals();
     updateSlipMeta();
-    renderPosProductCatalog();
 
-    const addBtn = document.getElementById(`pos-btn-add-${p.id}`);
-    if (addBtn && !addBtn.disabled) {
-      addBtn.classList.add('added-flash');
-      const origHtml = addBtn.innerHTML;
-      addBtn.innerHTML = '<span>✓ Added</span>';
-      setTimeout(() => {
-        addBtn.classList.remove('added-flash');
-        addBtn.innerHTML = origHtml;
-      }, 700);
+    if (window.showToast) {
+      window.showToast(`Added: ${p.titleEng} (${rateType === 'wholesale' ? 'Wholesale' : 'Retail'} Rs ${rate})`, 'success');
     }
   }
 
@@ -396,7 +552,6 @@
 
     renderItemsTable();
     updateVoucherTotals();
-    renderPosProductCatalog();
   }
 
   function updateSlipMeta() {
@@ -404,38 +559,12 @@
     const chosenCustomer = saleState.selectedCustomer;
     const customerName = currentTypedName || (chosenCustomer ? (chosenCustomer.name || chosenCustomer.partyTitle) : 'Walk-in Cash Customer');
     
-    const custDisplay = document.getElementById('posSlipCustomerDisplay');
-    if (custDisplay) custDisplay.textContent = customerName;
-
-    const voucherNoDisplay = document.getElementById('saleVoucherNoDisplay');
     const vNo = el.voucherNo?.value || saleState.voucherNo || '-';
-    if (voucherNoDisplay) voucherNoDisplay.textContent = vNo;
-
-    const barcodeMeta = document.getElementById('posSlipBarcodeMeta');
-    if (barcodeMeta) barcodeMeta.textContent = `* ${vNo} *`;
-
-    const dateDisplay = document.getElementById('posSlipDateDisplay');
-    if (dateDisplay) {
-      const rawDate = el.entryDate?.value;
-      dateDisplay.textContent = rawDate ? new Date(rawDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
-    }
-
-    const payDisplay = document.getElementById('posSlipPaymentDisplay');
-    if (payDisplay) {
-      const mode = el.paymentType?.value || 'Cash';
-      payDisplay.textContent = mode === 'Credit' ? 'Credit / Ledger' : (mode === 'Bank' ? 'Bank Transfer' : 'Cash Sale');
-      payDisplay.style.color = mode === 'Credit' ? '#dc2626' : '#16a34a';
-    }
-
-    const prevBalRow = document.getElementById('posSlipPrevBalRow');
-    const prevBalDisplay = document.getElementById('posSlipPrevBalDisplay');
-    const rawPrevBal = Number(el.customerPrevBalance?.dataset?.rawBalance || 0);
-    if (prevBalRow) {
-      prevBalRow.style.display = rawPrevBal > 0 ? 'flex' : 'none';
-      if (prevBalDisplay) prevBalDisplay.textContent = `Rs ${rawPrevBal.toLocaleString()}`;
-    }
+    const vDisplay = document.getElementById('saleVoucherNoDisplay');
+    if (vDisplay) vDisplay.textContent = vNo;
 
     const prevBalBox = document.getElementById('posPrevBalanceBox');
+    const rawPrevBal = Number(el.customerPrevBalance?.dataset?.rawBalance || 0);
     if (prevBalBox && el.customerPrevBalance) {
       el.customerPrevBalance.textContent = `Rs ${rawPrevBal.toLocaleString()}`;
       if (rawPrevBal > 0) {
@@ -451,181 +580,429 @@
   }
 
   function updateSlipCompanyHeader() {
-    const titleEl = document.getElementById('posSlipCompanyTitle');
-    const subEl = document.getElementById('posSlipCompanySubtitle');
-    const addrEl = document.getElementById('posSlipCompanyAddress');
-    const phoneEl = document.getElementById('posSlipCompanyPhone');
-
-    const comp = sharedCompanyInfo || {};
-    if (titleEl && comp.companyName) titleEl.textContent = comp.companyName;
-    if (subEl && comp.businessTagline) subEl.textContent = comp.businessTagline;
-    if (addrEl && comp.address) addrEl.textContent = comp.address;
-    if (phoneEl && comp.phone) phoneEl.textContent = `Ph: ${comp.phone}`;
+    // Keep header data synchronized
   }
 
-  function renderPosSlipItems() {
-    const tbody = document.getElementById('posSlipItemsTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    if (!saleState.items || saleState.items.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 12px 0;">No items in voucher</td></tr>';
-      return;
-    }
-
-    saleState.items.forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="text-align: left; padding: 5px 2px; vertical-align: top;">
-          <div style="font-weight: 700; color: #0f172a;">${window.escapeHtml(item.productTitle)}</div>
-        </td>
-        <td style="text-align: center; padding: 5px 2px; vertical-align: top; font-weight: 700;" class="font-num">
-          ${item.totalQty}
-        </td>
-        <td style="text-align: right; padding: 5px 2px; vertical-align: top;" class="font-num">
-          ${Number(item.salePrice || 0).toLocaleString()}
-        </td>
-        <td style="text-align: right; padding: 5px 2px; vertical-align: top; font-weight: 800;" class="font-num">
-          ${Number(item.netAmount || 0).toLocaleString()}
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function showPosRightView(view) {
-    updateRightPanelVisibility();
-    renderItemsTable();
-    updateVoucherTotals();
-  }
-
-  function updateRightPanelVisibility() {
-    const rightPanel = document.getElementById('posRightPanel');
-    if (rightPanel) {
-      rightPanel.classList.remove('hidden');
+  function showPosRightView() {}
+  function updateRightPanelVisibility() {}
+  function renderPosSlipItems() {}
+  function renderCatalogPagination() {}
+  function renderPosProductCatalog() {
+    const f1Modal = document.getElementById('modalProductLookupF1');
+    if (f1Modal && !f1Modal.classList.contains('hidden')) {
+      renderF1ModalProducts();
     }
   }
 
+  // ========================================================
+  // INITIALIZE POS CONTROLS & LISTENERS
+  // ========================================================
   function initPosCatalog() {
-    updateRightPanelVisibility();
-    const searchInput = document.getElementById('posProductSearch');
-    const clearBtn = document.getElementById('posClearSearch');
-    const catSelect = document.getElementById('posCategoryFilter');
-    const stockSelect = document.getElementById('posStockFilter');
-    const rateSelect = document.getElementById('posRateModeSelect');
+    // 1. Dual Pricing Mode Segmented Controls (Header & Entry Bar)
+    const btnRetail = document.getElementById('btnModeRetail');
+    const btnWholesale = document.getElementById('btnModeWholesale');
+    const btnEntryRetail = document.getElementById('btnEntryRateRetail');
+    const btnEntryWholesale = document.getElementById('btnEntryRateWholesale');
 
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        posCatalogState.searchQuery = e.target.value.trim().toLowerCase();
-        posCatalogState.currentPage = 1;
-        renderPosProductCatalog();
+    const handleRetailSwitch = () => {
+      setBillPricingMode('retail', saleState.items.length > 0 && confirm('Convert existing items in bill to Retail Rates as well?'));
+    };
+    const handleWholesaleSwitch = () => {
+      setBillPricingMode('wholesale', saleState.items.length > 0 && confirm('Convert existing items in bill to Wholesale Rates as well?'));
+    };
+
+    if (btnRetail) btnRetail.addEventListener('click', handleRetailSwitch);
+    if (btnWholesale) btnWholesale.addEventListener('click', handleWholesaleSwitch);
+    if (btnEntryRetail) btnEntryRetail.addEventListener('click', handleRetailSwitch);
+    if (btnEntryWholesale) btnEntryWholesale.addEventListener('click', handleWholesaleSwitch);
+
+    // Toggle collapsible product entry drawer (matches Inventory #btnToggleAddItem)
+    const btnToggleSale = document.getElementById('btnToggleAddItemSale');
+    const drawerSale = document.getElementById('saleItemEntryDrawer');
+    if (btnToggleSale && drawerSale) {
+      btnToggleSale.addEventListener('click', () => {
+        const isCollapsed = drawerSale.classList.toggle('collapsed');
+        btnToggleSale.classList.toggle('active', !isCollapsed);
       });
-      searchInput.addEventListener('keydown', (e) => {
+    }
+
+    // Rate Choice Modal on Item Add listeners
+    const cardRetail = document.getElementById('cardChoiceRetail');
+    const cardWholesale = document.getElementById('cardChoiceWholesale');
+    const btnCloseRateChoice = document.getElementById('btnCloseRateChoiceModal');
+    const btnQtyMinus = document.getElementById('btnRateChoiceQtyMinus');
+    const btnQtyPlus = document.getElementById('btnRateChoiceQtyPlus');
+    const inpQty = document.getElementById('rateChoiceQtyInput');
+
+    if (cardRetail) cardRetail.addEventListener('click', () => confirmRateChoice('retail'));
+    if (cardWholesale) cardWholesale.addEventListener('click', () => confirmRateChoice('wholesale'));
+    if (btnCloseRateChoice) btnCloseRateChoice.addEventListener('click', closeRateChoiceModal);
+
+    if (btnQtyMinus && inpQty) {
+      btnQtyMinus.addEventListener('click', () => {
+        const v = Math.max(1, (Number(inpQty.value) || 1) - 1);
+        inpQty.value = v;
+      });
+    }
+    if (btnQtyPlus && inpQty) {
+      btnQtyPlus.addEventListener('click', () => {
+        const v = (Number(inpQty.value) || 1) + 1;
+        inpQty.value = v;
+      });
+    }
+
+    // 2. F1 Product Catalog Modal Triggers
+    const btnF1Main = document.getElementById('btnF1ProductLookup');
+    const btnF1Browse = document.getElementById('btnPosOpenCatalogModal');
+    const btnCloseF1 = document.getElementById('btnCloseProductLookupF1');
+    const btnPopoutF1 = document.getElementById('btnF1PopoutWindow');
+
+    if (btnF1Main) btnF1Main.addEventListener('click', openProductLookupModal);
+    if (btnF1Browse) btnF1Browse.addEventListener('click', openProductLookupModal);
+    if (btnCloseF1) btnCloseF1.addEventListener('click', closeProductLookupModal);
+    if (btnPopoutF1) {
+      btnPopoutF1.addEventListener('click', () => {
+        if (window.findProductAPI?.openWindow) {
+          window.findProductAPI.openWindow();
+          closeProductLookupModal();
+        }
+      });
+    }
+
+    // 3. F1 Modal Search & Filter Listeners
+    const f1Search = document.getElementById('f1ModalSearchInput');
+    const f1Clear = document.getElementById('btnF1ModalClearSearch');
+    const f1Cat = document.getElementById('f1ModalCategoryFilter');
+    const f1Stock = document.getElementById('f1ModalStockFilter');
+    const f1Reset = document.getElementById('btnF1ModalReset');
+
+    if (f1Search) {
+      f1Search.addEventListener('input', () => {
+        f1ModalState.searchQuery = f1Search.value;
+        if (f1Clear) f1Clear.classList.toggle('hidden', !f1Search.value);
+        f1ModalState.selectedIndex = 0;
+        filterF1ModalProducts();
+      });
+
+      f1Search.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (f1ModalState.selectedIndex < f1ModalState.filteredProducts.length - 1) {
+            setF1SelectedIndex(f1ModalState.selectedIndex + 1);
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (f1ModalState.selectedIndex > 0) {
+            setF1SelectedIndex(f1ModalState.selectedIndex - 1);
+          }
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (f1ModalState.filteredProducts[f1ModalState.selectedIndex]) {
+            const mode = e.shiftKey ? 'wholesale' : (saleState.rateMode || 'retail');
+            selectF1Product(f1ModalState.selectedIndex, mode);
+            closeProductLookupModal();
+          }
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          closeProductLookupModal();
+        }
+      });
+    }
+
+    if (f1Clear) {
+      f1Clear.addEventListener('click', () => {
+        if (f1Search) {
+          f1Search.value = '';
+          f1ModalState.searchQuery = '';
+          f1Clear.classList.add('hidden');
+          f1ModalState.selectedIndex = 0;
+          filterF1ModalProducts();
+          f1Search.focus();
+        }
+      });
+    }
+
+    if (f1Cat) {
+      f1Cat.addEventListener('change', () => {
+        f1ModalState.selectedCategory = f1Cat.value;
+        f1ModalState.selectedIndex = 0;
+        filterF1ModalProducts();
+      });
+    }
+
+    if (f1Stock) {
+      f1Stock.addEventListener('change', () => {
+        f1ModalState.stockFilter = f1Stock.value;
+        f1ModalState.selectedIndex = 0;
+        filterF1ModalProducts();
+      });
+    }
+
+    if (f1Reset) {
+      f1Reset.addEventListener('click', () => {
+        if (f1Search) f1Search.value = '';
+        if (f1Cat) f1Cat.value = '';
+        if (f1Stock) f1Stock.value = 'all';
+        if (f1Clear) f1Clear.classList.add('hidden');
+        f1ModalState.searchQuery = '';
+        f1ModalState.selectedCategory = '';
+        f1ModalState.stockFilter = 'all';
+        f1ModalState.selectedIndex = 0;
+        filterF1ModalProducts();
+      });
+    }
+
+    // 4. Barcode / Fast Code Scanner Input
+    const barcodeInput = document.getElementById('posBarcodeInput');
+    if (barcodeInput) {
+      barcodeInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          const matching = getFilteredProducts();
-          if (matching.length > 0) {
-            addProductToCart(matching[0].id, 1);
-            searchInput.select();
+          const codeVal = barcodeInput.value.trim().toLowerCase();
+          if (!codeVal) return;
+
+          const match = (window.appData?.products || []).find(p => 
+            String(p.code || '').toLowerCase() === codeVal ||
+            String(p.barcode || '').toLowerCase() === codeVal ||
+            String(p.shortCode || '').toLowerCase() === codeVal ||
+            String(p.additionalCode || '').toLowerCase() === codeVal
+          );
+
+          if (match) {
+            const qtyInput = document.getElementById('posFastQty');
+            const qty = Math.max(1, Number(qtyInput?.value) || 1);
+            addProductToCart(match.id, qty, saleState.rateMode);
+            barcodeInput.value = '';
+            if (qtyInput) qtyInput.value = 1;
+            barcodeInput.focus();
+          } else {
+            if (window.showToast) window.showToast(`No product found with code or barcode "${barcodeInput.value}"`, 'warning');
           }
         }
       });
     }
 
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        if (searchInput) {
-          searchInput.value = '';
-          posCatalogState.searchQuery = '';
-          posCatalogState.currentPage = 1;
-          renderPosProductCatalog();
-          searchInput.focus();
+    // 5. Live Product Search Dropdown Autocomplete
+    const liveSearchInput = document.getElementById('posProductSearch');
+    const liveDropdown = document.getElementById('posLiveSearchDropdown');
+    const liveClearBtn = document.getElementById('posClearSearch');
+
+    if (liveSearchInput && liveDropdown) {
+      liveSearchInput.addEventListener('input', () => {
+        const q = liveSearchInput.value.trim().toLowerCase();
+        if (liveClearBtn) liveClearBtn.classList.toggle('hidden', q.length === 0);
+
+        if (!q) {
+          liveDropdown.classList.add('hidden');
+          liveDropdown.innerHTML = '';
+          return;
+        }
+
+        const prods = (window.appData?.products || []).filter(p => {
+          return String(p.code || '').toLowerCase().includes(q) ||
+            String(p.titleEng || '').toLowerCase().includes(q) ||
+            String(p.titleUrdu || '').toLowerCase().includes(q) ||
+            String(p.categoryName || '').toLowerCase().includes(q);
+        }).slice(0, 10);
+
+        if (prods.length === 0) {
+          liveDropdown.innerHTML = '<div class="pos-dropdown-empty">No matching products found</div>';
+          liveDropdown.classList.remove('hidden');
+          return;
+        }
+
+        let html = '';
+        prods.forEach(p => {
+          const rp = Number(p.retailPrice || 0);
+          const wp = Number(p.wholesalePrice || 0);
+          const stock = Number(p.stockQty || 0);
+          html += `
+            <div class="pos-dropdown-item" data-id="${p.id}">
+              <div class="dd-left">
+                <span class="dd-code">${window.escapeHtml(p.code)}</span>
+                <span class="dd-title font-bold">${window.escapeHtml(p.titleEng)}</span>
+                ${p.titleUrdu ? `<span class="dd-urdu font-urdu text-muted">(${window.escapeHtml(p.titleUrdu)})</span>` : ''}
+                <span class="dd-stock font-num ${stock <= 0 ? 'text-danger' : 'text-success'}">Stock: ${stock}</span>
+              </div>
+              <div class="dd-actions" onclick="event.stopPropagation()">
+                <button type="button" class="btn-dd-add-rate btn-dd-retail" data-id="${p.id}" data-mode="retail" title="Add as Retailer Price">
+                  🏷️ + Retail Rs ${rp.toLocaleString()}
+                </button>
+                <button type="button" class="btn-dd-add-rate btn-dd-wholesale" data-id="${p.id}" data-mode="wholesale" title="Add as Wholesale Price">
+                  📦 + Wholesale Rs ${wp.toLocaleString()}
+                </button>
+              </div>
+            </div>
+          `;
+        });
+
+        liveDropdown.innerHTML = html;
+        liveDropdown.classList.remove('hidden');
+
+        // Direct action button clicks
+        liveDropdown.querySelectorAll('.btn-dd-add-rate').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const pId = btn.getAttribute('data-id');
+            const mode = btn.getAttribute('data-mode');
+            const qtyInput = document.getElementById('posFastQty');
+            const qty = Math.max(1, Number(qtyInput?.value) || 1);
+            addProductToCart(pId, qty, mode, true);
+            liveSearchInput.value = '';
+            liveDropdown.classList.add('hidden');
+            if (qtyInput) qtyInput.value = 1;
+            liveSearchInput.focus();
+          });
+        });
+
+        // Row clicks
+        liveDropdown.querySelectorAll('.pos-dropdown-item').forEach(itemEl => {
+          itemEl.addEventListener('click', () => {
+            const pId = itemEl.getAttribute('data-id');
+            const qtyInput = document.getElementById('posFastQty');
+            const qty = Math.max(1, Number(qtyInput?.value) || 1);
+            addProductToCart(pId, qty);
+            liveSearchInput.value = '';
+            liveDropdown.classList.add('hidden');
+            if (qtyInput) qtyInput.value = 1;
+            liveSearchInput.focus();
+          });
+        });
+      });
+
+      if (liveClearBtn) {
+        liveClearBtn.addEventListener('click', () => {
+          liveSearchInput.value = '';
+          liveDropdown.classList.add('hidden');
+          liveClearBtn.classList.add('hidden');
+          liveSearchInput.focus();
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!liveSearchInput.contains(e.target) && !liveDropdown.contains(e.target)) {
+          liveDropdown.classList.add('hidden');
         }
       });
     }
 
-    if (catSelect) {
-      catSelect.innerHTML = '<option value="">All Categories</option>';
-      const categories = window.appData?.product_categories || [];
-      categories.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        opt.textContent = c.categoryName || c.name;
-        catSelect.appendChild(opt);
-      });
-      catSelect.addEventListener('change', (e) => {
-        posCatalogState.selectedCategory = e.target.value;
-        posCatalogState.currentPage = 1;
-        renderPosProductCatalog();
-      });
-    }
-
-    if (stockSelect) {
-      stockSelect.value = posCatalogState.stockFilter || 'all';
-      stockSelect.addEventListener('change', (e) => {
-        posCatalogState.stockFilter = e.target.value;
-        posCatalogState.currentPage = 1;
-        renderPosProductCatalog();
+    // 6. Quick Walk-In Button
+    const btnQuickWalkIn = document.getElementById('btnQuickWalkIn');
+    if (btnQuickWalkIn) {
+      btnQuickWalkIn.addEventListener('click', () => {
+        if (el.customerSelect) el.customerSelect.value = '';
+        if (el.customerName) el.customerName.value = 'Walk-in Cash Customer';
+        if (el.customerPhone) el.customerPhone.value = '';
+        if (el.paymentType) el.paymentType.value = 'Cash';
+        if (el.customerPrevBalance) {
+          el.customerPrevBalance.textContent = 'Rs 0.00';
+          el.customerPrevBalance.dataset.rawBalance = 0;
+        }
+        saleState.selectedCustomer = null;
+        updateSlipMeta();
+        updateVoucherTotals();
       });
     }
 
-    if (rateSelect) {
-      rateSelect.value = posCatalogState.defaultRateMode || 'retail';
-      rateSelect.addEventListener('change', (e) => {
-        posCatalogState.defaultRateMode = e.target.value;
-        renderPosProductCatalog();
-      });
-    }
-
-    if (el.customerName) el.customerName.addEventListener('input', updateSlipMeta);
-    if (el.customerSelect) el.customerSelect.addEventListener('change', updateSlipMeta);
-    if (el.partyTypeSelect) el.partyTypeSelect.addEventListener('change', updateSlipMeta);
-    if (el.paymentType) el.paymentType.addEventListener('change', updateSlipMeta);
-    if (el.entryDate) el.entryDate.addEventListener('change', updateSlipMeta);
-
-    window.addEventListener('keydown', (e) => {
-      if (window.currentTab !== 'sale') return;
-      if (e.key === 'F1') {
-        e.preventDefault();
-        const s = document.getElementById('posProductSearch');
-        if (s) { s.focus(); s.select(); }
-      }
-      if (e.key === 'F2') {
-        e.preventDefault();
-        resetVoucher();
-      }
-      if ((e.ctrlKey && e.key.toLowerCase() === 's') || e.key === 'F10') {
-        e.preventDefault();
-        saveSaleVoucher();
-      }
-    });
-
-    renderPosProductCatalog();
-    updateSlipMeta();
-    updateSlipCompanyHeader();
-    
-    const btnDone = document.getElementById('btnPosDone');
-    if (btnDone) {
-      btnDone.addEventListener('click', () => showPosRightView('slip'));
-    }
-
-    const btnBackToCart = document.getElementById('btnPosBackToCart');
-    if (btnBackToCart) {
-      btnBackToCart.addEventListener('click', () => showPosRightView('cart'));
-    }
-
+    // 7. Clear Bill Button
     const btnClearCart = document.getElementById('btnPosClearCart');
     if (btnClearCart) {
       btnClearCart.addEventListener('click', () => {
         if (saleState.items.length === 0) return;
-        if (confirm('Are you sure you want to clear all items from the cart?')) {
+        if (confirm('Are you sure you want to clear all items from the current bill?')) {
           saleState.items = [];
           renderItemsTable();
-          showPosRightView('cart');
+          updateVoucherTotals();
         }
       });
     }
 
+    // 8. Global Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (window.currentTab !== 'sale') return;
+
+      const rateModal = document.getElementById('modalSelectRateOnAdd');
+      const isRateModalOpen = rateModal && !rateModal.classList.contains('hidden');
+
+      if (isRateModalOpen) {
+        if (e.key === '1' || e.key.toLowerCase() === 'r') {
+          e.preventDefault();
+          confirmRateChoice('retail');
+          return;
+        }
+        if (e.key === '2' || e.key.toLowerCase() === 'w') {
+          e.preventDefault();
+          confirmRateChoice('wholesale');
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeRateChoiceModal();
+          return;
+        }
+      }
+
+      // Quick Bill Mode Switchers
+      if (e.altKey && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        setBillPricingMode('retail', saleState.items.length > 0 && confirm('Convert all items in bill to Retail Rates?'));
+        return;
+      }
+      if (e.altKey && e.key.toLowerCase() === 'w') {
+        e.preventDefault();
+        setBillPricingMode('wholesale', saleState.items.length > 0 && confirm('Convert all items in bill to Wholesale Rates?'));
+        return;
+      }
+
+      if (e.key === 'F1') {
+        e.preventDefault();
+        e.stopPropagation();
+        openProductLookupModal();
+      }
+      if (e.key === 'F2') {
+        e.preventDefault();
+        if (currentSaleSubTab === 'return') {
+          resetReturnForm();
+        } else {
+          resetVoucher();
+        }
+      }
+      if ((e.ctrlKey && e.key.toLowerCase() === 's') || e.key === 'F10') {
+        e.preventDefault();
+        if (currentSaleSubTab === 'return') {
+          saveSaleReturn();
+        } else {
+          saveSaleVoucher();
+        }
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        if (el.modalReceipt && !el.modalReceipt.classList.contains('hidden')) {
+          doPrintSaleBill();
+        } else if (currentSaleSubTab === 'return') {
+          if (retEl.btnPrint) retEl.btnPrint.click();
+        } else {
+          openReceiptModal();
+        }
+      }
+      if (e.key === 'Escape') {
+        closeProductLookupModal();
+        closeRateChoiceModal();
+        closeBillStatusModal();
+        if (el.modalReceipt) el.modalReceipt.classList.add('hidden');
+        if (el.modalHistory) el.modalHistory.classList.add('hidden');
+        if (retEl.modalReceipt) retEl.modalReceipt.classList.add('hidden');
+        if (retEl.modalHistory) retEl.modalHistory.classList.add('hidden');
+      }
+    });
+
+    if (el.customerName) el.customerName.addEventListener('input', updateSlipMeta);
+    if (el.customerSelect) el.customerSelect.addEventListener('change', updateSlipMeta);
+    if (el.paymentType) el.paymentType.addEventListener('change', updateSlipMeta);
+    if (el.entryDate) el.entryDate.addEventListener('change', updateSlipMeta);
+
+    renderItemsTable();
+    updateSlipMeta();
   }
 
   function initElements() {
@@ -694,11 +1071,18 @@
     el.returnChange = document.getElementById('saleReturnChange');
     el.finalCustomerBalance = document.getElementById('saleFinalCustomerBalance');
 
-    // Receipt Modal
+    // Receipt Modal & Print Studio
     el.modalReceipt = document.getElementById('modalSaleReceipt');
     el.receiptArea = document.getElementById('thermalReceiptPrintArea');
     el.btnCloseReceipt = document.getElementById('btnCloseSaleReceipt');
     el.btnDoPrintReceipt = document.getElementById('btnDoPrintSaleReceipt');
+    el.printStudioBadge = document.getElementById('printStudioVoucherBadge');
+    el.tplButtons = document.querySelectorAll('.sale-tpl-btn');
+    el.thermalWidthBox = document.getElementById('saleThermalWidthBox');
+    el.thermalWidthSelect = document.getElementById('saleThermalWidthSelect');
+    el.chkIncludePrevBill = document.getElementById('chkSaleIncludePrevBill');
+    el.prevBillInputWrap = document.getElementById('salePrevBillInputWrap');
+    el.inpPrevBillAmount = document.getElementById('inpSalePrevBillAmount');
 
     // History Modal
     el.modalHistory = document.getElementById('modalSaleHistory');
@@ -724,6 +1108,28 @@
     el.saleResultsCounter = document.getElementById('saleResultsCounter');
     el.salesMasterTableBody = document.getElementById('salesMasterTableBody');
     el.salesEmptyState = document.getElementById('salesEmptyState');
+
+    // Quick Status Switcher Tabs (All, Paid, Estimated)
+    el.btnSaleTabFilterAll = document.getElementById('btnSaleTabFilterAll');
+    el.btnSaleTabFilterPaid = document.getElementById('btnSaleTabFilterPaid');
+    el.btnSaleTabFilterEstimated = document.getElementById('btnSaleTabFilterEstimated');
+    el.badgeCountAllSales = document.getElementById('badgeCountAllSales');
+    el.badgeCountPaidSales = document.getElementById('badgeCountPaidSales');
+    el.badgeCountEstimatedSales = document.getElementById('badgeCountEstimatedSales');
+
+    // Modal History Quick Filters
+    el.btnModalHistFilterAll = document.getElementById('btnModalHistFilterAll');
+    el.btnModalHistFilterPaid = document.getElementById('btnModalHistFilterPaid');
+    el.btnModalHistFilterEstimated = document.getElementById('btnModalHistFilterEstimated');
+
+    // Bill Status Elements (Paid Bill vs Estimated Bill)
+    el.saleBillStatus = document.getElementById('saleBillStatus');
+    el.modalBillStatusChoice = document.getElementById('modalSaleBillStatusChoice');
+    el.btnChoosePaidBill = document.getElementById('btnChoosePaidBill');
+    el.btnChooseEstimatedBill = document.getElementById('btnChooseEstimatedBill');
+    el.btnCloseSaleBillStatusModal = document.getElementById('btnCloseSaleBillStatusModal');
+    el.btnCancelSaleBillStatusModal = document.getElementById('btnCancelSaleBillStatusModal');
+    el.saleFilterStatus = document.getElementById('saleFilterStatus');
   }
 
   // ========================================================
@@ -893,8 +1299,10 @@
       if (el.customerPhone) el.customerPhone.value = '';
       if (el.customerArea) el.customerArea.value = '';
       if (el.customerPrevBalance) {
-        el.customerPrevBalance.value = 'Rs 0.00';
+        if ('value' in el.customerPrevBalance) el.customerPrevBalance.value = 'Rs 0.00';
+        el.customerPrevBalance.textContent = 'Rs 0.00';
         el.customerPrevBalance.dataset.rawBalance = 0;
+        el.customerPrevBalance.className = 'pos-bal-val font-num text-secondary';
       }
       updateVoucherTotals();
       return;
@@ -930,8 +1338,10 @@
       if (el.customerPhone) el.customerPhone.value = '';
       if (el.customerArea) el.customerArea.value = '';
       if (el.customerPrevBalance) {
-        el.customerPrevBalance.value = 'Rs 0.00';
+        if ('value' in el.customerPrevBalance) el.customerPrevBalance.value = 'Rs 0.00';
+        el.customerPrevBalance.textContent = 'Rs 0.00';
         el.customerPrevBalance.dataset.rawBalance = 0;
+        el.customerPrevBalance.className = 'pos-bal-val font-num text-secondary';
       }
     }
     updateVoucherTotals();
@@ -998,9 +1408,13 @@
     if (!partyTypeId) {
       returnState.selectedPartyType = null;
       returnState.selectedCustomer = null;
-      if (retEl.customerPhone) retEl.customerPhone.textContent = '-';
-      if (retEl.customerArea) retEl.customerArea.textContent = '-';
-      if (retEl.customerPrevBalance) retEl.customerPrevBalance.textContent = 'Rs 0.00';
+      if (retEl.customerPhone) retEl.customerPhone.value = '';
+      if (retEl.customerArea) retEl.customerArea.value = '';
+      if (retEl.customerPrevBalance) {
+        if ('value' in retEl.customerPrevBalance) retEl.customerPrevBalance.value = 'Rs 0.00';
+        retEl.customerPrevBalance.textContent = 'Rs 0.00';
+        retEl.customerPrevBalance.dataset.rawBalance = 0;
+      }
       updateReturnTotals();
       return;
     }
@@ -1017,8 +1431,8 @@
         name: pt.name,
         code: pt.code || ''
       };
-      if (retEl.customerPhone) retEl.customerPhone.textContent = pt.code || pt.name;
-      if (retEl.customerArea) retEl.customerArea.textContent = pt.description || pt.name;
+      if (retEl.customerPhone) retEl.customerPhone.value = pt.code || pt.name;
+      if (retEl.customerArea) retEl.customerArea.value = pt.description || pt.name;
     }
     updateReturnTotals();
   }
@@ -1269,8 +1683,25 @@
     const countBadge = document.getElementById('posCartCountBadge');
     if (countBadge) countBadge.textContent = saleState.items.length;
     if (el.totalItemsCount) el.totalItemsCount.textContent = saleState.items.length;
+    const billBadge = document.getElementById('posBillItemCountBadge');
+    if (billBadge) billBadge.textContent = `${saleState.items.length} ${saleState.items.length === 1 ? 'Item' : 'Items'}`;
+    const srNoEl = document.getElementById('pieSaleSrNo');
+    if (srNoEl) srNoEl.value = saleState.items.length + 1;
 
-    renderPosSlipItems();
+    const modeLabel = document.getElementById('posActiveRateModeLabel');
+    if (modeLabel) {
+      if (saleState.rateMode === 'wholesale') {
+        modeLabel.textContent = 'Wholesale Rate';
+        modeLabel.style.color = '#7c3aed';
+      } else {
+        modeLabel.textContent = 'Retail Rate';
+        modeLabel.style.color = '#0284c7';
+      }
+    }
+
+    if (!el.itemsTableBody) {
+      el.itemsTableBody = document.getElementById('saleItemsTableBody');
+    }
     if (!el.itemsTableBody) return;
     el.itemsTableBody.innerHTML = '';
 
@@ -1279,79 +1710,111 @@
     const btnSell = document.getElementById('btnSaleSave');
 
     if (saleState.items.length === 0) {
-      if (emptyState) emptyState.style.display = 'block';
+      if (emptyState) emptyState.style.display = 'flex';
       if (paginationBar) paginationBar.style.display = 'none';
       if (btnSell) {
-        btnSell.disabled = true;
-        btnSell.style.opacity = '0.6';
-        btnSell.style.cursor = 'not-allowed';
+        btnSell.disabled = false;
+        btnSell.style.opacity = '0.7';
+        btnSell.style.cursor = 'pointer';
       }
       return;
     }
 
     if (emptyState) emptyState.style.display = 'none';
+    if (paginationBar) paginationBar.style.display = 'none';
     if (btnSell) {
       btnSell.disabled = false;
       btnSell.style.opacity = '1';
       btnSell.style.cursor = 'pointer';
     }
 
-    const pageSize = saleState.slipPageSize || 9;
-    const totalPages = Math.ceil(saleState.items.length / pageSize) || 1;
-    if (!saleState.slipCurrentPage || saleState.slipCurrentPage < 1) saleState.slipCurrentPage = 1;
-    if (saleState.slipCurrentPage > totalPages) saleState.slipCurrentPage = totalPages;
-
-    const currentPage = saleState.slipCurrentPage;
-    const startIdx = (currentPage - 1) * pageSize;
-    const endIdx = Math.min(startIdx + pageSize, saleState.items.length);
-    const visibleItems = saleState.items.slice(startIdx, endIdx);
-
-    visibleItems.forEach((item, relIdx) => {
-      const idx = startIdx + relIdx;
+    saleState.items.forEach((item, idx) => {
       const prod = (window.appData?.products || []).find(pr => String(pr.id) === String(item.productId) || String(pr.code) === String(item.productCode));
       const availStock = prod ? Number(prod.stockQty || 0) : 999999;
       const isMaxReached = item.totalQty >= availStock;
+      const isWholesale = item.rateType === 'wholesale';
+      const rp = Number(item.retailPrice || (prod ? prod.retailPrice : 0) || 0);
+      const wp = Number(item.wholesalePrice || (prod ? prod.wholesalePrice : 0) || 0);
+
+      const rateToggleBtn = `
+        <div class="pos-row-rate-group" role="group" aria-label="Rate Selection">
+          <button type="button" class="btn-rate-seg btn-seg-retail ${!isWholesale ? 'active' : ''}" 
+            onclick="window.SalesModule.toggleItemRate(${idx}, 'retail')" title="Retail Price: Rs ${rp.toLocaleString()} (Click to select)">
+            🏷️ Retail
+          </button>
+          <button type="button" class="btn-rate-seg btn-seg-wholesale ${isWholesale ? 'active' : ''}" 
+            onclick="window.SalesModule.toggleItemRate(${idx}, 'wholesale')" title="Wholesale Price: Rs ${wp.toLocaleString()} (Click to select)">
+            📦 Wholesale
+          </button>
+        </div>
+      `;
 
       const tr = document.createElement('tr');
-      tr.className = 'pos-slip-row-item';
+      tr.className = 'pos-bill-row';
       tr.innerHTML = `
-        <td class="pos-slip-col-item">
-          <div class="pos-slip-item-title" title="${window.escapeHtml(item.productTitle)}">${window.escapeHtml(item.productTitle)}</div>
+        <td class="pos-cell-sr text-center font-num text-muted">${idx + 1}</td>
+        <td class="pos-cell-code font-num font-bold text-muted" style="padding-left: 12px;">${window.escapeHtml(item.productCode || '-')}</td>
+        <td class="pos-cell-title" style="padding-left: 12px;">
+          <div class="pos-bill-title font-bold">${window.escapeHtml(item.productTitle || '')}</div>
         </td>
-        <td class="pos-slip-col-qty text-center">
-          <div class="pos-slip-qty-stepper">
-            <button type="button" class="pos-slip-qty-btn" onclick="window.SalesModule.adjustCartItemQty(${idx}, -1)" title="Decrease">−</button>
-            <span class="pos-slip-qty-val font-num font-bold">${item.totalQty}</span>
-            <button type="button" class="pos-slip-qty-btn ${isMaxReached ? 'disabled' : ''}" ${isMaxReached ? 'disabled' : ''} onclick="window.SalesModule.adjustCartItemQty(${idx}, 1)" title="${isMaxReached ? 'Maximum available stock reached' : 'Increase'}">+</button>
+        <td class="pos-cell-stock text-center">
+          <span class="pos-stock-badge ${availStock <= 0 ? 'badge-out' : (availStock <= 5 ? 'badge-low' : 'badge-in')} font-num font-bold">
+            ${availStock}
+          </span>
+        </td>
+        <td class="pos-cell-ratetype text-center">
+          ${rateToggleBtn}
+        </td>
+        <td class="pos-cell-rate text-right">
+          <div class="pos-inline-input-wrap rate-input-wrap">
+            <span class="cur-sym">Rs</span>
+            <input type="number" class="pos-inline-inp font-num font-bold text-right" 
+              value="${Number(item.salePrice || 0)}" min="0" step="1"
+              onchange="window.SalesModule.changeItemRate(${idx}, this.value)"
+              onfocus="this.select()"
+              title="Edit unit sale rate">
           </div>
         </td>
-        <td class="pos-slip-col-rate text-right font-num">
-          ${Number(item.salePrice || 0).toLocaleString()}
+        <td class="pos-cell-qty text-center">
+          <div class="pos-row-qty-stepper">
+            <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustCartItemQty(${idx}, -1)" title="Decrease quantity">−</button>
+            <input type="number" class="pos-qty-input-step font-num font-bold text-center" 
+              value="${item.totalQty}" min="1" max="${availStock}"
+              onchange="window.SalesModule.changeItemQty(${idx}, this.value)"
+              onfocus="this.select()"
+              title="Quantity">
+            <button type="button" class="pos-qty-btn-step ${isMaxReached ? 'disabled' : ''}" ${isMaxReached ? 'disabled' : ''} onclick="window.SalesModule.adjustCartItemQty(${idx}, 1)" title="${isMaxReached ? 'Stock limit reached' : 'Increase quantity'}">+</button>
+          </div>
         </td>
-        <td class="pos-slip-col-total text-right font-num font-bold">
-          ${Number(item.netAmount || 0).toLocaleString()}
+        <td class="pos-cell-disc text-center">
+          <div class="pos-inline-input-wrap disc-input-wrap">
+            <input type="number" class="pos-inline-inp font-num text-center" 
+              value="${item.discountPercent || 0}" min="0" max="100" step="0.5"
+              onchange="window.SalesModule.changeItemDisc(${idx}, this.value)"
+              onfocus="this.select()"
+              title="Discount percent">%
+          </div>
         </td>
-        <td class="pos-slip-col-del text-center">
-          <button type="button" class="pos-slip-del-btn" onclick="window.SalesModule.removeItem(${idx})" title="Remove item">✕</button>
+        <td class="pos-cell-total text-right font-num font-bold text-success" style="padding-right: 14px; font-size: 1.05rem;">
+          Rs ${Number(item.netAmount || 0).toLocaleString()}
+        </td>
+        <td class="pos-cell-del text-center">
+          <button type="button" class="pos-item-del-btn" onclick="window.SalesModule.removeItem(${idx})" title="Remove item from bill">
+            ✕
+          </button>
         </td>
       `;
       el.itemsTableBody.appendChild(tr);
     });
+  }
 
-    if (paginationBar) {
-      if (totalPages > 1) {
-        paginationBar.style.display = 'flex';
-        const pagInfo = document.getElementById('posSlipPaginationInfo');
-        const pagCur = document.getElementById('posSlipPaginationCurrent');
-        const btnPrev = document.getElementById('btnPosSlipPrev');
-        const btnNext = document.getElementById('btnPosSlipNext');
-        if (pagInfo) pagInfo.textContent = `Items ${startIdx + 1}–${endIdx} of ${saleState.items.length}`;
-        if (pagCur) pagCur.textContent = `Page ${currentPage} of ${totalPages}`;
-        if (btnPrev) btnPrev.disabled = currentPage <= 1;
-        if (btnNext) btnNext.disabled = currentPage >= totalPages;
-      } else {
-        paginationBar.style.display = 'none';
-      }
+  function clearBillCart() {
+    if (saleState.items.length === 0) return;
+    if (confirm('Are you sure you want to clear all items from the current bill?')) {
+      saleState.items = [];
+      renderItemsTable();
+      updateVoucherTotals();
+      if (window.showToast) window.showToast('Bill cleared', 'info');
     }
   }
 
@@ -1428,86 +1891,208 @@
   }
 
   // ========================================================
-  // SAVE SALE VOUCHER
+  // SAVE SALE VOUCHER & BILL STATUS SELECTION
   // ========================================================
-  async function saveSaleVoucher() {
-    // Party Type is optional - anyone can buy goods directly!
+  function saveSaleVoucher() {
+    if (saleState.isSaving) return;
 
-    if (saleState.items.length === 0) {
-      if (window.showToast) window.showToast('Please add at least one product to the voucher', 'warning');
+    if (!saleState.items || saleState.items.length === 0) {
+      const emptyMsg = 'Please add at least one product to the bill before confirming sale.';
+      if (window.showToast) window.showToast(emptyMsg, 'warning');
+      alert(emptyMsg);
       return;
     }
 
-    // Strict stock verification before saving sale
-    const freshProducts = window.appData?.products || [];
-    for (const item of saleState.items) {
-      const prod = freshProducts.find(p => String(p.id) === String(item.productId) || String(p.code) === String(item.productCode));
-      const availStock = prod ? Number(prod.stockQty || 0) : 0;
-      if (Number(item.totalQty || 0) > availStock) {
-        if (window.showToast) {
-          window.showToast(`Cannot sell: "${item.productTitle}" requested quantity (${item.totalQty}) exceeds available stock (${availStock}).`, 'error');
-        }
-        return;
-      }
-      if (availStock <= 0) {
-        if (window.showToast) {
-          window.showToast(`Cannot sell: "${item.productTitle}" is out of stock (0 available).`, 'error');
-        }
-        return;
-      }
+    openBillStatusModal();
+  }
+
+  function openBillStatusModal() {
+    if (!el.modalBillStatusChoice) {
+      const status = el.saleBillStatus?.value || 'Paid';
+      return executeSaveSale(status);
     }
 
-    const selectedPtObj = saleState.selectedPartyType || sharedPartyTypes.find(t => String(t.id) === String(el.partyTypeSelect?.value)) || {};
-    const ptTitle = selectedPtObj.name || el.partyTypeSelect?.options[el.partyTypeSelect?.selectedIndex]?.text || 'General Party';
+    const currentStatus = el.saleBillStatus?.value || saleState.billStatus || 'Paid';
+    if (el.btnChoosePaidBill) {
+      el.btnChoosePaidBill.classList.toggle('active-choice', currentStatus === 'Paid');
+    }
+    if (el.btnChooseEstimatedBill) {
+      el.btnChooseEstimatedBill.classList.toggle('active-choice', currentStatus === 'Estimated');
+    }
 
-    const isSpecificCustomer = Boolean(saleState.selectedCustomer);
-    const chosenPartyId = isSpecificCustomer ? saleState.selectedCustomer.id : (selectedPtObj.id || 'walk-in');
-    const enteredCustomerName = el.customerName?.value?.trim();
-    const chosenPartyTitle = enteredCustomerName || (isSpecificCustomer
-      ? (saleState.selectedCustomer.name || saleState.selectedCustomer.partyTitle)
-      : `Walk-in (${ptTitle})`);
-    const chosenCustomerPhone = el.customerPhone?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer.phone || '') : '') || '';
-    const chosenCustomerArea = el.customerArea?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer.areaName || saleState.selectedCustomer.city || '') : '') || '';
+    el.modalBillStatusChoice.classList.remove('hidden');
+    window.addEventListener('keydown', handleBillStatusKeydown, true);
+  }
 
-    const gross = saleState.items.reduce((s, it) => s + Number(it.netAmount || 0), 0);
-    const specialDisc = Number(el.specialDiscount?.value) || 0;
-    const net = Math.max(0, gross - specialDisc);
-    const paid = Number(el.paidAmount?.value) || 0;
-    const balanceDue = Math.max(0, net - paid);
-    const prevBal = Number(el.customerPrevBalance?.dataset?.rawBalance || 0);
+  function closeBillStatusModal() {
+    if (el.modalBillStatusChoice) {
+      el.modalBillStatusChoice.classList.add('hidden');
+    }
+    window.removeEventListener('keydown', handleBillStatusKeydown, true);
+  }
 
-    const saleRecord = {
-      id: saleState.saleId || undefined,
-      voucherNo: el.voucherNo?.value || saleState.voucherNo,
-      manualNo: el.manualNo?.value?.trim() || '',
-      entryDate: el.entryDate?.value || new Date().toISOString().split('T')[0],
-      partyId: chosenPartyId,
-      partyTitle: chosenPartyTitle,
-      partyTypeId: selectedPtObj.id || el.partyTypeSelect.value,
-      partyTypeName: ptTitle,
-      customerPhone: chosenCustomerPhone,
-      areaName: chosenCustomerArea,
-      description: el.description?.value || '',
-      storeTitle: el.storeTitle?.value || 'Main Store',
-      paymentType: el.paymentType?.value || 'Cash',
-      previousBalance: prevBal,
-      grossAmount: gross,
-      discount: specialDisc,
-      netAmount: net,
-      paidAmount: paid,
-      balanceDue: balanceDue
-    };
+  function handleBillStatusKeydown(e) {
+    if (!el.modalBillStatusChoice || el.modalBillStatusChoice.classList.contains('hidden')) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      closeBillStatusModal();
+    } else if (e.key === '1' || e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      closeBillStatusModal();
+      executeSaveSale('Paid');
+    } else if (e.key === '2' || e.key === 'e' || e.key === 'E') {
+      e.preventDefault();
+      e.stopPropagation();
+      closeBillStatusModal();
+      executeSaveSale('Estimated');
+    }
+  }
+
+  function updateBillStatusSelectStyle(status) {
+    if (!el.saleBillStatus) return;
+    if (status === 'Estimated') {
+      el.saleBillStatus.style.background = '#fffbeb';
+      el.saleBillStatus.style.color = '#b45309';
+      el.saleBillStatus.style.borderColor = '#fcd34d';
+    } else {
+      el.saleBillStatus.style.background = '#f0fdf4';
+      el.saleBillStatus.style.color = '#166534';
+      el.saleBillStatus.style.borderColor = '#86efac';
+    }
+  }
+
+  async function executeSaveSale(chosenStatus = 'Paid') {
+    closeBillStatusModal();
+    if (saleState.isSaving) return;
+    const saveBtn = document.getElementById('btnSaleSave') || el.btnSave;
+
+    if (!saleState.items || saleState.items.length === 0) {
+      const emptyMsg = 'Please add at least one product to the bill before confirming sale.';
+      if (window.showToast) window.showToast(emptyMsg, 'warning');
+      alert(emptyMsg);
+      return;
+    }
+
+    const isEstimated = (chosenStatus === 'Estimated');
+    if (el.saleBillStatus) {
+      el.saleBillStatus.value = chosenStatus;
+      updateBillStatusSelectStyle(chosenStatus);
+    }
+    saleState.billStatus = chosenStatus;
+
+    saleState.isSaving = true;
+    const itemsSnapshot = (saleState.items || []).map(it => ({ ...it }));
 
     try {
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `
+          <span style="display:inline-block; width:13px; height:13px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px; vertical-align:middle;"></span>
+          <span>${isEstimated ? 'Saving Estimated Bill...' : 'Saving Sale...'}</span>
+        `;
+      }
+
+      // Live stock verification check (only for Paid bills, non-blocking for existing edits)
+      if (!isEstimated) {
+        const freshProducts = window.appData?.products || [];
+        if (freshProducts.length > 0 && !saleState.saleId) {
+          for (const item of itemsSnapshot) {
+            const prod = freshProducts.find(p => String(p.id) === String(item.productId) || String(p.code) === String(item.productCode));
+            if (prod) {
+              const availStock = Number(prod.stockQty || 0);
+              if (Number(item.totalQty || 0) > availStock && availStock >= 0) {
+                const msg = `Cannot confirm paid sale: "${item.productTitle}" requested quantity (${item.totalQty}) exceeds available stock (${availStock}).`;
+                if (window.showToast) window.showToast(msg, 'error');
+                alert(msg);
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      const gross = itemsSnapshot.reduce((s, it) => s + Number(it.netAmount || 0), 0);
+      const specialDiscInput = document.getElementById('saleSpecialDiscount') || el.specialDiscount;
+      const specialDisc = Number(specialDiscInput?.value) || 0;
+      const net = Math.max(0, gross - specialDisc);
+      const paidInput = document.getElementById('salePaidAmount') || el.paidAmount;
+      const paid = Number(paidInput?.value) || 0;
+      const balanceDue = Math.max(0, net - paid);
+
+      const prevBalEl = document.getElementById('saleCustomerPrevBalance') || el.customerPrevBalance;
+      const prevBal = Number(prevBalEl?.dataset?.rawBalance || 0);
+
+      const voucherNoInput = document.getElementById('saleVoucherNo') || el.voucherNo;
+      const voucherNoVal = voucherNoInput?.value?.trim() || saleState.voucherNo || ('SV-' + String(Date.now()).slice(-4));
+
+      const entryDateInput = document.getElementById('saleEntryDate') || el.entryDate;
+      const entryDateVal = entryDateInput?.value || new Date().toISOString().split('T')[0];
+
+      const customerNameInput = document.getElementById('saleCustomerName') || el.customerName;
+      const customerPhoneInput = document.getElementById('saleCustomerPhone') || el.customerPhone;
+      const customerAreaInput = document.getElementById('saleCustomerArea') || el.customerArea;
+      const paymentTypeSelect = document.getElementById('salePaymentType') || el.paymentType;
+      const paymentTypeVal = paymentTypeSelect?.value || 'Cash';
+
+      const selectedPtObj = saleState.selectedPartyType || sharedPartyTypes.find(t => String(t.id) === String(el.partyTypeSelect?.value)) || {};
+      const ptTitle = selectedPtObj.name || 'General Party';
+
+      const isSpecificCustomer = Boolean(saleState.selectedCustomer);
+      const chosenPartyId = isSpecificCustomer ? saleState.selectedCustomer.id : (selectedPtObj.id || 'walk-in');
+      const enteredCustomerName = customerNameInput?.value?.trim();
+      const chosenPartyTitle = enteredCustomerName || (isSpecificCustomer
+        ? (saleState.selectedCustomer.name || saleState.selectedCustomer.partyTitle)
+        : `Walk-in (${ptTitle})`);
+      const chosenCustomerPhone = customerPhoneInput?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer.phone || '') : '') || '';
+      const chosenCustomerArea = customerAreaInput?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer.areaName || saleState.selectedCustomer.city || '') : '') || '';
+
+      const saleRecord = {
+        id: saleState.saleId || undefined,
+        voucherNo: voucherNoVal,
+        manualNo: el.manualNo?.value?.trim() || '',
+        entryDate: entryDateVal,
+        partyId: String(chosenPartyId),
+        partyTitle: chosenPartyTitle,
+        partyTypeId: selectedPtObj.id || el.partyTypeSelect?.value || 'general',
+        partyTypeName: ptTitle,
+        customerPhone: chosenCustomerPhone,
+        areaName: chosenCustomerArea,
+        description: el.description?.value || '',
+        storeTitle: el.storeTitle?.value || 'Main Store',
+        paymentType: paymentTypeVal,
+        previousBalance: prevBal,
+        grossAmount: gross,
+        discount: specialDisc,
+        netAmount: net,
+        paidAmount: paid,
+        balanceDue: balanceDue,
+        billStatus: chosenStatus
+      };
+
       let res;
       if (window.salesAPI?.saveSale) {
-        res = await window.salesAPI.saveSale(saleRecord, saleState.items);
+        res = await window.salesAPI.saveSale(saleRecord, itemsSnapshot);
       } else if (window.api?.saveSale) {
-        res = await window.api.saveSale(saleRecord, saleState.items);
+        res = await window.api.saveSale(saleRecord, itemsSnapshot);
+      } else if (window.electronAPI?.saveSale) {
+        res = await window.electronAPI.saveSale(saleRecord, itemsSnapshot);
+      } else {
+        throw new Error('Sales saving service is not available.');
+      }
+
+      if (res && res.error) {
+        throw new Error(res.error);
       }
 
       if (window.showToast) {
-        window.showToast(`Sale Voucher ${saleRecord.voucherNo} saved successfully!`, 'success');
+        if (isEstimated) {
+          window.showToast(`Estimated Bill ${saleRecord.voucherNo} saved! (No inventory deducted)`, 'info');
+        } else {
+          window.showToast(`Sale Voucher ${saleRecord.voucherNo} confirmed and saved!`, 'success');
+        }
       }
 
       closeAddSaleModal();
@@ -1521,15 +2106,31 @@
       await loadAndRenderSalesTable();
 
       // Open print bill confirmation dialog or auto print if checked
-      const shouldPrint = el.chkSalePrintReceipt ? el.chkSalePrintReceipt.checked : true;
+      const chkPrint = document.getElementById('chkSalePrintReceipt') || el.chkSalePrintReceipt;
+      const shouldPrint = chkPrint ? chkPrint.checked : true;
       if (shouldPrint) {
-        openReceiptModal({ ...saleRecord, items: [...saleState.items] });
+        await openReceiptModal({
+          ...saleRecord,
+          voucherNo: res?.voucherNo || saleRecord.voucherNo,
+          items: itemsSnapshot,
+          billStatus: chosenStatus
+        });
       }
 
       await resetVoucher();
     } catch (err) {
       console.error('Failed to save sale voucher:', err);
       if (window.showToast) window.showToast(`Save failed: ${err.message}`, 'error');
+      alert(`Could not confirm sale: ${err.message}`);
+    } finally {
+      saleState.isSaving = false;
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `
+          <span style="font-size: 15px;">✓</span>
+          <span>Confirm Sale</span>
+        `;
+      }
     }
   }
 
@@ -1540,6 +2141,11 @@
     saleState.selectedPartyType = null;
     saleState.selectedCustomer = null;
     saleState.slipCurrentPage = 1;
+    saleState.billStatus = 'Paid';
+    if (el.saleBillStatus) {
+      el.saleBillStatus.value = 'Paid';
+      updateBillStatusSelectStyle('Paid');
+    }
 
     if (el.entryDate) el.entryDate.value = new Date().toISOString().split('T')[0];
     if (el.manualNo) el.manualNo.value = '';
@@ -1570,13 +2176,834 @@
     updateVoucherTotals();
     await loadNextVoucherNo();
     updateSlipMeta();
+    switchSaleSubTab('voucher');
   }
 
   // ========================================================
-  // RECEIPT BILL PRINT PREVIEW (CLEAN BLACK & WHITE SALE INVOICE)
+  // SALE BILL PRINT STUDIO & MULTI-TEMPLATE ENGINE
   // ========================================================
-  function openReceiptModal(saleObj) {
+  const salePrintStudioState = {
+    s: null,
+    items: [],
+    cfg: null,
+    template: 'a4',
+    paperWidth: '80mm',
+    includePrevBill: false,
+    prevBillAmount: 0
+  };
+
+  function setSalePrintTemplate(tpl) {
+    if (!tpl) return;
+    salePrintStudioState.template = tpl;
+    try {
+      localStorage.setItem('sale_bill_template', tpl);
+    } catch (_) {}
+
+    if (el.tplButtons) {
+      el.tplButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tpl === tpl);
+      });
+    }
+
+    if (el.thermalWidthBox) {
+      el.thermalWidthBox.style.display = (tpl === 'thermal') ? 'inline-flex' : 'none';
+    }
+
+    renderSalePrintStudioPreview();
+  }
+
+  function printIsolatedHtml(htmlContent, options = {}) {
+    const { template = '80mm', paperWidth = '80mm' } = options;
+    const isA4 = (template === 'a4');
+    const is58 = (paperWidth === '58mm' || template === '58mm');
+    const paperW = isA4 ? '210mm' : (is58 ? '58mm' : '80mm');
+
+    let iframe = document.getElementById('salesIsolatedPrintFrame');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'salesIsolatedPrintFrame';
+      iframe.style.position = 'fixed';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '0';
+      iframe.style.width = paperW;
+      iframe.style.height = isA4 ? '297mm' : 'auto';
+      iframe.style.border = '0';
+      iframe.style.opacity = '1';
+      iframe.style.pointerEvents = 'none';
+      iframe.style.zIndex = '-9999';
+      document.body.appendChild(iframe);
+    } else {
+      iframe.style.width = paperW;
+      iframe.style.height = isA4 ? '297mm' : 'auto';
+    }
+
+    const iframeDoc = iframe.contentWindow.document;
+    iframeDoc.open();
+
+    let pageRule = '';
+    let containerStyles = '';
+
+    if (isA4) {
+      pageRule = `@page { size: A4 portrait; margin: 0; }`;
+      containerStyles = `
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 210mm !important;
+          height: 297mm !important;
+          max-height: 297mm !important;
+          overflow: hidden !important;
+          background: #ffffff !important;
+          color: #0f172a !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        .invoice-container.invoice-a4 {
+          width: 210mm !important;
+          height: 297mm !important;
+          max-height: 297mm !important;
+          min-height: 297mm !important;
+          padding: 10mm 14mm 8mm 14mm !important;
+          box-sizing: border-box !important;
+          box-shadow: none !important;
+          margin: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: space-between !important;
+          page-break-after: avoid !important;
+          page-break-inside: avoid !important;
+          overflow: hidden !important;
+        }
+      `;
+    } else {
+      pageRule = `@page { size: ${paperW} 200mm; margin: 0; }`;
+      containerStyles = `
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: ${paperW} !important;
+          max-width: ${paperW} !important;
+          background: #ffffff !important;
+          color: #000000 !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        body * {
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+        .sale-doc-thermal, .thermal-slip-paper {
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 100% !important;
+          margin: 0 auto !important;
+          padding: 2mm 1.5mm 4mm 1.5mm !important;
+          box-shadow: none !important;
+          box-sizing: border-box !important;
+          page-break-after: avoid !important;
+          page-break-inside: avoid !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          font-size: ${is58 ? '9px' : '10.5px'} !important;
+        }
+        .sale-doc-thermal * {
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+      `;
+    }
+
+    const baseTag = document.baseURI ? `<base href="${document.baseURI}">` : '';
+
+    iframeDoc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  ${baseTag}
+  <title>Shahzaib Traders Invoice</title>
+  <link rel="stylesheet" href="shared/styles.css">
+  <link rel="stylesheet" href="sales/sales.css">
+  <style>
+    ${pageRule}
+    *, *::before, *::after {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    @media print {
+      html, body {
+        visibility: visible !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        opacity: 1 !important;
+      }
+      body, body * {
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+    }
+    @media screen {
+      html, body, body * {
+        visibility: visible !important;
+      }
+    }
+    ${containerStyles}
+  </style>
+</head>
+<body>
+  ${htmlContent}
+</body>
+</html>`);
+    iframeDoc.close();
+
+    const triggerPrint = () => {
+      setTimeout(() => {
+        try {
+          if (!isA4) {
+            const thermalEl = iframeDoc.querySelector('.sale-doc-thermal') || iframeDoc.body;
+            const hPx = Math.ceil(thermalEl.getBoundingClientRect().height || thermalEl.scrollHeight || 500);
+            const hMm = Math.max(60, Math.ceil((hPx * 25.4) / 96) + 4);
+            let dynStyle = iframeDoc.getElementById('thermalDynPageStyle');
+            if (!dynStyle) {
+              dynStyle = iframeDoc.createElement('style');
+              dynStyle.id = 'thermalDynPageStyle';
+              iframeDoc.head.appendChild(dynStyle);
+            }
+            dynStyle.innerHTML = `@page { size: ${paperW} ${hMm}mm !important; margin: 0mm !important; }`;
+          }
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (err) {
+          console.error('Isolated print failed, falling back to window.print():', err);
+          window.print();
+        }
+      }, 150);
+    };
+
+    // If there are images, wait for them to load before printing
+    const imgs = iframeDoc.querySelectorAll('img');
+    if (imgs.length > 0) {
+      let loaded = 0;
+      const onDone = () => {
+        loaded++;
+        if (loaded >= imgs.length) {
+          triggerPrint();
+        }
+      };
+      imgs.forEach(img => {
+        if (img.complete) {
+          loaded++;
+        } else {
+          img.addEventListener('load', onDone);
+          img.addEventListener('error', onDone);
+        }
+      });
+      if (loaded >= imgs.length) {
+        triggerPrint();
+      } else {
+        setTimeout(triggerPrint, 400);
+      }
+    } else {
+      setTimeout(triggerPrint, 150);
+    }
+  }
+
+  function doPrintSaleBill() {
+    let printStyle = document.getElementById('saleDynamicPrintStyle');
+    if (!printStyle) {
+      printStyle = document.createElement('style');
+      printStyle.id = 'saleDynamicPrintStyle';
+      document.head.appendChild(printStyle);
+    }
+
+    const tpl = salePrintStudioState.template;
+    const width = salePrintStudioState.paperWidth || '80mm';
+
+    if (tpl === 'a4') {
+      printStyle.innerHTML = `@page { size: A4 portrait; margin: 0; }`;
+    } else {
+      const receiptEl = el.receiptArea ? (el.receiptArea.querySelector('.sale-doc-thermal') || el.receiptArea) : null;
+      const hPx = receiptEl ? Math.ceil(receiptEl.getBoundingClientRect().height || receiptEl.scrollHeight || 500) : 500;
+      const hMm = Math.max(60, Math.ceil((hPx * 25.4) / 96) + 4);
+      printStyle.innerHTML = `@page { size: ${width === '58mm' ? '58mm' : '80mm'} ${hMm}mm !important; margin: 0 !important; }`;
+    }
+
+    let contentHtml = el.receiptArea ? el.receiptArea.innerHTML : '';
+    if (!contentHtml || !contentHtml.trim()) {
+      const data = getSalePrintStudioValues();
+      if (tpl === 'a4') contentHtml = renderA4SaleBill(data);
+      else contentHtml = renderThermalSaleBill(data);
+    }
+
+    document.body.classList.add('printing-sale-bill');
+
+    printIsolatedHtml(contentHtml, { template: tpl, paperWidth: width });
+
+    const cleanup = () => {
+      document.body.classList.remove('printing-sale-bill');
+      window.removeEventListener('afterprint', cleanup);
+    };
+
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(cleanup, 2500);
+  }
+
+  function getSalePrintStudioValues() {
+    const s = salePrintStudioState.s || {};
+    const items = salePrintStudioState.items || [];
+    const cfg = salePrintStudioState.cfg || {};
+
+    let formattedDate = '';
+    try {
+      const d = s.entryDate ? new Date(s.entryDate) : new Date();
+      if (!isNaN(d.getTime())) {
+        formattedDate = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      } else {
+        formattedDate = s.entryDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      }
+    } catch (_) {
+      formattedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    const formattedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const voucherNo = s.voucherNo || ('ST-SV-' + Math.floor(1000 + Math.random() * 9000));
+    const customerTitle = s.partyTitle || 'Walk-in Cash Customer';
+    const saleMode = (s.paymentType && s.paymentType.toLowerCase().includes('credit')) ? 'Credit' : 'Cash';
+    const isEstimatedBill = (s.billStatus === 'Estimated');
+
+    const calculatedGross = items.reduce((sum, it) => {
+      const qty = Number(it.totalQty ?? it.quantity ?? it.qty ?? 1);
+      const rate = Number(it.salePrice ?? it.rate ?? it.unitPrice ?? it.retailPrice ?? it.wholesalePrice ?? 0);
+      return sum + Number(it.netAmount ?? (qty * rate) ?? 0);
+    }, 0);
+
+    const grossVal = Number(s.grossAmount || calculatedGross || 0);
+    const discVal = Number(s.discount ?? 0);
+    const netVal = Number(s.netAmount || (grossVal - discVal) || calculatedGross || 0);
+    const prevBillVal = salePrintStudioState.includePrevBill ? Number(salePrintStudioState.prevBillAmount || 0) : 0;
+    const grandPayableVal = netVal + prevBillVal;
+    const paidVal = Number(s.paidAmount ?? 0);
+    const balanceVal = Math.max(0, grandPayableVal - paidVal);
+
+    return {
+      s,
+      items,
+      cfg,
+      formattedDate,
+      formattedTime,
+      voucherNo,
+      customerTitle,
+      customerPhone: s.customerPhone || '',
+      areaName: s.areaName || '',
+      saleMode,
+      isEstimatedBill,
+      grossVal,
+      discVal,
+      netVal,
+      prevBillVal,
+      grandPayableVal,
+      paidVal,
+      balanceVal,
+      includePrevBill: salePrintStudioState.includePrevBill,
+      paperWidth: salePrintStudioState.paperWidth || '80mm'
+    };
+  }
+
+  function cleanInvoiceEmoji(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{2388}\u{200D}]/gu, '')
+      .replace(/[📍📞📄⚠️📋💳🛒✓✔✕✖•★☆●■]/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  function renderCorporateSaleBill(data) {
+    const {
+      cfg, formattedDate, formattedTime, voucherNo, customerTitle, customerPhone,
+      areaName, saleMode, isEstimatedBill, items, grossVal, discVal, netVal,
+      prevBillVal, grandPayableVal, paidVal, balanceVal, includePrevBill, s
+    } = data;
+
+    const currentSaleObj = s || {};
+    const companyTitle = cleanInvoiceEmoji(cfg.title || 'Shahzaib Traders');
+    const subtitle = cleanInvoiceEmoji(cfg.subtitle || 'Dealers in Electrical Goods & Accessories');
+    const address = cleanInvoiceEmoji(cfg.address || 'Main Bazar, Electrical Market, Lahore');
+    const phone = cleanInvoiceEmoji(cfg.phone || '0300-1234567');
+    const taxNumber = cleanInvoiceEmoji(cfg.taxNumber || cfg.ntn || '');
+    const email = cleanInvoiceEmoji(cfg.contactEmail || cfg.email || 'info@shahzaibtraders.com');
+    const checksNote = cleanInvoiceEmoji(cfg.checksPayableNote || ('Make all checks payable to ' + companyTitle));
+    const enquiriesNote = cleanInvoiceEmoji(cfg.enquiriesNote || ('Should you have any enquiries concerning this invoice, please contact ' + phone));
+    const cleanCustomer = cleanInvoiceEmoji(customerTitle || currentSaleObj.partyTitle || 'Walk-in Cash Customer');
+    const cleanCustPhone = cleanInvoiceEmoji(customerPhone || currentSaleObj.customerPhone || '');
+    const cleanCustArea = cleanInvoiceEmoji(areaName || currentSaleObj.areaName || '');
+    const cleanVoucher = cleanInvoiceEmoji(voucherNo || currentSaleObj.voucherNo || 'ST-SV-0042');
+    const bigTitleText = isEstimatedBill ? 'Estimate' : (cleanInvoiceEmoji(cfg.invoiceHeading) || 'Invoice');
+    const terms = cleanInvoiceEmoji(cfg.invoiceTerms || cfg.footer || '1. Please inspect all goods upon receipt.\n2. In case of claim or return, original bill must be presented within 7 days.\n3. Burnt, broken, or short-circuited electrical goods carry no warranty.');
+    const prevLabel = cleanInvoiceEmoji(cfg.previousBillLabel || 'Previous Bill / Balance');
+
+    let itemsRows = '';
+    const realCount = (items || []).length;
+    (items || []).forEach((it, idx) => {
+      const name = cleanInvoiceEmoji(it.productTitle || it.title || it.name || it.productCode || 'Item');
+      const code = cleanInvoiceEmoji(it.productCode || it.code || String(112233 + idx));
+      const totalQty = Number(it.totalQty ?? it.quantity ?? it.qty ?? 1);
+      const rate = Number(it.salePrice ?? it.rate ?? it.unitPrice ?? it.retailPrice ?? it.wholesalePrice ?? 0);
+      const lineTotal = Number(it.netAmount ?? it.totalAmount ?? (totalQty * rate) ?? 0);
+      const rowClass = (idx % 2 === 0) ? 'item-row-odd' : 'item-row-even';
+
+      itemsRows += `
+        <tr class="${rowClass}">
+          <td class="col-item-no">${window.escapeHtml(code)}</td>
+          <td class="col-item-desc">${window.escapeHtml(name)}</td>
+          <td class="col-item-qty">${totalQty}</td>
+          <td class="col-item-price">${rate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="col-item-total">${lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        </tr>
+      `;
+    });
+
+    // Fill down table rows exactly like the template image (12 rows total, centered '-' in Line Total)
+    const targetRows = 12;
+    const fillerNeeded = Math.max(0, targetRows - realCount);
+    for (let f = 0; f < fillerNeeded; f++) {
+      const fillerClass = ((realCount + f) % 2 === 0) ? 'item-row-odd' : 'item-row-even';
+      itemsRows += `
+        <tr class="filler-row ${fillerClass}">
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td style="text-align: center; color: #64748b;">-</td>
+        </tr>
+      `;
+    }
+
+    const customerId = cleanInvoiceEmoji(currentSaleObj.partyCode || currentSaleObj.partyId || (currentSaleObj.partyTitle ? 'CUST-' + String(Math.abs(currentSaleObj.partyTitle.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0))).slice(0,5) : 'CUST-0042'));
+    const poNumber = cleanInvoiceEmoji(currentSaleObj.saleVoucherRef || cleanVoucher.replace(/[^0-9]/g, '') || '12345678');
+    const paymentDue = isEstimatedBill ? 'Estimate Only' : (saleMode === 'Cash' ? 'Due on Receipt' : formattedDate);
+
+    return `
+      <div class="invoice-container invoice-a4">
+        <!-- Top Section -->
+        <div>
+          <div class="a4-header-row">
+            <div>
+              <h1 class="a4-company-name">${window.escapeHtml(companyTitle)}</h1>
+              <div class="a4-company-slogan">${window.escapeHtml(subtitle)}</div>
+              <div class="a4-logo-box">
+                <img src="assets/full-logo.png" alt="${window.escapeHtml(companyTitle)}" class="a4-logo-img" onerror="this.onerror=null; this.src='assets/circle-logo.png'; this.onerror=()=>{ this.style.display='none'; if (this.nextElementSibling) this.nextElementSibling.style.display='block'; };">
+                <span class="a4-insert-logo-text" style="display: none;">Insert Your Logo</span>
+              </div>
+            </div>
+            <div>
+              <div class="a4-invoice-big-title">${window.escapeHtml(bigTitleText)}</div>
+              <table class="a4-meta-table">
+                <tr>
+                  <td class="a4-meta-lbl">Date:</td>
+                  <td class="a4-meta-val">${formattedDate}</td>
+                </tr>
+                <tr>
+                  <td class="a4-meta-lbl">Invoice #:</td>
+                  <td class="a4-meta-val font-bold">${window.escapeHtml(cleanVoucher)}</td>
+                </tr>
+                <tr>
+                  <td class="a4-meta-lbl">Customer ID:</td>
+                  <td class="a4-meta-val">${window.escapeHtml(customerId)}</td>
+                </tr>
+                <tr>
+                  <td class="a4-meta-lbl">Purchase Order #:</td>
+                  <td class="a4-meta-val">${window.escapeHtml(poNumber)}</td>
+                </tr>
+                <tr>
+                  <td class="a4-meta-lbl">Payment Due by:</td>
+                  <td class="a4-meta-val">${window.escapeHtml(paymentDue)}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Bill To / Ship To Row -->
+          <div class="a4-parties-row">
+            <div class="a4-party-box">
+              <div class="navy-bar-header">Bill To:</div>
+              <div class="a4-party-content">
+                <div class="a4-party-name">${window.escapeHtml(cleanCustomer)}</div>
+                <div>${window.escapeHtml(currentSaleObj.companyName || cleanCustomer)}</div>
+                <div>${window.escapeHtml(cleanCustArea || 'Main Market')}</div>
+                <div>${window.escapeHtml(currentSaleObj.cityName || currentSaleObj.territory || 'Wah Cantt, Punjab')}</div>
+                <div>${cleanCustPhone ? ('Phone: ' + window.escapeHtml(cleanCustPhone)) : ''}</div>
+              </div>
+            </div>
+            <div class="a4-party-box">
+              <div class="navy-bar-header">Ship To (If Different):</div>
+              <div class="a4-party-content">
+                <div class="a4-party-name">${window.escapeHtml(cleanCustomer)}</div>
+                <div>${window.escapeHtml(cleanCustArea || address)}</div>
+                <div>${window.escapeHtml(currentSaleObj.town || currentSaleObj.cityName || 'Counter Dispatch')}</div>
+                <div>${cleanCustPhone ? ('Phone: ' + window.escapeHtml(cleanCustPhone)) : ''}</div>
+                <div>${saleMode} Sale</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metadata Strip -->
+          <table class="a4-meta-strip-table">
+            <thead>
+              <tr>
+                <th style="width: 17%;">Salesperson</th>
+                <th style="width: 17%;">Shipping Method</th>
+                <th style="width: 17%;">Shipping Terms</th>
+                <th style="width: 17%;">Payment Terms</th>
+                <th style="width: 16%;">Due Date</th>
+                <th style="width: 16%;">Delivery Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${window.escapeHtml(currentSaleObj.bookedBy || currentSaleObj.salesman || 'Shahzaib')}</td>
+                <td>Direct Counter</td>
+                <td>Ex-Store / Godown</td>
+                <td>${saleMode}</td>
+                <td>${formattedDate}</td>
+                <td>${formattedDate}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Items Table -->
+          <div class="a4-table-wrapper">
+            <table class="a4-items-table">
+              <thead>
+                <tr>
+                  <th style="width: 14%;">Item #</th>
+                  <th style="width: 48%;">Description</th>
+                  <th style="width: 10%; text-align: center;">Qty</th>
+                  <th style="width: 14%; text-align: right;">Unit Price</th>
+                  <th style="width: 14%; text-align: right;">Line Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsRows}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Bottom Split: Notes & Totals -->
+          <div class="a4-bottom-split-row">
+            <div class="a4-notes-box-wrapper">
+              <div class="navy-bar-header">Special Notes and Instructions</div>
+              <div class="a4-notes-box-content">
+                ${window.escapeHtml(terms)}
+                ${includePrevBill ? `<div style="margin-top: 6px; font-weight: 700; color: #003d6b;">* Includes Previous Bill / Balance: Rs ${prevBillVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>` : ''}
+              </div>
+            </div>
+            <div class="a4-totals-wrapper">
+              <table class="a4-totals-table">
+                <tr>
+                  <td class="a4-tot-lbl">Subtotal</td>
+                  <td class="a4-tot-curr">Rs</td>
+                  <td class="a4-tot-val">${grossVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+                <tr>
+                  <td class="a4-tot-lbl">Discount</td>
+                  <td class="a4-tot-curr">Rs</td>
+                  <td class="a4-tot-val">${discVal > 0 ? ('-' + discVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '-'}</td>
+                </tr>
+                ${includePrevBill ? `
+                <tr>
+                  <td class="a4-tot-lbl">${window.escapeHtml(prevLabel)}</td>
+                  <td class="a4-tot-curr">Rs</td>
+                  <td class="a4-tot-val">+${prevBillVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>` : ''}
+                <tr class="total-highlight-row">
+                  <td class="a4-tot-lbl">Total</td>
+                  <td class="a4-tot-curr">Rs</td>
+                  <td class="a4-tot-val">${grandPayableVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+                ${paidVal > 0 ? `
+                <tr>
+                  <td class="a4-tot-lbl">Amount Paid</td>
+                  <td class="a4-tot-curr">Rs</td>
+                  <td class="a4-tot-val">${paidVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>` : ''}
+                <tr class="balance-highlight-row">
+                  <td class="a4-tot-lbl">Balance Due</td>
+                  <td class="a4-tot-curr">Rs</td>
+                  <td class="a4-tot-val">${balanceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pinned Bottom Footer -->
+        <footer class="a4-footer">
+          <div class="a4-checks-payable">${window.escapeHtml(checksNote)}</div>
+          <div class="a4-thank-you">Thank you for your business!</div>
+          <div class="a4-enquiries">${window.escapeHtml(enquiriesNote)}</div>
+          <div class="a4-footer-divider"></div>
+          <div class="a4-footer-address">${window.escapeHtml(address)}</div>
+          <div class="a4-footer-contacts">Tel: ${window.escapeHtml(phone)}${taxNumber ? ' • NTN: ' + window.escapeHtml(taxNumber) : ''}${email ? ' • Email: ' + window.escapeHtml(email) : ''}</div>
+        </footer>
+      </div>
+    `;
+  }
+
+  function renderA4SaleBill(data) {
+    return renderCorporateSaleBill(data, 'a4');
+  }
+
+  function renderA5SaleBill(data) {
+    return renderCorporateSaleBill(data, 'a4');
+  }
+
+  function formatThermalDate(dStr) {
+    try {
+      const d = dStr ? new Date(dStr) : new Date();
+      if (isNaN(d.getTime())) return dStr || '';
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = d.getDate();
+      const mon = months[d.getMonth()];
+      const yr = d.getFullYear();
+      return `${day} ${mon} ${yr}`;
+    } catch (_) {
+      return dStr || '';
+    }
+  }
+
+  function formatThermalPrintDateTime() {
+    try {
+      const d = new Date();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = String(d.getDate()).padStart(2, '0');
+      const mon = months[d.getMonth()];
+      const yr = d.getFullYear();
+      const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      return `${day}-${mon}-${yr} ${time}`;
+    } catch (_) {
+      return new Date().toLocaleDateString('en-GB');
+    }
+  }
+
+  function renderThermalSaleBill(data) {
+    const {
+      cfg, formattedDate, voucherNo, customerTitle, customerPhone, areaName, saleMode,
+      isEstimatedBill, items, grossVal, discVal, netVal, prevBillVal,
+      grandPayableVal, paidVal, balanceVal, includePrevBill, paperWidth, s
+    } = data;
+
+    const currentSaleObj = s || {};
+    const selectedCust = (typeof saleState !== 'undefined' && saleState.selectedCustomer) ? saleState.selectedCustomer : {};
+
+    const companyTitle = cleanInvoiceEmoji(cfg.title || 'Shahzaib Traders');
+    const companyPhone = cleanInvoiceEmoji(cfg.phone || '0305 6838804');
+    const companyAddress = cleanInvoiceEmoji(cfg.address || 'Wah Cantt');
+
+    const region = cleanInvoiceEmoji(currentSaleObj.region || selectedCust.provinceName || 'Punjab');
+    const territory = cleanInvoiceEmoji(currentSaleObj.territory || selectedCust.cityName || selectedCust.provinceName || 'Punjab');
+    const town = cleanInvoiceEmoji(currentSaleObj.town || selectedCust.cityName || areaName || currentSaleObj.areaName || 'Wah cantt');
+    const sector = cleanInvoiceEmoji(currentSaleObj.sector || areaName || currentSaleObj.areaName || selectedCust.areaName || selectedCust.address || 'wah cantt');
+
+    const cleanCustomer = cleanInvoiceEmoji(customerTitle || currentSaleObj.partyTitle || selectedCust.name || 'Rajpoot markiting');
+    const cleanCustPhone = cleanInvoiceEmoji(customerPhone || currentSaleObj.customerPhone || selectedCust.phone || '');
+
+    // Extract clean bill number for the inverted badge (e.g. 835)
+    const rawVoucher = cleanInvoiceEmoji(voucherNo || currentSaleObj.voucherNo || '');
+    let billBadgeText = rawVoucher;
+    const matchNum = rawVoucher.match(/(?:ST-SV-|SV-)?0*([1-9]\d*|\d+)/i);
+    if (matchNum && matchNum[1]) {
+      billBadgeText = matchNum[1];
+    } else if (!billBadgeText) {
+      billBadgeText = '835';
+    }
+
+    const docTitle = isEstimatedBill ? 'Estimate Information' : 'Sale Information';
+    const thermalDate = formatThermalDate(currentSaleObj.entryDate || formattedDate);
+    const printDateTime = formatThermalPrintDateTime();
+
+    let itemsRows = '';
+    (items || []).forEach(it => {
+      const name = cleanInvoiceEmoji(it.productTitle || it.title || it.name || it.productCode || 'Item');
+      const qty = Number(it.totalQty ?? it.quantity ?? it.qty ?? 1);
+      const rate = Number(it.salePrice ?? it.rate ?? it.unitPrice ?? it.retailPrice ?? it.wholesalePrice ?? 0);
+      const disc = Number(it.discountAmount ?? it.discAmount ?? it.discount ?? 0);
+      const lineTotal = Number(it.netAmount ?? it.totalAmount ?? (qty * rate - disc) ?? 0);
+
+      itemsRows += `
+        <tr>
+          <td class="col-td-prod">${window.escapeHtml(name)}</td>
+          <td class="col-td-pack">${qty}</td>
+          <td class="col-td-price">${rate.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
+          <td class="col-td-disc">${disc > 0 ? disc.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '0'}</td>
+          <td class="col-td-amt">${lineTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
+        </tr>
+      `;
+    });
+
+    if (!itemsRows) {
+      itemsRows = `<tr><td colspan="5" style="text-align:center; padding: 6px;">No items</td></tr>`;
+    }
+
+    const itemsCount = (items || []).length;
+    const effectivePrev = (includePrevBill || prevBillVal > 0) ? Number(prevBillVal || 0) : 0;
+    const effectivePaid = Number(paidVal || 0);
+    const remainingVal = Math.max(0, (netVal + effectivePrev) - effectivePaid);
+
+    const footerText = cleanInvoiceEmoji(cfg.footer || 'Shahzaib Traders Management System');
+
+    return `
+      <div class="sale-doc-thermal" data-paper-size="${paperWidth || '80mm'}">
+        <!-- Store Header -->
+        <div class="thermal-receipt-header">
+          <div class="thermal-company-name">${window.escapeHtml(companyTitle)}</div>
+          <div class="thermal-company-phone">${window.escapeHtml(companyPhone)}</div>
+          <div class="thermal-company-address">${window.escapeHtml(companyAddress)}</div>
+        </div>
+
+        <div class="thermal-divider-line"></div>
+        <div class="thermal-doc-title">${window.escapeHtml(docTitle)}</div>
+        <div class="thermal-divider-line"></div>
+
+        <!-- Customer & Bill Metadata Grid -->
+        <div class="thermal-meta-grid">
+          <div class="thermal-meta-row">
+            <span class="thermal-meta-lbl">Region:</span>
+            <span class="thermal-meta-val">${window.escapeHtml(region)}</span>
+          </div>
+          <div class="thermal-meta-row">
+            <span class="thermal-meta-lbl">Territory:</span>
+            <span class="thermal-meta-val">${window.escapeHtml(territory)}</span>
+          </div>
+          <div class="thermal-meta-row">
+            <span class="thermal-meta-lbl">Town:</span>
+            <span class="thermal-meta-val">${window.escapeHtml(town)}</span>
+          </div>
+          <div class="thermal-meta-row">
+            <span class="thermal-meta-lbl">Sector:</span>
+            <span class="thermal-meta-val">${window.escapeHtml(sector)}</span>
+          </div>
+          <div class="thermal-meta-row">
+            <span class="thermal-meta-lbl">Customer:</span>
+            <span class="thermal-meta-val thermal-val-bold">${window.escapeHtml(cleanCustomer)}</span>
+          </div>
+          <div class="thermal-meta-row">
+            <span class="thermal-meta-lbl">Phone:</span>
+            <span class="thermal-meta-val">${window.escapeHtml(cleanCustPhone || '-')}</span>
+          </div>
+          <div class="thermal-meta-row">
+            <span class="thermal-meta-lbl">Bill No.</span>
+            <span class="thermal-meta-val">
+              <span class="thermal-bill-badge">${window.escapeHtml(billBadgeText)}</span>
+            </span>
+          </div>
+          <div class="thermal-meta-row">
+            <span class="thermal-meta-lbl">Date:</span>
+            <span class="thermal-meta-val">${window.escapeHtml(thermalDate)}</span>
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <table class="thermal-items-table">
+          <thead>
+            <tr>
+              <th class="col-th-prod">Product</th>
+              <th class="col-th-pack">Pack</th>
+              <th class="col-th-price">Price</th>
+              <th class="col-th-disc">Disc</th>
+              <th class="col-th-amt">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows}
+          </tbody>
+        </table>
+
+        <!-- Boxed Summary Container -->
+        <div class="thermal-totals-box">
+          <div class="thermal-items-count">No. of Items: ${itemsCount}</div>
+          <div class="thermal-totals-list">
+            <div class="thermal-total-line">
+              <span class="total-lbl">TOTAL:</span>
+              <span class="total-val">${netVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+            </div>
+            ${effectivePrev > 0 ? `
+            <div class="thermal-total-line">
+              <span class="total-lbl">Previous Balance:</span>
+              <span class="total-val">${effectivePrev.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+            </div>` : ''}
+            ${effectivePaid > 0 ? `
+            <div class="thermal-total-line">
+              <span class="total-lbl">Paid:</span>
+              <span class="total-val">${effectivePaid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+            </div>` : ''}
+            <div class="thermal-total-line thermal-remaining-line">
+              <span class="total-lbl">Remaining:</span>
+              <span class="total-val">${remainingVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signatures & Footer -->
+        <div class="thermal-signature-row">
+          <span>Signature: __________________</span>
+        </div>
+
+        <div class="thermal-thanks">THANKS FOR VISIT HERE</div>
+
+        <div class="thermal-print-datetime">
+          Print Datetime: ${window.escapeHtml(printDateTime)}
+        </div>
+
+        ${footerText ? `
+        <div class="thermal-website-footer">
+          ${window.escapeHtml(footerText)}
+        </div>` : ''}
+      </div>
+    `;
+  }
+
+  function renderSalePrintStudioPreview() {
+    if (!el.receiptArea) return;
+    const data = getSalePrintStudioValues();
+    const tpl = salePrintStudioState.template;
+
+    if (tpl === 'a4') {
+      el.receiptArea.innerHTML = renderA4SaleBill(data);
+    } else {
+      el.receiptArea.innerHTML = renderThermalSaleBill(data);
+    }
+  }
+
+  async function openReceiptModal(saleObj) {
     if (!el.modalReceipt || !el.receiptArea) return;
+
+    // Resolve items with bulletproof multi-tier fallback
+    let items = [];
+    if (saleObj && Array.isArray(saleObj.items) && saleObj.items.length > 0) {
+      items = saleObj.items;
+    } else if (saleObj && saleObj.itemsJson) {
+      try {
+        items = typeof saleObj.itemsJson === 'string' ? JSON.parse(saleObj.itemsJson) : saleObj.itemsJson;
+      } catch (_) {}
+    } else if (Array.isArray(saleState.items) && saleState.items.length > 0) {
+      items = [...saleState.items];
+    } else if (saleObj && (saleObj.voucherNo || saleObj.id)) {
+      const match = (saleState.salesList || []).find(x => x.voucherNo === saleObj.voucherNo || x.id === saleObj.id);
+      if (match?.itemsJson) {
+        try {
+          items = typeof match.itemsJson === 'string' ? JSON.parse(match.itemsJson) : match.itemsJson;
+        } catch (_) {}
+      }
+    } else if (!saleObj && saleState.salesList && saleState.salesList.length > 0 && (!saleState.items || saleState.items.length === 0)) {
+      const latestSale = saleState.salesList[0];
+      if (latestSale) {
+        return openReceiptModal(latestSale);
+      }
+    }
+
     const currentTypedName = el.customerName?.value?.trim();
     const s = saleObj || {
       voucherNo: el.voucherNo?.value || '',
@@ -1594,182 +3021,140 @@
       paidAmount: Number(el.paidAmount?.value || 0),
       balanceDue: Number(el.balanceDue?.textContent.replace(/[^0-9.]/g, '') || 0),
       previousBalance: Number(el.customerPrevBalance?.dataset?.rawBalance || 0),
-      items: saleState.items
+      billStatus: el.saleBillStatus?.value || saleState.billStatus || 'Paid',
+      items: items
     };
 
-    let itemsRows = '';
-    let totalPiecesCount = 0;
-    (s.items || []).forEach((it, idx) => {
-      const lineQty = Number(it.totalQty || 0);
-      totalPiecesCount += lineQty;
-      const rate = Number(it.salePrice || 0);
-      const disc = Number(it.discountPercent || 0);
-      const net = Number(it.netAmount || 0);
-
-      itemsRows += `
-        <tr>
-          <td style="text-align: center;">${idx + 1}</td>
-          <td>
-            <strong>${window.escapeHtml(it.productTitle)}</strong>
-            ${it.productCode ? `<div style="font-size: 10px;">Code: ${window.escapeHtml(it.productCode)}${it.packSize > 1 ? ` (Pack ${it.packSize})` : ''}</div>` : ''}
-          </td>
-          <td style="text-align: center;">${lineQty}</td>
-          <td style="text-align: right;">${rate.toFixed(2)}</td>
-          <td style="text-align: center;">${disc > 0 ? `${disc}%` : '-'}</td>
-          <td style="text-align: right; font-weight: bold;">${net.toFixed(2)}</td>
-        </tr>
-      `;
-    });
-
-    const comp = sharedCompanyInfo || {
-      name: 'SHAHZAIB TRADERS',
-      tagline: 'Wholesale & Retail Trading Solutions',
-      address: 'Wah Cantt, Punjab, Pakistan',
+    // Load Live Settings
+    let cfg = {
+      title: 'SHAHZAIB TRADERS',
+      subtitle: 'Dealers in Electrical Goods & Accessories',
+      address: 'Main Bazar, Electrical Market, Lahore',
       phone: '0300-1234567',
-      altPhone: '',
-      email: 'shahzaibtraders@gmail.com',
-      ntn: '',
-      strn: ''
+      taxNumber: '',
+      invoiceHeading: 'Sale Tax Invoice',
+      invoiceHeadingA5: 'Sale Memo',
+      estimateHeading: 'Estimate / Quotation',
+      previousBillLabel: 'Previous Bill / Balance',
+      netPayableLabel: 'TOTAL NET PAYABLE',
+      footer: 'Thank you for your business!\nGoods once sold cannot be returned without bill.\nNo warranty on burnt or short-circuit electrical items.',
+      invoiceTerms: '1. Please inspect all items upon receipt.\n2. In case of return, original sale slip is required within 7 days.',
+      signatureLabel1: 'Prepared By',
+      signatureLabel2: 'Checked By',
+      signatureLabel3: 'Customer Signature',
+      paperSize: '80mm',
+      autoPrint: false
     };
 
-    const finalOutstanding = Number(s.previousBalance || 0) + Number(s.balanceDue || 0);
+    try {
+      let set = null;
+      if (window.settingsAPI?.getSettings) {
+        set = await window.settingsAPI.getSettings();
+      } else if (window.appData?.settings) {
+        set = window.appData.settings;
+      }
+      if (set) {
+        if (set.receiptHeaderTitle || set.storeName) cfg.title = set.receiptHeaderTitle || set.storeName;
+        if (set.receiptSubtitle) cfg.subtitle = set.receiptSubtitle;
+        if (set.address) cfg.address = set.address;
+        if (set.contactPhone) cfg.phone = set.contactPhone;
+        if (set.taxNumber || set.ntn || set.strn) cfg.taxNumber = set.taxNumber || set.ntn || set.strn;
+        if (set.invoiceHeading) cfg.invoiceHeading = set.invoiceHeading;
+        if (set.invoiceHeadingA5) cfg.invoiceHeadingA5 = set.invoiceHeadingA5;
+        if (set.estimateHeading) cfg.estimateHeading = set.estimateHeading;
+        if (set.previousBillLabel) cfg.previousBillLabel = set.previousBillLabel;
+        if (set.netPayableLabel) cfg.netPayableLabel = set.netPayableLabel;
+        if (set.receiptFooterNote) cfg.footer = set.receiptFooterNote;
+        if (set.invoiceTerms) cfg.invoiceTerms = set.invoiceTerms;
+        if (set.signatureLabel1) cfg.signatureLabel1 = set.signatureLabel1;
+        if (set.signatureLabel2) cfg.signatureLabel2 = set.signatureLabel2;
+        if (set.signatureLabel3) cfg.signatureLabel3 = set.signatureLabel3;
+        if (set.paperSize) cfg.paperSize = set.paperSize;
+        if (set.autoPrintVoucher === 'true') cfg.autoPrint = true;
+      }
+    } catch (err) {
+      console.warn('Could not load settings for receipt:', err);
+    }
 
-    el.receiptArea.innerHTML = `
-      <div class="thermal-receipt-paper bw-sale-invoice">
-        <!-- Header -->
-        <div class="bw-header">
-          <div class="bw-company-name">${window.escapeHtml(comp.name || 'SHAHZAIB TRADERS')}</div>
-          ${comp.tagline ? `<div class="bw-tagline">${window.escapeHtml(comp.tagline)}</div>` : ''}
-          <div class="bw-meta-line">${window.escapeHtml(comp.address || 'Wah Cantt, Pakistan')}</div>
-          <div class="bw-meta-line">Tel: ${window.escapeHtml(comp.phone || '0300-1234567')}${comp.altPhone ? ` / ${window.escapeHtml(comp.altPhone)}` : ''}</div>
-          ${comp.ntn ? `<div class="bw-meta-line">NTN: ${window.escapeHtml(comp.ntn)}${comp.strn ? ` | STRN: ${window.escapeHtml(comp.strn)}` : ''}</div>` : ''}
-        </div>
+    // Configure Studio State
+    salePrintStudioState.s = s;
+    salePrintStudioState.items = items;
+    salePrintStudioState.cfg = cfg;
 
-        <div class="bw-divider-dashed"></div>
+    // Restore saved template & roll width
+    try {
+      const savedTpl = localStorage.getItem('sale_bill_template');
+      if (savedTpl && ['a4', 'thermal'].includes(savedTpl)) {
+        salePrintStudioState.template = savedTpl;
+      } else {
+        salePrintStudioState.template = 'a4';
+      }
+      const savedWidth = localStorage.getItem('sale_thermal_width');
+      if (savedWidth && ['80mm', '58mm'].includes(savedWidth)) {
+        salePrintStudioState.paperWidth = savedWidth;
+      }
+    } catch (_) {}
 
-        <div class="bw-title-banner">
-          CASH INVOICE / SALE MEMO
-        </div>
+    // Initialize Previous Bill Option:
+    // If customer has a positive ledger balance, populate & enable previous bill option
+    const rawPrevBal = Number(s.previousBalance ?? (el.customerPrevBalance?.dataset?.rawBalance || 0));
+    if (rawPrevBal > 0) {
+      salePrintStudioState.includePrevBill = true;
+      salePrintStudioState.prevBillAmount = rawPrevBal;
+      if (el.chkIncludePrevBill) el.chkIncludePrevBill.checked = true;
+      if (el.prevBillInputWrap) el.prevBillInputWrap.style.display = 'inline-flex';
+      if (el.inpPrevBillAmount) el.inpPrevBillAmount.value = rawPrevBal;
+    } else {
+      salePrintStudioState.includePrevBill = false;
+      salePrintStudioState.prevBillAmount = 0;
+      if (el.chkIncludePrevBill) el.chkIncludePrevBill.checked = false;
+      if (el.prevBillInputWrap) el.prevBillInputWrap.style.display = 'none';
+      if (el.inpPrevBillAmount) el.inpPrevBillAmount.value = '';
+    }
 
-        <div class="bw-divider-dashed"></div>
+    // Update Toolbar Controls
+    if (el.tplButtons) {
+      el.tplButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tpl === salePrintStudioState.template);
+      });
+    }
+    if (el.thermalWidthBox) {
+      el.thermalWidthBox.style.display = (salePrintStudioState.template === 'thermal') ? 'inline-flex' : 'none';
+    }
+    if (el.thermalWidthSelect) {
+      el.thermalWidthSelect.value = salePrintStudioState.paperWidth;
+    }
+    if (el.printStudioBadge) {
+      const vNo = s.voucherNo || 'SV';
+      const cName = s.partyTitle || 'Customer';
+      el.printStudioBadge.textContent = `${s.billStatus === 'Estimated' ? 'Estimate' : 'Invoice'}: ${vNo} • ${cName}`;
+    }
 
-        <!-- Metadata -->
-        <div class="bw-meta-section">
-          <div class="bw-meta-row">
-            <div><strong>Bill #:</strong> ${window.escapeHtml(s.voucherNo)}</div>
-            <div><strong>Date:</strong> ${s.entryDate}</div>
-          </div>
-          <div class="bw-meta-row">
-            <div><strong>Time:</strong> ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-            <div><strong>Mode:</strong> ${window.escapeHtml(s.paymentType || 'Cash')}</div>
-          </div>
-          <div class="bw-meta-row" style="margin-top: 3px;">
-            <div><strong>Customer:</strong> <u>${window.escapeHtml(s.partyTitle || 'Walk-in Customer')}</u></div>
-          </div>
-          ${(s.customerPhone || s.areaName) ? `
-          <div class="bw-meta-row">
-            ${s.customerPhone ? `<div><strong>Phone:</strong> ${window.escapeHtml(s.customerPhone)}</div>` : ''}
-            ${s.areaName ? `<div><strong>City/Area:</strong> ${window.escapeHtml(s.areaName)}</div>` : ''}
-          </div>` : ''}
-        </div>
+    // Render Preview
+    renderSalePrintStudioPreview();
 
-        <div class="bw-divider-solid"></div>
-
-        <!-- Items Table -->
-        <table class="bw-table">
-          <thead>
-            <tr>
-              <th style="width: 25px; text-align: center;">#</th>
-              <th style="text-align: left;">Item Description</th>
-              <th style="width: 45px; text-align: center;">Qty</th>
-              <th style="width: 65px; text-align: right;">Rate</th>
-              <th style="width: 45px; text-align: center;">Disc</th>
-              <th style="width: 75px; text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsRows}
-          </tbody>
-        </table>
-
-        <div class="bw-divider-solid"></div>
-
-        <!-- Totals Breakdown -->
-        <div class="bw-totals">
-          <div class="bw-total-row">
-            <span>Items: <strong>${(s.items || []).length}</strong> (Pcs: <strong>${totalPiecesCount}</strong>)</span>
-            <span>Gross Total: <strong>Rs ${Number(s.grossAmount || 0).toFixed(2)}</strong></span>
-          </div>
-          ${Number(s.discount) > 0 ? `
-            <div class="bw-total-row">
-              <span>Special Discount:</span>
-              <span>- Rs ${Number(s.discount).toFixed(2)}</span>
-            </div>` : ''}
-          <div class="bw-total-row bw-net-row">
-            <span>NET AMOUNT PAYABLE:</span>
-            <span>Rs ${Number(s.netAmount || 0).toFixed(2)}</span>
-          </div>
-          <div class="bw-total-row">
-            <span>Amount Received:</span>
-            <span>Rs ${Number(s.paidAmount || 0).toFixed(2)}</span>
-          </div>
-          <div class="bw-total-row">
-            <span>Current Balance Due:</span>
-            <span>Rs ${Number(s.balanceDue || 0).toFixed(2)}</span>
-          </div>
-          ${Number(s.paidAmount) > Number(s.netAmount) ? `
-            <div class="bw-total-row">
-              <span>Change Return:</span>
-              <span>Rs ${(Number(s.paidAmount) - Number(s.netAmount)).toFixed(2)}</span>
-            </div>` : ''}
-          ${Number(s.previousBalance) !== 0 ? `
-            <div class="bw-total-row bw-prev-row">
-              <span>Previous Ledger Balance:</span>
-              <span>Rs ${Number(s.previousBalance).toFixed(2)}</span>
-            </div>
-            <div class="bw-total-row bw-closing-row">
-              <span>TOTAL OUTSTANDING BALANCE:</span>
-              <span>Rs ${finalOutstanding.toFixed(2)}</span>
-            </div>` : ''}
-        </div>
-
-        <div class="bw-divider-dashed"></div>
-
-        <!-- Policy -->
-        <div class="bw-policy">
-          <div>* Computerized receipt generated by Shahzaib Traders.</div>
-          <div>* Please check goods and count before leaving counter.</div>
-          <div>* Goods once sold can be exchanged within 7 days with bill.</div>
-        </div>
-
-        <!-- Signatures -->
-        <div class="bw-signatures">
-          <div>
-            <div class="bw-signatures-line"></div>
-            Prepared By
-          </div>
-          <div>
-            <div class="bw-signatures-line"></div>
-            Customer Sign
-          </div>
-          <div>
-            <div class="bw-signatures-line"></div>
-            Authorized Sign
-          </div>
-        </div>
-      </div>
-    `;
-
+    // Show Studio Modal
     el.modalReceipt.classList.remove('hidden');
+
+    if (cfg.autoPrint) {
+      setTimeout(() => {
+        doPrintSaleBill();
+      }, 350);
+    }
   }
 
   // ========================================================
-  // RECENT SALES HISTORY
+  // RECENT SALES HISTORY POPUP MODAL (WITH ESTIMATE SUPPORT)
   // ========================================================
-  async function openHistoryModal() {
+  let modalHistFilterStatus = 'all';
+
+  async function openSaleHistoryPopupModal(filter = 'all') {
+    modalHistFilterStatus = filter;
     if (!el.modalHistory || !el.historyTableBody) return;
-    el.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Loading sales history...</td></tr>';
+    el.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4">Loading sales history...</td></tr>';
     el.modalHistory.classList.remove('hidden');
+
+    updateModalHistFilterButtons();
 
     try {
       let sales = [];
@@ -1778,12 +3163,36 @@
       } else {
         sales = window.appData?.sales || [];
       }
-      saleState.salesList = sales;
-      renderHistoryList(sales);
+      saleState.salesList = Array.isArray(sales) ? sales : [];
+      filterAndRenderModalHistory();
     } catch (e) {
       console.error('Failed to load sales history:', e);
-      el.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load sales</td></tr>';
+      el.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Failed to load sales</td></tr>';
     }
+  }
+
+  function updateModalHistFilterButtons() {
+    if (el.btnModalHistFilterAll) el.btnModalHistFilterAll.classList.toggle('active', modalHistFilterStatus === 'all');
+    if (el.btnModalHistFilterPaid) el.btnModalHistFilterPaid.classList.toggle('active', modalHistFilterStatus === 'paid');
+    if (el.btnModalHistFilterEstimated) el.btnModalHistFilterEstimated.classList.toggle('active', modalHistFilterStatus === 'estimated');
+  }
+
+  function filterAndRenderModalHistory() {
+    const q = (el.historySearchInput?.value || '').trim().toLowerCase();
+    const sales = saleState.salesList || [];
+    const filtered = sales.filter(s => {
+      const isEst = (s.billStatus === 'Estimated');
+      if (modalHistFilterStatus === 'paid' && isEst) return false;
+      if (modalHistFilterStatus === 'estimated' && !isEst) return false;
+      if (q) {
+        const vNo = (s.voucherNo || '').toLowerCase();
+        const pTitle = (s.partyTitle || '').toLowerCase();
+        const phone = (s.customerPhone || '').toLowerCase();
+        if (!vNo.includes(q) && !pTitle.includes(q) && !phone.includes(q)) return false;
+      }
+      return true;
+    });
+    renderHistoryList(filtered);
   }
 
   function renderHistoryList(sales) {
@@ -1791,28 +3200,39 @@
     el.historyTableBody.innerHTML = '';
 
     if (!sales || sales.length === 0) {
-      el.historyTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-secondary">No sales recorded yet</td></tr>';
+      el.historyTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-secondary">No matching sales records found</td></tr>';
       return;
     }
 
     sales.forEach(s => {
       let itemsCount = 0;
       try {
-        const parsed = JSON.parse(s.itemsJson || '[]');
-        itemsCount = parsed.length;
+        const parsed = typeof s.itemsJson === 'string' ? JSON.parse(s.itemsJson) : (s.items || []);
+        itemsCount = Array.isArray(parsed) ? parsed.length : 0;
       } catch (e) {}
+
+      const isEst = (s.billStatus === 'Estimated');
+      const statusBadge = isEst
+        ? '<span class="badge-status-estimate" title="Estimated Bill (No Stock Deducted)">📋 Estimate</span>'
+        : '<span class="badge-status-paid" title="Paid Bill (Stock Deducted)">✓ Paid</span>';
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="font-num font-bold text-primary">${window.escapeHtml(s.voucherNo)}</td>
-        <td>${s.entryDate || '-'}</td>
-        <td class="font-bold">${window.escapeHtml(s.partyTitle || '-')}</td>
-        <td class="text-center font-num">${itemsCount}</td>
-        <td class="text-right font-num font-bold text-success">Rs ${Number(s.netAmount || 0).toFixed(2)}</td>
-        <td class="text-right font-num">${Number(s.paidAmount || 0).toFixed(2)}</td>
+        <td class="font-num font-bold text-primary text-center">${window.escapeHtml(s.voucherNo || '-')}</td>
+        <td class="text-center">${(s.entryDate || '').slice(0, 10)}</td>
+        <td class="font-bold">${window.escapeHtml(s.partyTitle || 'Walk-in Customer')}</td>
+        <td class="text-center">${statusBadge}</td>
+        <td class="text-center font-num font-bold">${itemsCount}</td>
+        <td class="text-right font-num font-bold text-accent">Rs ${Number(s.netAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td class="text-right font-num text-success">${Number(s.paidAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td class="text-center">
-          <div class="flex items-center justify-center gap-2">
-            <button type="button" class="btn btn-sm btn-secondary" onclick="window.SalesModule.reprintSale('${s.id}')" title="Print Bill">🖨️ Print</button>
+          <div style="display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
+            ${isEst ? `
+              <button type="button" class="btn-convert-estimate" onclick="window.SalesModule.convertEstimateToPaid('${s.id}')" title="Convert this Estimate into a Paid Bill">
+                <span>🛒</span><span>Convert</span>
+              </button>
+            ` : ''}
+            <button type="button" class="btn btn-sm btn-secondary" onclick="window.SalesModule.reprintSale('${s.id}')" title="Print Bill">🖨️</button>
             <button type="button" class="btn btn-sm btn-danger" onclick="window.SalesModule.deleteSalePrompt('${s.id}')" title="Delete">🗑️</button>
           </div>
         </td>
@@ -1861,6 +3281,19 @@
     const q = (el.saleFilterSearch?.value || '').trim().toLowerCase();
     const dateVal = el.saleFilterDate?.value || '';
     const modeVal = el.saleFilterMode?.value || '';
+    const statusVal = el.saleFilterStatus?.value || '';
+
+    // Update count badges
+    const totalAll = (saleState.salesList || []).length;
+    const totalPaid = (saleState.salesList || []).filter(s => s.billStatus !== 'Estimated').length;
+    const totalEst = (saleState.salesList || []).filter(s => s.billStatus === 'Estimated').length;
+    if (el.badgeCountAllSales) el.badgeCountAllSales.textContent = totalAll;
+    if (el.badgeCountPaidSales) el.badgeCountPaidSales.textContent = totalPaid;
+    if (el.badgeCountEstimatedSales) el.badgeCountEstimatedSales.textContent = totalEst;
+
+    if (el.btnSaleTabFilterAll) el.btnSaleTabFilterAll.classList.toggle('active', !statusVal);
+    if (el.btnSaleTabFilterPaid) el.btnSaleTabFilterPaid.classList.toggle('active', statusVal === 'Paid');
+    if (el.btnSaleTabFilterEstimated) el.btnSaleTabFilterEstimated.classList.toggle('active', statusVal === 'Estimated');
 
     const filtered = (saleState.salesList || []).filter(s => {
       if (q) {
@@ -1881,6 +3314,10 @@
         const pMode = (s.paymentType || '').toLowerCase();
         if (pMode !== modeVal.toLowerCase()) return false;
       }
+      if (statusVal) {
+        const bStatus = s.billStatus === 'Estimated' ? 'Estimated' : 'Paid';
+        if (bStatus !== statusVal) return false;
+      }
       return true;
     });
 
@@ -1891,6 +3328,7 @@
     if (el.saleFilterSearch) el.saleFilterSearch.value = '';
     if (el.saleFilterDate) el.saleFilterDate.value = '';
     if (el.saleFilterMode) el.saleFilterMode.value = '';
+    if (el.saleFilterStatus) el.saleFilterStatus.value = '';
     applySalesFilter();
   }
 
@@ -1918,6 +3356,11 @@
             } catch (e) {}
 
             const contactStr = [s.customerPhone, s.areaName].filter(Boolean).join(' • ') || '-';
+            const isEst = (s.billStatus === 'Estimated');
+            const statusBadge = isEst
+              ? '<span class="badge-status-estimate" title="Estimated Bill (No Stock Deducted)">📋 Estimate</span>'
+              : '<span class="badge-status-paid" title="Paid Bill (Stock Deducted)">✓ Paid</span>';
+
             const modeBadge = (s.paymentType === 'Cash')
               ? '<span class="badge-condition-good" style="background: #dcfce7; color: #166534;">Cash</span>'
               : (s.paymentType === 'Credit')
@@ -1938,35 +3381,52 @@
               <td class="text-right font-num text-secondary">${Number(s.discount || 0) > 0 ? Number(s.discount).toFixed(2) : '-'}</td>
               <td class="text-right font-num font-bold text-accent" style="font-size: 13.5px;">Rs ${Number(s.netAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               <td class="text-right font-num font-bold text-success">${Number(s.paidAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-              <td class="text-center">${modeBadge}</td>
-              <td class="text-center">
-                <div class="dots-wrapper">
-                  <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, '${menuId}')" title="Actions">
-                    ⋮
-                  </button>
-                  <div id="${menuId}" class="action-menu hidden">
-                    <button type="button" class="action-item" onclick="window.SalesModule.reprintSale('${s.id}')">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                        <rect x="6" y="14" width="12" height="8"></rect>
-                      </svg>
-                      <span>Print Bill / Receipt</span>
+              <td class="text-center" style="white-space: nowrap; min-width: 145px;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: nowrap;">${statusBadge} ${modeBadge}</div>
+              </td>
+              <td class="text-center" style="white-space: nowrap; min-width: 130px;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                  ${isEst ? `
+                    <button type="button" class="btn-convert-estimate" onclick="window.SalesModule.convertEstimateToPaid('${s.id}')" title="Convert this Estimate into a confirmed Paid Bill">
+                      <span>🛒</span><span>Convert</span>
                     </button>
-                    <button type="button" class="action-item" onclick="window.SalesModule.editSale('${s.id}')">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"></path>
-                      </svg>
-                      <span>Edit Voucher</span>
+                  ` : ''}
+                  <div class="dots-wrapper">
+                    <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, '${menuId}')" title="Actions">
+                      ⋮
                     </button>
-                    <button type="button" class="action-item action-danger" onclick="window.SalesModule.deleteSalePrompt('${s.id}')">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      </svg>
-                      <span>Delete Voucher</span>
-                    </button>
+                    <div id="${menuId}" class="action-menu hidden">
+                      ${isEst ? `
+                        <button type="button" class="action-item" onclick="window.SalesModule.convertEstimateToPaid('${s.id}')" style="color: #16a34a; font-weight: 700;">
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          <span>Convert to Paid Bill</span>
+                        </button>
+                      ` : ''}
+                      <button type="button" class="action-item" onclick="window.SalesModule.reprintSale('${s.id}')">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                          <rect x="6" y="14" width="12" height="8"></rect>
+                        </svg>
+                        <span>Print Bill / Receipt</span>
+                      </button>
+                      <button type="button" class="action-item" onclick="window.SalesModule.editSale('${s.id}')">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        <span>Edit Voucher</span>
+                      </button>
+                      <button type="button" class="action-item action-danger" onclick="window.SalesModule.deleteSalePrompt('${s.id}')">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        <span>Delete Voucher</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -1997,6 +3457,11 @@
       } catch (e) {}
 
       const contactStr = [s.customerPhone, s.areaName].filter(Boolean).join(' • ') || '-';
+      const isEst = (s.billStatus === 'Estimated');
+      const statusBadge = isEst
+        ? '<span class="badge-status-estimate" title="Estimated Bill (No Stock Deducted)">📋 Estimate</span>'
+        : '<span class="badge-status-paid" title="Paid Bill (Stock Deducted)">✓ Paid</span>';
+
       const modeBadge = (s.paymentType === 'Cash')
         ? '<span class="badge-condition-good" style="background: #dcfce7; color: #166534;">Cash</span>'
         : (s.paymentType === 'Credit')
@@ -2017,41 +3482,132 @@
         <td class="text-right font-num text-secondary">${Number(s.discount || 0) > 0 ? Number(s.discount).toFixed(2) : '-'}</td>
         <td class="text-right font-num font-bold text-accent" style="font-size: 13.5px;">Rs ${Number(s.netAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td class="text-right font-num font-bold text-success">${Number(s.paidAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        <td class="text-center">${modeBadge}</td>
-        <td class="text-center">
-          <div class="dots-wrapper">
-            <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, '${menuId}')" title="Actions">
-              ⋮
-            </button>
-            <div id="${menuId}" class="action-menu hidden">
-              <button type="button" class="action-item" onclick="window.SalesModule.reprintSale('${s.id}')">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                  <rect x="6" y="14" width="12" height="8"></rect>
-                </svg>
-                <span>Print Bill / Receipt</span>
+        <td class="text-center" style="white-space: nowrap; min-width: 145px;">
+          <div style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: nowrap;">${statusBadge} ${modeBadge}</div>
+        </td>
+        <td class="text-center" style="white-space: nowrap; min-width: 130px;">
+          <div style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+            ${isEst ? `
+              <button type="button" class="btn-convert-estimate" onclick="window.SalesModule.convertEstimateToPaid('${s.id}')" title="Convert this Estimate into a confirmed Paid Bill">
+                <span>🛒</span><span>Convert</span>
               </button>
-              <button type="button" class="action-item" onclick="window.SalesModule.editSale('${s.id}')">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-                <span>Edit Voucher</span>
+            ` : ''}
+            <div class="dots-wrapper">
+              <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, '${menuId}')" title="Actions">
+                ⋮
               </button>
-              <button type="button" class="action-item action-danger" onclick="window.SalesModule.deleteSalePrompt('${s.id}')">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-                <span>Delete Voucher</span>
-              </button>
+              <div id="${menuId}" class="action-menu hidden">
+                ${isEst ? `
+                  <button type="button" class="action-item" onclick="window.SalesModule.convertEstimateToPaid('${s.id}')" style="color: #16a34a; font-weight: 700;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Convert to Paid Bill</span>
+                  </button>
+                ` : ''}
+                <button type="button" class="action-item" onclick="window.SalesModule.reprintSale('${s.id}')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                  </svg>
+                  <span>Print Bill / Receipt</span>
+                </button>
+                <button type="button" class="action-item" onclick="window.SalesModule.editSale('${s.id}')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  <span>Edit Voucher</span>
+                </button>
+                <button type="button" class="action-item action-danger" onclick="window.SalesModule.deleteSalePrompt('${s.id}')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  <span>Delete Voucher</span>
+                </button>
+              </div>
             </div>
           </div>
         </td>
       `;
       el.salesMasterTableBody.appendChild(tr);
     });
+  }
+
+  function openHistoryModal() {
+    switchSaleSubTab('history');
+  }
+
+  // ========================================================
+  // CONVERT ESTIMATED BILL TO CONFIRMED PAID SALE
+  // ========================================================
+  async function convertEstimateToPaid(id) {
+    let sale = (saleState.salesList || []).find(s => String(s.id) === String(id));
+    if (!sale && window.salesAPI?.getSales) {
+      try {
+        const all = await window.salesAPI.getSales();
+        saleState.salesList = all || [];
+        sale = saleState.salesList.find(s => String(s.id) === String(id));
+      } catch (_) {}
+    }
+
+    if (!sale) {
+      if (window.showToast) window.showToast('Sale estimate not found', 'error');
+      alert('Estimate voucher not found.');
+      return;
+    }
+
+    // Set existing ID and voucherNo so saving updates this voucher to 'Paid' and deducts stock
+    saleState.saleId = sale.id;
+    saleState.voucherNo = sale.voucherNo;
+    let items = [];
+    try {
+      items = typeof sale.itemsJson === 'string' ? JSON.parse(sale.itemsJson) : (sale.items || []);
+    } catch (e) {
+      items = [];
+    }
+    saleState.items = Array.isArray(items) ? [...items] : [];
+
+    if (el.voucherNo) el.voucherNo.value = sale.voucherNo || '';
+    if (el.entryDate) el.entryDate.value = new Date().toISOString().split('T')[0];
+    if (el.paymentType) el.paymentType.value = sale.paymentType || 'Cash';
+    if (el.storeTitle) el.storeTitle.value = sale.storeTitle || 'Main Store';
+    if (el.description) el.description.value = sale.description || '';
+    if (el.specialDiscount) el.specialDiscount.value = Number(sale.discount || 0);
+
+    // Set paid amount by default to net amount so Cash sale is ready to confirm
+    const net = Number(sale.netAmount || 0);
+    if (el.paidAmount) el.paidAmount.value = net;
+
+    // CRITICAL: Explicitly convert status to 'Paid'
+    saleState.billStatus = 'Paid';
+    if (el.saleBillStatus) {
+      el.saleBillStatus.value = 'Paid';
+      updateBillStatusSelectStyle('Paid');
+    }
+
+    // Customer / Party mapping
+    if (el.partyTypeSelect) el.partyTypeSelect.value = sale.partyTypeId || '';
+    selectSalePartyType(sale.partyTypeId || '');
+    if (el.customerSelect) el.customerSelect.value = sale.partyId || '';
+    if (el.customerName) el.customerName.value = sale.partyTitle || '';
+    if (el.customerPhone) el.customerPhone.value = sale.customerPhone || '';
+    if (el.customerArea) el.customerArea.value = sale.areaName || '';
+
+    renderItemsTable();
+    updateVoucherTotals();
+
+    // Close history modal if open and switch to Sale Voucher subview
+    if (el.modalHistory) el.modalHistory.classList.add('hidden');
+    switchSaleSubTab('voucher');
+
+    const entryPage = document.getElementById('saleEntryPage');
+    if (entryPage) entryPage.scrollTop = 0;
+
+    const noticeMsg = `📋 Estimated Bill [${sale.voucherNo}] loaded as Paid Bill! Click 'Confirm Sale' to deduct stock & finalize.`;
+    if (window.showToast) window.showToast(noticeMsg, 'success');
   }
 
   async function editSale(id) {
@@ -2078,6 +3634,12 @@
     if (el.specialDiscount) el.specialDiscount.value = Number(sale.discount || 0);
     if (el.paidAmount) el.paidAmount.value = Number(sale.paidAmount || 0);
 
+    saleState.billStatus = sale.billStatus || 'Paid';
+    if (el.saleBillStatus) {
+      el.saleBillStatus.value = saleState.billStatus;
+      updateBillStatusSelectStyle(saleState.billStatus);
+    }
+
     if (el.partyTypeSelect) el.partyTypeSelect.value = sale.partyTypeId || '';
     selectSalePartyType(sale.partyTypeId || '');
     if (el.customerSelect) el.customerSelect.value = sale.partyId || '';
@@ -2087,7 +3649,13 @@
 
     renderItemsTable();
     updateVoucherTotals();
-    openAddSaleModal(sale);
+
+    // Close history modal if open and switch to Sale Voucher subview
+    if (el.modalHistory) el.modalHistory.classList.add('hidden');
+    switchSaleSubTab('voucher');
+    const entryPage = document.getElementById('saleEntryPage');
+    if (entryPage) entryPage.scrollTop = 0;
+    if (window.showToast) window.showToast(`Sale Voucher ${sale.voucherNo} loaded for editing`, 'info');
   }
 
   // ========================================================
@@ -2097,8 +3665,68 @@
     // Header buttons
     if (el.btnNew) el.btnNew.addEventListener('click', resetVoucher);
     if (el.btnSave) el.btnSave.addEventListener('click', saveSaleVoucher);
-    if (el.btnPrint) el.btnPrint.addEventListener('click', () => openReceiptModal());
+    if (el.btnPrint) {
+      el.btnPrint.addEventListener('click', async () => {
+        // If there are unsaved items in cart, ensure the voucher is saved first!
+        if (saleState.items && saleState.items.length > 0 && !saleState.saleId) {
+          const currentStatus = el.saleBillStatus?.value || saleState.billStatus || 'Paid';
+          if (currentStatus === 'Estimated') {
+            // Save estimated bill first so it is recorded in history with voucher number, then print preview opens!
+            await executeSaveSale('Estimated');
+            return;
+          } else {
+            // Paid bill confirmation modal
+            saveSaleVoucher();
+            return;
+          }
+        }
+        openReceiptModal();
+      });
+    }
     if (el.btnHistory) el.btnHistory.addEventListener('click', openHistoryModal);
+
+    // Quick Status Switcher Tabs for Sales History
+    if (el.btnSaleTabFilterAll) {
+      el.btnSaleTabFilterAll.addEventListener('click', () => {
+        if (el.saleFilterStatus) el.saleFilterStatus.value = '';
+        applySalesFilter();
+      });
+    }
+    if (el.btnSaleTabFilterPaid) {
+      el.btnSaleTabFilterPaid.addEventListener('click', () => {
+        if (el.saleFilterStatus) el.saleFilterStatus.value = 'Paid';
+        applySalesFilter();
+      });
+    }
+    if (el.btnSaleTabFilterEstimated) {
+      el.btnSaleTabFilterEstimated.addEventListener('click', () => {
+        if (el.saleFilterStatus) el.saleFilterStatus.value = 'Estimated';
+        applySalesFilter();
+      });
+    }
+
+    // Quick Filter Buttons for Modal History
+    if (el.btnModalHistFilterAll) {
+      el.btnModalHistFilterAll.addEventListener('click', () => {
+        modalHistFilterStatus = 'all';
+        updateModalHistFilterButtons();
+        filterAndRenderModalHistory();
+      });
+    }
+    if (el.btnModalHistFilterPaid) {
+      el.btnModalHistFilterPaid.addEventListener('click', () => {
+        modalHistFilterStatus = 'paid';
+        updateModalHistFilterButtons();
+        filterAndRenderModalHistory();
+      });
+    }
+    if (el.btnModalHistFilterEstimated) {
+      el.btnModalHistFilterEstimated.addEventListener('click', () => {
+        modalHistFilterStatus = 'estimated';
+        updateModalHistFilterButtons();
+        filterAndRenderModalHistory();
+      });
+    }
 
     // Modal controls for Add Sale
     if (el.btnOpenAddSaleModal) el.btnOpenAddSaleModal.addEventListener('click', () => openAddSaleModal());
@@ -2108,6 +3736,29 @@
     // Filter controls for Sales Master Table
     if (el.saleFilterSearch) el.saleFilterSearch.addEventListener('input', applySalesFilter);
     if (el.saleFilterDate) el.saleFilterDate.addEventListener('change', applySalesFilter);
+    if (el.saleFilterStatus) el.saleFilterStatus.addEventListener('change', applySalesFilter);
+
+    // Bill Status selector change
+    if (el.saleBillStatus) {
+      el.saleBillStatus.addEventListener('change', (e) => {
+        saleState.billStatus = e.target.value;
+        updateBillStatusSelectStyle(e.target.value);
+      });
+    }
+
+    // Bill Status Choice Modal Actions
+    if (el.btnChoosePaidBill) {
+      el.btnChoosePaidBill.addEventListener('click', () => executeSaveSale('Paid'));
+    }
+    if (el.btnChooseEstimatedBill) {
+      el.btnChooseEstimatedBill.addEventListener('click', () => executeSaveSale('Estimated'));
+    }
+    if (el.btnCloseSaleBillStatusModal) {
+      el.btnCloseSaleBillStatusModal.addEventListener('click', closeBillStatusModal);
+    }
+    if (el.btnCancelSaleBillStatusModal) {
+      el.btnCancelSaleBillStatusModal.addEventListener('click', closeBillStatusModal);
+    }
     if (el.btnSaleFilterToday) {
       el.btnSaleFilterToday.addEventListener('click', () => {
         if (el.saleFilterDate) {
@@ -2215,7 +3866,7 @@
       });
     }
 
-    // Receipt Modal Close & Print
+    // Receipt Modal Close & Print Studio Events
     if (el.btnCloseReceipt) {
       el.btnCloseReceipt.addEventListener('click', () => {
         if (el.modalReceipt) el.modalReceipt.classList.add('hidden');
@@ -2223,7 +3874,48 @@
     }
     if (el.btnDoPrintReceipt) {
       el.btnDoPrintReceipt.addEventListener('click', () => {
-        window.print();
+        doPrintSaleBill();
+      });
+    }
+    if (el.tplButtons && el.tplButtons.length > 0) {
+      el.tplButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tpl = btn.dataset.tpl;
+          setSalePrintTemplate(tpl);
+        });
+      });
+    }
+    if (el.thermalWidthSelect) {
+      el.thermalWidthSelect.addEventListener('change', (e) => {
+        salePrintStudioState.paperWidth = e.target.value;
+        try {
+          localStorage.setItem('sale_thermal_width', e.target.value);
+        } catch (_) {}
+        renderSalePrintStudioPreview();
+      });
+    }
+    if (el.chkIncludePrevBill) {
+      el.chkIncludePrevBill.addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        salePrintStudioState.includePrevBill = isChecked;
+        if (el.prevBillInputWrap) {
+          el.prevBillInputWrap.style.display = isChecked ? 'inline-flex' : 'none';
+        }
+        if (isChecked && el.inpPrevBillAmount) {
+          if (!Number(el.inpPrevBillAmount.value) && salePrintStudioState.prevBillAmount > 0) {
+            el.inpPrevBillAmount.value = salePrintStudioState.prevBillAmount;
+          } else {
+            salePrintStudioState.prevBillAmount = Number(el.inpPrevBillAmount.value || 0);
+          }
+          el.inpPrevBillAmount.focus();
+        }
+        renderSalePrintStudioPreview();
+      });
+    }
+    if (el.inpPrevBillAmount) {
+      el.inpPrevBillAmount.addEventListener('input', (e) => {
+        salePrintStudioState.prevBillAmount = Number(e.target.value || 0);
+        renderSalePrintStudioPreview();
       });
     }
 
@@ -2235,23 +3927,22 @@
     }
     if (el.historySearchInput) {
       el.historySearchInput.addEventListener('input', () => {
-        const q = el.historySearchInput.value.trim().toLowerCase();
-        const filtered = saleState.salesList.filter(s =>
-          (s.voucherNo || '').toLowerCase().includes(q) ||
-          (s.partyTitle || '').toLowerCase().includes(q) ||
-          (s.manualNo || '').toLowerCase().includes(q)
-        );
-        renderHistoryList(filtered);
+        filterAndRenderModalHistory();
       });
     }
 
     // Connect with Find Product Window callback
     if (window.findProductAPI?.onProductSelected) {
       window.findProductAPI.onProductSelected((product) => {
-        if (window.currentTab === 'sale') {
+        const isSaleActive = window.currentTab === 'sale' ||
+          (document.getElementById('salesView') && !document.getElementById('salesView').classList.contains('hidden'));
+
+        if (isSaleActive) {
           if (currentSaleSubTab === 'return') {
             selectReturnProduct(product);
           } else {
+            const rateMode = product._chosenRateType || saleState.rateMode || 'retail';
+            addProductToCart(product.id || product.code, 1, rateMode);
             selectProduct(product);
           }
         }
@@ -2268,8 +3959,10 @@
   function initSubTabs() {
     navTabs.btnVoucher = document.getElementById('saleSubTabBtnVoucher');
     navTabs.btnReturn = document.getElementById('saleSubTabBtnReturn');
+    navTabs.btnHistory = document.getElementById('saleSubTabBtnHistory');
     navTabs.panelVoucher = document.getElementById('subviewSaleVoucher');
     navTabs.panelReturn = document.getElementById('subviewSaleReturn');
+    navTabs.panelHistory = document.getElementById('subviewSaleHistory');
 
     if (navTabs.btnVoucher) {
       navTabs.btnVoucher.addEventListener('click', () => switchSaleSubTab('voucher'));
@@ -2277,12 +3970,16 @@
     if (navTabs.btnReturn) {
       navTabs.btnReturn.addEventListener('click', () => switchSaleSubTab('return'));
     }
+    if (navTabs.btnHistory) {
+      navTabs.btnHistory.addEventListener('click', () => switchSaleSubTab('history'));
+    }
   }
 
   function switchSaleSubTab(tab) {
     currentSaleSubTab = tab;
     if (navTabs.btnVoucher) navTabs.btnVoucher.classList.toggle('active', tab === 'voucher');
     if (navTabs.btnReturn) navTabs.btnReturn.classList.toggle('active', tab === 'return');
+    if (navTabs.btnHistory) navTabs.btnHistory.classList.toggle('active', tab === 'history');
 
     if (navTabs.panelVoucher) {
       if (tab === 'voucher') {
@@ -2307,6 +4004,17 @@
       } else {
         navTabs.panelReturn.classList.add('hidden');
         navTabs.panelReturn.classList.remove('active');
+      }
+    }
+
+    if (navTabs.panelHistory) {
+      if (tab === 'history') {
+        navTabs.panelHistory.classList.remove('hidden');
+        navTabs.panelHistory.classList.add('active');
+        loadAndRenderSalesTable();
+      } else {
+        navTabs.panelHistory.classList.add('hidden');
+        navTabs.panelHistory.classList.remove('active');
       }
     }
   }
@@ -2455,11 +4163,20 @@
   }
 
   function selectReturnCustomer(partyId) {
+    const custName = document.getElementById('returnCustomerName');
+    const custPhone = document.getElementById('returnCustomerPhone');
+    const custArea = document.getElementById('returnCustomerArea');
+    const prevBal = document.getElementById('returnCustomerPrevBalance');
+
     if (!partyId) {
       returnState.selectedCustomer = null;
-      if (retEl.customerPhone) retEl.customerPhone.textContent = '-';
-      if (retEl.customerArea) retEl.customerArea.textContent = '-';
-      if (retEl.customerPrevBalance) retEl.customerPrevBalance.textContent = 'Rs 0.00';
+      if (custName) custName.value = 'Walk-in Customer';
+      if (custPhone) { custPhone.value = ''; custPhone.textContent = '-'; }
+      if (custArea) { custArea.value = ''; custArea.textContent = '-'; }
+      if (prevBal) {
+        prevBal.textContent = 'Rs 0.00';
+        prevBal.dataset.rawBalance = 0;
+      }
       updateReturnTotals();
       return;
     }
@@ -2475,10 +4192,14 @@
           retEl.partyTypeSelect.value = c.partyTypeId;
         }
 
-        if (retEl.customerPhone) retEl.customerPhone.textContent = c.phone || '-';
-        if (retEl.customerArea) retEl.customerArea.textContent = c.areaName || c.city || '-';
+        if (custName) custName.value = c.partyTitle || c.name || '';
+        if (custPhone) { custPhone.value = c.phone || ''; custPhone.textContent = c.phone || ''; }
+        if (custArea) { custArea.value = c.areaName || c.city || ''; custArea.textContent = c.areaName || c.city || ''; }
         const bal = Number(c.openingBalance || c.currentBalance || 0);
-        if (retEl.customerPrevBalance) retEl.customerPrevBalance.textContent = `Rs ${bal.toFixed(2)}`;
+        if (prevBal) {
+          prevBal.textContent = `Rs ${bal.toFixed(2)}`;
+          prevBal.dataset.rawBalance = bal;
+        }
         updateReturnTotals();
       } catch (err) {
         console.error('Error parsing party data:', err);
@@ -2907,35 +4628,51 @@
     if (phoneEl && comp.phone) phoneEl.textContent = `Ph: ${comp.phone}`;
   }
 
+  function setReturnItemCondition(idx, condition) {
+    if (returnState.items[idx]) {
+      returnState.items[idx].condition = condition;
+    }
+  }
+
+  function updateReturnItemRate(idx, rateVal) {
+    if (returnState.items[idx]) {
+      const r = Math.max(0, Number(rateVal) || 0);
+      returnState.items[idx].returnRate = r;
+      returnState.items[idx].netAmount = returnState.items[idx].totalQty * r;
+      renderReturnItemsTable();
+      updateReturnTotals();
+    }
+  }
+
+  function setReturnItemQty(idx, qtyVal) {
+    if (returnState.items[idx]) {
+      const q = Math.max(1, Number(qtyVal) || 1);
+      returnState.items[idx].totalQty = q;
+      returnState.items[idx].netAmount = q * Number(returnState.items[idx].returnRate || 0);
+      renderReturnItemsTable();
+      updateReturnTotals();
+    }
+  }
+
   function removeReturnItem(idx) {
     if (idx >= 0 && idx < returnState.items.length) {
       returnState.items.splice(idx, 1);
-      const pageSize = returnState.slipPageSize || 9;
-      const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
-      if (returnState.slipCurrentPage > totalPages) {
-        returnState.slipCurrentPage = totalPages;
-      }
       renderReturnItemsTable();
       updateReturnTotals();
     }
   }
 
   function renderReturnItemsTable() {
-    updateReturnRightPanelVisibility();
-    const cartTbody = document.getElementById('returnItemsTableBody');
-    const slipTbody = document.getElementById('returnSlipItemsTableBody');
+    const tbody = document.getElementById('returnItemsTableBody');
     const emptyState = document.getElementById('returnItemsEmptyState');
-    const paginationBar = document.getElementById('returnPosSlipPaginationBar');
-    const countBadge = document.getElementById('returnPosCartCountBadge');
+    const countBadge = document.getElementById('returnBillItemCountBadge');
     const btnReturn = document.getElementById('btnReturnSave');
 
-    if (countBadge) countBadge.textContent = returnState.items.length;
+    if (countBadge) countBadge.textContent = `${returnState.items.length} Items`;
 
     if (returnState.items.length === 0) {
-      if (cartTbody) cartTbody.innerHTML = '';
-      if (slipTbody) slipTbody.innerHTML = '';
-      if (emptyState) emptyState.style.display = 'block';
-      if (paginationBar) paginationBar.style.display = 'none';
+      if (tbody) tbody.innerHTML = '';
+      if (emptyState) emptyState.style.display = 'flex';
       if (btnReturn) {
         btnReturn.disabled = true;
         btnReturn.style.opacity = '0.6';
@@ -2951,61 +4688,56 @@
       btnReturn.style.cursor = 'pointer';
     }
 
-    const pageSize = returnState.slipPageSize || 9;
-    const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
-    if (!returnState.slipCurrentPage || returnState.slipCurrentPage < 1) returnState.slipCurrentPage = 1;
-    if (returnState.slipCurrentPage > totalPages) returnState.slipCurrentPage = totalPages;
+    if (tbody) {
+      tbody.innerHTML = '';
+      returnState.items.forEach((item, idx) => {
+        const prod = (window.appData?.products || []).find(p => String(p.id) === String(item.productId) || String(p.code) === String(item.productCode)) || {};
+        const stockQty = Number(prod.stockQty || 0);
+        const cond = item.condition || 'Good';
 
-    const currentPage = returnState.slipCurrentPage;
-    const startIdx = (currentPage - 1) * pageSize;
-    const endIdx = Math.min(startIdx + pageSize, returnState.items.length);
-    const visibleItems = returnState.items.slice(startIdx, endIdx);
-
-    if (cartTbody) {
-      cartTbody.innerHTML = '';
-      visibleItems.forEach((item, relIdx) => {
-        const idx = startIdx + relIdx;
         const tr = document.createElement('tr');
-        tr.className = 'pos-slip-row-item';
+        tr.className = 'pos-bill-row';
         tr.innerHTML = `
-          <td class="pos-slip-col-item">
-            <div class="pos-slip-item-title" title="${window.escapeHtml(item.productTitle)}">${window.escapeHtml(item.productTitle)}</div>
+          <td class="pos-cell-sr text-center font-num text-muted" style="text-align: center; vertical-align: middle;">${idx + 1}</td>
+          <td class="pos-cell-code font-num font-bold text-muted" style="padding-left: 10px; vertical-align: middle; color: #b91c1c;">${window.escapeHtml(item.productCode || '-')}</td>
+          <td class="pos-cell-title" style="padding-left: 10px; vertical-align: middle;">
+            <div class="pos-bill-title font-bold" style="color: #0f172a;">${window.escapeHtml(item.productTitle || 'Untitled')}</div>
+            ${item.packSize > 1 ? `<span style="font-size: 11px; color: #64748b;">Pack size: ${item.packSize}</span>` : ''}
           </td>
-          <td class="pos-slip-col-qty text-center">
-            <div class="pos-slip-qty-stepper">
-              <button type="button" class="pos-slip-qty-btn" onclick="window.SalesModule.adjustReturnCartItemQty(${idx}, -1)" title="Decrease">−</button>
-              <span class="pos-slip-qty-val font-num font-bold">${item.totalQty}</span>
-              <button type="button" class="pos-slip-qty-btn" onclick="window.SalesModule.adjustReturnCartItemQty(${idx}, 1)" title="Increase">+</button>
+          <td class="pos-cell-stock text-center" style="text-align: center; vertical-align: middle;">
+            <span class="pos-stock-badge ${stockQty <= 0 ? 'badge-out' : (stockQty <= 5 ? 'badge-low' : 'badge-in')} font-num font-bold">
+              ${stockQty}
+            </span>
+          </td>
+          <td style="text-align: center; vertical-align: middle;">
+            <select class="form-control form-control-sm font-bold" style="width: 110px; height: 29px; font-size: 12px; display: inline-block; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 6px;" onchange="window.SalesModule.setReturnItemCondition(${idx}, this.value)">
+              <option value="Good" ${cond === 'Good' ? 'selected' : ''}>Good</option>
+              <option value="Defective" ${cond === 'Defective' ? 'selected' : ''}>Defective</option>
+              <option value="Damaged" ${cond === 'Damaged' ? 'selected' : ''}>Damaged</option>
+            </select>
+          </td>
+          <td style="text-align: right; padding-right: 14px; vertical-align: middle;">
+            <div class="pos-inline-input-wrap rate-input-wrap" style="justify-content: flex-end;">
+              <span class="cur-sym" style="font-size: 11px; font-weight: 700; color: #64748b;">Rs</span>
+              <input type="number" class="pos-inline-inp font-num font-bold text-right" style="width: 85px; height: 29px; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 6px;" min="0" step="1" value="${Number(item.returnRate || 0)}" onchange="window.SalesModule.updateReturnItemRate(${idx}, this.value)">
             </div>
           </td>
-          <td class="pos-slip-col-rate text-right font-num">
-            ${Number(item.returnRate || 0).toLocaleString()}
+          <td style="text-align: center; vertical-align: middle;">
+            <div class="pos-row-qty-stepper" style="display: inline-flex; align-items: center; justify-content: center;">
+              <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustReturnCartItemQty(${idx}, -1)" title="Decrease quantity">−</button>
+              <input type="number" class="pos-qty-input-step font-num font-bold text-center" style="width: 48px; height: 26px; border: none; background: transparent;" min="1" value="${item.totalQty}" onchange="window.SalesModule.setReturnItemQty(${idx}, this.value)">
+              <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustReturnCartItemQty(${idx}, 1)" title="Increase quantity">+</button>
+            </div>
           </td>
-          <td class="pos-slip-col-total text-right font-num font-bold" style="color: #dc2626;">
-            ${Number(item.netAmount || 0).toLocaleString()}
+          <td class="font-num font-bold text-right" style="padding-right: 16px; color: #dc2626; font-size: 13.5px; white-space: nowrap; vertical-align: middle;">
+            Rs ${Number(item.netAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </td>
-          <td class="pos-slip-col-del text-center">
-            <button type="button" class="pos-slip-del-btn" onclick="window.SalesModule.removeReturnItem(${idx})" title="Remove item">✕</button>
+          <td style="text-align: center; vertical-align: middle;">
+            <button type="button" class="btn btn-xs btn-outline" style="color: #dc2626; border-color: #fca5a5; width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px;" onclick="window.SalesModule.removeReturnItem(${idx})" title="Remove item">✕</button>
           </td>
         `;
-        cartTbody.appendChild(tr);
+        tbody.appendChild(tr);
       });
-    }
-
-    if (paginationBar) {
-      if (totalPages > 1) {
-        paginationBar.style.display = 'flex';
-        const pagInfo = document.getElementById('returnPosSlipPaginationInfo');
-        const pagCur = document.getElementById('returnPosSlipPaginationCurrent');
-        const btnPrev = document.getElementById('btnReturnSlipPrev');
-        const btnNext = document.getElementById('btnReturnSlipNext');
-        if (pagInfo) pagInfo.textContent = `Items ${startIdx + 1}–${endIdx} of ${returnState.items.length}`;
-        if (pagCur) pagCur.textContent = `Page ${currentPage} of ${totalPages}`;
-        if (btnPrev) btnPrev.disabled = currentPage <= 1;
-        if (btnNext) btnNext.disabled = currentPage >= totalPages;
-      } else {
-        paginationBar.style.display = 'none';
-      }
     }
   }
 
@@ -3026,24 +4758,42 @@
     const totalItemsCount = document.getElementById('returnTotalItemsCount');
     const totalPiecesCount = document.getElementById('returnTotalPiecesCount');
     const grossRefundEl = document.getElementById('returnGrossRefund');
-    const estNetEl = document.getElementById('returnEstimatedNet');
+    const netTotalEl = document.getElementById('returnNetTotal');
+    const countBadge = document.getElementById('returnBillItemCountBadge');
 
     if (totalItemsCount) totalItemsCount.textContent = totalItems;
     if (totalPiecesCount) totalPiecesCount.textContent = totalPieces;
-    if (grossRefundEl) grossRefundEl.textContent = `Rs ${grossRefund.toLocaleString()}`;
-    if (estNetEl) estNetEl.textContent = `Rs ${netRefund.toLocaleString()}`;
+    if (countBadge) countBadge.textContent = `${totalItems} Items`;
+    if (grossRefundEl) grossRefundEl.textContent = `Rs ${grossRefund.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (netTotalEl) netTotalEl.textContent = `Rs ${netRefund.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    const slipGross = document.getElementById('returnSlipGrossDisplay');
-    const slipDisc = document.getElementById('returnSlipDiscDisplay');
-    const slipDiscRow = document.getElementById('returnSlipDiscRow');
-    const slipNet = document.getElementById('returnSlipNetDisplay');
+    const refundMode = document.getElementById('returnRefundMode')?.value || 'Credit';
+    const modeBadge = document.getElementById('returnSettlementModeBadge');
+    if (modeBadge) {
+      if (refundMode === 'Cash') {
+        modeBadge.textContent = 'Cash Refund';
+        modeBadge.style.background = '#dcfce7';
+        modeBadge.style.color = '#166534';
+      } else {
+        modeBadge.textContent = 'Credit Ledger';
+        modeBadge.style.background = '#e0f2fe';
+        modeBadge.style.color = '#0369a1';
+      }
+    }
+    const prevBalEl = document.getElementById('returnCustomerPrevBalance');
+    const rawBal = Number(prevBalEl?.dataset?.rawBalance) || 0;
 
-    if (slipGross) slipGross.textContent = `Rs ${grossRefund.toLocaleString()}`;
-    if (slipDiscRow) slipDiscRow.style.display = disc > 0 ? 'flex' : 'none';
-    if (slipDisc) slipDisc.textContent = `- Rs ${disc.toLocaleString()}`;
-    if (slipNet) slipNet.textContent = `Rs ${netRefund.toLocaleString()}`;
-
-    updateReturnSlipMeta();
+    const khataPreview = document.getElementById('returnKhataAdjustPreview');
+    if (khataPreview) {
+      if (refundMode === 'Cash') {
+        khataPreview.textContent = 'Immediate Cash Payment';
+        khataPreview.className = 'font-num font-bold text-warning';
+      } else {
+        const newBal = rawBal - netRefund;
+        khataPreview.textContent = `Deduct from Due (New Bal: Rs ${newBal.toFixed(2)})`;
+        khataPreview.className = 'font-num font-bold text-success';
+      }
+    }
   }
 
   function initReturnPosCatalog() {
@@ -3257,12 +5007,11 @@
     }
   }
 
-  function resetReturnForm() {
+  async function resetReturnForm() {
     returnState.returnId = null;
     returnState.items = [];
     returnState.selectedProduct = null;
     returnState.selectedCustomer = null;
-    returnState.slipCurrentPage = 1;
 
     const custName = document.getElementById('returnCustomerName');
     const custPhone = document.getElementById('returnCustomerPhone');
@@ -3271,107 +5020,164 @@
     const entryDate = document.getElementById('returnEntryDate');
     const billRef = document.getElementById('returnOriginalBillRef');
     const discInput = document.getElementById('returnSpecialDeduction');
+    const remInput = document.getElementById('returnRemarksInput');
+    const prevBal = document.getElementById('returnCustomerPrevBalance');
 
-    if (custName) custName.value = '';
+    if (custName) custName.value = 'Walk-in Customer';
     if (custPhone) custPhone.value = '';
     if (custSelect) custSelect.value = '';
     if (refundMode) refundMode.value = 'Credit';
     if (entryDate) entryDate.value = new Date().toISOString().slice(0, 10);
     if (billRef) billRef.value = '';
     if (discInput) discInput.value = 0;
+    if (remInput) remInput.value = '';
+    if (prevBal) {
+      prevBal.textContent = 'Rs 0.00';
+      prevBal.dataset.rawBalance = 0;
+    }
 
-    posReturnCatalogState.searchQuery = '';
-    const searchInp = document.getElementById('returnPosProductSearch');
-    if (searchInp) searchInp.value = '';
-
-    showReturnPosRightView('cart');
     renderReturnItemsTable();
     updateReturnTotals();
-    loadNextReturnNo();
-    renderReturnPosProductCatalog();
+    await loadNextReturnNo();
+    switchSaleSubTab('return');
   }
 
-  function openReturnReceiptModal(data) {
+  async function openReturnReceiptModal(data) {
     if (!retEl.modalReceipt || !retEl.receiptArea) return;
     const items = data.items || [];
-    const dateStr = data.entryDate || new Date().toISOString().slice(0, 10);
+    let formattedDate = '';
+    try {
+      const d = data.entryDate ? new Date(data.entryDate) : new Date();
+      if (!isNaN(d.getTime())) {
+        formattedDate = d.toLocaleDateString('en-GB');
+      } else {
+        formattedDate = data.entryDate || new Date().toLocaleDateString('en-GB');
+      }
+    } catch (_) {
+      formattedDate = new Date().toLocaleDateString('en-GB');
+    }
+    const formattedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    // Load Live Settings configured in Settings
+    let cfg = {
+      title: 'SHAHZAIB TRADERS',
+      subtitle: 'Dealers in Electrical Goods & Accessories',
+      address: 'Main Bazar, Electrical Market, Lahore',
+      phone: '0300-1234567',
+      footer: 'Thank you for your business!\nGoods once sold cannot be returned without bill.\nNo warranty on burnt or short-circuit electrical items.',
+      paperSize: '80mm',
+      autoPrint: false
+    };
+
+    try {
+      let set = null;
+      if (window.settingsAPI?.getSettings) {
+        set = await window.settingsAPI.getSettings();
+      } else if (window.appData?.settings) {
+        set = window.appData.settings;
+      }
+      if (set) {
+        if (set.receiptHeaderTitle || set.storeName) cfg.title = set.receiptHeaderTitle || set.storeName;
+        if (set.receiptSubtitle) cfg.subtitle = set.receiptSubtitle;
+        if (set.address) cfg.address = set.address;
+        if (set.contactPhone) cfg.phone = set.contactPhone;
+        if (set.taxNumber || set.ntn || set.strn) cfg.taxNumber = set.taxNumber || set.ntn || set.strn;
+        if (set.receiptFooterNote) cfg.footer = set.receiptFooterNote;
+        if (set.paperSize) cfg.paperSize = set.paperSize;
+        if (set.autoPrintVoucher === 'true') cfg.autoPrint = true;
+      }
+    } catch (err) {
+      console.warn('Could not load settings for return receipt:', err);
+    }
 
     let rowsHtml = '';
-    items.forEach((it, i) => {
+    items.forEach((it) => {
+      const name = it.productTitle || it.title || it.name || it.productCode || 'Item';
+      const qty = Number(it.totalQty ?? it.quantity ?? it.qty ?? 1);
+      const rate = Number(it.returnRate ?? it.rate ?? 0);
+      const lineTotal = Number(it.netAmount ?? (qty * rate) ?? 0);
+
       rowsHtml += `
         <tr>
-          <td>${i + 1}</td>
-          <td>${window.escapeHtml(it.productTitle || it.productCode)}</td>
-          <td style="text-align: center;">${it.totalQty}</td>
-          <td style="text-align: right;">${Number(it.returnRate || 0).toFixed(2)}</td>
-          <td style="text-align: right;">${Number(it.netAmount || 0).toFixed(2)}</td>
+          <td>${window.escapeHtml(name)}</td>
+          <td style="text-align: center;">${qty}</td>
+          <td style="text-align: right;">${rate.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
+          <td style="text-align: right;">${lineTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
         </tr>
       `;
     });
 
-    const comp = sharedCompanyInfo || {
-      name: 'SHAHZAIB TRADERS',
-      address: 'Wah Cantt, Pakistan',
-      phone: '0300-1234567'
-    };
+    const returnNo = data.returnNo || 'SR-0001';
+    const totalRefund = Number(data.totalAmount || 0);
 
     retEl.receiptArea.innerHTML = `
-      <div class="thermal-receipt-paper" style="border: 1px dashed #dc2626;">
-        <div class="receipt-header">
-          <h2>${window.escapeHtml(comp.name || 'SHAHZAIB TRADERS')}</h2>
-          <p>${window.escapeHtml(comp.address || 'Wah Cantt, Pakistan')}</p>
-          <p>Phone: ${window.escapeHtml(comp.phone || '0300-1234567')}</p>
-          <div class="receipt-title-badge" style="background: #fee2e2; color: #b91c1c; border-color: #fca5a5;">
-            SALE RETURN / CREDIT MEMO
+      <div class="thermal-slip-preview-container" style="background: #f1f5f9; padding: 20px; display: flex; justify-content: center; align-items: flex-start; max-height: 72vh; overflow-y: auto;">
+        <div class="thermal-slip-paper" data-paper-size="${cfg.paperSize}">
+          <div class="thermal-slip-header">
+            <div class="thermal-slip-title">${window.escapeHtml(cfg.title)}</div>
+            ${cfg.subtitle ? `<div class="thermal-slip-meta">${window.escapeHtml(cfg.subtitle)}</div>` : ''}
+            ${cfg.address ? `<div class="thermal-slip-meta">${window.escapeHtml(cfg.address)}</div>` : ''}
+            ${cfg.phone ? `<div class="thermal-slip-meta">Ph: ${window.escapeHtml(cfg.phone)}</div>` : ''}
+            ${cfg.taxNumber ? `<div class="thermal-slip-meta">${window.escapeHtml(cfg.taxNumber)}</div>` : ''}
           </div>
-        </div>
 
-        <div class="receipt-meta">
-          <div><span>Return #:</span><strong>${data.returnNo}</strong></div>
-          <div><span>Date:</span><strong>${dateStr}</strong></div>
-          <div><span>Customer:</span><strong>${window.escapeHtml(data.partyTitle || 'Customer')}</strong></div>
-          <div><span>Orig Bill Ref:</span><strong>${data.saleVoucherRef || '-'}</strong></div>
-          <div><span>Refund Mode:</span><strong>${data.refundMode || 'Credit'}</strong></div>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 20px;">#</th>
-              <th>Description</th>
-              <th style="text-align: center; width: 35px;">Pcs</th>
-              <th style="text-align: right; width: 55px;">Rate</th>
-              <th style="text-align: right; width: 60px;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
-
-        <div class="receipt-totals">
-          <div class="receipt-calc-row">
-            <span>Total Items:</span>
-            <strong>${items.length} (${data.totalPieces || 0} pcs)</strong>
+          <div class="thermal-slip-row">
+            <span>Return Slip: <strong>${window.escapeHtml(returnNo)}</strong></span>
+            <span>${formattedDate} ${formattedTime}</span>
           </div>
-          <div class="receipt-calc-row" style="font-size: 13px; font-weight: bold; color: #b91c1c;">
-            <span>Total Refund Rs:</span>
-            <span>Rs ${Number(data.totalAmount || 0).toFixed(2)}</span>
+          <div class="thermal-slip-row">
+            <span>Customer: <strong>${window.escapeHtml(data.partyTitle || 'Customer')}</strong></span>
+            <span>${window.escapeHtml(data.refundMode || 'Cash')} Return</span>
           </div>
-          <div class="receipt-calc-row">
-            <span>Stock Status:</span>
-            <span style="color: #059669; font-weight: bold;">Items Restocked (+)</span>
-          </div>
-        </div>
+          ${data.saleVoucherRef ? `
+          <div class="thermal-slip-row">
+            <span>Orig Invoice Ref:</span>
+            <strong>${window.escapeHtml(data.saleVoucherRef)}</strong>
+          </div>` : ''}
 
-        <div class="receipt-footer">
-          <p>*** Stock added back to inventory ***</p>
-          <p>Thank you for your business!</p>
+          <table class="thermal-slip-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align: center;">Qty</th>
+                <th style="text-align: right;">Rate</th>
+                <th style="text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml || '<tr><td colspan="4" style="text-align:center; padding: 8px;">No returned items</td></tr>'}
+            </tbody>
+          </table>
+
+          <div class="thermal-slip-totals">
+            <div class="thermal-slip-row">
+              <span>Items Returned:</span>
+              <span><strong>${items.length}</strong> (${data.totalPieces || 0} pcs)</span>
+            </div>
+            <div class="thermal-slip-grandtotal" style="color: #b91c1c;">
+              <span>TOTAL REFUND:</span>
+              <span>Rs ${totalRefund.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+
+          <div class="thermal-slip-barcode">||||| | |||| ||| |||||</div>
+          <div class="thermal-slip-meta" style="text-align: center;">* ${window.escapeHtml(returnNo)} *</div>
+
+          <div class="thermal-slip-footer">
+            *** Stock returned to inventory ***
+${window.escapeHtml(cfg.footer)}
+          </div>
         </div>
       </div>
     `;
 
     retEl.modalReceipt.classList.remove('hidden');
+
+    if (cfg.autoPrint) {
+      setTimeout(() => {
+        printIsolatedHtml(retEl.receiptArea ? retEl.receiptArea.innerHTML : '', { template: 'thermal', paperWidth: '80mm' });
+      }, 350);
+    }
   }
 
   async function openReturnHistoryModal() {
@@ -3409,8 +5215,9 @@
         <td class="font-num text-center">${r.saleVoucherRef || '-'}</td>
         <td class="font-num text-center">${r.totalItems || 1}</td>
         <td class="font-num text-right font-bold text-danger">Rs ${Number(r.totalAmount || 0).toFixed(2)}</td>
-        <td class="text-center">
+        <td class="text-center" style="white-space: nowrap;">
           <button type="button" class="btn btn-secondary btn-sm" style="padding: 2px 8px; font-size: 11px;" onclick="window.SalesModule.reprintReturn('${r.id}')" title="Reprint Memo">🖨️ Memo</button>
+          <button type="button" class="btn btn-primary btn-sm" style="padding: 2px 8px; font-size: 11px; margin-left: 4px; background: #dc2626; border-color: #dc2626;" onclick="window.SalesModule.editReturn('${r.id}')" title="Edit Return">✏️ Edit</button>
           <button type="button" class="btn btn-danger btn-sm" style="padding: 2px 8px; font-size: 11px; margin-left: 4px;" onclick="window.SalesModule.deleteReturnPrompt('${r.id}')" title="Delete Return">🗑️</button>
         </td>
       `;
@@ -3647,11 +5454,24 @@
     if (retEl.partyTypeSelect) retEl.partyTypeSelect.value = ret.partyTypeId || '';
     selectReturnPartyType(ret.partyTypeId || '');
     if (retEl.customerSelect) retEl.customerSelect.value = ret.partyId || '';
-    if (retEl.description) retEl.description.value = ret.description || '';
+    const custName = document.getElementById('returnCustomerName');
+    if (custName) custName.value = ret.partyTitle || '';
+    const custPhone = document.getElementById('returnCustomerPhone');
+    if (custPhone) custPhone.value = ret.customerPhone || '';
+    const remInput = document.getElementById('returnRemarksInput');
+    if (remInput) remInput.value = ret.description || '';
+    const discInput = document.getElementById('returnSpecialDeduction');
+    if (discInput) discInput.value = Number(ret.discount || 0);
 
     renderReturnItemsTable();
     updateReturnTotals();
-    openAddReturnModal(ret);
+
+    // Close Return History modal if open and switch to Return subview
+    if (retEl.modalHistory) retEl.modalHistory.classList.add('hidden');
+    switchSaleSubTab('return');
+    const returnPage = document.getElementById('returnEntryPage');
+    if (returnPage) returnPage.scrollTop = 0;
+    if (window.showToast) window.showToast(`Return Voucher ${ret.returnNo} loaded for editing`, 'info');
   }
 
   function onActivateReturn() {
@@ -3734,6 +5554,46 @@
       retEl.refundMode.addEventListener('change', updateReturnTotals);
     }
 
+    // Customer Selection & Quick Walk-In
+    if (retEl.customerSelect) {
+      retEl.customerSelect.addEventListener('change', (e) => {
+        selectReturnCustomer(e.target.value);
+      });
+    }
+    const btnQuickWalkIn = document.getElementById('btnReturnQuickWalkIn');
+    if (btnQuickWalkIn) {
+      btnQuickWalkIn.addEventListener('click', () => {
+        if (retEl.customerSelect) retEl.customerSelect.value = '';
+        selectReturnCustomer('');
+      });
+    }
+
+    // Clear Return Slip
+    const btnClearCart = document.getElementById('btnReturnClearCart');
+    if (btnClearCart) {
+      btnClearCart.addEventListener('click', () => {
+        if (returnState.items.length === 0) return;
+        if (confirm('Are you sure you want to clear all returned items?')) {
+          returnState.items = [];
+          renderReturnItemsTable();
+          updateReturnTotals();
+          if (window.showToast) window.showToast('Return slip cleared', 'info');
+        }
+      });
+    }
+
+    // Product Lookup (F1) buttons
+    const btnReturnF1 = document.getElementById('btnReturnF1ProductLookup');
+    if (btnReturnF1) {
+      btnReturnF1.addEventListener('click', () => openProductLookupModal());
+    }
+
+    // Special Deduction Input
+    const deductionInput = document.getElementById('returnSpecialDeduction');
+    if (deductionInput) {
+      deductionInput.addEventListener('input', updateReturnTotals);
+    }
+
     // Product Selection dropdown
     if (retEl.productSelect) {
       retEl.productSelect.addEventListener('change', (e) => {
@@ -3810,7 +5670,9 @@
       });
     }
     if (retEl.btnDoPrintReceipt) {
-      retEl.btnDoPrintReceipt.addEventListener('click', () => window.print());
+      retEl.btnDoPrintReceipt.addEventListener('click', () => {
+        printIsolatedHtml(retEl.receiptArea ? retEl.receiptArea.innerHTML : '', { template: 'thermal', paperWidth: '80mm' });
+      });
     }
 
     // History Modal Close & Search
@@ -3834,6 +5696,61 @@
     loadAndRenderReturnsTable();
   }
 
+  function loadEstimateIntoBill(customerName, customerPhone, items = []) {
+    switchSaleSubTab('sale');
+
+    if (el.customerName) el.customerName.value = customerName || 'Walk-in Customer';
+    if (el.customerPhone) el.customerPhone.value = customerPhone || '';
+
+    saleState.items = [];
+
+    const products = window.appData?.products || [];
+    for (const item of items) {
+      const p = products.find(prod => prod.id === item.productId || prod.code === item.productCode) || {
+        id: item.productId || '',
+        code: item.productCode || '',
+        titleEng: item.productTitle || '',
+        purchasePrice: 0,
+        wholesalePrice: item.rate || 0,
+        retailPrice: item.rate || 0,
+        packSize: 1
+      };
+
+      const packSize = Number(p.packSize) || 1;
+      const totalQty = Number(item.qty || item.totalQty || 1);
+      const pQty = Math.floor(totalQty / packSize);
+      const uQty = totalQty % packSize;
+      const rate = Number(item.rate || item.salePrice || 0);
+      const netAmount = totalQty * rate;
+
+      saleState.items.push({
+        id: `si-${Date.now()}-${saleState.items.length + 1}`,
+        productId: p.id,
+        productCode: p.code,
+        productTitle: p.titleEng,
+        packSize,
+        packQty: pQty > 0 ? pQty : (packSize > 1 ? 0 : totalQty),
+        unitQty: pQty > 0 ? uQty : (packSize > 1 ? totalQty : 0),
+        totalQty,
+        purchasePrice: Number(p.purchasePrice || 0),
+        wholesalePrice: Number(p.wholesalePrice || 0),
+        retailPrice: Number(p.retailPrice || 0),
+        salePrice: rate,
+        discountPercent: 0,
+        discountAmount: 0,
+        netAmount
+      });
+    }
+
+    renderItemsTable();
+    updateVoucherTotals();
+    renderPosProductCatalog();
+    updateSlipMeta();
+    updateRightPanelVisibility();
+    const countBadge = document.getElementById('posCartCountBadge');
+    if (countBadge) countBadge.textContent = saleState.items.length;
+  }
+
   // ========================================================
   // PUBLIC EXPORTS
   // ========================================================
@@ -3842,6 +5759,9 @@
       initSalesModule();
       initReturnModule();
     },
+    loadEstimateIntoBill,
+    renderA4SaleBill,
+    renderThermalSaleBill,
     switchSubTab: switchSaleSubTab,
     openAddSaleModal,
     closeAddSaleModal,
@@ -3894,6 +5814,21 @@
       }
     },
     selectReturnProduct,
+    openRateChoiceModal,
+    closeRateChoiceModal,
+    confirmRateChoice,
+    openProductLookupModal,
+    closeProductLookupModal,
+    selectF1Product,
+    setBillPricingMode,
+    toggleItemRate,
+    changeItemRate,
+    changeItemQty,
+    changeItemDisc,
+    clearBillCart,
+    resetVoucher,
+    saveSaleVoucher,
+    openReceiptModal,
     adjustCartItemQty,
     addProductToCart,
     stepInputQty: (productId, delta) => {
@@ -3961,6 +5896,13 @@
     removeItem: removeSaleItem,
     removeReturnItem,
     adjustReturnCartItemQty,
+    setReturnItemCondition,
+    updateReturnItemRate,
+    setReturnItemQty,
+    openReturnHistoryModal,
+    openHistoryModal,
+    resetReturnForm,
+    saveSaleReturn,
     showReturnPosRightView,
     handleReturnAddClick: (productId) => {
       const inp = document.getElementById(`return-pos-qty-${productId}`);
@@ -4008,12 +5950,23 @@
         openReturnReceiptModal({ ...r, items });
       }
     },
+    convertEstimateToPaid,
+    openSaleHistoryPopupModal,
     deleteSalePrompt: (id) => {
-      if (!confirm('Are you sure you want to delete this sale voucher?\nItems stock will be restored back to inventory!')) return;
+      const s = (saleState.salesList || []).find(x => String(x.id) === String(id));
+      const isEst = (s && s.billStatus === 'Estimated');
+      const msg = isEst
+        ? `Are you sure you want to delete Estimated Bill ${s?.voucherNo || ''}?\n(No inventory was deducted for this estimate.)`
+        : 'Are you sure you want to delete this sale voucher?\nItems stock will be restored back to inventory!';
+
+      if (!confirm(msg)) return;
       window.salesAPI?.deleteSale(id).then(async () => {
-        if (window.showToast) window.showToast('Sale deleted and stock restored', 'success');
+        if (window.showToast) window.showToast(isEst ? 'Estimated bill deleted' : 'Sale deleted and stock restored', 'success');
         if (window.reloadFromDatabase) await window.reloadFromDatabase();
         await loadAndRenderSalesTable();
+        if (el.modalHistory && !el.modalHistory.classList.contains('hidden')) {
+          filterAndRenderModalHistory();
+        }
       }).catch(err => {
         alert('Delete failed: ' + err.message);
       });
@@ -4027,7 +5980,9 @@
       }).catch(err => {
         alert('Delete failed: ' + err.message);
       });
-    }
+    },
+    renderA4SaleBill,
+    renderThermalSaleBill
   };
 
   // Auto initialize on DOM ready

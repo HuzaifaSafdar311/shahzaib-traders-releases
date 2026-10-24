@@ -454,7 +454,8 @@
   function updateHubCardStats() {
     try {
       const todayStr = new Date().toISOString().slice(0, 10);
-      const sales = state.masterData.sales || [];
+      const allSales = state.masterData.sales || [];
+      const sales = allSales.filter(s => s.billStatus !== 'Estimated');
       const purchases = state.masterData.purchases || [];
       const prods = state.masterData.products || [];
       const parties = state.masterData.parties || [];
@@ -788,21 +789,23 @@
 
     const repId = state.activeReportId;
     let result = null;
+    const allSales = state.masterData.sales || [];
+    const confirmedSales = allSales.filter(s => s.billStatus !== 'Estimated');
 
     if (repId === 'today-register') {
-      result = window.ReportsEngine.generateTodaySalesRegisterReport(state.masterData.sales, filters);
+      result = window.ReportsEngine.generateTodaySalesRegisterReport(confirmedSales, filters);
     } else if (repId === 'today-summary') {
-      result = window.ReportsEngine.generateTodayBusinessSummaryReport(state.masterData, filters);
+      result = window.ReportsEngine.generateTodayBusinessSummaryReport({ ...state.masterData, sales: confirmedSales }, filters);
     } else if (repId === 'bill-wise-sales') {
-      result = window.ReportsEngine.generateBillWiseSalesReport(state.masterData.sales, filters);
+      result = window.ReportsEngine.generateBillWiseSalesReport(confirmedSales, filters);
     } else if (repId === 'party-wise-sales') {
-      result = window.ReportsEngine.generatePartyWiseSalesReport(state.masterData.sales, state.masterData.parties, filters);
+      result = window.ReportsEngine.generatePartyWiseSalesReport(confirmedSales, state.masterData.parties, filters);
     } else if (repId === 'item-wise-sales') {
-      result = window.ReportsEngine.generateItemWiseSalesReport(state.masterData.sales, state.masterData.products, filters);
+      result = window.ReportsEngine.generateItemWiseSalesReport(confirmedSales, state.masterData.products, filters);
     } else if (repId === 'territory-wise-sales') {
-      result = window.ReportsEngine.generateTerritoryWiseSalesReport(state.masterData.sales, state.masterData.parties, state.masterData.areas, filters);
+      result = window.ReportsEngine.generateTerritoryWiseSalesReport(confirmedSales, state.masterData.parties, state.masterData.areas, filters);
     } else if (repId === 'bill-wise-profit') {
-      result = window.ReportsEngine.generateBillWiseProfitReport(state.masterData.sales, filters);
+      result = window.ReportsEngine.generateBillWiseProfitReport(confirmedSales, filters);
     } else if (repId === 'sales-returns') {
       result = window.ReportsEngine.generateSalesReturnReport(state.masterData.returns, filters);
     } else if (repId === 'bill-wise-purchases') {
@@ -2137,7 +2140,7 @@
       ]);
       totalsRow = [
         'TOTALS', `${t.records || 0} Bills`, '', '', Number(t.itemsCount || 0),
-        Number(t.grossAmount || 0), Number(t.discount || 0), Number(r.freight || 0),
+        Number(t.grossAmount || 0), Number(t.discount || 0), Number(t.freight || 0),
         Number(t.grandTotal || 0), Number(t.paid || 0), Number(t.balance || 0)
       ];
     } else if (repId === 'supplier-wise-purchases') {
@@ -2224,7 +2227,7 @@
       ]);
       totalsRow = [
         'TOTALS', Number(t.crvReceived || 0), Number(t.cashSales || 0), Number(t.totalIn || 0),
-        Number(t.cpvPaid || 0), Number(r.purchaseCash || 0), Number(t.totalOut || 0), Number(t.netCash || 0)
+        Number(t.cpvPaid || 0), Number(t.purchaseCash || 0), Number(t.totalOut || 0), Number(t.netCash || 0)
       ];
     } else if (repId === 'profit-loss') {
       const m = res.metrics || {};
