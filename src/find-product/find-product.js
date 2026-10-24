@@ -148,7 +148,7 @@ function renderTable() {
     const wp = Number(p.wholesalePrice || 0);
 
     tr.innerHTML = `
-      <td class="col-f1-code font-num font-bold" style="text-align: left; padding-left: 14px;">
+      <td class="col-f1-code font-num font-bold" style="text-align: center;">
         <span class="f1-code-badge">${escapeHtml(p.code || '')}</span>
       </td>
       <td class="col-f1-title" style="text-align: left; padding-left: 14px;">
@@ -157,7 +157,7 @@ function renderTable() {
           ${p.packSize > 1 ? `<span class="pack-sub">Pack of ${p.packSize}</span>` : ''}
         </div>
       </td>
-      <td class="col-f1-category" style="text-align: center;">
+      <td class="col-f1-category" style="text-align: left; padding-left: 10px;">
         <span class="f1-cat-tag">
           ${escapeHtml(p.categoryName || 'General')}
         </span>

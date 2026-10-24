@@ -1349,19 +1349,19 @@
                   <button type="button" id="btnPosClearCart" class="btn btn-xs btn-outline" style="color: #dc2626; border-color: #fca5a5;" title="Clear all items from bill">Clear Bill</button>
                 </div>
               </div>
-              <table class="data-table voucher-table gi-data-table pur-data-table">
+              <table class="data-table voucher-table gi-data-table pos-bill-table">
                 <thead>
                   <tr>
-                    <th style="width: 44px; text-align: center;">SR</th>
-                    <th style="width: 110px; text-align: left; padding-left: 10px;">CODE</th>
-                    <th style="text-align: left; padding-left: 10px;">PRODUCT DESCRIPTION</th>
-                    <th style="width: 80px; text-align: center;">STOCK</th>
-                    <th style="width: 165px; text-align: center;">RATE TYPE</th>
-                    <th style="width: 125px; text-align: right; padding-right: 14px;">UNIT RATE</th>
-                    <th style="width: 130px; text-align: center;">QUANTITY</th>
-                    <th style="width: 85px; text-align: center;">DISC %</th>
-                    <th style="width: 125px; text-align: right; padding-right: 14px;">AMOUNT</th>
-                    <th style="width: 46px; text-align: center;">ACTION</th>
+                    <th style="width: 4%; text-align: center;">SR</th>
+                    <th style="width: 8%; text-align: center;">CODE</th>
+                    <th style="width: 19%; text-align: left; padding-left: 14px;">PRODUCT DESCRIPTION</th>
+                    <th style="width: 8%; text-align: center;">STOCK</th>
+                    <th style="width: 15%; text-align: center;">RATE TYPE</th>
+                    <th style="width: 11%; text-align: center;">UNIT RATE</th>
+                    <th style="width: 11%; text-align: center;">QUANTITY</th>
+                    <th style="width: 8%; text-align: center;">DISC %</th>
+                    <th style="width: 11%; text-align: right; padding-right: 16px;">AMOUNT</th>
+                    <th style="width: 5%; text-align: center;">ACTION</th>
                   </tr>
                 </thead>
                 <tbody id="saleItemsTableBody"></tbody>
@@ -1373,10 +1373,7 @@
                   <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                 </svg>
-                <span style="font-size: 13.5px; color: #94a3b8;">No items added — scan barcode, search product above, or press <strong>F1</strong></span>
-                <button type="button" class="btn btn-primary btn-sm" onclick="window.SalesModule.openProductLookupModal()" style="margin-top: 4px;">
-                  <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; font-weight: 800; margin-right: 4px;">F1</span> Browse Product Catalog
-                </button>
+                <span style="font-size: 13.5px; color: #94a3b8;">No items added</span>
               </div>
             </div>
 
@@ -1646,18 +1643,18 @@
                   <button type="button" id="btnReturnClearCart" class="btn btn-xs btn-outline" style="color: #dc2626; border-color: #fca5a5;" title="Clear all returned items">Clear Return Slip</button>
                 </div>
               </div>
-              <table class="data-table voucher-table gi-data-table pur-data-table">
+              <table class="data-table voucher-table gi-data-table pos-bill-table">
                 <thead>
                   <tr>
-                    <th style="width: 44px; text-align: center;">SR</th>
-                    <th style="width: 110px; text-align: left; padding-left: 10px;">CODE</th>
-                    <th style="text-align: left; padding-left: 10px;">PRODUCT DESCRIPTION</th>
-                    <th style="width: 75px; text-align: center;">STOCK</th>
-                    <th style="width: 130px; text-align: center;">CONDITION</th>
-                    <th style="width: 130px; text-align: right; padding-right: 14px;">RETURN RATE</th>
-                    <th style="width: 135px; text-align: center;">RETURN QTY</th>
-                    <th style="width: 135px; text-align: right; padding-right: 16px;">REFUND AMOUNT</th>
-                    <th style="width: 55px; text-align: center;">ACTION</th>
+                    <th style="width: 4%; text-align: center;">SR</th>
+                    <th style="width: 8%; text-align: center;">CODE</th>
+                    <th style="width: 20%; text-align: left; padding-left: 14px;">PRODUCT DESCRIPTION</th>
+                    <th style="width: 8%; text-align: center;">STOCK</th>
+                    <th style="width: 13%; text-align: center;">CONDITION</th>
+                    <th style="width: 12%; text-align: center;">RETURN RATE</th>
+                    <th style="width: 12%; text-align: center;">RETURN QTY</th>
+                    <th style="width: 18%; text-align: right; padding-right: 16px;">REFUND AMOUNT</th>
+                    <th style="width: 5%; text-align: center;">ACTION</th>
                   </tr>
                 </thead>
                 <tbody id="returnItemsTableBody"></tbody>
@@ -1669,10 +1666,7 @@
                   <polyline points="1 4 1 10 7 10"></polyline>
                   <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
                 </svg>
-                <span style="font-size: 13.5px; color: #94a3b8;">No items returned yet — press <strong>F1</strong> to select products from catalog</span>
-                <button type="button" class="btn btn-primary btn-sm" onclick="window.SalesModule.openProductLookupModal()" style="background: #dc2626; border-color: #dc2626; margin-top: 4px;">
-                  <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; font-weight: 800; margin-right: 4px;">F1</span> Browse Product Catalog
-                </button>
+                <span style="font-size: 13.5px; color: #94a3b8;">No items returned</span>
               </div>
             </div>
 
@@ -3155,13 +3149,13 @@
           <table class="data-table f1-m-table" id="f1ModalTable">
             <thead>
               <tr>
-                <th style="width: 80px; text-align: left; padding-left: 14px;">Code</th>
+                <th style="width: 75px; text-align: center;">Code</th>
                 <th style="text-align: left; padding-left: 14px;">Product Title &amp; Details</th>
-                <th style="width: 130px; text-align: center;">Category</th>
+                <th style="width: 175px; text-align: left; padding-left: 10px;">Category</th>
                 <th style="width: 80px; text-align: center;">Stock</th>
-                <th style="width: 140px; text-align: center; color: #0284c7;">Retail Price</th>
-                <th style="width: 140px; text-align: center; color: #7c3aed;">Wholesale Price</th>
-                <th style="width: 105px; text-align: center;">Add to Bill</th>
+                <th style="width: 130px; text-align: center; color: #0284c7;">Retail Price</th>
+                <th style="width: 130px; text-align: center; color: #7c3aed;">Wholesale Price</th>
+                <th style="width: 100px; text-align: center;">Add to Bill</th>
               </tr>
             </thead>
             <tbody id="f1ModalTableBody">
@@ -3361,16 +3355,16 @@
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
           <span style="font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.03em;">Template:</span>
           <div class="sale-tpl-btn-group" style="display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 8px; gap: 2px;">
-            <button type="button" class="sale-tpl-btn active" data-tpl="a4" title="Full Page A4 Official Invoice">
+            <button type="button" class="sale-tpl-btn" data-tpl="a4" title="Full Page A4 Official Invoice">
               📄 A4 Full Page
             </button>
-            <button type="button" class="sale-tpl-btn" data-tpl="thermal" title="Continuous Thermal Receipt Roll">
+            <button type="button" class="sale-tpl-btn active" data-tpl="thermal" title="Continuous Thermal Receipt Roll">
               🧾 Thermal Roll
             </button>
           </div>
 
           <!-- Thermal Width Sub-Option -->
-          <div id="saleThermalWidthBox" style="display: none; align-items: center; gap: 6px; margin-left: 6px;">
+          <div id="saleThermalWidthBox" style="display: inline-flex; align-items: center; gap: 6px; margin-left: 6px;">
             <label style="font-size: 11.5px; font-weight: 600; color: #64748b; margin: 0;">Roll Width:</label>
             <select id="saleThermalWidthSelect" class="form-control form-control-sm" style="width: 85px; height: 28px; font-size: 11.5px; font-weight: 700;">
               <option value="80mm" selected>80mm</option>

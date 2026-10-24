@@ -518,7 +518,7 @@ window.SettingsModule = (function () {
           doc.open();
           const pageStyle = isA4
             ? `@page { size: A4 portrait; margin: 0; } html, body { margin: 0; padding: 0; background: #fff; } .invoice-container.invoice-a4 { transform: none !important; margin: 0 auto !important; box-shadow: none !important; }`
-            : `@page { size: 80mm auto; margin: 0; } html, body { margin: 0; padding: 0; width: 80mm; background: #fff; } .sale-doc-thermal { width: 80mm !important; margin: 0 !important; box-shadow: none !important; }`;
+            : `@page { size: auto; margin: 0mm; } html, body { margin: 0; padding: 0; width: 100%; background: #fff; } .sale-doc-thermal { width: 72mm !important; margin: 0 auto !important; box-shadow: none !important; page-break-after: avoid !important; }`;
           
           doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">${document.baseURI ? `<base href="${document.baseURI}">` : ''}<link rel="stylesheet" href="shared/styles.css"><link rel="stylesheet" href="sales/sales.css"><style>${pageStyle}</style></head><body>${contentHtml}</body></html>`);
           doc.close();

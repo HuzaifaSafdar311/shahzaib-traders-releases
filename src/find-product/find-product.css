@@ -291,14 +291,13 @@ html, body.find-product-window {
 /* Code Badge */
 .f1-code-badge {
   display: inline-block;
-  padding: 3px 8px;
-  border-radius: 5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: #0369a1;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
+  color: #0284c7;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
 }
 
 /* Product Titles */
@@ -306,14 +305,14 @@ html, body.find-product-window {
   font-size: 13.5px;
   font-weight: 700;
   color: #0f172a;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .f1-prod-sub {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 2px;
+  margin-top: 3px;
   font-size: 11.5px;
   flex-wrap: wrap;
 }
@@ -325,8 +324,8 @@ html, body.find-product-window {
 }
 
 .pack-sub {
-  background: #f1f5f9;
-  color: #475569;
+  background: #f8fafc;
+  color: #64748b;
   padding: 1px 6px;
   border-radius: 4px;
   border: 1px solid #e2e8f0;
@@ -336,41 +335,39 @@ html, body.find-product-window {
 /* Category Pill */
 .f1-cat-tag {
   display: inline-block;
-  padding: 3px 10px;
-  border-radius: 6px;
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 500;
   color: #475569;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  line-height: 1.35;
 }
 
 /* Stock Pills */
 .pos-stock-pill {
   display: inline-block;
-  padding: 3px 9px;
-  border-radius: 12px;
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.2px;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .pos-stock-pill.stock-in {
-  background: #dcfce7;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
+  color: #16a34a;
 }
 
 .pos-stock-pill.stock-low {
-  background: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
+  color: #d97706;
 }
 
 .pos-stock-pill.stock-out {
-  background: #fee2e2;
   color: #dc2626;
-  border: 1px solid #fecaca;
+  font-weight: 600;
+  font-size: 12px;
 }
 
 /* Dual-Price Cells */
@@ -379,45 +376,50 @@ html, body.find-product-window {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  padding: 4px 10px;
-  min-width: 95px;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  min-width: auto !important;
 }
 
-.f1-price-retail {
-  background: #f0f9ff;
-  border: 1.5px solid #bae6fd;
+.f1-price-retail,
+.f1-price-wholesale {
+  background: transparent !important;
+  border: none !important;
 }
 
 .f1-price-retail .price-val {
   font-size: 13.5px;
   font-weight: 800;
-  color: #0369a1;
+  color: #0284c7;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .f1-price-retail .price-lbl {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
-  color: #0284c7;
+  color: #94a3b8;
   text-transform: uppercase;
-}
-
-.f1-price-wholesale {
-  background: #faf5ff;
-  border: 1.5px solid #e9d5ff;
+  letter-spacing: 0.5px;
+  margin-top: 1px;
 }
 
 .f1-price-wholesale .price-val {
   font-size: 13.5px;
   font-weight: 800;
-  color: #6d28d9;
+  color: #7c3aed;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .f1-price-wholesale .price-lbl {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
-  color: #7c3aed;
+  color: #94a3b8;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 1px;
 }
 
 /* Action Buttons */

@@ -344,7 +344,7 @@
       tr.className = `f1-m-row ${isSelected ? 'selected-row' : ''}`;
       tr.dataset.index = idx;
       tr.innerHTML = `
-        <td class="font-num font-bold" style="text-align: left; padding-left: 14px;">
+        <td class="font-num font-bold" style="text-align: center;">
           <span class="f1-code-badge">${window.escapeHtml(p.code || '')}</span>
         </td>
         <td style="text-align: left; padding-left: 14px;">
@@ -354,7 +354,7 @@
             ${inBillQty > 0 ? `<span class="in-bill-tag">${isReturnMode ? '✓ In Return' : '✓ In Bill'} (${inBillQty})</span>` : ''}
           </div>
         </td>
-        <td style="text-align: center;">
+        <td style="text-align: left; padding-left: 10px;">
           <span class="f1-cat-tag">${window.escapeHtml(p.categoryName || 'General')}</span>
         </td>
         <td style="text-align: center;">
@@ -1752,33 +1752,35 @@
       const tr = document.createElement('tr');
       tr.className = 'pos-bill-row';
       tr.innerHTML = `
-        <td class="pos-cell-sr text-center font-num text-muted">${idx + 1}</td>
-        <td class="pos-cell-code font-num font-bold text-muted" style="padding-left: 12px;">${window.escapeHtml(item.productCode || '-')}</td>
-        <td class="pos-cell-title" style="padding-left: 12px;">
-          <div class="pos-bill-title font-bold">${window.escapeHtml(item.productTitle || '')}</div>
+        <td class="pos-cell-sr text-center font-num text-muted" style="text-align: center; vertical-align: middle;">${idx + 1}</td>
+        <td class="pos-cell-code font-num font-bold text-center" style="text-align: center; vertical-align: middle;">${window.escapeHtml(item.productCode || '-')}</td>
+        <td class="pos-cell-title" style="text-align: left; padding-left: 14px; vertical-align: middle;" title="${window.escapeHtml(item.productTitle || '')}">
+          <div class="pos-bill-title font-bold" style="color: #0f172a; font-size: 13px;">${window.escapeHtml(item.productTitle || '')}</div>
         </td>
-        <td class="pos-cell-stock text-center">
+        <td class="pos-cell-stock text-center" style="text-align: center; vertical-align: middle;">
           <span class="pos-stock-badge ${availStock <= 0 ? 'badge-out' : (availStock <= 5 ? 'badge-low' : 'badge-in')} font-num font-bold">
             ${availStock}
           </span>
         </td>
-        <td class="pos-cell-ratetype text-center">
+        <td class="pos-cell-ratetype text-center" style="text-align: center; vertical-align: middle;">
           ${rateToggleBtn}
         </td>
-        <td class="pos-cell-rate text-right">
-          <div class="pos-inline-input-wrap rate-input-wrap">
-            <span class="cur-sym">Rs</span>
-            <input type="number" class="pos-inline-inp font-num font-bold text-right" 
+        <td class="pos-cell-rate text-center" style="text-align: center; vertical-align: middle;">
+          <div class="pos-inline-input-wrap rate-input-wrap" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; margin: 0 auto;">
+            <span class="cur-sym" style="font-size: 11px; font-weight: 700; color: #64748b;">Rs</span>
+            <input type="number" class="pos-inline-inp font-num font-bold text-center" 
+              style="width: 78px; height: 28px; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-size: 13px;"
               value="${Number(item.salePrice || 0)}" min="0" step="1"
               onchange="window.SalesModule.changeItemRate(${idx}, this.value)"
               onfocus="this.select()"
               title="Edit unit sale rate">
           </div>
         </td>
-        <td class="pos-cell-qty text-center">
-          <div class="pos-row-qty-stepper">
+        <td class="pos-cell-qty text-center" style="text-align: center; vertical-align: middle;">
+          <div class="pos-row-qty-stepper" style="display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;">
             <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustCartItemQty(${idx}, -1)" title="Decrease quantity">−</button>
             <input type="number" class="pos-qty-input-step font-num font-bold text-center" 
+              style="width: 44px; height: 26px; border: none; background: transparent; text-align: center;"
               value="${item.totalQty}" min="1" max="${availStock}"
               onchange="window.SalesModule.changeItemQty(${idx}, this.value)"
               onfocus="this.select()"
@@ -1786,20 +1788,21 @@
             <button type="button" class="pos-qty-btn-step ${isMaxReached ? 'disabled' : ''}" ${isMaxReached ? 'disabled' : ''} onclick="window.SalesModule.adjustCartItemQty(${idx}, 1)" title="${isMaxReached ? 'Stock limit reached' : 'Increase quantity'}">+</button>
           </div>
         </td>
-        <td class="pos-cell-disc text-center">
-          <div class="pos-inline-input-wrap disc-input-wrap">
+        <td class="pos-cell-disc text-center" style="text-align: center; vertical-align: middle;">
+          <div class="pos-inline-input-wrap disc-input-wrap" style="display: inline-flex; align-items: center; justify-content: center; gap: 3px; margin: 0 auto;">
             <input type="number" class="pos-inline-inp font-num text-center" 
+              style="width: 46px; height: 28px; padding: 2px 4px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-size: 13px;"
               value="${item.discountPercent || 0}" min="0" max="100" step="0.5"
               onchange="window.SalesModule.changeItemDisc(${idx}, this.value)"
               onfocus="this.select()"
-              title="Discount percent">%
+              title="Discount percent"><span style="font-size: 11px; font-weight: 700; color: #64748b;">%</span>
           </div>
         </td>
-        <td class="pos-cell-total text-right font-num font-bold text-success" style="padding-right: 14px; font-size: 1.05rem;">
+        <td class="pos-cell-total font-num font-bold text-success" style="text-align: right; padding-right: 16px; font-size: 13.5px; white-space: nowrap; vertical-align: middle;">
           Rs ${Number(item.netAmount || 0).toLocaleString()}
         </td>
-        <td class="pos-cell-del text-center">
-          <button type="button" class="pos-item-del-btn" onclick="window.SalesModule.removeItem(${idx})" title="Remove item from bill">
+        <td class="pos-cell-del text-center" style="text-align: center; vertical-align: middle;">
+          <button type="button" class="pos-item-del-btn" onclick="window.SalesModule.removeItem(${idx})" title="Remove item from bill" style="display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;">
             ✕
           </button>
         </td>
@@ -2186,7 +2189,7 @@
     s: null,
     items: [],
     cfg: null,
-    template: 'a4',
+    template: 'thermal',
     paperWidth: '80mm',
     includePrevBill: false,
     prevBillAmount: 0
@@ -2212,8 +2215,10 @@
     renderSalePrintStudioPreview();
   }
 
+  let isPrintingLocked = false;
+
   function printIsolatedHtml(htmlContent, options = {}) {
-    const { template = '80mm', paperWidth = '80mm' } = options;
+    const { template = 'thermal', paperWidth = '80mm' } = options;
     const isA4 = (template === 'a4');
     const is58 = (paperWidth === '58mm' || template === '58mm');
     const paperW = isA4 ? '210mm' : (is58 ? '58mm' : '80mm');
@@ -2223,18 +2228,25 @@
       iframe = document.createElement('iframe');
       iframe.id = 'salesIsolatedPrintFrame';
       iframe.style.position = 'fixed';
-      iframe.style.left = '-9999px';
       iframe.style.top = '0';
-      iframe.style.width = paperW;
-      iframe.style.height = isA4 ? '297mm' : 'auto';
+      iframe.style.left = '0';
+      iframe.style.width = isA4 ? '210mm' : paperW;
+      iframe.style.height = isA4 ? '297mm' : '100%';
       iframe.style.border = '0';
-      iframe.style.opacity = '1';
+      iframe.style.opacity = '0';
       iframe.style.pointerEvents = 'none';
-      iframe.style.zIndex = '-9999';
+      iframe.style.zIndex = '-99999';
       document.body.appendChild(iframe);
     } else {
-      iframe.style.width = paperW;
-      iframe.style.height = isA4 ? '297mm' : 'auto';
+      iframe.style.position = 'fixed';
+      iframe.style.top = '0';
+      iframe.style.left = '0';
+      iframe.style.width = isA4 ? '210mm' : paperW;
+      iframe.style.height = isA4 ? '297mm' : '100%';
+      iframe.style.border = '0';
+      iframe.style.opacity = '0';
+      iframe.style.pointerEvents = 'none';
+      iframe.style.zIndex = '-99999';
     }
 
     const iframeDoc = iframe.contentWindow.document;
@@ -2276,17 +2288,18 @@
         }
       `;
     } else {
-      pageRule = `@page { size: ${paperW} 200mm; margin: 0; }`;
+      // Clean continuous thermal paper roll: NEVER enforce fixed page height or fake offsets
+      pageRule = `@page { size: auto; margin: 0mm; }`;
       containerStyles = `
         html, body {
           margin: 0 !important;
           padding: 0 !important;
-          width: ${paperW} !important;
-          max-width: ${paperW} !important;
+          width: 100% !important;
           background: #ffffff !important;
           color: #000000 !important;
           visibility: visible !important;
           opacity: 1 !important;
+          overflow: visible !important;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
@@ -2295,17 +2308,18 @@
           opacity: 1 !important;
         }
         .sale-doc-thermal, .thermal-slip-paper {
-          width: 100% !important;
-          max-width: 100% !important;
-          min-width: 100% !important;
+          width: ${is58 ? '48mm' : '72mm'} !important;
+          max-width: ${is58 ? '48mm' : '72mm'} !important;
+          min-width: ${is58 ? '48mm' : '72mm'} !important;
           margin: 0 auto !important;
-          padding: 2mm 1.5mm 4mm 1.5mm !important;
+          padding: 2mm 1mm 4mm 1mm !important;
           box-shadow: none !important;
           box-sizing: border-box !important;
           page-break-after: avoid !important;
           page-break-inside: avoid !important;
           visibility: visible !important;
           opacity: 1 !important;
+          overflow: visible !important;
           font-size: ${is58 ? '9px' : '10.5px'} !important;
         }
         .sale-doc-thermal * {
@@ -2358,31 +2372,23 @@
 </html>`);
     iframeDoc.close();
 
+    let hasTriggered = false;
     const triggerPrint = () => {
+      if (hasTriggered) return;
+      hasTriggered = true;
+
       setTimeout(() => {
         try {
-          if (!isA4) {
-            const thermalEl = iframeDoc.querySelector('.sale-doc-thermal') || iframeDoc.body;
-            const hPx = Math.ceil(thermalEl.getBoundingClientRect().height || thermalEl.scrollHeight || 500);
-            const hMm = Math.max(60, Math.ceil((hPx * 25.4) / 96) + 4);
-            let dynStyle = iframeDoc.getElementById('thermalDynPageStyle');
-            if (!dynStyle) {
-              dynStyle = iframeDoc.createElement('style');
-              dynStyle.id = 'thermalDynPageStyle';
-              iframeDoc.head.appendChild(dynStyle);
-            }
-            dynStyle.innerHTML = `@page { size: ${paperW} ${hMm}mm !important; margin: 0mm !important; }`;
-          }
           iframe.contentWindow.focus();
           iframe.contentWindow.print();
         } catch (err) {
           console.error('Isolated print failed, falling back to window.print():', err);
           window.print();
         }
-      }, 150);
+      }, 120);
     };
 
-    // If there are images, wait for them to load before printing
+    // If there are images, wait for them to load once before printing
     const imgs = iframeDoc.querySelectorAll('img');
     if (imgs.length > 0) {
       let loaded = 0;
@@ -2396,21 +2402,25 @@
         if (img.complete) {
           loaded++;
         } else {
-          img.addEventListener('load', onDone);
-          img.addEventListener('error', onDone);
+          img.addEventListener('load', onDone, { once: true });
+          img.addEventListener('error', onDone, { once: true });
         }
       });
       if (loaded >= imgs.length) {
         triggerPrint();
       } else {
-        setTimeout(triggerPrint, 400);
+        setTimeout(triggerPrint, 350);
       }
     } else {
-      setTimeout(triggerPrint, 150);
+      setTimeout(triggerPrint, 120);
     }
   }
 
   function doPrintSaleBill() {
+    if (isPrintingLocked) return;
+    isPrintingLocked = true;
+    setTimeout(() => { isPrintingLocked = false; }, 1800);
+
     let printStyle = document.getElementById('saleDynamicPrintStyle');
     if (!printStyle) {
       printStyle = document.createElement('style');
@@ -2424,10 +2434,7 @@
     if (tpl === 'a4') {
       printStyle.innerHTML = `@page { size: A4 portrait; margin: 0; }`;
     } else {
-      const receiptEl = el.receiptArea ? (el.receiptArea.querySelector('.sale-doc-thermal') || el.receiptArea) : null;
-      const hPx = receiptEl ? Math.ceil(receiptEl.getBoundingClientRect().height || receiptEl.scrollHeight || 500) : 500;
-      const hMm = Math.max(60, Math.ceil((hPx * 25.4) / 96) + 4);
-      printStyle.innerHTML = `@page { size: ${width === '58mm' ? '58mm' : '80mm'} ${hMm}mm !important; margin: 0 !important; }`;
+      printStyle.innerHTML = `@page { size: auto; margin: 0; }`;
     }
 
     let contentHtml = el.receiptArea ? el.receiptArea.innerHTML : '';
@@ -3081,17 +3088,20 @@
     salePrintStudioState.items = items;
     salePrintStudioState.cfg = cfg;
 
-    // Restore saved template & roll width
+    // Restore saved template & roll width (defaults to thermal receipt roll for POS)
     try {
       const savedTpl = localStorage.getItem('sale_bill_template');
       if (savedTpl && ['a4', 'thermal'].includes(savedTpl)) {
         salePrintStudioState.template = savedTpl;
-      } else {
+      } else if (cfg.paperSize === 'A4') {
         salePrintStudioState.template = 'a4';
+      } else {
+        salePrintStudioState.template = 'thermal';
       }
-      const savedWidth = localStorage.getItem('sale_thermal_width');
+      const savedWidth = localStorage.getItem('sale_thermal_width') || (cfg.paperSize === '58mm' ? '58mm' : '80mm');
       if (savedWidth && ['80mm', '58mm'].includes(savedWidth)) {
         salePrintStudioState.paperWidth = savedWidth;
+        if (el.thermalWidthSelect) el.thermalWidthSelect.value = savedWidth;
       }
     } catch (_) {}
 
@@ -4699,9 +4709,9 @@
         tr.className = 'pos-bill-row';
         tr.innerHTML = `
           <td class="pos-cell-sr text-center font-num text-muted" style="text-align: center; vertical-align: middle;">${idx + 1}</td>
-          <td class="pos-cell-code font-num font-bold text-muted" style="padding-left: 10px; vertical-align: middle; color: #b91c1c;">${window.escapeHtml(item.productCode || '-')}</td>
-          <td class="pos-cell-title" style="padding-left: 10px; vertical-align: middle;">
-            <div class="pos-bill-title font-bold" style="color: #0f172a;">${window.escapeHtml(item.productTitle || 'Untitled')}</div>
+          <td class="pos-cell-code font-num font-bold text-center" style="text-align: center; vertical-align: middle; color: #b91c1c;">${window.escapeHtml(item.productCode || '-')}</td>
+          <td class="pos-cell-title" style="text-align: left; padding-left: 14px; vertical-align: middle;" title="${window.escapeHtml(item.productTitle || 'Untitled')}">
+            <div class="pos-bill-title font-bold" style="color: #0f172a; font-size: 13px;">${window.escapeHtml(item.productTitle || 'Untitled')}</div>
             ${item.packSize > 1 ? `<span style="font-size: 11px; color: #64748b;">Pack size: ${item.packSize}</span>` : ''}
           </td>
           <td class="pos-cell-stock text-center" style="text-align: center; vertical-align: middle;">
@@ -4710,30 +4720,30 @@
             </span>
           </td>
           <td style="text-align: center; vertical-align: middle;">
-            <select class="form-control form-control-sm font-bold" style="width: 110px; height: 29px; font-size: 12px; display: inline-block; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 6px;" onchange="window.SalesModule.setReturnItemCondition(${idx}, this.value)">
+            <select class="form-control form-control-sm font-bold" style="width: 110px; height: 28px; font-size: 12px; display: inline-block; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0 auto;" onchange="window.SalesModule.setReturnItemCondition(${idx}, this.value)">
               <option value="Good" ${cond === 'Good' ? 'selected' : ''}>Good</option>
               <option value="Defective" ${cond === 'Defective' ? 'selected' : ''}>Defective</option>
               <option value="Damaged" ${cond === 'Damaged' ? 'selected' : ''}>Damaged</option>
             </select>
           </td>
-          <td style="text-align: right; padding-right: 14px; vertical-align: middle;">
-            <div class="pos-inline-input-wrap rate-input-wrap" style="justify-content: flex-end;">
+          <td class="pos-cell-rate text-center" style="text-align: center; vertical-align: middle;">
+            <div class="pos-inline-input-wrap rate-input-wrap" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; margin: 0 auto;">
               <span class="cur-sym" style="font-size: 11px; font-weight: 700; color: #64748b;">Rs</span>
-              <input type="number" class="pos-inline-inp font-num font-bold text-right" style="width: 85px; height: 29px; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 6px;" min="0" step="1" value="${Number(item.returnRate || 0)}" onchange="window.SalesModule.updateReturnItemRate(${idx}, this.value)">
+              <input type="number" class="pos-inline-inp font-num font-bold text-center" style="width: 78px; height: 28px; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-size: 13px;" min="0" step="1" value="${Number(item.returnRate || 0)}" onchange="window.SalesModule.updateReturnItemRate(${idx}, this.value)">
             </div>
           </td>
-          <td style="text-align: center; vertical-align: middle;">
-            <div class="pos-row-qty-stepper" style="display: inline-flex; align-items: center; justify-content: center;">
+          <td class="pos-cell-qty text-center" style="text-align: center; vertical-align: middle;">
+            <div class="pos-row-qty-stepper" style="display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;">
               <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustReturnCartItemQty(${idx}, -1)" title="Decrease quantity">−</button>
-              <input type="number" class="pos-qty-input-step font-num font-bold text-center" style="width: 48px; height: 26px; border: none; background: transparent;" min="1" value="${item.totalQty}" onchange="window.SalesModule.setReturnItemQty(${idx}, this.value)">
+              <input type="number" class="pos-qty-input-step font-num font-bold text-center" style="width: 44px; height: 26px; border: none; background: transparent; text-align: center;" min="1" value="${item.totalQty}" onchange="window.SalesModule.setReturnItemQty(${idx}, this.value)">
               <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustReturnCartItemQty(${idx}, 1)" title="Increase quantity">+</button>
             </div>
           </td>
-          <td class="font-num font-bold text-right" style="padding-right: 16px; color: #dc2626; font-size: 13.5px; white-space: nowrap; vertical-align: middle;">
+          <td class="pos-cell-total font-num font-bold text-right" style="text-align: right; padding-right: 16px; color: #dc2626; font-size: 13.5px; white-space: nowrap; vertical-align: middle;">
             Rs ${Number(item.netAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </td>
-          <td style="text-align: center; vertical-align: middle;">
-            <button type="button" class="btn btn-xs btn-outline" style="color: #dc2626; border-color: #fca5a5; width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px;" onclick="window.SalesModule.removeReturnItem(${idx})" title="Remove item">✕</button>
+          <td class="pos-cell-del text-center" style="text-align: center; vertical-align: middle;">
+            <button type="button" class="pos-item-del-btn" style="display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;" onclick="window.SalesModule.removeReturnItem(${idx})" title="Remove item">✕</button>
           </td>
         `;
         tbody.appendChild(tr);
