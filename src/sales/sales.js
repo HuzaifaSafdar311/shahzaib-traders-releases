@@ -15,7 +15,9 @@
     selectedCustomer: null,
     rateMode: 'retail', // 'retail' | 'wholesale'
     pendingAddProduct: null,
-    salesList: []
+    salesList: [],
+    slipCurrentPage: 1,
+    slipPageSize: 5
   };
 
   // DOM Elements Cache
@@ -501,6 +503,8 @@
       const discAmt = lineGross * ((saleState.items[existingIdx].discountPercent || 0) / 100);
       saleState.items[existingIdx].discountAmount = discAmt;
       saleState.items[existingIdx].netAmount = lineGross - discAmt;
+      const pageSize = saleState.slipPageSize || 5;
+      saleState.slipCurrentPage = Math.floor(existingIdx / pageSize) + 1;
     } else {
       const grossLine = qtyToAdd * rate;
       saleState.items.push({
@@ -522,6 +526,8 @@
         discountAmount: 0,
         netAmount: grossLine
       });
+      const pageSize = saleState.slipPageSize || 5;
+      saleState.slipCurrentPage = Math.ceil(saleState.items.length / pageSize);
     }
 
     renderItemsTable();
@@ -1673,7 +1679,7 @@
   function removeSaleItem(idx) {
     if (idx >= 0 && idx < saleState.items.length) {
       saleState.items.splice(idx, 1);
-      const pageSize = saleState.slipPageSize || 9;
+      const pageSize = saleState.slipPageSize || 5;
       const totalPages = Math.ceil(saleState.items.length / pageSize) || 1;
       if (saleState.slipCurrentPage > totalPages) {
         saleState.slipCurrentPage = totalPages;
@@ -1730,14 +1736,24 @@
     }
 
     if (emptyState) emptyState.style.display = 'none';
-    if (paginationBar) paginationBar.style.display = 'none';
     if (btnSell) {
       btnSell.disabled = false;
       btnSell.style.opacity = '1';
       btnSell.style.cursor = 'pointer';
     }
 
-    saleState.items.forEach((item, idx) => {
+    const pageSize = saleState.slipPageSize || 5;
+    const totalPages = Math.ceil(saleState.items.length / pageSize) || 1;
+    if (!saleState.slipCurrentPage || saleState.slipCurrentPage < 1) saleState.slipCurrentPage = 1;
+    if (saleState.slipCurrentPage > totalPages) saleState.slipCurrentPage = totalPages;
+
+    const currentPage = saleState.slipCurrentPage;
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, saleState.items.length);
+    const visibleItems = saleState.items.slice(startIdx, endIdx);
+
+    visibleItems.forEach((item, relIdx) => {
+      const idx = startIdx + relIdx;
       const prod = (window.appData?.products || []).find(pr => String(pr.id) === String(item.productId) || String(pr.code) === String(item.productCode));
       const availStock = prod ? Number(prod.stockQty || 0) : 999999;
       const isMaxReached = item.totalQty >= availStock;
@@ -1818,6 +1834,22 @@
       `;
       el.itemsTableBody.appendChild(tr);
     });
+
+    if (paginationBar) {
+      if (totalPages > 1) {
+        paginationBar.style.display = 'flex';
+        const pagInfo = document.getElementById('posSlipPaginationInfo');
+        const pagCur = document.getElementById('posSlipPaginationCurrent');
+        const btnPrev = document.getElementById('btnPosSlipPrev');
+        const btnNext = document.getElementById('btnPosSlipNext');
+        if (pagInfo) pagInfo.textContent = `Items ${startIdx + 1}–${endIdx} of ${saleState.items.length}`;
+        if (pagCur) pagCur.textContent = `Page ${currentPage} of ${totalPages}`;
+        if (btnPrev) btnPrev.disabled = currentPage <= 1;
+        if (btnNext) btnNext.disabled = currentPage >= totalPages;
+      } else {
+        paginationBar.style.display = 'none';
+      }
+    }
   }
 
   function clearBillCart() {
@@ -4050,7 +4082,7 @@
     selectedCustomer: null,
     returnsList: [],
     slipCurrentPage: 1,
-    slipPageSize: 9
+    slipPageSize: 5
   };
 
   const retEl = {};
@@ -4535,7 +4567,7 @@
     const qty = Math.max(1, Number(qtyToAdd) || 1);
 
     const existingIdx = returnState.items.findIndex(it => String(it.productId) === String(p.id) || it.productCode === p.code);
-    const pageSize = returnState.slipPageSize || 9;
+    const pageSize = returnState.slipPageSize || 5;
     if (existingIdx !== -1) {
       returnState.items[existingIdx].totalQty += qty;
       returnState.items[existingIdx].returnRate = rate;
@@ -4679,6 +4711,11 @@
   function removeReturnItem(idx) {
     if (idx >= 0 && idx < returnState.items.length) {
       returnState.items.splice(idx, 1);
+      const pageSize = returnState.slipPageSize || 5;
+      const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
+      if (returnState.slipCurrentPage > totalPages) {
+        returnState.slipCurrentPage = totalPages;
+      }
       renderReturnItemsTable();
       updateReturnTotals();
     }
@@ -4712,7 +4749,18 @@
 
     if (tbody) {
       tbody.innerHTML = '';
-      returnState.items.forEach((item, idx) => {
+      const pageSize = returnState.slipPageSize || 5;
+      const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
+      if (!returnState.slipCurrentPage || returnState.slipCurrentPage < 1) returnState.slipCurrentPage = 1;
+      if (returnState.slipCurrentPage > totalPages) returnState.slipCurrentPage = totalPages;
+
+      const currentPage = returnState.slipCurrentPage;
+      const startIdx = (currentPage - 1) * pageSize;
+      const endIdx = Math.min(startIdx + pageSize, returnState.items.length);
+      const visibleItems = returnState.items.slice(startIdx, endIdx);
+
+      visibleItems.forEach((item, relIdx) => {
+        const idx = startIdx + relIdx;
         const prod = (window.appData?.products || []).find(p => String(p.id) === String(item.productId) || String(p.code) === String(item.productCode)) || {};
         const stockQty = Number(prod.stockQty || 0);
         const cond = item.condition || 'Good';
@@ -4760,6 +4808,23 @@
         `;
         tbody.appendChild(tr);
       });
+
+      const returnPaginationBar = document.getElementById('returnPosSlipPaginationBar');
+      if (returnPaginationBar) {
+        if (totalPages > 1) {
+          returnPaginationBar.style.display = 'flex';
+          const pagInfo = document.getElementById('returnPosSlipPaginationInfo');
+          const pagCur = document.getElementById('returnPosSlipPaginationCurrent');
+          const btnPrev = document.getElementById('btnReturnSlipPrev');
+          const btnNext = document.getElementById('btnReturnSlipNext');
+          if (pagInfo) pagInfo.textContent = `Items ${startIdx + 1}–${endIdx} of ${returnState.items.length}`;
+          if (pagCur) pagCur.textContent = `Page ${currentPage} of ${totalPages}`;
+          if (btnPrev) btnPrev.disabled = currentPage <= 1;
+          if (btnNext) btnNext.disabled = currentPage >= totalPages;
+        } else {
+          returnPaginationBar.style.display = 'none';
+        }
+      }
     }
   }
 
@@ -5034,6 +5099,7 @@
     returnState.items = [];
     returnState.selectedProduct = null;
     returnState.selectedCustomer = null;
+    returnState.slipCurrentPage = 1;
 
     const custName = document.getElementById('returnCustomerName');
     const custPhone = document.getElementById('returnCustomerPhone');
@@ -5898,7 +5964,7 @@ ${window.escapeHtml(cfg.footer)}
     },
     showPosRightView,
     changeSlipPage: (delta) => {
-      const pageSize = saleState.slipPageSize || 9;
+      const pageSize = saleState.slipPageSize || 5;
       const totalPages = Math.ceil(saleState.items.length / pageSize) || 1;
       const newPage = (saleState.slipCurrentPage || 1) + delta;
       if (newPage >= 1 && newPage <= totalPages) {
@@ -5907,7 +5973,7 @@ ${window.escapeHtml(cfg.footer)}
       }
     },
     changeReturnSlipPage: (delta) => {
-      const pageSize = returnState.slipPageSize || 9;
+      const pageSize = returnState.slipPageSize || 5;
       const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
       const newPage = (returnState.slipCurrentPage || 1) + delta;
       if (newPage >= 1 && newPage <= totalPages) {

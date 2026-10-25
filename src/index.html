@@ -1367,6 +1367,16 @@
                 <tbody id="saleItemsTableBody"></tbody>
               </table>
 
+              <!-- Compact Bill Slip Pagination Controls (Shows when items > 5) -->
+              <div class="pos-slip-mini-pagination" id="posSlipPaginationBar" style="display: none; margin: 6px 10px; padding: 6px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <span class="pos-slip-pag-info" id="posSlipPaginationInfo" style="font-size: 11.5px; font-weight: 600; color: #64748b;">Items 1–5 of 6</span>
+                <div class="pos-slip-pag-btns" style="display: flex; align-items: center; gap: 8px;">
+                  <button type="button" class="pos-slip-pag-btn btn btn-xs btn-secondary" id="btnPosSlipPrev" onclick="window.SalesModule.changeSlipPage(-1)" title="Previous Page" style="height: 24px; padding: 0 10px; font-weight: 700; cursor: pointer;">‹ Prev</button>
+                  <span class="pos-slip-pag-curr font-num font-bold" id="posSlipPaginationCurrent" style="font-size: 11.5px; color: #0f172a; padding: 0 4px;">Page 1 of 2</span>
+                  <button type="button" class="pos-slip-pag-btn btn btn-xs btn-secondary" id="btnPosSlipNext" onclick="window.SalesModule.changeSlipPage(1)" title="Next Page" style="height: 24px; padding: 0 10px; font-weight: 700; cursor: pointer;">Next ›</button>
+                </div>
+              </div>
+
               <!-- Dedicated Clean Empty State matching Inventory -->
               <div id="saleItemsEmptyState" class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 42px 16px; width: 100%;">
                 <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#cbd5e1" stroke-width="1.5">
@@ -1487,7 +1497,6 @@
               <span id="posCartCountBadge">0</span>
               <span id="saleTotalProfitPreview">Rs 0.00</span>
               <div id="posSlipItemsTableBody"></div>
-              <div id="posSlipPaginationBar"></div>
             </div>
 
           </div><!-- /saleEntryPage -->
@@ -1660,6 +1669,16 @@
                 <tbody id="returnItemsTableBody"></tbody>
               </table>
 
+              <!-- Compact Return Slip Pagination Controls (Shows when items > 5) -->
+              <div class="pos-slip-mini-pagination" id="returnPosSlipPaginationBar" style="display: none; margin: 6px 10px; padding: 6px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <span class="pos-slip-pag-info" id="returnPosSlipPaginationInfo" style="font-size: 11.5px; font-weight: 600; color: #64748b;">Items 1–5 of 6</span>
+                <div class="pos-slip-pag-btns" style="display: flex; align-items: center; gap: 8px;">
+                  <button type="button" class="pos-slip-pag-btn btn btn-xs btn-secondary" id="btnReturnSlipPrev" onclick="window.SalesModule.changeReturnSlipPage(-1)" title="Previous Page" style="height: 24px; padding: 0 10px; font-weight: 700; cursor: pointer;">‹ Prev</button>
+                  <span class="pos-slip-pag-curr font-num font-bold" id="returnPosSlipPaginationCurrent" style="font-size: 11.5px; color: #0f172a; padding: 0 4px;">Page 1 of 2</span>
+                  <button type="button" class="pos-slip-pag-btn btn btn-xs btn-secondary" id="btnReturnSlipNext" onclick="window.SalesModule.changeReturnSlipPage(1)" title="Next Page" style="height: 24px; padding: 0 10px; font-weight: 700; cursor: pointer;">Next ›</button>
+                </div>
+              </div>
+
               <!-- Dedicated Clean Empty State matching Inventory & Sales -->
               <div id="returnItemsEmptyState" class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 42px 16px; width: 100%;">
                 <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#fca5a5" stroke-width="1.5">
@@ -1774,7 +1793,6 @@
               <span id="returnSlipModeDisplay"></span>
               <span id="returnSlipOrigBillDisplay"></span>
               <div id="returnSlipItemsTableBody"></div>
-              <div id="returnPosSlipPaginationBar"></div>
             </div>
 
           </div><!-- /returnEntryPage -->
