@@ -427,11 +427,11 @@
     if (!p) return;
     if (currentSaleSubTab === 'return') {
       addReturnProductToCart(p.id, 1);
-      selectReturnProduct(p);
+      selectReturnProduct(p, false);
     } else {
       const mode = forcedRateMode || saleState.rateMode || 'retail';
-      addProductToCart(p.id, 1, mode);
-      selectProduct(p);
+      addProductToCart(p.id, 1, mode, true);
+      selectProduct(p, false);
     }
     renderF1ModalProducts();
   }
@@ -709,7 +709,7 @@
           if (f1ModalState.filteredProducts[f1ModalState.selectedIndex]) {
             const mode = e.shiftKey ? 'wholesale' : (saleState.rateMode || 'retail');
             selectF1Product(f1ModalState.selectedIndex, mode);
-            closeProductLookupModal();
+            // Keep panel open so user can continuously add multiple items without closing
           }
         } else if (e.key === 'Escape') {
           e.preventDefault();
@@ -1463,7 +1463,7 @@
   // ========================================================
   // PRODUCT SELECTION & LIVE RATES COMPARISON (CORE FEATURE)
   // ========================================================
-  function selectProduct(p) {
+  function selectProduct(p, shouldFocus = true) {
     if (!p) return;
     // Always resolve against fresh window.appData.products for live stock and rates
     const fresh = (window.appData?.products || []).find(pr => String(pr.id) === String(p.id) || String(pr.code) === String(p.code)) || p;
@@ -1513,8 +1513,8 @@
     if (el.unitQty) el.unitQty.value = 0;
     updateLineCalculations();
 
-    // Focus pack quantity for rapid POS operation
-    if (el.packQty) el.packQty.focus();
+    // Focus pack quantity for rapid POS operation (only when manual selection, not from F1 catalog)
+    if (shouldFocus && el.packQty) el.packQty.focus();
   }
 
   function applyRateChoice(mode) {
@@ -3958,11 +3958,12 @@
 
         if (isSaleActive) {
           if (currentSaleSubTab === 'return') {
-            selectReturnProduct(product);
+            addReturnProductToCart(product.id || product.code, 1);
+            selectReturnProduct(product, false);
           } else {
             const rateMode = product._chosenRateType || saleState.rateMode || 'retail';
-            addProductToCart(product.id || product.code, 1, rateMode);
-            selectProduct(product);
+            addProductToCart(product.id || product.code, 1, rateMode, true);
+            selectProduct(product, false);
           }
         }
       });
@@ -4239,7 +4240,7 @@
     });
   }
 
-  function selectReturnProduct(product) {
+  function selectReturnProduct(product, shouldFocus = true) {
     if (!product) return;
     returnState.selectedProduct = product;
 
@@ -4269,7 +4270,9 @@
     }
 
     updateReturnLineCalculations();
-    setTimeout(() => retEl.unitQty?.focus(), 50);
+    if (shouldFocus) {
+      setTimeout(() => retEl.unitQty?.focus(), 50);
+    }
   }
 
   function updateReturnLineCalculations() {

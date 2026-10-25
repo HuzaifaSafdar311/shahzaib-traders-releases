@@ -54,6 +54,8 @@ function openFindProductWindow() {
     minWidth: 920,
     minHeight: 560,
     center: true,
+    parent: mainWindow || null,
+    alwaysOnTop: true,
     backgroundColor: '#ffffff',
     title: 'Find Product (F1) - Shahzaib Traders',
     icon: iconPath,
@@ -584,7 +586,10 @@ app.whenReady().then(() => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('product-selected-from-window', product);
     }
-    // Keep Find Product window open so user can add multiple items continuously
+    // Keep Find Product window open and focused so user can add multiple items continuously
+    if (findProductWindow && !findProductWindow.isDestroyed()) {
+      findProductWindow.focus();
+    }
   });
 
   app.on('activate', () => {
