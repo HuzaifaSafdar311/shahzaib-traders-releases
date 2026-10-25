@@ -2078,6 +2078,85 @@ function closeDatabase() {
   }
 }
 
+function restoreDatabase(backupPath, currentDbPath) {
+  try {
+    if (!backupPath || !fs.existsSync(backupPath)) {
+      throw new Error(`Backup file not found at: ${backupPath}`);
+    }
+
+    if (!currentDbPath) {
+      throw new Error('Current database target path is missing');
+    }
+
+    const ext = path.extname(backupPath).toLowerCase();
+
+    // 1. Validate the backup file before touching active database
+    if (ext === '.json') {
+      const raw = fs.readFileSync(backupPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (typeof parsed !== 'object' || parsed === null) {
+        throw new Error('Invalid JSON backup structure');
+      }
+    } else {
+      if (DatabaseSync) {
+        const testDb = new DatabaseSync(backupPath);
+        const check = testDb.prepare("PRAGMA quick_check").get();
+        testDb.close();
+        if (!check || check.quick_check !== 'ok') {
+          throw new Error('Backup file verification failed: file is corrupted or not a valid SQLite database.');
+        }
+      }
+    }
+
+    // 2. Create safety backup of the active database before overwriting
+    let safetyBackupResult = null;
+    if (fs.existsSync(currentDbPath)) {
+      try {
+        safetyBackupResult = backupDatabase(currentDbPath);
+      } catch (bkpErr) {
+        console.warn('Pre-restore safety backup notice:', bkpErr);
+      }
+    }
+
+    // 3. Close the active database connection
+    closeDatabase();
+
+    // 4. Remove active WAL & SHM files to avoid page conflicts
+    const walFile = currentDbPath + '-wal';
+    const shmFile = currentDbPath + '-shm';
+    if (fs.existsSync(walFile)) {
+      try { fs.unlinkSync(walFile); } catch (_) {}
+    }
+    if (fs.existsSync(shmFile)) {
+      try { fs.unlinkSync(shmFile); } catch (_) {}
+    }
+
+    // 5. Replace current database with backup file
+    fs.mkdirSync(path.dirname(currentDbPath), { recursive: true });
+    fs.copyFileSync(backupPath, currentDbPath);
+
+    // 6. Re-initialize database instance and sub-modules
+    initDatabase(currentDbPath);
+
+    return {
+      success: true,
+      message: `Database successfully restored from ${path.basename(backupPath)}.`,
+      filename: path.basename(backupPath),
+      safetyBackup: safetyBackupResult?.filename || null
+    };
+  } catch (err) {
+    console.error('Database restore error:', err);
+    // Ensure database instance is restored if possible
+    if (!dbInstance) {
+      try { initDatabase(currentDbPath); } catch (_) {}
+    }
+    return {
+      success: false,
+      error: err.message
+    };
+  }
+}
+
 module.exports = {
   initDatabase,
   closeDatabase,
@@ -2188,6 +2267,7 @@ module.exports = {
   setAppPin,
   getDbStats,
   backupDatabase,
+  restoreDatabase,
   optimizeDatabase,
   exportAllDatabaseJson
 };

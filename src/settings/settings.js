@@ -69,6 +69,7 @@ window.SettingsModule = (function () {
     el.statPartiesCount = document.getElementById('statPartiesCount');
     el.statDbSize = document.getElementById('statDbSize');
     el.btnBackupDb = document.getElementById('btnBackupDatabase');
+    el.btnRestoreDb = document.getElementById('btnRestoreDatabase');
     el.btnOptimizeDb = document.getElementById('btnOptimizeDatabase');
     el.btnOpenBackupsFolder = document.getElementById('btnOpenBackupsFolder');
     el.btnExportJson = document.getElementById('btnExportFullJson');
@@ -619,7 +620,54 @@ window.SettingsModule = (function () {
       });
     }
 
-    // 6. Database Vacuum & Optimize
+    // 6. Database Import & Restore from Backup
+    if (el.btnRestoreDb) {
+      el.btnRestoreDb.addEventListener('click', async () => {
+        const confirmed = confirm(
+          '⚠️ RESTORE DATABASE FROM BACKUP:\n\n' +
+          'Are you sure you want to import and restore a database backup?\n\n' +
+          '• Current database will be safely snapshotted before replacing.\n' +
+          '• All records, inventory, sales, parties, and invoices will be restored from the chosen backup.\n\n' +
+          'Click OK to choose the backup file (.db).'
+        );
+        if (!confirmed) return;
+
+        try {
+          el.btnRestoreDb.disabled = true;
+          el.btnRestoreDb.textContent = 'Restoring...';
+          const res = await window.settingsAPI.restoreDatabase();
+          if (res && res.success) {
+            showToast(`✅ Database restored from ${res.filename}!`, 'success');
+            if (el.backupStatusText) {
+              el.backupStatusText.textContent = `Restored from: ${res.filename} | Safety snapshot created: ${res.safetyBackup || 'Yes'}`;
+            }
+            await loadDatabaseStats();
+            await loadAllSettings();
+            if (window.reloadFromDatabase) await window.reloadFromDatabase();
+            setTimeout(() => {
+              alert(
+                '✅ DATABASE RESTORED SUCCESSFULLY!\n\n' +
+                `Source: ${res.filename}\n` +
+                (res.safetyBackup ? `Safety backup of previous state: ${res.safetyBackup}\n\n` : '\n') +
+                'The application will now reload to display the restored data.'
+              );
+              window.location.reload();
+            }, 350);
+          } else if (res && res.canceled) {
+            showToast('Restore operation cancelled.', 'info');
+          } else {
+            showToast('Restore failed: ' + (res?.error || res?.message || 'Unknown error'), 'error');
+          }
+        } catch (err) {
+          showToast('Restore error: ' + err.message, 'error');
+        } finally {
+          el.btnRestoreDb.disabled = false;
+          el.btnRestoreDb.textContent = 'Import / Restore Backup';
+        }
+      });
+    }
+
+    // 7. Database Vacuum & Optimize
     if (el.btnOptimizeDb) {
       el.btnOptimizeDb.addEventListener('click', async () => {
         try {

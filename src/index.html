@@ -2302,6 +2302,25 @@
                       style="padding: 8px 18px;">Create Instant Backup</button>
                   </div>
 
+                  <!-- Action 2: Import & Restore Backup -->
+                  <div class="db-action-item" style="border-left: 3.5px solid #0284c7; background: #f8fafc;">
+                    <div class="db-action-info">
+                      <div class="db-action-icon" style="color: #0284c7; background: #e0f2fe;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <polyline points="17 8 12 3 7 8"></polyline>
+                          <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                      </div>
+                      <div>
+                        <div class="db-action-title">Import & Restore Database Backup (.db)</div>
+                        <div class="db-action-desc">Select an existing backup file to restore your full database. An automatic safety snapshot will be taken first before restoring.</div>
+                      </div>
+                    </div>
+                    <button type="button" id="btnRestoreDatabase" class="btn btn-primary"
+                      style="padding: 8px 18px; background: #0284c7; border-color: #0284c7;">Import / Restore Backup</button>
+                  </div>
+
                   <!-- Action 2: Optimize & Vacuum -->
                   <div class="db-action-item">
                     <div class="db-action-info">

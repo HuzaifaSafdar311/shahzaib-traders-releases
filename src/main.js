@@ -464,6 +464,34 @@ app.whenReady().then(() => {
     return db.backupDatabase(getDbFilePath());
   });
 
+  ipcMain.handle('restore-database', async (_event, customFilePath) => {
+    try {
+      let fileToRestore = customFilePath;
+      if (!fileToRestore) {
+        const backupDir = path.join(path.dirname(getDbFilePath()), 'backups');
+        const openRes = await dialog.showOpenDialog(mainWindow, {
+          title: 'Select Backup Database File to Restore',
+          defaultPath: fs.existsSync(backupDir) ? backupDir : path.dirname(getDbFilePath()),
+          filters: [
+            { name: 'Database Backup (*.db, *.sqlite)', extensions: ['db', 'sqlite', 'sqlite3', 'json'] },
+            { name: 'All Files', extensions: ['*'] }
+          ],
+          properties: ['openFile']
+        });
+        if (openRes.canceled || !openRes.filePaths || openRes.filePaths.length === 0) {
+          return { success: false, canceled: true, message: 'Restore cancelled by user' };
+        }
+        fileToRestore = openRes.filePaths[0];
+      }
+
+      const res = db.restoreDatabase(fileToRestore, getDbFilePath());
+      return res;
+    } catch (err) {
+      console.error('restore-database error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
   ipcMain.handle('optimize-database', async () => {
     return db.optimizeDatabase();
   });

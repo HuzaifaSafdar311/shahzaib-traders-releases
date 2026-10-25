@@ -162,6 +162,7 @@ contextBridge.exposeInMainWorld('settingsAPI', {
   saveSettings: (settings) => ipcRenderer.invoke('save-app-settings', settings),
   getDbStats: () => ipcRenderer.invoke('get-db-stats'),
   backupDatabase: () => ipcRenderer.invoke('backup-database'),
+  restoreDatabase: (filePath) => ipcRenderer.invoke('restore-database', filePath),
   optimizeDatabase: () => ipcRenderer.invoke('optimize-database'),
   openBackupsFolder: () => ipcRenderer.invoke('open-backups-folder'),
   changeAppPin: (currentPin, newPin) => ipcRenderer.invoke('change-app-pin', { currentPin, newPin }),
