@@ -1355,7 +1355,7 @@ function renderPurchaseLineItems() {
 
   if (!purLinePagination && window.createTablePagination) {
     purLinePagination = window.createTablePagination({
-      container: '.pur-items-grid',
+      container: '#subviewPurchaseVoucher .pur-items-grid',
       tbody: inv.purchaseItemsTableBody,
       emptyStateEl: inv.purchaseItemsEmptyState,
       fixedPageSize: 6,

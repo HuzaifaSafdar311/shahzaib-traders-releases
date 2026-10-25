@@ -1338,9 +1338,9 @@
               </div>
             </div>
 
-            <!-- ROW 2: ACTIVE LINE ITEMS GRID / REPORT TABLE (Matches pur-items-grid) -->
-            <div class="table-container voucher-grid-container gi-table-wrapper pur-items-grid" style="flex: 1; min-height: 240px; margin: 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
-              <div class="pur-bill-header-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: #f8fafc; border-bottom: 1.5px solid #e2e8f0;">
+            <!-- ROW 2: ACTIVE LINE ITEMS GRID / REPORT TABLE -->
+            <div id="saleBillItemsTableContainer" class="voucher-grid-container gi-table-wrapper" style="display: flex; flex-direction: column; flex: 1; min-height: 270px; max-height: 420px; overflow: hidden; margin: 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+              <div class="pur-bill-header-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; flex-shrink: 0;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <strong style="font-size: 12.5px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.02em;">🛒 Bill Line Items</strong>
                   <span id="posBillItemCountBadge" class="pur-summary-pill" style="padding: 2px 8px; font-size: 11.5px; font-weight: 700;">0 Items</span>
@@ -1349,41 +1349,49 @@
                   <button type="button" id="btnPosClearCart" class="btn btn-xs btn-outline" style="color: #dc2626; border-color: #fca5a5;" title="Clear all items from bill">Clear Bill</button>
                 </div>
               </div>
-              <table class="data-table voucher-table gi-data-table pos-bill-table">
-                <thead>
-                  <tr>
-                    <th style="width: 4%; text-align: center;">SR</th>
-                    <th style="width: 8%; text-align: center;">CODE</th>
-                    <th style="width: 19%; text-align: left; padding-left: 14px;">PRODUCT DESCRIPTION</th>
-                    <th style="width: 8%; text-align: center;">STOCK</th>
-                    <th style="width: 15%; text-align: center;">RATE TYPE</th>
-                    <th style="width: 11%; text-align: center;">UNIT RATE</th>
-                    <th style="width: 11%; text-align: center;">QUANTITY</th>
-                    <th style="width: 8%; text-align: center;">DISC %</th>
-                    <th style="width: 11%; text-align: right; padding-right: 16px;">AMOUNT</th>
-                    <th style="width: 5%; text-align: center;">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody id="saleItemsTableBody"></tbody>
-              </table>
+              <div class="voucher-table-scroll" style="flex: 1; overflow-y: auto; min-height: 180px;">
+                <table class="data-table voucher-table gi-data-table pos-bill-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 4%; text-align: center;">SR</th>
+                      <th style="width: 8%; text-align: center;">CODE</th>
+                      <th style="width: 19%; text-align: left; padding-left: 14px;">PRODUCT DESCRIPTION</th>
+                      <th style="width: 8%; text-align: center;">STOCK</th>
+                      <th style="width: 15%; text-align: center;">RATE TYPE</th>
+                      <th style="width: 11%; text-align: center;">UNIT RATE</th>
+                      <th style="width: 11%; text-align: center;">QUANTITY</th>
+                      <th style="width: 8%; text-align: center;">DISC %</th>
+                      <th style="width: 11%; text-align: right; padding-right: 16px;">AMOUNT</th>
+                      <th style="width: 5%; text-align: center;">ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody id="saleItemsTableBody"></tbody>
+                </table>
 
-              <!-- Compact Bill Slip Pagination Controls (Shows when items > 5) -->
-              <div class="pos-slip-mini-pagination" id="posSlipPaginationBar" style="display: none; margin: 6px 10px; padding: 6px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
-                <span class="pos-slip-pag-info" id="posSlipPaginationInfo" style="font-size: 11.5px; font-weight: 600; color: #64748b;">Items 1–5 of 6</span>
-                <div class="pos-slip-pag-btns" style="display: flex; align-items: center; gap: 8px;">
-                  <button type="button" class="pos-slip-pag-btn btn btn-xs btn-secondary" id="btnPosSlipPrev" onclick="window.SalesModule.changeSlipPage(-1)" title="Previous Page" style="height: 24px; padding: 0 10px; font-weight: 700; cursor: pointer;">‹ Prev</button>
-                  <span class="pos-slip-pag-curr font-num font-bold" id="posSlipPaginationCurrent" style="font-size: 11.5px; color: #0f172a; padding: 0 4px;">Page 1 of 2</span>
-                  <button type="button" class="pos-slip-pag-btn btn btn-xs btn-secondary" id="btnPosSlipNext" onclick="window.SalesModule.changeSlipPage(1)" title="Next Page" style="height: 24px; padding: 0 10px; font-weight: 700; cursor: pointer;">Next ›</button>
+                <!-- Dedicated Clean Empty State matching Inventory -->
+                <div id="saleItemsEmptyState" class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 42px 16px; width: 100%;">
+                  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#cbd5e1" stroke-width="1.5">
+                    <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                  </svg>
+                  <span style="font-size: 13.5px; color: #94a3b8;">No items added</span>
                 </div>
               </div>
 
-              <!-- Dedicated Clean Empty State matching Inventory -->
-              <div id="saleItemsEmptyState" class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 42px 16px; width: 100%;">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#cbd5e1" stroke-width="1.5">
-                  <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-                <span style="font-size: 13.5px; color: #94a3b8;">No items added</span>
+              <!-- Standard Bill Pagination Footer matching App-wide Design -->
+              <div class="table-footer pagination-footer" id="posSlipPaginationBar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: #ffffff; border-top: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; flex-shrink: 0;">
+                <div class="pagination-info" id="posSlipPaginationInfo" style="font-size: 12.5px; color: #64748b; font-weight: 500;">Showing 0 of 0 entries</div>
+                <div class="pagination-controls" style="display: inline-flex; align-items: center; gap: 6px;">
+                  <button type="button" class="btn-page btn-page-nav btn-prev" id="btnPosSlipPrev" onclick="window.SalesModule.changeSlipPage(-1)" title="Previous Page">
+                    <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    Prev
+                  </button>
+                  <div class="pagination-numbers" id="posSlipPaginationNumbers"></div>
+                  <button type="button" class="btn-page btn-page-nav btn-next" id="btnPosSlipNext" onclick="window.SalesModule.changeSlipPage(1)" title="Next Page">
+                    Next
+                    <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1642,8 +1650,8 @@
             </div>
 
             <!-- ROW 2: ACTIVE RETURN ITEMS GRID / REPORT TABLE -->
-            <div class="table-container voucher-grid-container gi-table-wrapper pur-items-grid" style="flex: 1; min-height: 240px; margin: 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
-              <div class="pur-bill-header-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: #fff5f5; border-bottom: 1.5px solid #fecaca;">
+            <div id="saleReturnItemsTableContainer" class="voucher-grid-container gi-table-wrapper" style="display: flex; flex-direction: column; flex: 1; min-height: 270px; max-height: 420px; overflow: hidden; margin: 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+              <div class="pur-bill-header-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: #fff5f5; border-bottom: 1.5px solid #fecaca; flex-shrink: 0;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <strong style="font-size: 12.5px; color: #991b1b; text-transform: uppercase; letter-spacing: 0.02em;">🔄 Return Line Items</strong>
                   <span id="returnBillItemCountBadge" class="pur-summary-pill" style="padding: 2px 8px; font-size: 11.5px; font-weight: 700; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;">0 Items</span>
@@ -1652,40 +1660,48 @@
                   <button type="button" id="btnReturnClearCart" class="btn btn-xs btn-outline" style="color: #dc2626; border-color: #fca5a5;" title="Clear all returned items">Clear Return Slip</button>
                 </div>
               </div>
-              <table class="data-table voucher-table gi-data-table pos-bill-table">
-                <thead>
-                  <tr>
-                    <th style="width: 4%; text-align: center;">SR</th>
-                    <th style="width: 8%; text-align: center;">CODE</th>
-                    <th style="width: 20%; text-align: left; padding-left: 14px;">PRODUCT DESCRIPTION</th>
-                    <th style="width: 8%; text-align: center;">STOCK</th>
-                    <th style="width: 13%; text-align: center;">CONDITION</th>
-                    <th style="width: 12%; text-align: center;">RETURN RATE</th>
-                    <th style="width: 12%; text-align: center;">RETURN QTY</th>
-                    <th style="width: 18%; text-align: right; padding-right: 16px;">REFUND AMOUNT</th>
-                    <th style="width: 5%; text-align: center;">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody id="returnItemsTableBody"></tbody>
-              </table>
+              <div class="voucher-table-scroll" style="flex: 1; overflow-y: auto; min-height: 180px;">
+                <table class="data-table voucher-table gi-data-table pos-bill-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 4%; text-align: center;">SR</th>
+                      <th style="width: 8%; text-align: center;">CODE</th>
+                      <th style="width: 20%; text-align: left; padding-left: 14px;">PRODUCT DESCRIPTION</th>
+                      <th style="width: 8%; text-align: center;">STOCK</th>
+                      <th style="width: 13%; text-align: center;">CONDITION</th>
+                      <th style="width: 12%; text-align: center;">RETURN RATE</th>
+                      <th style="width: 12%; text-align: center;">RETURN QTY</th>
+                      <th style="width: 18%; text-align: right; padding-right: 16px;">REFUND AMOUNT</th>
+                      <th style="width: 5%; text-align: center;">ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody id="returnItemsTableBody"></tbody>
+                </table>
 
-              <!-- Compact Return Slip Pagination Controls (Shows when items > 5) -->
-              <div class="pos-slip-mini-pagination" id="returnPosSlipPaginationBar" style="display: none; margin: 6px 10px; padding: 6px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
-                <span class="pos-slip-pag-info" id="returnPosSlipPaginationInfo" style="font-size: 11.5px; font-weight: 600; color: #64748b;">Items 1–5 of 6</span>
-                <div class="pos-slip-pag-btns" style="display: flex; align-items: center; gap: 8px;">
-                  <button type="button" class="pos-slip-pag-btn btn btn-xs btn-secondary" id="btnReturnSlipPrev" onclick="window.SalesModule.changeReturnSlipPage(-1)" title="Previous Page" style="height: 24px; padding: 0 10px; font-weight: 700; cursor: pointer;">‹ Prev</button>
-                  <span class="pos-slip-pag-curr font-num font-bold" id="returnPosSlipPaginationCurrent" style="font-size: 11.5px; color: #0f172a; padding: 0 4px;">Page 1 of 2</span>
-                  <button type="button" class="pos-slip-pag-btn btn btn-xs btn-secondary" id="btnReturnSlipNext" onclick="window.SalesModule.changeReturnSlipPage(1)" title="Next Page" style="height: 24px; padding: 0 10px; font-weight: 700; cursor: pointer;">Next ›</button>
+                <!-- Dedicated Clean Empty State matching Inventory & Sales -->
+                <div id="returnItemsEmptyState" class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 42px 16px; width: 100%;">
+                  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#fca5a5" stroke-width="1.5">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                  </svg>
+                  <span style="font-size: 13.5px; color: #94a3b8;">No items returned</span>
                 </div>
               </div>
 
-              <!-- Dedicated Clean Empty State matching Inventory & Sales -->
-              <div id="returnItemsEmptyState" class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 42px 16px; width: 100%;">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#fca5a5" stroke-width="1.5">
-                  <polyline points="1 4 1 10 7 10"></polyline>
-                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                </svg>
-                <span style="font-size: 13.5px; color: #94a3b8;">No items returned</span>
+              <!-- Standard Return Pagination Footer matching App-wide Design -->
+              <div class="table-footer pagination-footer" id="returnPosSlipPaginationBar" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: #ffffff; border-top: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; flex-shrink: 0;">
+                <div class="pagination-info" id="returnPosSlipPaginationInfo" style="font-size: 12.5px; color: #64748b; font-weight: 500;">Showing 0 of 0 entries</div>
+                <div class="pagination-controls" style="display: inline-flex; align-items: center; gap: 6px;">
+                  <button type="button" class="btn-page btn-page-nav btn-prev" id="btnReturnSlipPrev" onclick="window.SalesModule.changeReturnSlipPage(-1)" title="Previous Page">
+                    <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    Prev
+                  </button>
+                  <div class="pagination-numbers" id="returnPosSlipPaginationNumbers"></div>
+                  <button type="button" class="btn-page btn-page-nav btn-next" id="btnReturnSlipNext" onclick="window.SalesModule.changeReturnSlipPage(1)" title="Next Page">
+                    Next
+                    <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1858,7 +1874,7 @@
             </div>
           </div>
 
-          <div class="table-container gi-table-wrapper products-table-wrapper">
+          <div id="salesHistoryTableContainer" class="table-container gi-table-wrapper products-table-wrapper">
             <table class="data-table gi-data-table">
               <thead>
                 <tr>

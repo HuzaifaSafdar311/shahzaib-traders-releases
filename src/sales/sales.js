@@ -1649,6 +1649,9 @@
       });
     }
 
+    const pageSize = saleState.slipPageSize || 5;
+    saleState.slipCurrentPage = Math.ceil(saleState.items.length / pageSize) || 1;
+
     clearEntryFields();
     renderItemsTable();
     updateVoucherTotals();
@@ -1836,16 +1839,21 @@
     });
 
     if (paginationBar) {
-      if (totalPages > 1) {
+      if (saleState.items.length > 0) {
         paginationBar.style.display = 'flex';
         const pagInfo = document.getElementById('posSlipPaginationInfo');
-        const pagCur = document.getElementById('posSlipPaginationCurrent');
+        const pagNumbers = document.getElementById('posSlipPaginationNumbers');
         const btnPrev = document.getElementById('btnPosSlipPrev');
         const btnNext = document.getElementById('btnPosSlipNext');
-        if (pagInfo) pagInfo.textContent = `Items ${startIdx + 1}–${endIdx} of ${saleState.items.length}`;
-        if (pagCur) pagCur.textContent = `Page ${currentPage} of ${totalPages}`;
+        if (pagInfo) pagInfo.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${saleState.items.length} entries`;
         if (btnPrev) btnPrev.disabled = currentPage <= 1;
         if (btnNext) btnNext.disabled = currentPage >= totalPages;
+        if (pagNumbers && window.renderPaginationNumbers) {
+          window.renderPaginationNumbers(pagNumbers, currentPage, totalPages, (newPage) => {
+            saleState.slipCurrentPage = newPage;
+            renderItemsTable();
+          });
+        }
       } else {
         paginationBar.style.display = 'none';
       }
@@ -3393,7 +3401,7 @@
 
     if (!window.salesPagination && window.createTablePagination) {
       window.salesPagination = window.createTablePagination({
-        container: '#salesView .table-container',
+        container: '#salesHistoryTableContainer',
         tbody: el.salesMasterTableBody,
         emptyStateEl: el.salesEmptyState,
         onRenderPage: (slice, startIdx) => {
@@ -4366,6 +4374,9 @@
       });
     }
 
+    const pageSize = returnState.slipPageSize || 5;
+    returnState.slipCurrentPage = Math.ceil(returnState.items.length / pageSize) || 1;
+
     renderReturnItemsTable();
     updateReturnTotals();
 
@@ -4811,16 +4822,21 @@
 
       const returnPaginationBar = document.getElementById('returnPosSlipPaginationBar');
       if (returnPaginationBar) {
-        if (totalPages > 1) {
+        if (returnState.items.length > 0) {
           returnPaginationBar.style.display = 'flex';
           const pagInfo = document.getElementById('returnPosSlipPaginationInfo');
-          const pagCur = document.getElementById('returnPosSlipPaginationCurrent');
+          const pagNumbers = document.getElementById('returnPosSlipPaginationNumbers');
           const btnPrev = document.getElementById('btnReturnSlipPrev');
           const btnNext = document.getElementById('btnReturnSlipNext');
-          if (pagInfo) pagInfo.textContent = `Items ${startIdx + 1}–${endIdx} of ${returnState.items.length}`;
-          if (pagCur) pagCur.textContent = `Page ${currentPage} of ${totalPages}`;
+          if (pagInfo) pagInfo.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${returnState.items.length} entries`;
           if (btnPrev) btnPrev.disabled = currentPage <= 1;
           if (btnNext) btnNext.disabled = currentPage >= totalPages;
+          if (pagNumbers && window.renderPaginationNumbers) {
+            window.renderPaginationNumbers(pagNumbers, currentPage, totalPages, (newPage) => {
+              returnState.slipCurrentPage = newPage;
+              renderReturnItemsTable();
+            });
+          }
         } else {
           returnPaginationBar.style.display = 'none';
         }
