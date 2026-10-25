@@ -138,6 +138,8 @@ function renderTable() {
     tr.className = `fp-table-row ${idx === selectedIndex ? 'selected-row' : ''}`;
     tr.dataset.index = idx;
 
+    const pKey = p.id || p.code;
+    const billCount = addedCounts.get(pKey) || 0;
     const stock = Number(p.stockQty || 0);
     const isOut = stock <= 0;
     const isLow = stock > 0 && stock <= 5;
@@ -147,6 +149,7 @@ function renderTable() {
     const rp = Number(p.retailPrice || 0);
     const wp = Number(p.wholesalePrice || 0);
 
+    tr.dataset.productId = pKey;
     tr.innerHTML = `
       <td class="col-f1-code font-num font-bold" style="text-align: center;">
         <span class="f1-code-badge">${escapeHtml(p.code || '')}</span>
@@ -155,6 +158,7 @@ function renderTable() {
         <div class="f1-prod-title">${escapeHtml(p.titleEng || 'Untitled')}</div>
         <div class="f1-prod-sub">
           ${p.packSize > 1 ? `<span class="pack-sub">Pack of ${p.packSize}</span>` : ''}
+          ${billCount > 0 ? `<span class="in-bill-tag">✓ In Bill (${billCount})</span>` : ''}
         </div>
       </td>
       <td class="col-f1-category" style="text-align: left; padding-left: 10px;">
@@ -180,7 +184,7 @@ function renderTable() {
       <td class="col-f1-actions" style="text-align: center;">
         <button type="button" class="btn-f1-add ${isOut ? 'disabled' : ''}" 
           ${isOut ? 'disabled' : ''}
-          onclick="event.stopPropagation(); selectProduct(filteredProducts[${idx}]);" 
+          onclick="event.stopPropagation(); selectProduct(filteredProducts[${idx}], 'retail', this);" 
           title="Add to Bill">
           + Add
         </button>
@@ -224,12 +228,65 @@ function scrollSelectedIntoView() {
   }
 }
 
-function selectProduct(product, rateMode = 'retail') {
+const addedCounts = new Map();
+let feedbackTimer = null;
+
+function showAddedFeedback(title, rateMode) {
+  const statusEl = document.getElementById('fpStatusFeedback');
+  if (!statusEl) return;
+  statusEl.textContent = `✓ Added: ${title} (${rateMode === 'wholesale' ? 'Wholesale' : 'Retail'})`;
+  statusEl.classList.remove('hidden');
+  if (feedbackTimer) clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(() => {
+    statusEl.classList.add('hidden');
+  }, 2200);
+}
+
+function selectProduct(product, rateMode = 'retail', triggerBtn = null) {
   if (!product) return;
+  const pKey = product.id || product.code;
+  const currentCount = (addedCounts.get(pKey) || 0) + 1;
+  addedCounts.set(pKey, currentCount);
+
   const productWithRate = Object.assign({}, product, { _chosenRateType: rateMode });
   if (window.findProductAPI?.selectProduct) {
     window.findProductAPI.selectProduct(productWithRate);
   }
+
+  // Visual button & row feedback (Window remains open for continuous additions)
+  const row = f1TableBody.querySelector(`tr[data-product-id="${pKey}"]`) || f1TableBody.querySelector(`tr[data-index="${selectedIndex}"]`);
+  let btn = triggerBtn;
+  if (!btn && row) {
+    btn = row.querySelector('.btn-f1-add');
+  }
+
+  if (btn) {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '✓ Added';
+    btn.classList.add('btn-f1-added');
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+      btn.classList.remove('btn-f1-added');
+    }, 700);
+  }
+
+  if (row) {
+    row.classList.add('row-just-added');
+    setTimeout(() => row.classList.remove('row-just-added'), 700);
+
+    const subWrap = row.querySelector('.f1-prod-sub');
+    if (subWrap) {
+      let tag = subWrap.querySelector('.in-bill-tag');
+      if (!tag) {
+        tag = document.createElement('span');
+        tag.className = 'in-bill-tag';
+        subWrap.appendChild(tag);
+      }
+      tag.textContent = `✓ In Bill (${currentCount})`;
+    }
+  }
+
+  showAddedFeedback(product.titleEng || product.code, rateMode);
 }
 
 // Event Listeners
@@ -317,6 +374,7 @@ window.addEventListener('keydown', (e) => {
 // Refresh listener from main process
 if (window.findProductAPI?.onRefreshProducts) {
   window.findProductAPI.onRefreshProducts(() => {
+    addedCounts.clear();
     loadProducts();
     if (f1SearchInput) {
       f1SearchInput.focus();

@@ -397,7 +397,6 @@
 
       tr.addEventListener('dblclick', () => {
         selectF1Product(idx, saleState.rateMode || 'retail');
-        closeProductLookupModal();
       });
 
       tbody.appendChild(tr);

@@ -583,11 +583,8 @@ app.whenReady().then(() => {
   ipcMain.on('select-find-product', (_event, product) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('product-selected-from-window', product);
-      mainWindow.focus();
     }
-    if (findProductWindow && !findProductWindow.isDestroyed()) {
-      findProductWindow.close();
-    }
+    // Keep Find Product window open so user can add multiple items continuously
   });
 
   app.on('activate', () => {
