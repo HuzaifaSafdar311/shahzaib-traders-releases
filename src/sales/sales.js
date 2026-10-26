@@ -1730,6 +1730,8 @@
     if (saleState.items.length === 0) {
       if (emptyState) emptyState.style.display = 'flex';
       if (paginationBar) paginationBar.style.display = 'none';
+      const headerPag = document.getElementById('posHeaderPaginationBar');
+      if (headerPag) headerPag.style.display = 'none';
       if (btnSell) {
         btnSell.disabled = false;
         btnSell.style.opacity = '0.7';
@@ -1837,6 +1839,21 @@
       `;
       el.itemsTableBody.appendChild(tr);
     });
+
+    const headerPag = document.getElementById('posHeaderPaginationBar');
+    if (headerPag) {
+      if (saleState.items.length > 5) {
+        headerPag.style.display = 'flex';
+        const hInfo = document.getElementById('posHeaderPaginationInfo');
+        const hPrev = document.getElementById('btnPosHeaderPrev');
+        const hNext = document.getElementById('btnPosHeaderNext');
+        if (hInfo) hInfo.textContent = `Page ${currentPage} of ${totalPages} (${saleState.items.length} items)`;
+        if (hPrev) hPrev.disabled = currentPage <= 1;
+        if (hNext) hNext.disabled = currentPage >= totalPages;
+      } else {
+        headerPag.style.display = 'none';
+      }
+    }
 
     if (paginationBar) {
       if (saleState.items.length > 0) {

@@ -72,6 +72,44 @@ const generalInfoDb = require('../Genral info/general-info-db');
 const accountsDb = require('../accounts/accounts-db');
 const tradeFeaturesDb = require('./trade-features-db');
 
+function tableHasColumn(db, tableName, columnName) {
+  try {
+    const cols = db.prepare(`PRAGMA table_info(${tableName})`).all();
+    return cols.some(c => c.name.toLowerCase() === columnName.toLowerCase());
+  } catch (_) {
+    return false;
+  }
+}
+
+function runAdditiveMigrations(db) {
+  let currentVersion = 0;
+  try {
+    const row = db.prepare('PRAGMA user_version;').get();
+    if (row && typeof row.user_version === 'number') {
+      currentVersion = row.user_version;
+    }
+  } catch (err) {
+    console.warn('Could not read PRAGMA user_version:', err.message);
+  }
+
+  // Version 1: Additive column migrations guarded by tableHasColumn
+  if (currentVersion < 1) {
+    try {
+      if (!tableHasColumn(db, 'sales', 'billStatus')) {
+        db.exec("ALTER TABLE sales ADD COLUMN billStatus TEXT DEFAULT 'Paid';");
+      }
+    } catch (e) {
+      console.warn('Migration v1 (sales.billStatus) note:', e.message);
+    }
+
+    try {
+      db.exec('PRAGMA user_version = 1;');
+    } catch (e) {
+      console.warn('Could not update PRAGMA user_version to 1:', e.message);
+    }
+  }
+}
+
 function initDatabase(dbPath) {
   if (dbInstance) return dbInstance;
 
@@ -329,9 +367,8 @@ function initDatabase(dbPath) {
       CREATE INDEX IF NOT EXISTS idx_products_code ON products (code);
     `);
 
-    try {
-      db.exec("ALTER TABLE sales ADD COLUMN billStatus TEXT DEFAULT 'Paid';");
-    } catch (_) {}
+    // Run versioned additive schema migrations
+    runAdditiveMigrations(db);
 
     seedDefaultAppSettings(db);
 
@@ -703,6 +740,48 @@ function deleteProduct(id) {
   return { success: true };
 }
 
+function updateProductPrices(idOrCode, prices = {}) {
+  const codeOrId = String(idOrCode || '').trim();
+  if (!codeOrId) return { success: false, message: 'Invalid product' };
+  const now = new Date().toISOString();
+
+  const { purchasePrice, wholesalePrice, retailPrice } = prices;
+
+  if (isJsonFallback) {
+    const prod = jsonData.products.find(p => p.id === codeOrId || String(p.code) === codeOrId);
+    if (!prod) return { success: false, message: 'Product not found' };
+    if (purchasePrice !== undefined && Number(purchasePrice) >= 0) prod.purchasePrice = Number(purchasePrice);
+    if (wholesalePrice !== undefined && Number(wholesalePrice) >= 0) prod.wholesalePrice = Number(wholesalePrice);
+    if (retailPrice !== undefined && Number(retailPrice) >= 0) prod.retailPrice = Number(retailPrice);
+    const tp = Number(prod.purchasePrice) || 0;
+    const rp = Number(prod.retailPrice) || 0;
+    prod.profitMargin = tp > 0 ? Number((((rp - tp) / tp) * 100).toFixed(1)) : 0;
+    prod.updatedAt = now;
+    saveJsonData();
+    return { success: true, data: prod };
+  }
+
+  const prod = dbInstance.prepare('SELECT * FROM products WHERE id = ? OR code = ?').get(codeOrId, codeOrId);
+  if (!prod) return { success: false, message: 'Product not found' };
+
+  const newPP = (purchasePrice !== undefined && Number(purchasePrice) >= 0) ? Number(purchasePrice) : Number(prod.purchasePrice || 0);
+  const newWP = (wholesalePrice !== undefined && Number(wholesalePrice) >= 0) ? Number(wholesalePrice) : Number(prod.wholesalePrice || 0);
+  const newRP = (retailPrice !== undefined && Number(retailPrice) >= 0) ? Number(retailPrice) : Number(prod.retailPrice || 0);
+  const margin = newPP > 0 ? Number((((newRP - newPP) / newPP) * 100).toFixed(1)) : 0;
+
+  dbInstance.prepare(`
+    UPDATE products SET
+      purchasePrice = ?,
+      wholesalePrice = ?,
+      retailPrice = ?,
+      profitMargin = ?,
+      updatedAt = ?
+    WHERE id = ? OR code = ?
+  `).run(newPP, newWP, newRP, margin, now, prod.id, prod.code);
+  checkpoint();
+  return { success: true, id: prod.id, code: prod.code, purchasePrice: newPP, wholesalePrice: newWP, retailPrice: newRP, profitMargin: margin };
+}
+
 // ============================================
 // PURCHASES CRUD & STOCK INWARD
 // ============================================
@@ -835,6 +914,13 @@ function savePurchase(purchaseData, items = []) {
             const prevCost = Number(prod.averageCost || prod.purchasePrice) || tp;
             prod.averageCost = prevStock > 0 ? Number((((prevStock * prevCost) + (incomingQty * tp)) / (prevStock + incomingQty)).toFixed(2)) : tp;
           }
+          const wpJson = Number(item.wholesalePrice || item.wp || 0);
+          const rpJson = Number(item.retailPrice || item.rp || 0);
+          if (wpJson > 0) prod.wholesalePrice = wpJson;
+          if (rpJson > 0) prod.retailPrice = rpJson;
+          if (Number(prod.purchasePrice) > 0 && Number(prod.retailPrice) > 0) {
+            prod.profitMargin = Number((((prod.retailPrice - prod.purchasePrice) / prod.purchasePrice) * 100).toFixed(1));
+          }
         }
       }
       sr++;
@@ -930,7 +1016,10 @@ function savePurchase(purchaseData, items = []) {
     const updateProductStock = dbInstance.prepare(`
       UPDATE products SET
         stockQty = stockQty + ?,
-        purchasePrice = CASE WHEN ? > 0 THEN ? ELSE purchasePrice END
+        purchasePrice = CASE WHEN ? > 0 THEN ? ELSE purchasePrice END,
+        wholesalePrice = CASE WHEN ? > 0 THEN ? ELSE wholesalePrice END,
+        retailPrice = CASE WHEN ? > 0 THEN ? ELSE retailPrice END,
+        profitMargin = CASE WHEN ? > 0 AND ? > 0 THEN ROUND(((CAST(? AS REAL) - CAST(? AS REAL)) / CAST(? AS REAL)) * 100, 1) ELSE profitMargin END
       WHERE code = ? OR id = ?
     `);
 
@@ -939,6 +1028,8 @@ function savePurchase(purchaseData, items = []) {
       const itemId = `pi-${Date.now()}-${sr}`;
       const code = String(item.productCode || item.code || '').trim();
       const tp = Number(item.tradePrice || item.tp || 0);
+      const wp = Number(item.wholesalePrice || item.wp || 0);
+      const rp = Number(item.retailPrice || item.rp || 0);
       let packSize = Number(item.packSize) || 0;
       if (packSize <= 0 && code) {
         const pRec = dbInstance.prepare('SELECT packSize FROM products WHERE code = ? OR id = ?').get(code, item.productId || '');
@@ -951,13 +1042,13 @@ function savePurchase(purchaseData, items = []) {
         itemId, id, sr, item.productId || '', code, item.productTitle || '',
         Number(item.packQty || item.pQty || 0), Number(item.unitQty || item.uQty || 0), Number(item.bonus || 0),
         tp, Number(item.profitMargin || item.proPercent || 0),
-        Number(item.retailPrice || item.rp || 0), Number(item.wholesalePrice || item.wp || 0),
+        rp, wp,
         Number(item.tradeOffer || item.to || 0), Number(item.discountPercent || item.discPercent || 0),
         Number(item.netAmount || 0)
       );
 
       if (incomingQty > 0 && code) {
-        updateProductStock.run(incomingQty, tp, tp, code, item.productId || '');
+        updateProductStock.run(incomingQty, tp, tp, wp, wp, rp, rp, tp, rp, rp, tp, tp, code, item.productId || '');
         if (tp > 0) {
           const pRec = dbInstance.prepare('SELECT stockQty, averageCost, purchasePrice FROM products WHERE code = ? OR id = ?').get(code, item.productId || '');
           if (pRec) {
@@ -2189,6 +2280,7 @@ module.exports = {
   getNextProductCode,
   saveProduct,
   deleteProduct,
+  updateProductPrices,
 
   // Purchases
   getAllPurchases,

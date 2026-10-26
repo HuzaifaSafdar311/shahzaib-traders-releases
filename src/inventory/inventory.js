@@ -1280,6 +1280,23 @@ function addPurchaseLineItem() {
   updatePurchaseHeaderBadges();
   autoSaveCurrentPurchase();
 
+  const syncCatalog = document.getElementById('pieSyncCatalogPrices')?.checked;
+  if (syncCatalog && (tp > 0 || wp > 0 || rp > 0)) {
+    try {
+      if (window.api?.updateProductPrices) {
+        window.api.updateProductPrices(prod.id, { purchasePrice: tp, wholesalePrice: wp, retailPrice: rp });
+      }
+      if (prod) {
+        if (tp > 0) prod.purchasePrice = tp;
+        if (wp > 0) prod.wholesalePrice = wp;
+        if (rp > 0) prod.retailPrice = rp;
+        if (tp > 0 && rp > 0) prod.profitMargin = Number((((rp - tp) / tp) * 100).toFixed(1));
+      }
+    } catch (e) {
+      console.warn('Sync catalog price error:', e);
+    }
+  }
+
   if (window.showToast) {
     window.showToast(`Item "${lineItem.productTitle}" added!`, 'success');
   }
@@ -1367,14 +1384,19 @@ function renderPurchaseLineItems() {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="col-pur-sr font-num">${item.srNo || (actualIdx + 1)}</td>
-            <td class="col-pur-name font-bold">${window.escapeHtml(item.productTitle)}</td>
+            <td class="col-pur-name font-bold">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                <span>${window.escapeHtml(item.productTitle)}</span>
+                <button type="button" class="btn-xs" onclick="window.openChangeSubstancePriceModal(${actualIdx})" title="Change price of this substance" style="padding: 1px 6px; font-size: 0.7rem; border-radius: 4px; border: 1px solid #93c5fd; background: #eff6ff; color: #1d4ed8; font-weight: 700; cursor: pointer; white-space: nowrap;">💰 Price</button>
+              </div>
+            </td>
             <td class="col-pur-pqty font-num">${item.packQty}</td>
             <td class="col-pur-uqty font-num">${item.unitQty}</td>
             <td class="col-pur-bonus font-num">${item.bonus || 0}</td>
-            <td class="col-pur-tprice font-num">${Number(item.tradePrice).toFixed(2)}</td>
+            <td class="col-pur-tprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change rate">${Number(item.tradePrice).toFixed(2)}</td>
             <td class="col-pur-pro font-num text-success">${item.profitMargin}%</td>
-            <td class="col-pur-pprice font-num">${Number(item.retailPrice).toFixed(2)}</td>
-            <td class="col-pur-wprice font-num">${Number(item.wholesalePrice).toFixed(2)}</td>
+            <td class="col-pur-pprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change retail price">${Number(item.retailPrice).toFixed(2)}</td>
+            <td class="col-pur-wprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change wholesale price">${Number(item.wholesalePrice).toFixed(2)}</td>
             <td class="col-pur-toffer font-num">${Number(item.tradeOffer).toFixed(2)}</td>
             <td class="col-pur-disc font-num">${item.discountPercent}%</td>
             <td class="col-pur-amount font-num font-bold text-accent">${Number(item.netAmount).toFixed(2)}</td>
@@ -1388,12 +1410,18 @@ function renderPurchaseLineItems() {
                   </svg>
                 </button>
                 <div id="${menuId}" class="action-menu hidden">
+                  <button type="button" class="action-menu-item text-primary" onclick="window.openChangeSubstancePriceModal(${actualIdx})">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <span>Change Price</span>
+                  </button>
                   <button type="button" class="action-menu-item" onclick="window.editPurchaseLineItem(${actualIdx})">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M12 20h9"></path>
                       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                     </svg>
-                    <span>Edit</span>
+                    <span>Edit Line</span>
                   </button>
                   <button type="button" class="action-menu-item text-danger" onclick="window.removePurchaseLineItem(${actualIdx})">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1493,6 +1521,177 @@ async function autoSaveCurrentPurchase() {
     console.warn('Auto save purchase error:', err);
   }
 }
+
+// ========================================================
+// CHANGE SUBSTANCE PRICE IN PURCHASE (MODAL WORKFLOW)
+// ========================================================
+function openChangeSubstancePriceModal(lineIdx, fallbackProduct = null) {
+  const modal = document.getElementById('modalChangeSubstancePrice');
+  if (!modal) return;
+
+  let prod = null;
+  let currentTp = 0;
+  let currentWp = 0;
+  let currentRp = 0;
+  let title = '';
+  let code = '';
+  let packSize = 1;
+  let stock = 0;
+
+  if (lineIdx >= 0 && currentPurchaseItems[lineIdx]) {
+    const it = currentPurchaseItems[lineIdx];
+    title = it.productTitle || '';
+    code = it.productCode || '';
+    packSize = it.packSize || 1;
+    currentTp = Number(it.tradePrice) || 0;
+    currentWp = Number(it.wholesalePrice) || 0;
+    currentRp = Number(it.retailPrice) || 0;
+    prod = (window.appData?.products || []).find(p => String(p.code).trim() === String(code).trim() || p.id === it.productId);
+    stock = prod ? Number(prod.stockQty || 0) : 0;
+  } else {
+    // Reading from drawer entry
+    lineIdx = -1;
+    if (fallbackProduct) {
+      prod = fallbackProduct;
+    } else {
+      const codeInput = inv.pieCode?.value.trim();
+      const searchTitle = (inv.pieProductSearchInput?.value || '').trim().toLowerCase();
+      prod = (window.appData?.products || []).find(p => String(p.code).trim() === codeInput);
+      if (!prod && searchTitle) {
+        prod = (window.appData?.products || []).find(p => (p.titleEng || '').toLowerCase() === searchTitle);
+      }
+    }
+
+    if (!prod) {
+      if (window.showToast) window.showToast('Please select a product first to change price!', 'warning');
+      else showAlert('Please select a product first to change price!');
+      inv.pieProductSearchInput?.focus();
+      return;
+    }
+
+    title = prod.titleEng || '';
+    code = prod.code || '';
+    packSize = Number(prod.packSize) || 1;
+    stock = Number(prod.stockQty) || 0;
+    currentTp = Number(inv.pieTradePrice?.value) || Number(prod.purchasePrice || prod.tradePrice || 0);
+    const wpEl = document.getElementById('pieWholesalePrice');
+    currentWp = wpEl ? (Number(wpEl.value) || Number(prod.wholesalePrice || 0)) : Number(prod.wholesalePrice || 0);
+    const rpEl = document.getElementById('pieRetailPrice');
+    currentRp = rpEl ? (Number(rpEl.value) || Number(prod.retailPrice || 0)) : Number(prod.retailPrice || 0);
+  }
+
+  // Populate modal
+  const cspProdId = document.getElementById('cspProductId');
+  if (cspProdId) cspProdId.value = prod?.id || '';
+  const cspLineIdx = document.getElementById('cspLineItemIndex');
+  if (cspLineIdx) cspLineIdx.value = lineIdx;
+  const cspTitle = document.getElementById('cspProductTitle');
+  if (cspTitle) cspTitle.textContent = title || 'Substance';
+  const cspCode = document.getElementById('cspProductCode');
+  if (cspCode) cspCode.textContent = code || '-';
+  const cspPack = document.getElementById('cspPackSize');
+  if (cspPack) cspPack.textContent = packSize;
+  const cspStock = document.getElementById('cspCurrentStock');
+  if (cspStock) cspStock.textContent = stock;
+
+  const inTp = document.getElementById('cspTradePrice');
+  const inWp = document.getElementById('cspWholesalePrice');
+  const inRp = document.getElementById('cspRetailPrice');
+
+  if (inTp) inTp.value = currentTp > 0 ? currentTp.toFixed(2) : '0.00';
+  if (inWp) inWp.value = currentWp > 0 ? currentWp.toFixed(2) : '0.00';
+  if (inRp) inRp.value = currentRp > 0 ? currentRp.toFixed(2) : '0.00';
+
+  updateCspMarginBadge();
+  modal.classList.remove('hidden');
+  setTimeout(() => { if (inTp) { inTp.focus(); inTp.select(); } }, 100);
+}
+window.openChangeSubstancePriceModal = openChangeSubstancePriceModal;
+
+function closeChangeSubstancePriceModal() {
+  const modal = document.getElementById('modalChangeSubstancePrice');
+  if (modal) modal.classList.add('hidden');
+}
+window.closeChangeSubstancePriceModal = closeChangeSubstancePriceModal;
+
+function updateCspMarginBadge() {
+  const tp = Number(document.getElementById('cspTradePrice')?.value) || 0;
+  const rp = Number(document.getElementById('cspRetailPrice')?.value) || 0;
+  const badge = document.getElementById('cspMarginBadge');
+  if (!badge) return;
+  if (tp > 0) {
+    const margin = (((rp - tp) / tp) * 100).toFixed(1);
+    badge.textContent = `${margin}%`;
+    badge.style.color = Number(margin) >= 0 ? '#047857' : '#b91c1c';
+  } else {
+    badge.textContent = '0.0%';
+    badge.style.color = '#047857';
+  }
+}
+
+async function applyChangeSubstancePrice() {
+  const lineIdx = parseInt(document.getElementById('cspLineItemIndex')?.value, 10);
+  const prodId = document.getElementById('cspProductId')?.value;
+  const tp = Number(document.getElementById('cspTradePrice')?.value) || 0;
+  const wp = Number(document.getElementById('cspWholesalePrice')?.value) || 0;
+  const rp = Number(document.getElementById('cspRetailPrice')?.value) || 0;
+  const updateCatalog = document.getElementById('cspApplyToCatalog')?.checked;
+  const title = document.getElementById('cspProductTitle')?.textContent || 'Substance';
+  const marginPercent = tp > 0 ? (((rp - tp) / tp) * 100).toFixed(1) : '0';
+
+  if (lineIdx >= 0 && currentPurchaseItems[lineIdx]) {
+    const item = currentPurchaseItems[lineIdx];
+    item.tradePrice = tp;
+    item.wholesalePrice = wp;
+    item.retailPrice = rp;
+    item.profitMargin = marginPercent;
+
+    // Recalculate line net amount
+    const totalUnits = ((Number(item.packQty) || 0) * (Number(item.packSize) || 1)) + (Number(item.unitQty) || 0);
+    let rawAmount = totalUnits * tp;
+    const to = Number(item.tradeOffer) || 0;
+    const disc = Number(item.discountPercent) || 0;
+    if (to > 0) rawAmount -= to;
+    if (disc > 0) rawAmount -= (rawAmount * (disc / 100));
+    item.netAmount = Math.max(0, rawAmount).toFixed(2);
+
+    renderPurchaseLineItems();
+    updateModalPurchaseCount();
+    autoSaveCurrentPurchase();
+  } else {
+    // Update drawer inputs
+    if (inv.pieTradePrice) inv.pieTradePrice.value = tp.toFixed(2);
+    const wpEl = document.getElementById('pieWholesalePrice');
+    if (wpEl) wpEl.value = wp.toFixed(2);
+    const rpEl = document.getElementById('pieRetailPrice');
+    if (rpEl) rpEl.value = rp.toFixed(2);
+    updateLineNetPreview();
+  }
+
+  // Update in database and in-memory appData if requested
+  if (updateCatalog && prodId) {
+    try {
+      if (window.api?.updateProductPrices) {
+        await window.api.updateProductPrices(prodId, { purchasePrice: tp, wholesalePrice: wp, retailPrice: rp });
+      }
+      const pObj = (window.appData?.products || []).find(p => p.id === prodId);
+      if (pObj) {
+        pObj.purchasePrice = tp;
+        pObj.wholesalePrice = wp;
+        pObj.retailPrice = rp;
+        pObj.profitMargin = Number(marginPercent);
+      }
+    } catch (err) {
+      console.warn('Update catalog prices error:', err);
+    }
+  }
+
+  closeChangeSubstancePriceModal();
+  if (window.showToast) {
+    window.showToast(`Price for "${title}" updated! (Cost: Rs ${tp}, Whole: Rs ${wp}, Retail: Rs ${rp})`, 'success');
+  }
+}
+window.applyChangeSubstancePrice = applyChangeSubstancePrice;
 
 function calculatePurchaseBill() {
   const lineSum = currentPurchaseItems.reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0);
@@ -1667,6 +1866,29 @@ if (inv.btnSavePurchaseModal) {
 // Live preview listeners for item entry inside modal
 [inv.piePackQty, inv.pieUnitQty, inv.pieBonus, inv.pieTradePrice, document.getElementById('pieWholesalePrice'), document.getElementById('pieRetailPrice'), inv.pieTradeOffer, inv.pieDiscPercent].forEach(input => {
   if (input) input.addEventListener('input', updateLineNetPreview);
+});
+
+// Bind Change Substance Price Modal Event Listeners
+const btnOpenChangePriceModal = document.getElementById('btnOpenChangePriceModal');
+if (btnOpenChangePriceModal) {
+  btnOpenChangePriceModal.addEventListener('click', (e) => {
+    e.preventDefault();
+    openChangeSubstancePriceModal(-1);
+  });
+}
+
+const btnCloseChangePriceModal = document.getElementById('btnCloseChangePriceModal');
+if (btnCloseChangePriceModal) btnCloseChangePriceModal.addEventListener('click', closeChangeSubstancePriceModal);
+
+const btnCancelChangePriceModal = document.getElementById('btnCancelChangePriceModal');
+if (btnCancelChangePriceModal) btnCancelChangePriceModal.addEventListener('click', closeChangeSubstancePriceModal);
+
+const btnApplyChangePriceModal = document.getElementById('btnApplyChangePriceModal');
+if (btnApplyChangePriceModal) btnApplyChangePriceModal.addEventListener('click', applyChangeSubstancePrice);
+
+['cspTradePrice', 'cspRetailPrice'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateCspMarginBadge);
 });
 
 // Purchase Filter Toolbar Event Bindings

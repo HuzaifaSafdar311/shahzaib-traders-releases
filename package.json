@@ -1,6 +1,6 @@
 {
   "name": "inventory-management-system",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Desktop Inventory Management System built with Electron",
   "main": "src/main.js",
   "scripts": {
@@ -13,6 +13,13 @@
     "appId": "com.shahzaibtraders.app",
     "productName": "Shahzaib Traders",
     "copyright": "Copyright © 2026 Shahzaib Traders",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "huzaifasafdar310",
+        "repo": "shahzaib-traders-releases"
+      }
+    ],
     "directories": {
       "output": "dist"
     },
@@ -48,7 +55,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arhamsolution-me/Inventory-management.git"
+    "url": "git+https://github.com/huzaifasafdar310/shahzaib-traders-releases.git"
   },
   "keywords": [
     "inventory",
@@ -64,6 +71,7 @@
   },
   "dependencies": {
     "dotenv": "^18.0.7",
+    "electron-updater": "^6.8.11",
     "exceljs": "^4.4.0"
   }
 }

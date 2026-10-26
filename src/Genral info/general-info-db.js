@@ -105,12 +105,14 @@ function initGeneralInfo(dbInstance, isFallback, jsonData, saveJsonCallback, che
     );
   `);
 
-  // Migration for existing tables: ensure currentBalance column exists
+  // Migration for existing tables: ensure currentBalance column exists (guarded)
   try {
-    db.exec('ALTER TABLE parties ADD COLUMN currentBalance REAL DEFAULT 0;');
-  } catch (_) {}
-  try {
-    db.exec('UPDATE parties SET currentBalance = openingBalance WHERE currentBalance IS NULL;');
+    const partyCols = db.prepare('PRAGMA table_info(parties)').all();
+    const hasCurrentBalance = partyCols.some(c => c.name.toLowerCase() === 'currentbalance');
+    if (!hasCurrentBalance) {
+      db.exec('ALTER TABLE parties ADD COLUMN currentBalance REAL DEFAULT 0;');
+      db.exec('UPDATE parties SET currentBalance = openingBalance WHERE currentBalance IS NULL;');
+    }
   } catch (_) {}
 
   // Seed default company info if not present
@@ -232,7 +234,9 @@ function getDefaultPartyTypes() {
     { id: 'pt-2', name: 'Vendor / Supplier', code: 'VEND', description: 'Goods supplier and manufacturer', status: 'Active', createdAt: now },
     { id: 'pt-3', name: 'Wholesaler', code: 'WHL', description: 'Bulk quantity trade partner', status: 'Active', createdAt: now },
     { id: 'pt-4', name: 'Retailer', code: 'RET', description: 'Small to mid volume store merchant', status: 'Active', createdAt: now },
-    { id: 'pt-5', name: 'Distributor', code: 'DIST', description: 'Regional authorized distributor', status: 'Active', createdAt: now }
+    { id: 'pt-5', name: 'Distributor', code: 'DIST', description: 'Regional authorized distributor', status: 'Active', createdAt: now },
+    { id: 'pt-6', name: 'Electrician', code: 'ELEC', description: 'Electricians and technical contractors', status: 'Active', createdAt: now },
+    { id: 'pt-7', name: 'Investor', code: 'INVST', description: 'Business investors and partners', status: 'Active', createdAt: now }
   ];
 }
 

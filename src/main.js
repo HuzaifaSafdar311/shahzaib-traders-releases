@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const dotenv = require('dotenv');
 const db = require('./database/db');
 const exporter = require('./export/exporter');
+const { autoUpdater } = require('electron-updater');
 
 // Load environment variables (.env) safely based on app packaging state
 const envPath = app.isPackaged
@@ -54,7 +55,7 @@ function openFindProductWindow() {
     minWidth: 920,
     minHeight: 560,
     center: true,
-    parent: mainWindow || null,
+    parent: null,
     alwaysOnTop: true,
     backgroundColor: '#ffffff',
     title: 'Find Product (F1) - Shahzaib Traders',
@@ -163,6 +164,113 @@ function verifyPin(inputPin) {
   }
 }
 
+// ============================================
+// AUTO-UPDATER CONFIGURATION
+// ============================================
+function setupAutoUpdate(targetWindow) {
+  if (!app.isPackaged) {
+    console.log('[AutoUpdater] Development mode detected (!app.isPackaged). Background update checks skipped.');
+    return;
+  }
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('error', (err) => {
+    // Log errors with console.error only; no error popups for network failures
+    console.error('[AutoUpdater] Error encountered:', err ? (err.stack || err.message || err) : 'Unknown error');
+  });
+
+  autoUpdater.on('checking-for-update', () => {
+    console.log('[AutoUpdater] Checking for updates...');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('[AutoUpdater] Update available:', info?.version);
+    if (targetWindow && !targetWindow.isDestroyed()) {
+      targetWindow.webContents.send('updater:status', {
+        status: 'available',
+        version: info?.version
+      });
+    }
+  });
+
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('[AutoUpdater] Application is up to date (v' + app.getVersion() + ')');
+    if (targetWindow && !targetWindow.isDestroyed()) {
+      targetWindow.webContents.send('updater:status', {
+        status: 'not-available',
+        version: app.getVersion()
+      });
+    }
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    if (targetWindow && !targetWindow.isDestroyed()) {
+      targetWindow.webContents.send('updater:status', {
+        status: 'downloading',
+        percent: progressObj.percent,
+        bytesPerSecond: progressObj.bytesPerSecond,
+        transferred: progressObj.transferred,
+        total: progressObj.total
+      });
+    }
+  });
+
+  autoUpdater.on('update-downloaded', async (info) => {
+    const newVersion = (info && info.version) || 'new version';
+    console.log('[AutoUpdater] Update downloaded successfully:', newVersion);
+
+    // Call existing database backup function to snapshot inventory.db into the backups folder
+    try {
+      console.log('[AutoUpdater] Performing database snapshot prior to update installation...');
+      const backupResult = await db.backupDatabase(getDbFilePath());
+      console.log('[AutoUpdater] Database backup snapshot created:', backupResult?.filename || backupResult);
+    } catch (backupErr) {
+      console.error('[AutoUpdater] Safety database backup failed prior to update installation:', backupErr);
+    }
+
+    if (targetWindow && !targetWindow.isDestroyed()) {
+      targetWindow.webContents.send('updater:status', {
+        status: 'downloaded',
+        version: newVersion
+      });
+    }
+
+    // Show dialog: "Version X is ready. Restart now / Later". Restart now calls autoUpdater.quitAndInstall().
+    try {
+      const response = await dialog.showMessageBox(targetWindow, {
+        type: 'info',
+        buttons: ['Restart now', 'Later'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'Update Ready - Shahzaib Traders',
+        message: `Version ${newVersion} is ready.`,
+        detail: 'The update has been downloaded and verified. Restart now to apply it immediately, or choose Later to update the next time the app closes.'
+      });
+
+      if (response.response === 0) {
+        setImmediate(() => {
+          autoUpdater.quitAndInstall();
+        });
+      }
+    } catch (dialogErr) {
+      console.error('[AutoUpdater] Failed to show update-downloaded dialog:', dialogErr);
+    }
+  });
+
+  // Check for updates ~5 seconds after the main window is ready, wrapped in try/catch so missing internet never crashes the app
+  setTimeout(() => {
+    try {
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.error('[AutoUpdater] Background check failed (offline or network unreachable):', err.message || err);
+      });
+    } catch (err) {
+      console.error('[AutoUpdater] Exception during background update check:', err.message || err);
+    }
+  }, 5000);
+}
+
 function createWindow() {
   const iconPath = fs.existsSync(path.join(__dirname, 'assets', 'circle-logo.png'))
     ? path.join(__dirname, 'assets', 'circle-logo.png')
@@ -220,6 +328,9 @@ function createWindow() {
     }
     mainWindow = null;
   });
+
+  // Initialize auto-updater on main window right after creation
+  setupAutoUpdate(mainWindow);
 }
 
 app.whenReady().then(() => {
@@ -229,6 +340,42 @@ app.whenReady().then(() => {
   db.initDatabase(dbPath);
 
   createWindow();
+
+  // ============================================
+  // AUTO-UPDATER IPC HANDLERS
+  // ============================================
+  ipcMain.handle('updater:get-version', () => {
+    return app.getVersion();
+  });
+
+  ipcMain.handle('updater:check', async () => {
+    if (!app.isPackaged) {
+      return {
+        status: 'dev-mode',
+        version: app.getVersion(),
+        message: 'Running in development mode (!app.isPackaged). Auto-updates work in packaged builds.'
+      };
+    }
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      const currentVer = app.getVersion();
+      const latestVer = result?.updateInfo?.version || currentVer;
+      const isAvailable = latestVer !== currentVer;
+      return {
+        status: isAvailable ? 'available' : 'not-available',
+        version: currentVer,
+        latestVersion: latestVer,
+        updateInfo: result?.updateInfo
+      };
+    } catch (err) {
+      console.error('[AutoUpdater] Manual check error:', err.message || err);
+      return {
+        status: 'error',
+        version: app.getVersion(),
+        error: err.message || 'Could not connect to update server. Please check your internet connection.'
+      };
+    }
+  });
 
   // ============================================
   // AUTHENTICATION IPC HANDLERS
@@ -354,6 +501,7 @@ app.whenReady().then(() => {
   ipcMain.handle('get-next-product-code', async () => db.getNextProductCode());
   ipcMain.handle('save-product', async (_event, prod) => db.saveProduct(prod));
   ipcMain.handle('delete-product', async (_event, id) => db.deleteProduct(id));
+  ipcMain.handle('update-product-prices', async (_event, idOrCode, prices) => db.updateProductPrices(idOrCode, prices));
 
   // ============================================
   // PURCHASES IPC HANDLERS
@@ -536,7 +684,7 @@ app.whenReady().then(() => {
     const mem = process.memoryUsage();
     return {
       appName: 'Shahzaib Traders Management System',
-      version: '0.3.0 Enterprise',
+      version: app.getVersion(),
       platform: process.platform === 'win32' ? 'Microsoft Windows' : process.platform,
       arch: process.arch,
       nodeVersion: process.versions.node,
@@ -586,8 +734,10 @@ app.whenReady().then(() => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('product-selected-from-window', product);
     }
-    // Keep Find Product window open and focused so user can add multiple items continuously
+    // Keep Find Product window open, visible, on top, and focused so user can add multiple items continuously
     if (findProductWindow && !findProductWindow.isDestroyed()) {
+      findProductWindow.show();
+      findProductWindow.setAlwaysOnTop(true);
       findProductWindow.focus();
     }
   });
@@ -608,7 +758,7 @@ app.on('before-quit', () => {
 app.on('window-all-closed', () => {
   try {
     db.closeDatabase();
-  } catch (err) {}
+  } catch (err) { }
   if (process.platform !== 'darwin') {
     app.quit();
   }

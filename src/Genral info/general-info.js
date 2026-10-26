@@ -1011,11 +1011,31 @@
             const locationStr = locationParts.join(', ') || '-';
             const isActive = (p.status || 'Active').toLowerCase() === 'active';
 
+            const ptName = p.partyTypeName || 'Customer';
+            let ptStyle = 'background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; display: inline-block; white-space: nowrap;';
+            const ptLower = ptName.toLowerCase();
+            if (ptLower.includes('vendor') || ptLower.includes('supplier')) {
+              ptStyle = 'background: #fdf4ff; color: #86198f; border: 1px solid #f0abfc; font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; display: inline-block; white-space: nowrap;';
+            } else if (ptLower.includes('wholesaler')) {
+              ptStyle = 'background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; display: inline-block; white-space: nowrap;';
+            } else if (ptLower.includes('retailer')) {
+              ptStyle = 'background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; display: inline-block; white-space: nowrap;';
+            } else if (ptLower.includes('electrician')) {
+              ptStyle = 'background: #fffbeb; color: #b45309; border: 1px solid #fde68a; font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; display: inline-block; white-space: nowrap;';
+            } else if (ptLower.includes('investor')) {
+              ptStyle = 'background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; display: inline-block; white-space: nowrap;';
+            } else if (ptLower.includes('cash')) {
+              ptStyle = 'background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; font-weight: 600; display: inline-block; white-space: nowrap;';
+            }
+
             tr.innerHTML = `
               <td>
                 <div class="party-info-cell">
                   <span class="cell-title font-bold" style="color: #0f172a; cursor: default;" data-full-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
                 </div>
+              </td>
+              <td style="text-align: center;">
+                <span style="${ptStyle}">${escapeHtml(ptName)}</span>
               </td>
               <td style="text-align: center;">
                 <span class="font-medium" style="cursor: default;" data-full-name="${escapeHtml(p.contactPerson || '-')}">${escapeHtml(p.contactPerson || '-')}</span>
@@ -1110,7 +1130,15 @@
     document.getElementById('modalPartyTitle').textContent = 'Edit Party';
     document.getElementById('partyId').value = p.id;
     document.getElementById('partyNameInput').value = p.name || '';
-    document.getElementById('partyTypeSelect').value = p.partyTypeId || '';
+    if (p.partyTypeId) {
+      document.getElementById('partyTypeSelect').value = p.partyTypeId;
+    } else if (p.partyTypeName || p.partyType) {
+      const typeName = (p.partyTypeName || p.partyType || '').toLowerCase().trim();
+      const match = state.partyTypes.find(t => (t.name || '').toLowerCase().trim() === typeName);
+      document.getElementById('partyTypeSelect').value = match ? match.id : '';
+    } else {
+      document.getElementById('partyTypeSelect').value = '';
+    }
     document.getElementById('partyStatusSelect').value = p.status || 'Active';
     document.getElementById('partyContactPersonInput').value = p.contactPerson || '';
     document.getElementById('partyPhoneInput').value = p.phone || '';
@@ -1150,7 +1178,17 @@
     const openingBalance = parseFloat(document.getElementById('partyOpeningBalanceInput').value) || 0;
     const address = document.getElementById('partyAddressInput').value.trim();
 
-    if (!name || !phone) return;
+    if (!name) {
+      showToast('Party Name is required', 'error');
+      document.getElementById('partyNameInput')?.focus();
+      return;
+    }
+
+    if (!partyTypeId) {
+      showToast('Please select Party Type', 'warning');
+      document.getElementById('partyTypeSelect')?.focus();
+      return;
+    }
 
     const ptObj = state.partyTypes.find(t => t.id === partyTypeId);
     const partyTypeName = ptObj ? ptObj.name : '';

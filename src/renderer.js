@@ -78,6 +78,16 @@ if (!window.electronAPI) {
       data.products = data.products.filter(p => String(p.code) !== String(code));
       saveLocalData(data);
       return { success: true };
+    },
+    updateProductPrices: async (idOrCode, prices) => {
+      const data = getLocalData();
+      const prod = data.products.find(p => p.id === idOrCode || String(p.code) === String(idOrCode));
+      if (!prod) return { success: false, message: 'Product not found' };
+      if (prices.purchasePrice !== undefined) prod.purchasePrice = Number(prices.purchasePrice);
+      if (prices.wholesalePrice !== undefined) prod.wholesalePrice = Number(prices.wholesalePrice);
+      if (prices.retailPrice !== undefined) prod.retailPrice = Number(prices.retailPrice);
+      saveLocalData(data);
+      return { success: true };
     }
   };
 } else {
@@ -342,8 +352,143 @@ async function init() {
     await window.GeneralInfoModule.init();
   }
 
+  // Initialize Auto-Updater UI & version display
+  initAutoUpdaterUI();
+
   // Initial tab setup: Default to General Info per user requirement
   switchTab('general-info');
+}
+
+// ============================================
+// AUTO-UPDATER & VERSION UI MANAGEMENT
+// ============================================
+async function initAutoUpdaterUI() {
+  const lblCurrentAppVersion = document.getElementById('lblCurrentAppVersion');
+  const sidebarAppVersion = document.getElementById('sidebarAppVersion');
+  const sysAppVersion = document.getElementById('sysAppVersion');
+  const btnCheckForUpdates = document.getElementById('btnCheckForUpdates');
+  const btnCheckForUpdatesText = document.getElementById('btnCheckForUpdatesText');
+  const updaterStatusText = document.getElementById('updaterStatusText');
+
+  // Load and display current application version
+  try {
+    const version = (window.updaterAPI && typeof window.updaterAPI.getAppVersion === 'function')
+      ? await window.updaterAPI.getAppVersion()
+      : (window.electronAPI && typeof window.electronAPI.getAppVersion === 'function' ? await window.electronAPI.getAppVersion() : '1.0.1');
+
+    if (version) {
+      if (lblCurrentAppVersion) lblCurrentAppVersion.textContent = `v${version}`;
+      if (sidebarAppVersion) sidebarAppVersion.textContent = `v${version}`;
+      if (sysAppVersion) sysAppVersion.textContent = `${version} Enterprise`;
+    }
+  } catch (verErr) {
+    console.warn('Could not retrieve app version:', verErr);
+  }
+
+  // Handle manual "Check for Updates" button click
+  if (btnCheckForUpdates) {
+    btnCheckForUpdates.addEventListener('click', async () => {
+      btnCheckForUpdates.disabled = true;
+      if (btnCheckForUpdatesText) btnCheckForUpdatesText.textContent = 'Checking...';
+      if (updaterStatusText) {
+        updaterStatusText.textContent = 'Checking for updates...';
+        updaterStatusText.style.color = '#0284c7';
+      }
+
+      try {
+        const updater = window.updaterAPI || window.electronAPI;
+        if (!updater || typeof updater.checkForUpdates !== 'function') {
+          if (updaterStatusText) updaterStatusText.textContent = 'Updater API unavailable';
+          if (typeof window.showToast === 'function') {
+            window.showToast('Updater API not available in current window', 'warning');
+          }
+          return;
+        }
+
+        const res = await updater.checkForUpdates();
+        if (res.status === 'dev-mode') {
+          if (updaterStatusText) {
+            updaterStatusText.textContent = 'Development mode (Updates enabled in packaged build)';
+            updaterStatusText.style.color = '#d97706';
+          }
+          if (typeof window.showToast === 'function') {
+            window.showToast(res.message || 'Auto-update is available in packaged desktop releases', 'info');
+          }
+        } else if (res.status === 'available') {
+          if (updaterStatusText) {
+            updaterStatusText.textContent = 'Downloading update...';
+            updaterStatusText.style.color = '#0284c7';
+          }
+          if (typeof window.showToast === 'function') {
+            window.showToast(`New version available: v${res.latestVersion || ''}. Downloading update...`, 'info');
+          }
+        } else if (res.status === 'not-available') {
+          if (updaterStatusText) {
+            updaterStatusText.textContent = 'Up to date';
+            updaterStatusText.style.color = '#059669';
+          }
+          if (typeof window.showToast === 'function') {
+            window.showToast(`Application is up to date (v${res.version || '1.0.1'})`, 'success');
+          }
+        } else if (res.status === 'error') {
+          if (updaterStatusText) {
+            updaterStatusText.textContent = 'Check failed';
+            updaterStatusText.style.color = '#dc2626';
+          }
+          if (typeof window.showToast === 'function') {
+            window.showToast(res.error || 'Unable to check for updates (offline or unreachable)', 'error');
+          }
+        }
+      } catch (checkErr) {
+        console.error('Update check error:', checkErr);
+        if (updaterStatusText) {
+          updaterStatusText.textContent = 'Check failed';
+          updaterStatusText.style.color = '#dc2626';
+        }
+        if (typeof window.showToast === 'function') {
+          window.showToast('Update check failed: ' + checkErr.message, 'error');
+        }
+      } finally {
+        btnCheckForUpdates.disabled = false;
+        if (btnCheckForUpdatesText) btnCheckForUpdatesText.textContent = 'Check for updates';
+      }
+    });
+  }
+
+  // Subscribe to background status updates
+  if (window.updaterAPI && typeof window.updaterAPI.onUpdateStatus === 'function') {
+    window.updaterAPI.onUpdateStatus((data) => {
+      if (!data) return;
+      if (data.status === 'available') {
+        if (updaterStatusText) {
+          updaterStatusText.textContent = 'Downloading update...';
+          updaterStatusText.style.color = '#0284c7';
+        }
+        if (typeof window.showToast === 'function') {
+          window.showToast(`Update available: v${data.version || ''}. Downloading...`, 'info');
+        }
+      } else if (data.status === 'downloading') {
+        const pct = Math.round(data.percent || 0);
+        if (updaterStatusText) {
+          updaterStatusText.textContent = `Downloading update... (${pct}%)`;
+          updaterStatusText.style.color = '#0284c7';
+        }
+      } else if (data.status === 'downloaded') {
+        if (updaterStatusText) {
+          updaterStatusText.textContent = 'Update ready';
+          updaterStatusText.style.color = '#059669';
+        }
+        if (typeof window.showToast === 'function') {
+          window.showToast(`Version ${data.version || ''} downloaded and ready to install!`, 'success');
+        }
+      } else if (data.status === 'not-available') {
+        if (updaterStatusText) {
+          updaterStatusText.textContent = 'Up to date';
+          updaterStatusText.style.color = '#059669';
+        }
+      }
+    });
+  }
 }
 
 if (document.readyState === 'loading') {
@@ -352,3 +497,4 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+

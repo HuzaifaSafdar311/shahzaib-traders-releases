@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getNextProductCode: () => ipcRenderer.invoke('get-next-product-code'),
   saveProduct: (prod) => ipcRenderer.invoke('save-product', prod),
   deleteProduct: (id) => ipcRenderer.invoke('delete-product', id),
+  updateProductPrices: (idOrCode, prices) => ipcRenderer.invoke('update-product-prices', idOrCode, prices),
 
   // Purchases (Vouchers)
   getPurchases: () => ipcRenderer.invoke('get-purchases'),
@@ -64,7 +65,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Exports
   exportPDF: (data) => ipcRenderer.invoke('export-pdf', data),
   exportExcel: (data) => ipcRenderer.invoke('export-excel', data),
-  exportCSV: (data) => ipcRenderer.invoke('export-csv', data)
+  exportCSV: (data) => ipcRenderer.invoke('export-csv', data),
+
+  // Auto-Updater
+  checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+  getAppVersion: () => ipcRenderer.invoke('updater:get-version')
 });
 
 // Dedicated Sales API Bridge
@@ -189,6 +194,17 @@ contextBridge.exposeInMainWorld('displayAPI', {
       return webFrame.getZoomFactor();
     } catch (_) {
       return 1.0;
+    }
+  }
+});
+
+// Expose Auto-Updater API
+contextBridge.exposeInMainWorld('updaterAPI', {
+  checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+  getAppVersion: () => ipcRenderer.invoke('updater:get-version'),
+  onUpdateStatus: (callback) => {
+    if (typeof callback === 'function') {
+      ipcRenderer.on('updater:status', (_event, data) => callback(data));
     }
   }
 });
