@@ -16,7 +16,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "huzaifasafdar310",
+        "owner": "HuzaifaSafdar311",
         "repo": "shahzaib-traders-releases"
       }
     ],
@@ -55,7 +55,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huzaifasafdar310/shahzaib-traders-releases.git"
+    "url": "git+https://github.com/HuzaifaSafdar311/shahzaib-traders-releases.git"
   },
   "keywords": [
     "inventory",
