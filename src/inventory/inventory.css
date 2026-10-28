@@ -2364,3 +2364,131 @@ textarea.form-control-sm {
   color: #64748b !important;
 }
 
+
+
+/* ========================================================================== */
+/* MODERN PURCHASE VOUCHER SUMMARY & VENDOR DISCOUNT FOOTER BAR               */
+/* ========================================================================== */
+.pur-voucher-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-top: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pur-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pur-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+}
+
+.pur-stat-label {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pur-summary-center {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.pur-calc-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pur-calc-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.pur-discount-inputs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.input-with-suffix {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.input-suffix {
+  position: absolute;
+  right: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.input-with-suffix input {
+  padding-right: 18px !important;
+}
+
+.pur-minus-sign {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.pur-net-display {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 140px;
+  height: 34px;
+  padding: 0 12px;
+  background: #eff6ff;
+  border: 1.5px solid #3b82f6;
+  border-radius: 6px;
+  color: #1d4ed8;
+  font-size: 15.5px;
+  font-weight: 800;
+}
+
+.pur-summary-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-save-purchase {
+  padding: 8px 20px !important;
+  font-weight: 700 !important;
+  font-size: 13.5px !important;
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-save-purchase:hover {
+  background: #0369a1 !important;
+}

@@ -883,6 +883,7 @@
 .font-num {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+  white-space: nowrap !important;
 }
 
 .rep-num-bold {
@@ -975,6 +976,7 @@
   color: #1e293b;
   vertical-align: middle;
   background: #ffffff !important;
+  word-break: break-word;
 }
 
 .rep-data-table tbody tr {
@@ -1057,25 +1059,27 @@
 /* ========================================================
    PRINT STYLES
    ======================================================== */
+.rep-print-container {
+  display: none;
+}
+
 @media print {
   body * {
     visibility: hidden;
   }
   #reportsPrintArea, #reportsPrintArea * {
-    visibility: visible;
+    visibility: visible !important;
   }
-  #reportsPrintArea {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 15px;
-    background: #ffffff;
-    color: #000000;
+  #reportsPrintArea.rep-print-container {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 15px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    z-index: 9999999 !important;
   }
-}
-
-.rep-print-container {
-  display: none;
 }

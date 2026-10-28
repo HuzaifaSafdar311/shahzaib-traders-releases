@@ -765,6 +765,8 @@
   #thermalReceiptPrintArea, #thermalReceiptPrintArea *,
   #thermalReturnReceiptPrintArea, #thermalReturnReceiptPrintArea *,
   #setPanel-printer .thermal-slip-paper, #setPanel-printer .thermal-slip-paper *,
+  #reportsPrintArea, #reportsPrintArea *,
+  #accountsPrintArea, #accountsPrintArea *,
   .invoice-container, .invoice-container *,
   .sale-doc-thermal, .sale-doc-thermal *,
   .invoice-a4, .invoice-a4 * {

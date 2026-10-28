@@ -6,6 +6,15 @@ const dotenv = require('dotenv');
 const db = require('./database/db');
 const exporter = require('./export/exporter');
 const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
+
+// ── electron-log: route all updater events to a dedicated log file ──────────
+// Log path: %APPDATA%\inventory-management-system\logs\updater.log
+log.transports.file.resolvePathFn = () =>
+  path.join(app.getPath('appData'), 'inventory-management-system', 'logs', 'updater.log');
+log.transports.file.level = 'info';
+log.transports.console.level = false;
+autoUpdater.logger = log;
 
 // Load environment variables (.env) safely based on app packaging state
 const envPath = app.isPackaged
@@ -33,6 +42,10 @@ if (!gotTheLock) {
     }
   });
 }
+
+// isQuitting flag: set to true before quitAndInstall so any window close or
+// before-quit handler can let the app exit cleanly without preventDefault.
+let isQuitting = false;
 
 let mainWindow;
 let findProductWindow = null;
@@ -167,36 +180,41 @@ function verifyPin(inputPin) {
 // ============================================
 // AUTO-UPDATER CONFIGURATION
 // ============================================
+// Guard: track which version we have already prompted about so the
+// "Restart now / Later" dialog is shown exactly once per downloaded version.
+let promptedUpdateVersion = null;
+
 function setupAutoUpdate(targetWindow) {
   if (!app.isPackaged) {
-    console.log('[AutoUpdater] Development mode detected (!app.isPackaged). Background update checks skipped.');
+    log.info('[AutoUpdater] Development mode (!app.isPackaged). Background update checks skipped.');
     return;
   }
 
   autoUpdater.autoDownload = true;
+  // autoInstallOnAppQuit is the safety net for the "Later" path.
   autoUpdater.autoInstallOnAppQuit = true;
 
   autoUpdater.on('error', (err) => {
-    // Log errors with console.error only; no error popups for network failures
-    console.error('[AutoUpdater] Error encountered:', err ? (err.stack || err.message || err) : 'Unknown error');
+    // Log only – no error popups for network failures.
+    log.error('[AutoUpdater] Error:', err ? (err.stack || err.message || err) : 'Unknown error');
   });
 
   autoUpdater.on('checking-for-update', () => {
-    console.log('[AutoUpdater] Checking for updates...');
+    log.info('[AutoUpdater] Checking for updates...');
   });
 
   autoUpdater.on('update-available', (info) => {
-    console.log('[AutoUpdater] Update available:', info?.version);
+    log.info('[AutoUpdater] Update available:', info && info.version);
     if (targetWindow && !targetWindow.isDestroyed()) {
       targetWindow.webContents.send('updater:status', {
         status: 'available',
-        version: info?.version
+        version: info && info.version
       });
     }
   });
 
-  autoUpdater.on('update-not-available', (info) => {
-    console.log('[AutoUpdater] Application is up to date (v' + app.getVersion() + ')');
+  autoUpdater.on('update-not-available', () => {
+    log.info('[AutoUpdater] Application is up to date (v' + app.getVersion() + ')');
     if (targetWindow && !targetWindow.isDestroyed()) {
       targetWindow.webContents.send('updater:status', {
         status: 'not-available',
@@ -206,6 +224,7 @@ function setupAutoUpdate(targetWindow) {
   });
 
   autoUpdater.on('download-progress', (progressObj) => {
+    log.info('[AutoUpdater] Downloading: ' + Math.round(progressObj.percent) + '% (' + Math.round(progressObj.bytesPerSecond / 1024) + ' KB/s)');
     if (targetWindow && !targetWindow.isDestroyed()) {
       targetWindow.webContents.send('updater:status', {
         status: 'downloading',
@@ -219,15 +238,22 @@ function setupAutoUpdate(targetWindow) {
 
   autoUpdater.on('update-downloaded', async (info) => {
     const newVersion = (info && info.version) || 'new version';
-    console.log('[AutoUpdater] Update downloaded successfully:', newVersion);
+    log.info('[AutoUpdater] Update downloaded successfully:', newVersion);
 
-    // Call existing database backup function to snapshot inventory.db into the backups folder
+    // Fix 4: Only prompt once per downloaded version — never re-prompt.
+    if (promptedUpdateVersion === newVersion) {
+      log.info('[AutoUpdater] Prompt already shown for v' + newVersion + '. Skipping re-prompt to prevent restart loop.');
+      return;
+    }
+    promptedUpdateVersion = newVersion;
+
+    // Backup the database before installing so data is safe.
     try {
-      console.log('[AutoUpdater] Performing database snapshot prior to update installation...');
+      log.info('[AutoUpdater] Performing database snapshot prior to update installation...');
       const backupResult = await db.backupDatabase(getDbFilePath());
-      console.log('[AutoUpdater] Database backup snapshot created:', backupResult?.filename || backupResult);
+      log.info('[AutoUpdater] Database backup snapshot created:', backupResult && (backupResult.filename || backupResult));
     } catch (backupErr) {
-      console.error('[AutoUpdater] Safety database backup failed prior to update installation:', backupErr);
+      log.error('[AutoUpdater] Safety database backup failed prior to update installation:', backupErr);
     }
 
     if (targetWindow && !targetWindow.isDestroyed()) {
@@ -237,7 +263,7 @@ function setupAutoUpdate(targetWindow) {
       });
     }
 
-    // Show dialog: "Version X is ready. Restart now / Later". Restart now calls autoUpdater.quitAndInstall().
+    // Fix 4: Show the dialog exactly once (promptedUpdateVersion guards re-entry).
     try {
       const response = await dialog.showMessageBox(targetWindow, {
         type: 'info',
@@ -245,28 +271,43 @@ function setupAutoUpdate(targetWindow) {
         defaultId: 0,
         cancelId: 1,
         title: 'Update Ready - Shahzaib Traders',
-        message: `Version ${newVersion} is ready.`,
-        detail: 'The update has been downloaded and verified. Restart now to apply it immediately, or choose Later to update the next time the app closes.'
+        message: 'Version ' + newVersion + ' is ready.',
+        detail: 'The update has been downloaded and verified. Restart now to apply it, or choose Later to apply it the next time the app closes.'
       });
 
       if (response.response === 0) {
+        // Fix 1: quitAndInstall(isSilent=true, isForceRunAfter=true)
+        //   - isSilent=true    → NSIS installs without showing the wizard UI
+        //   - isForceRunAfter  → app relaunches automatically after install
+        // Fix 2: set isQuitting=true so before-quit/window-close handlers
+        //        do not call preventDefault and the DB is closed cleanly.
         setImmediate(() => {
-          autoUpdater.quitAndInstall();
+          try {
+            isQuitting = true;
+            try { db.closeDatabase(); } catch (_dbErr) {}
+            autoUpdater.quitAndInstall(true, true);
+          } catch (installErr) {
+            log.error('[AutoUpdater] quitAndInstall failed:', installErr);
+            isQuitting = false; // revert so the app stays usable
+          }
         });
+      } else {
+        log.info('[AutoUpdater] User chose Later. Update will apply on next app close.');
       }
     } catch (dialogErr) {
-      console.error('[AutoUpdater] Failed to show update-downloaded dialog:', dialogErr);
+      log.error('[AutoUpdater] Failed to show update-downloaded dialog:', dialogErr);
     }
   });
 
-  // Check for updates ~5 seconds after the main window is ready, wrapped in try/catch so missing internet never crashes the app
+  // Check for updates ~5 seconds after the main window is ready.
+  // Wrapped in try/catch so a missing internet connection never crashes the app.
   setTimeout(() => {
     try {
       autoUpdater.checkForUpdates().catch((err) => {
-        console.error('[AutoUpdater] Background check failed (offline or network unreachable):', err.message || err);
+        log.warn('[AutoUpdater] Background check failed (offline or network unreachable):', err.message || err);
       });
     } catch (err) {
-      console.error('[AutoUpdater] Exception during background update check:', err.message || err);
+      log.error('[AutoUpdater] Exception during background update check:', err.message || err);
     }
   }, 5000);
 }
@@ -595,6 +636,11 @@ app.whenReady().then(() => {
     return exporter.exportCSV(data, mainWindow);
   });
 
+  ipcMain.handle('open-path', async (event, fullPath) => {
+    if (!fullPath) return false;
+    return shell.openPath(fullPath);
+  });
+
   // ============================================
   // SETTINGS & MAINTENANCE IPC HANDLERS
   // ============================================
@@ -748,14 +794,16 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', () => {
+  isQuitting = true;
   try {
     db.closeDatabase();
   } catch (err) {
-    console.error('Error closing database:', err);
+    log.error('Error closing database on quit:', err);
   }
 });
 
 app.on('window-all-closed', () => {
+  isQuitting = true;
   try {
     db.closeDatabase();
   } catch (err) { }

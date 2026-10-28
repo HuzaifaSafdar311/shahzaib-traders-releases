@@ -1,3 +1,63 @@
+
+// ========================================================
+// Universal Shared Reporting & Formatting Helpers
+// ========================================================
+function cleanText(val, fallback = '-') {
+  if (val === null || val === undefined) return fallback;
+  const s = String(val).trim();
+  if (s === '' || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined') return fallback;
+  return s;
+}
+
+function formatMoney(val, includeCurrency = true) {
+  if (val === null || val === undefined || val === '') return includeCurrency ? 'Rs. 0.00' : '0.00';
+  const num = Number(val);
+  if (isNaN(num)) return includeCurrency ? 'Rs. 0.00' : '0.00';
+  const formatted = num.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return includeCurrency ? `Rs. ${formatted}` : formatted;
+}
+
+function formatNumber(val, decimals = 0) {
+  if (val === null || val === undefined || val === '') return '0';
+  const num = Number(val);
+  if (isNaN(num)) return '0';
+  return num.toLocaleString('en-PK', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function formatDate(dStr, fallback = '-') {
+  if (!dStr) return fallback;
+  try {
+    const raw = String(dStr).slice(0, 10);
+    const parts = raw.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      const yr = parts[0];
+      const monIdx = parseInt(parts[1], 10) - 1;
+      const day = parts[2].padStart(2, '0');
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      if (monIdx >= 0 && monIdx < 12) {
+        return `${day}-${months[monIdx]}-${yr}`;
+      }
+    }
+    const d = new Date(dStr);
+    if (isNaN(d.getTime())) return String(dStr);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = String(d.getDate()).padStart(2, '0');
+    const mon = months[d.getMonth()];
+    const yr = d.getFullYear();
+    return `${day}-${mon}-${yr}`;
+  } catch (_) {
+    return String(dStr);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.cleanText = cleanText;
+  window.formatMoney = formatMoney;
+  window.formatNumber = formatNumber;
+  window.formatDate = formatDate;
+  window.formatPKR = formatMoney;
+}
+
 // Shared Utilities for Inventory & Vendors
 
 function showToast(message, type = 'info') {

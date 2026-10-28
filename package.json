@@ -1,77 +1,78 @@
-{
-  "name": "inventory-management-system",
-  "version": "1.0.1",
-  "description": "Desktop Inventory Management System built with Electron",
-  "main": "src/main.js",
-  "scripts": {
-    "start": "electron .",
-    "test": "echo \"No tests specified\" && exit 0",
-    "dist": "electron-builder --win",
-    "pack": "electron-builder --dir"
-  },
-  "build": {
-    "appId": "com.shahzaibtraders.app",
-    "productName": "Shahzaib Traders",
-    "copyright": "Copyright © 2026 Shahzaib Traders",
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "HuzaifaSafdar311",
-        "repo": "shahzaib-traders-releases"
-      }
+﻿{
+    "name": "inventory-management-system",
+    "version": "1.0.4",
+    "description": "Desktop Inventory Management System built with Electron",
+    "main": "src/main.js",
+    "scripts": {
+        "start": "electron .",
+        "test": "echo \"No tests specified\" && exit 0",
+        "dist": "electron-builder --win",
+        "pack": "electron-builder --dir"
+    },
+    "build": {
+        "appId": "com.shahzaibtraders.app",
+        "productName": "Shahzaib Traders",
+        "copyright": "Copyright © 2026 Shahzaib Traders",
+        "publish": [
+            {
+                "provider": "github",
+                "owner": "HuzaifaSafdar311",
+                "repo": "shahzaib-traders-releases"
+            }
+        ],
+        "directories": {
+            "output": "dist"
+        },
+        "win": {
+            "target": [
+                "nsis",
+                "portable"
+            ],
+            "icon": "src/assets/circle-logo.png"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "Shahzaib Traders"
+        },
+        "files": [
+            "src/**/*",
+            "assets/**/*",
+            "package.json"
+        ],
+        "extraResources": [
+            {
+                "from": "inventory.db",
+                "to": "inventory.db"
+            },
+            {
+                "from": ".env",
+                "to": ".env"
+            }
+        ]
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/HuzaifaSafdar311/shahzaib-traders-releases.git"
+    },
+    "keywords": [
+        "inventory",
+        "vendors",
+        "electron",
+        "desktop"
     ],
-    "directories": {
-      "output": "dist"
+    "author": "Shahzaib Traders",
+    "license": "ISC",
+    "devDependencies": {
+        "electron": "^44.7.0",
+        "electron-builder": "^26.15.3"
     },
-    "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ],
-      "icon": "src/assets/circle-logo.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Shahzaib Traders"
-    },
-    "files": [
-      "src/**/*",
-      "assets/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "inventory.db",
-        "to": "inventory.db"
-      },
-      {
-        "from": ".env",
-        "to": ".env"
-      }
-    ]
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/HuzaifaSafdar311/shahzaib-traders-releases.git"
-  },
-  "keywords": [
-    "inventory",
-    "vendors",
-    "electron",
-    "desktop"
-  ],
-  "author": "Shahzaib Traders",
-  "license": "ISC",
-  "devDependencies": {
-    "electron": "^44.7.0",
-    "electron-builder": "^26.15.3"
-  },
-  "dependencies": {
-    "dotenv": "^18.0.7",
-    "electron-updater": "^6.8.11",
-    "exceljs": "^4.4.0"
-  }
+    "dependencies": {
+        "dotenv": "^18.0.7",
+        "electron-log": "^5.4.4",
+        "electron-updater": "^6.8.11",
+        "exceljs": "^4.4.0"
+    }
 }

@@ -182,8 +182,7 @@ function renderTable() {
         </div>
       </td>
       <td class="col-f1-actions" style="text-align: center;">
-        <button type="button" class="btn-f1-add ${isOut ? 'disabled' : ''}" 
-          ${isOut ? 'disabled' : ''}
+        <button type="button" class="btn-f1-add" 
           onclick="event.stopPropagation(); selectProduct(filteredProducts[${idx}], 'retail', this);" 
           title="Add to Bill">
           + Add

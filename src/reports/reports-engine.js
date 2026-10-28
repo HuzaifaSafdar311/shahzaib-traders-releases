@@ -379,11 +379,17 @@
         id: r.id,
         date,
         returnNo: r.returnNo,
-        origVoucherNo: r.origVoucherNo || '--',
+        origVoucherNo: r.saleVoucherRef || r.origVoucherNo || '--',
+        saleVoucherRef: r.saleVoucherRef || r.origVoucherNo || '--',
         partyTitle: r.partyTitle || 'Customer',
+        areaName: r.areaName || '--',
+        refundMode: r.refundMode || r.paymentMode || 'Cash',
         refundAmount: refund,
+        totalRefund: refund,
         itemsCount: count,
-        remarks: r.remarks || 'Returned Merchandise'
+        itemCount: count,
+        remarks: r.description || r.remarks || 'Returned Merchandise',
+        description: r.description || r.remarks || 'Returned Merchandise'
       });
     }
 
@@ -1103,8 +1109,8 @@
         id: p.id,
         time: (p.createdAt || p.entryDate || '').slice(11, 16) || '--:--',
         type: 'Purchase',
-        refNo: p.purchaseNo || p.billNo || '--',
-        party: p.supplierName || 'Vendor',
+        refNo: p.voucherNo || p.purchaseNo || p.billNo || '--',
+        party: p.partyTitle || p.supplierName || 'Vendor',
         details: `${p.paymentType || 'Cash'}`,
         inflow: 0,
         outflow: toNum(p.paidAmount),
@@ -1121,8 +1127,8 @@
         time: (v.createdAt || v.date || '').slice(11, 16) || '--:--',
         type: isReceipt ? 'Cash Receipt (CRV)' : 'Cash Payment (CPV)',
         refNo: v.voucherNo || '--',
-        party: v.partyName || v.accountName || '--',
-        details: v.narration || v.description || '--',
+        party: v.partyTitle || v.partyName || v.accountName || '--',
+        details: v.description || v.narration || v.remarks || '--',
         inflow: isReceipt ? amt : 0,
         outflow: isReceipt ? 0 : amt,
         balance: 0

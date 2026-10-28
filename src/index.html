@@ -678,21 +678,73 @@
                                 </div>
                             </div>
 
-                            <!-- Hidden calculation compatibility inputs -->
+                            <!-- MODERN PURCHASE VOUCHER SUMMARY & VENDOR DISCOUNT FOOTER BAR -->
+                            <div class="pur-voucher-summary-bar">
+                                <div class="pur-summary-left">
+                                    <div class="pur-stat-pill">
+                                        <span class="pur-stat-label">Items:</span>
+                                        <strong id="purTotalItemsCount" class="font-num">0</strong>
+                                    </div>
+                                    <div class="pur-stat-pill">
+                                        <span class="pur-stat-label">Total Qty:</span>
+                                        <strong id="purTotalUnitsCount" class="font-num">0</strong>
+                                    </div>
+                                    <button type="button" id="btnPurNewVoucher" class="btn btn-sm btn-outline" style="font-weight: 600; font-size: 12px; padding: 4px 10px;" title="Clear and Start New Purchase Voucher">
+                                        + New Voucher
+                                    </button>
+                                </div>
+
+                                <div class="pur-summary-center">
+                                    <!-- Subtotal (Gross) -->
+                                    <div class="pur-calc-cell">
+                                        <span class="pur-calc-label">Subtotal (Gross):</span>
+                                        <strong id="purSubtotalDisplay" class="font-num" style="font-size: 14px; color: #1e293b;">Rs. 0.00</strong>
+                                    </div>
+
+                                    <!-- Vendor Discount (Discount on stock from vendor) -->
+                                    <div class="pur-calc-cell pur-calc-discount">
+                                        <span class="pur-calc-label" title="Discount received from vendor on purchased stock">Vendor Discount:</span>
+                                        <div class="pur-discount-inputs">
+                                            <div class="input-with-suffix">
+                                                <input type="number" id="purDiscountPercent" class="form-control form-control-sm font-num text-right"
+                                                    min="0" max="100" step="0.1" value="0.0" placeholder="0.0" title="Vendor Discount Percentage" style="width: 58px; height: 30px; font-weight: 700;">
+                                                <span class="input-suffix">%</span>
+                                            </div>
+                                            <span class="pur-minus-sign">- Rs</span>
+                                            <input type="number" id="purDiscount" class="form-control form-control-sm font-num text-right"
+                                                min="0" step="0.01" value="0.00" placeholder="0.00" title="Vendor Discount Amount (Rs)" style="width: 90px; height: 30px; font-weight: 700;">
+                                        </div>
+                                    </div>
+
+                                    <!-- Net Total (Payable to Vendor) -->
+                                    <div class="pur-calc-cell pur-calc-net">
+                                        <span class="pur-calc-label" style="color: #1e40af;">NET PAYABLE:</span>
+                                        <span id="purGrandTotalDisplay" class="pur-net-display font-num">Rs. 0.00</span>
+                                    </div>
+                                </div>
+
+                                <div class="pur-summary-right">
+                                    <button type="button" id="btnPurSave" class="btn btn-primary btn-save-purchase" title="Save Purchase Voucher (Stock In)">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 4px;">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span>Save Voucher</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Remaining hidden compatibility inputs -->
                             <div style="display:none !important;">
-                                <input type="number" id="purDiscount" value="0.00">
                                 <input type="number" id="purFreightDisc" value="0.00">
                                 <input type="number" id="purFreightExpn" value="0.00">
                                 <input type="number" id="purSalesTax" value="0.00">
                                 <input type="number" id="purExtraCharges" value="0.00">
-                                <span id="purGrandTotalDisplay">0.00</span>
                                 <button type="button" id="btnPurFirst"></button>
                                 <button type="button" id="btnPurPrev"></button>
                                 <button type="button" id="btnPurNext"></button>
                                 <button type="button" id="btnPurLast"></button>
                                 <button type="button" id="btnPurRefresh"></button>
                                 <button type="button" id="btnPurDelete"></button>
-                                <button type="button" id="btnPurSave"></button>
                             </div>
 
                         </div><!-- /purchaseEntryPage -->
@@ -1625,10 +1677,16 @@
                                         style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;">
                                         <span style="color: #64748b; font-weight: 600;">Special Discount:</span>
                                         <div style="display: inline-flex; align-items: center; gap: 4px;">
+                                            <div style="position: relative; display: inline-flex; align-items: center;">
+                                                <input type="number" id="saleSpecialDiscountPercent"
+                                                    class="form-control form-control-sm font-num text-right" min="0" max="100"
+                                                    step="0.1" value="0" placeholder="0" style="width: 52px; height: 28px; font-weight: 700; padding-right: 14px;" title="Discount Percentage">
+                                                <span style="position: absolute; right: 3px; font-size: 10px; font-weight: 700; color: #64748b; pointer-events: none;">%</span>
+                                            </div>
                                             <span style="font-size: 11px; color: #94a3b8;">- Rs</span>
                                             <input type="number" id="saleSpecialDiscount"
                                                 class="form-control form-control-sm font-num text-right" min="0"
-                                                step="1" value="0" style="width: 85px; height: 28px; font-weight: 700;">
+                                                step="1" value="0" style="width: 80px; height: 28px; font-weight: 700;" title="Discount Amount in Rupees">
                                         </div>
                                     </div>
                                     <div

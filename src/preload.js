@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportPDF: (data) => ipcRenderer.invoke('export-pdf', data),
   exportExcel: (data) => ipcRenderer.invoke('export-excel', data),
   exportCSV: (data) => ipcRenderer.invoke('export-csv', data),
+  openPath: (fullPath) => ipcRenderer.invoke('open-path', fullPath),
 
   // Auto-Updater
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),

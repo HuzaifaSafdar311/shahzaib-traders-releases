@@ -126,10 +126,11 @@
   }
 
   // Format Pakistani Rupee currency
-  function formatMoney(amount) {
-    const num = Number(amount) || 0;
-    return 'Rs. ' + num.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  }
+    // Universal shared formatters
+  const formatMoney = (val, incl) => (window.formatMoney ? window.formatMoney(val, incl) : ('Rs. ' + (Number(val) || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })));
+  const formatNumber = (val, dec) => (window.formatNumber ? window.formatNumber(val, dec) : (Number(val) || 0).toLocaleString('en-PK'));
+  const cleanText = (val, fb) => (window.cleanText ? window.cleanText(val, fb) : (val ?? '-'));
+  const formatDate = (val, fb) => (window.formatDate ? window.formatDate(val, fb) : (val ?? '-'));
 
   // Inject Template into #accountsView
   function renderAccountsTemplate() {

@@ -79,11 +79,11 @@
     ]
   };
 
-  // Helper currency format
-  function formatMoney(amount) {
-    const num = Number(amount) || 0;
-    return 'Rs. ' + num.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  }
+    // Universal shared formatters
+  const formatMoney = (val, incl) => (window.formatMoney ? window.formatMoney(val, incl) : ('Rs. ' + (Number(val) || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })));
+  const formatNumber = (val, dec) => (window.formatNumber ? window.formatNumber(val, dec) : (Number(val) || 0).toLocaleString('en-PK'));
+  const cleanText = (val, fb) => (window.cleanText ? window.cleanText(val, fb) : (val ?? '-'));
+  const formatDate = (val, fb) => (window.formatDate ? window.formatDate(val, fb) : (val ?? '-'));
 
   // Toast Notification
   function showToast(message, type = 'success') {
@@ -2024,6 +2024,255 @@
     window.print();
   }
 
+
+  
+  // ========================================================
+  // UNIFIED REPORT EXPORT DATA MAPPER (Shahzaib Traders Standard)
+  // Ensures 100% exact parity between on-screen table, Excel & PDF
+  // ========================================================
+  function getReportExportData(repId, res) {
+    if (!res) return { title: 'Report', headers: [], exportedRows: [], totalsRow: [], isLandscape: false };
+    const rows = res.rows || [];
+    const t = res.totals || {};
+    const m = res.metrics || {};
+    const title = res.title || state.activeReportLabel || 'Business Report';
+
+    let headers = [];
+    let exportedRows = [];
+    let totalsRow = [];
+    let isLandscape = false;
+
+    if (repId === 'today-register' || repId === 'bill-wise-sales') {
+      isLandscape = true;
+      headers = ['Date', 'Bill #', 'Customer Name', 'Territory', 'Mode', 'Items', 'Gross', 'Discount', 'Net Total', 'Paid', 'Balance'];
+      exportedRows = rows.map(r => [
+        r.date, r.voucherNo, cleanText(r.partyTitle, 'Cash Customer'), cleanText(r.areaName, '-'), r.paymentType || 'Cash',
+        Number(r.itemCount || 0), Number(r.gross || 0), Number(r.discount || 0),
+        Number(r.net || 0), Number(r.paid || 0), Number(r.balance || 0)
+      ]);
+      totalsRow = [
+        'TOTALS', `${t.records || rows.length} Bills`, '', '', '',
+        Number(t.itemsCount || 0), Number(t.gross || 0), Number(t.discount || 0),
+        Number(t.net || 0), Number(t.paid || 0), Number(t.balance || 0)
+      ];
+    } else if (repId === 'today-summary') {
+      isLandscape = true;
+      headers = ['Sr #', 'Time', 'Activity Type', 'Voucher / Bill #', 'Party / Account Title', 'Details / Mode', 'Cash Inflow (+)', 'Cash Outflow (-)', 'Credit Balance'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, r.time, r.type, cleanText(r.refNo, '-'), cleanText(r.party, '-'), cleanText(r.details, '-'),
+        Number(r.inflow || 0), Number(r.outflow || 0), Number(r.balance || 0)
+      ]);
+      totalsRow = [
+        'DAY TOTALS', `${t.records || rows.length} Transactions`, '', '', '', '',
+        Number(t.totalInflow || 0), Number(t.totalOutflow || 0), Number(t.netDayCash || 0)
+      ];
+    } else if (repId === 'party-wise-sales') {
+      isLandscape = true;
+      headers = ['Sr #', 'Customer Name', 'Party Type', 'Territory / City', 'Phone', 'Invoices', 'Gross Sales', 'Discount', 'Net Sales', 'Cash Paid', 'Balance Due'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.partyTitle, '-'), cleanText(r.partyType, 'Regular'), cleanText(r.areaName, '-'), cleanText(r.phone, '-'),
+        Number(r.billsCount || 0), Number(r.gross || 0), Number(r.discount || 0),
+        Number(r.net || 0), Number(r.paid || 0), Number(r.balance || 0)
+      ]);
+      totalsRow = [
+        'TOTALS', `${t.records || rows.length} Parties`, '', '', '',
+        Number(t.billsCount || 0), Number(t.gross || 0), Number(t.discount || 0),
+        Number(t.net || 0), Number(t.paid || 0), Number(t.balance || 0)
+      ];
+    } else if (repId === 'item-wise-sales') {
+      isLandscape = true;
+      headers = ['Sr #', 'Item Code', 'Item Description', 'Category', 'Packs Sold', 'Total Units Sold', 'Purchase Cost Basis', 'Net Revenue', 'Gross Profit', 'Margin %'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.productCode, '-'), cleanText(r.productTitle, '-'), cleanText(r.categoryName, '-'),
+        Number(r.packQtySold || 0), Number(r.totalQtySold || 0),
+        Number(r.purchaseCostTotal || 0), Number(r.netRevenue || 0),
+        Number(r.totalProfit || 0), Number((r.marginPercent || 0).toFixed(1))
+      ]);
+      totalsRow = [
+        'TOTALS', '', `${t.records || rows.length} Items`, '',
+        Number(t.packQtySold || 0), Number(t.totalQtySold || 0), Number(t.purchaseCostTotal || 0),
+        Number(t.netRevenue || 0), Number(t.totalProfit || 0), Number((t.overallMargin || 0).toFixed(1))
+      ];
+    } else if (repId === 'territory-wise-sales') {
+      isLandscape = true;
+      headers = ['Sr #', 'Territory / Area Name', 'Total Bills', 'Gross Sales', 'Discount', 'Net Sales Revenue', 'Cash Paid', 'Balance Due'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.areaName, 'Unspecified Territory'), Number(r.billsCount || 0),
+        Number(r.gross || 0), Number(r.discount || 0),
+        Number(r.net || 0), Number(r.paid || 0), Number(r.balance || 0)
+      ]);
+      totalsRow = [
+        'TOTALS', `${t.records || rows.length} Territories`, Number(t.billsCount || 0),
+        Number(t.gross || 0), Number(t.discount || 0),
+        Number(t.net || 0), Number(t.paid || 0), Number(t.balance || 0)
+      ];
+    } else if (repId === 'bill-wise-profit') {
+      isLandscape = true;
+      headers = ['Date', 'Bill #', 'Customer Name', 'Territory', 'Items', 'Sale Net Value', 'Goods Cost (COGS)', 'Gross Profit', 'Margin %'];
+      exportedRows = rows.map(r => [
+        r.date, r.voucherNo, cleanText(r.partyTitle, '-'), cleanText(r.areaName, '-'), Number(r.itemCount || 0),
+        Number(r.billNet || 0), Number(r.billCost || 0),
+        Number(r.profit || 0), Number((r.margin || 0).toFixed(1))
+      ]);
+      totalsRow = [
+        'TOTALS', `${t.records || rows.length} Bills`, '', '', Number(t.itemsCount || 0),
+        Number(t.revenue || 0), Number(t.cost || 0),
+        Number(t.profit || 0), Number((t.margin || 0).toFixed(1))
+      ];
+    } else if (repId === 'sales-returns') {
+      headers = ['Date', 'Return #', 'Orig Bill #', 'Customer Name', 'Items', 'Net Refund Amount', 'Remarks / Reason'];
+      exportedRows = rows.map(r => [
+        r.date, r.returnNo, cleanText(r.saleVoucherRef || r.origVoucherNo, '-'), cleanText(r.partyTitle, '-'),
+        Number(r.itemsCount || r.itemCount || 0), Number(r.refundAmount || r.totalRefund || 0),
+        cleanText(r.description || r.remarks, '-')
+      ]);
+      totalsRow = [
+        'TOTALS', `${t.records || rows.length} Returns`, '', '',
+        Number(t.itemsCount || 0), Number(t.totalRefund || 0), ''
+      ];
+    } else if (repId === 'bill-wise-purchases') {
+      isLandscape = true;
+      headers = ['Date', 'Voucher #', 'Manual Inv #', 'Supplier / Vendor Name', 'Store', 'Freight / Expn', 'Discount', 'Grand Total'];
+      exportedRows = rows.map(r => [
+        r.date, r.voucherNo, cleanText(r.manualNo, '-'), cleanText(r.partyTitle, '-'),
+        cleanText(r.storeTitle, 'Main Store'), Number(r.freight || 0), Number(r.discount || 0), Number(r.grandTotal || 0)
+      ]);
+      totalsRow = [
+        'TOTALS', `${t.records || rows.length} Vouchers`, '', '', '',
+        Number(t.freight || 0), Number(t.discount || 0), Number(t.grandTotal || 0)
+      ];
+    } else if (repId === 'supplier-wise-purchases') {
+      headers = ['Sr #', 'Supplier / Vendor Name', 'Contact Person', 'Phone', 'City', 'Vouchers', 'Total Inward Purchases'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.partyTitle, '-'), cleanText(r.contactPerson, '-'), cleanText(r.phone, '-'), cleanText(r.city, '-'),
+        Number(r.vouchersCount || 0), Number(r.totalPurchases || 0)
+      ]);
+      totalsRow = [
+        'TOTALS', `${t.records || rows.length} Suppliers`, '', '', '',
+        Number(t.vouchersCount || 0), Number(t.totalPurchases || 0)
+      ];
+    } else if (repId === 'item-wise-purchases') {
+      isLandscape = true;
+      headers = ['Sr #', 'Code', 'Product Title', 'Category', 'Packs', 'Units', 'Bonus', 'Total Qty', 'Total Spend', 'Avg Unit Cost'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.productCode, '-'), cleanText(r.productTitle, '-'), cleanText(r.categoryName, '-'),
+        Number(r.totalPacksInward || 0), Number(r.totalUnitsInward || 0), Number(r.totalBonus || 0),
+        Number(r.totalQtyInward || 0), Number(r.totalSpend || 0), Number(r.avgCost || 0)
+      ]);
+      totalsRow = [
+        'TOTALS', '', `${t.records || rows.length} Items`, '',
+        Number(t.totalPacksInward || 0), Number(t.totalUnitsInward || 0), Number(t.totalBonus || 0),
+        Number(t.totalQtyInward || 0), Number(t.totalSpend || 0), ''
+      ];
+    } else if (repId === 'stock-position') {
+      isLandscape = true;
+      headers = ['Sr #', 'Code', 'Product Title', 'Category', 'Sub Category', 'Unit', 'Pack Size', 'Stock Qty', 'Purchase Rate', 'Wholesale', 'Retail Rate', 'Stock Cost Val', 'Stock Retail Val'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.code, '-'), cleanText(r.titleEng, '-'), cleanText(r.categoryName, '-'), cleanText(r.subCategoryName, '-'),
+        cleanText(r.unitName, 'Piece'), Number(r.packSize || 1), Number(r.stockQty || 0),
+        Number(r.purchasePrice || 0), Number(r.wholesalePrice || 0), Number(r.retailPrice || 0),
+        Number(r.stockCostValue || 0), Number(r.stockRetailValue || 0)
+      ]);
+      totalsRow = [
+        'TOTALS', `${t.records || rows.length} Products`, '', '', '', '', '',
+        Number(t.totalStockQty || 0), '', '', '',
+        Number(t.totalCostVal || 0), Number(t.totalRetailVal || 0)
+      ];
+    } else if (repId === 'low-stock') {
+      isLandscape = true;
+      headers = ['Sr #', 'Code', 'Product Title', 'Category', 'Current Stock', 'Min Stock Level', 'Shortage Units', 'Purchase Rate', 'Est. Reorder Cost', 'Status'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.code, '-'), cleanText(r.titleEng, '-'), cleanText(r.categoryName, '-'),
+        Number(r.stockQty || 0), Number(r.minStock || 0), Number(r.shortageQty || 0),
+        Number(r.purchasePrice || 0), Number(r.estimatedOrderCost || 0), 'Low Stock'
+      ]);
+      totalsRow = [
+        'TOTALS', `${t.records || rows.length} Items`, '', '', '', '',
+        Number(t.totalShortage || 0), '', Number(t.totalOrderEst || 0), ''
+      ];
+    } else if (repId === 'zero-stock') {
+      isLandscape = true;
+      headers = ['Sr #', 'Code', 'Product Title', 'Category', 'Sub Category', 'Unit', 'Last Cost Rate', 'Retail Rate', 'Reorder Level', 'Stock Status'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.code, '-'), cleanText(r.titleEng, '-'), cleanText(r.categoryName, '-'), cleanText(r.subCategoryName, '-'),
+        cleanText(r.unitName, 'Piece'), Number(r.purchasePrice || 0), Number(r.retailPrice || 0),
+        Number(r.reorderLevel || 0), '0 Units'
+      ]);
+      totalsRow = ['TOTALS', `${rows.length} Items Out of Stock`, '', '', '', '', '', '', '', ''];
+    } else if (repId === 'category-stock') {
+      isLandscape = true;
+      headers = ['Sr #', 'Category Name', 'Unique Items', 'Total Stock Units', 'Total Cost Valuation', 'Total Retail Valuation', 'Potential Gross Margin', 'Margin %'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.categoryName, '-'), Number(r.productCount || 0), Number(r.stockQty || 0),
+        Number(r.costValue || 0), Number(r.retailValue || 0), Number(r.margin || 0),
+        Number((r.marginPct || 0).toFixed(1))
+      ]);
+      totalsRow = [
+        'TOTALS', `${rows.length} Categories`, Number(t.productCount || 0), Number(t.totalQty || 0),
+        Number(t.costValue || 0), Number(t.retailValue || 0), Number(t.margin || 0),
+        Number((t.marginPct || 0).toFixed(1))
+      ];
+    } else if (repId === 'customer-receivables') {
+      headers = ['Sr #', 'Customer Name', 'Contact Person', 'Phone', 'Territory / Area', 'City', 'Receivable Balance (Dr)'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.name, '-'), cleanText(r.contactPerson, '-'), cleanText(r.phone, '-'),
+        cleanText(r.areaName, '-'), cleanText(r.city, '-'), Number(r.receivableAmount || 0)
+      ]);
+      totalsRow = ['TOTALS', `${t.records || rows.length} Customers`, '', '', '', '', Number(t.totalReceivable || 0)];
+    } else if (repId === 'supplier-payables') {
+      headers = ['Sr #', 'Supplier / Vendor Name', 'Contact Person', 'Phone', 'City', 'Payable Balance (Cr)'];
+      exportedRows = rows.map((r, i) => [
+        i + 1, cleanText(r.name, '-'), cleanText(r.contactPerson, '-'), cleanText(r.phone, '-'), cleanText(r.city, '-'),
+        Number(r.payableAmount || 0)
+      ]);
+      totalsRow = ['TOTALS', `${t.records || rows.length} Suppliers`, '', '', '', Number(t.totalPayable || 0)];
+    } else if (repId === 'crv-report') {
+      isLandscape = true;
+      headers = ['Date', 'Voucher #', 'Customer / Account Title', 'Territory', 'Mode', 'Amount Received', 'Discount Allowed', 'Total Credit', 'Remarks / Details'];
+      exportedRows = rows.map(r => [
+        r.date, r.voucherNo, cleanText(r.partyTitle, '-'), cleanText(r.areaName, '-'), r.paymentMode,
+        Number(r.amount || 0), Number(r.discount || 0), Number(r.netAmount || 0), cleanText(r.remarks, '-')
+      ]);
+      totalsRow = ['TOTALS', `${t.records || rows.length} Vouchers`, '', '', '', Number(t.amount || 0), Number(t.discount || 0), Number(t.netAmount || 0), ''];
+    } else if (repId === 'cpv-report') {
+      isLandscape = true;
+      headers = ['Date', 'Voucher #', 'Supplier / Expense Account Title', 'Territory', 'Mode', 'Amount Paid', 'Discount Received', 'Total Debit', 'Remarks / Details'];
+      exportedRows = rows.map(r => [
+        r.date, r.voucherNo, cleanText(r.partyTitle, '-'), cleanText(r.areaName, '-'), r.paymentMode,
+        Number(r.amount || 0), Number(r.discount || 0), Number(r.netAmount || 0), cleanText(r.remarks, '-')
+      ]);
+      totalsRow = ['TOTALS', `${t.records || rows.length} Vouchers`, '', '', '', Number(t.amount || 0), Number(t.discount || 0), Number(t.netAmount || 0), ''];
+    } else if (repId === 'cash-book') {
+      headers = ['Date', 'Counter Cash Sales', 'CRV Recoveries', 'Total Cash Inflow', 'CPV Cash Outflow', 'Net Day Cash Flow'];
+      exportedRows = rows.map(r => [
+        r.date, Number(r.cashSales || 0), Number(r.crvReceived || 0), Number(r.totalIn || 0),
+        Number(r.totalOut || 0), Number(r.netCash || 0)
+      ]);
+      totalsRow = [
+        'TOTALS', Number(t.cashSales || 0), Number(t.crvReceived || 0),
+        Number(t.totalIn || 0), Number(t.totalOut || 0), Number(t.netCash || 0)
+      ];
+    } else if (repId === 'profit-loss') {
+      headers = ['Sr #', 'Statement Component', 'Accounting Basis', 'Amount (PKR)'];
+      exportedRows = [
+        [1, 'Gross Sales Revenue', 'Total Invoice Sales Value', Number(m.grossSales || 0)],
+        [2, 'Less: Trade Discounts Allowed', 'Deductions on Invoices', -Number(m.discountsGiven || 0)],
+        [3, 'Less: Sales Returns & Refunds', 'Returned Merchandise', -Number(m.returnsRefunded || 0)],
+        [4, 'NET TRADING SALES REVENUE', 'Gross - Discounts - Returns', Number(m.netSales || 0)],
+        [5, 'Less: Cost of Goods Sold (COGS)', 'Purchase Rate x Units Sold', -Number(m.cogs || 0)],
+        [6, 'GROSS TRADING PROFIT', 'Net Sales - COGS', Number(m.grossProfit || 0)]
+      ];
+      totalsRow = ['GROSS PROFIT MARGIN RATIO', '', '', `${(m.profitMargin || 0).toFixed(2)}%`];
+    } else {
+      const keys = rows[0] ? Object.keys(rows[0]).filter(k => k !== 'id') : ['Details'];
+      headers = keys.map(k => k.toUpperCase());
+      exportedRows = rows.map(r => keys.map(k => r[k]));
+    }
+
+    return { title, headers, exportedRows, totalsRow, isLandscape };
+  }
+
+
   // Universal Perfect Excel (.xlsx) Exporter
   async function handleExportExcel() {
     if (!state.currentReportData) {
@@ -2032,14 +2281,14 @@
     }
 
     const res = state.currentReportData;
-    const rows = res.rows || [];
-    if (rows.length === 0 && !res.metrics) {
+    const repId = state.activeReportId;
+    const { title, headers, exportedRows, totalsRow } = getReportExportData(repId, res);
+
+    if (!exportedRows || (exportedRows.length === 0 && repId !== 'profit-loss')) {
       showToast('Report contains no records to export', 'warning');
       return;
     }
 
-    const title = res.title || 'Business Report';
-    const repId = state.activeReportId;
     const dateRange = dom.fromDate.value ? `${dom.fromDate.value} to ${dom.toDate.value || 'Today'}` : 'All Recorded Time';
     const filterSummary = [
       dom.partySelect?.value ? `Party: ${dom.partySelect.options[dom.partySelect.selectedIndex]?.text}` : '',
@@ -2047,205 +2296,6 @@
       dom.areaSelect?.value ? `Territory: ${dom.areaSelect.value}` : '',
       dom.paymentTypeSelect?.value !== 'All' ? `Payment: ${dom.paymentTypeSelect.value}` : ''
     ].filter(Boolean).join(' | ');
-
-    // Extract headers from DOM table head
-    const thEls = Array.from(dom.tableHead.querySelectorAll('th'));
-    const headers = thEls.length ? thEls.map(th => th.textContent.trim()) : (rows[0] ? Object.keys(rows[0]).filter(k => k !== 'id') : ['Details']);
-
-    // Extract structured row values tailored to the report type
-    const t = res.totals || {};
-    let exportedRows = [];
-    let totalsRow = [];
-
-    if (repId === 'today-register' || repId === 'bill-wise-sales') {
-      exportedRows = rows.map(r => [
-        r.date, r.voucherNo, r.partyTitle, r.areaName, r.paymentType,
-        Number(r.itemCount || 0), Number(r.gross || 0), Number(r.discount || 0),
-        Number(r.net || 0), Number(r.paid || 0), Number(r.balance || 0)
-      ]);
-      totalsRow = [
-        'TOTALS', `${t.records || 0} Bills`, '', '', '',
-        Number(t.itemsCount || 0), Number(t.gross || 0), Number(t.discount || 0),
-        Number(t.net || 0), Number(t.paid || 0), Number(t.balance || 0)
-      ];
-    } else if (repId === 'today-summary') {
-      exportedRows = rows.map((r, i) => [
-        i + 1, r.time, r.type, r.refNo, r.party, r.details,
-        Number(r.inflow || 0), Number(r.outflow || 0), Number(r.balance || 0)
-      ]);
-      totalsRow = [
-        'DAY TOTALS', `${t.records || 0} Transactions`, '', '', '', '',
-        Number(t.totalInflow || 0), Number(t.totalOutflow || 0), Number(t.netDayCash || 0)
-      ];
-    } else if (repId === 'party-wise-sales') {
-      exportedRows = rows.map((r, i) => [
-        i + 1, r.partyTitle, r.partyType, r.areaName, r.phone,
-        Number(r.billsCount || 0), Number(r.gross || 0), Number(r.discount || 0),
-        Number(r.net || 0), Number(r.paid || 0), Number(r.balance || 0)
-      ]);
-      totalsRow = [
-        'TOTALS', `${t.records || 0} Parties`, '', '', '',
-        Number(t.billsCount || 0), Number(t.gross || 0), Number(t.discount || 0),
-        Number(t.net || 0), Number(t.paid || 0), Number(t.balance || 0)
-      ];
-    } else if (repId === 'item-wise-sales') {
-      exportedRows = rows.map((r, i) => [
-        i + 1, r.productCode, r.productTitle, r.categoryName,
-        Number(r.packQtySold || 0), Number(r.totalQtySold || 0),
-        Number(r.purchaseCostTotal || 0), Number(r.netRevenue || 0),
-        Number(r.totalProfit || 0), Number((r.marginPercent || 0).toFixed(1))
-      ]);
-      totalsRow = [
-        'TOTALS', '', `${t.records || 0} Items`, '', '',
-        Number(t.totalQtySold || 0), Number(t.purchaseCostTotal || 0),
-        Number(t.netRevenue || 0), Number(t.totalProfit || 0),
-        Number((t.overallMargin || 0).toFixed(1))
-      ];
-    } else if (repId === 'territory-wise-sales') {
-      exportedRows = rows.map((r, i) => [
-        i + 1, r.areaName, r.cityName, Number(r.billsCount || 0),
-        Number(r.gross || 0), Number(r.discount || 0),
-        Number(r.net || 0), Number(r.paid || 0), Number(r.balance || 0)
-      ]);
-      totalsRow = [
-        'TOTALS', `${t.records || 0} Territories`, '', Number(t.billsCount || 0),
-        Number(t.gross || 0), Number(t.discount || 0),
-        Number(t.net || 0), Number(t.paid || 0), Number(t.balance || 0)
-      ];
-    } else if (repId === 'bill-wise-profit') {
-      exportedRows = rows.map(r => [
-        r.date, r.voucherNo, r.partyTitle, Number(r.itemCount || 0),
-        Number(r.revenue || 0), Number(r.cost || 0),
-        Number(r.profit || 0), Number((r.margin || 0).toFixed(1))
-      ]);
-      totalsRow = [
-        'TOTALS', `${t.records || 0} Bills`, '', Number(t.itemsCount || 0),
-        Number(t.revenue || 0), Number(t.cost || 0),
-        Number(t.profit || 0), Number((t.margin || 0).toFixed(1))
-      ];
-    } else if (repId === 'sales-returns') {
-      exportedRows = rows.map(r => [
-        r.date, r.returnNo, r.saleVoucherRef, r.partyTitle,
-        r.areaName, r.refundMode, Number(r.itemCount || 0), Number(r.totalRefund || 0)
-      ]);
-      totalsRow = [
-        'TOTALS', `${t.records || 0} Returns`, '', '', '', '',
-        Number(t.itemsCount || 0), Number(t.totalRefund || 0)
-      ];
-    } else if (repId === 'bill-wise-purchases') {
-      exportedRows = rows.map(r => [
-        r.date, r.purchaseNo, r.supplierName, r.paymentType,
-        Number(r.itemCount || 0), Number(r.grossAmount || 0), Number(r.discount || 0),
-        Number(r.freight || 0), Number(r.grandTotal || 0), Number(r.paid || 0), Number(r.balance || 0)
-      ]);
-      totalsRow = [
-        'TOTALS', `${t.records || 0} Bills`, '', '', Number(t.itemsCount || 0),
-        Number(t.grossAmount || 0), Number(t.discount || 0), Number(t.freight || 0),
-        Number(t.grandTotal || 0), Number(t.paid || 0), Number(t.balance || 0)
-      ];
-    } else if (repId === 'supplier-wise-purchases') {
-      exportedRows = rows.map((r, i) => [
-        i + 1, r.supplierName, r.phone, Number(r.vouchersCount || 0),
-        Number(r.totalPurchases || 0), Number(r.paidAmount || 0), Number(r.balanceDue || 0)
-      ]);
-      totalsRow = [
-        'TOTALS', `${t.records || 0} Suppliers`, '', Number(t.vouchersCount || 0),
-        Number(t.totalPurchases || 0), Number(t.paidAmount || 0), Number(t.balanceDue || 0)
-      ];
-    } else if (repId === 'item-wise-purchases') {
-      exportedRows = rows.map((r, i) => [
-        i + 1, r.productCode, r.productTitle, r.categoryName,
-        Number(r.packQtyInward || 0), Number(r.totalQtyInward || 0), Number(r.totalSpend || 0)
-      ]);
-      totalsRow = [
-        'TOTALS', '', `${t.records || 0} Items`, '', '',
-        Number(t.totalQtyInward || 0), Number(t.totalSpend || 0)
-      ];
-    } else if (repId === 'stock-position') {
-      exportedRows = rows.map(r => [
-        r.code, r.titleEng, r.categoryName, r.subCategoryName, r.unitName,
-        Number(r.stockQty || 0), Number(r.purchasePrice || 0), Number(r.wholesalePrice || 0),
-        Number(r.retailPrice || 0), Number(r.costValue || 0), Number(r.retailValue || 0)
-      ]);
-      totalsRow = [
-        'TOTALS', `${t.records || 0} Products`, '', '', '',
-        Number(t.totalStockQty || 0), '', '', '',
-        Number(t.totalCostVal || 0), Number(t.totalRetailVal || 0)
-      ];
-    } else if (repId === 'low-stock') {
-      exportedRows = rows.map(r => [
-        r.code, r.titleEng, r.categoryName, Number(r.stockQty || 0),
-        Number(r.minLevel || 0), Number(r.shortage || 0), Number(r.orderCostEstimate || 0)
-      ]);
-      totalsRow = [
-        'TOTALS', `${t.records || 0} Low Stock Items`, '', '', '',
-        Number(t.totalShortage || 0), Number(t.totalOrderEst || 0)
-      ];
-    } else if (repId === 'zero-stock') {
-      exportedRows = rows.map(r => [
-        r.code, r.titleEng, r.categoryName, r.unitName,
-        Number(r.purchasePrice || 0), Number(r.retailPrice || 0), 'Out of Stock'
-      ]);
-      totalsRow = ['TOTALS', `${t.records || 0} Zero Stock Items`, '', '', '', '', ''];
-    } else if (repId === 'category-stock') {
-      exportedRows = rows.map(r => [
-        r.categoryName, Number(r.productCount || 0), Number(r.stockQty || 0),
-        Number(r.costValue || 0), Number(r.retailValue || 0), Number(r.margin || 0),
-        Number((r.marginPct || 0).toFixed(1))
-      ]);
-      totalsRow = [
-        'TOTALS', Number(t.productCount || 0), Number(t.totalQty || 0),
-        Number(t.costValue || 0), Number(t.retailValue || 0), Number(t.margin || 0),
-        Number((t.marginPct || 0).toFixed(1))
-      ];
-    } else if (repId === 'customer-receivables') {
-      exportedRows = rows.map((r, i) => [
-        i + 1, r.name, r.phone, r.areaName, Number(r.currentBalance || 0)
-      ]);
-      totalsRow = ['TOTALS', `${t.records || 0} Customers`, '', '', Number(t.totalReceivable || 0)];
-    } else if (repId === 'supplier-payables') {
-      exportedRows = rows.map((r, i) => [
-        i + 1, r.name, r.phone, r.areaName, Number(r.currentBalance || 0)
-      ]);
-      totalsRow = ['TOTALS', `${t.records || 0} Suppliers`, '', '', Number(t.totalPayable || 0)];
-    } else if (repId === 'crv-report') {
-      exportedRows = rows.map(r => [
-        r.date, r.voucherNo, r.partyName, r.paymentMode,
-        r.narration, Number(r.discount || 0), Number(r.amount || 0), Number(r.netAmount || 0)
-      ]);
-      totalsRow = ['TOTALS', `${t.records || 0} CRV Vouchers`, '', '', '', Number(t.discount || 0), Number(t.amount || 0), Number(t.netAmount || 0)];
-    } else if (repId === 'cpv-report') {
-      exportedRows = rows.map(r => [
-        r.date, r.voucherNo, r.partyName, r.paymentMode,
-        r.narration, Number(r.discount || 0), Number(r.amount || 0), Number(r.netAmount || 0)
-      ]);
-      totalsRow = ['TOTALS', `${t.records || 0} CPV Vouchers`, '', '', '', Number(t.discount || 0), Number(t.amount || 0), Number(t.netAmount || 0)];
-    } else if (repId === 'cash-book') {
-      exportedRows = rows.map(r => [
-        r.date, Number(r.crvReceived || 0), Number(r.cashSales || 0), Number(r.totalIn || 0),
-        Number(r.cpvPaid || 0), Number(r.purchaseCash || 0), Number(r.totalOut || 0), Number(r.netCash || 0)
-      ]);
-      totalsRow = [
-        'TOTALS', Number(t.crvReceived || 0), Number(t.cashSales || 0), Number(t.totalIn || 0),
-        Number(t.cpvPaid || 0), Number(t.purchaseCash || 0), Number(t.totalOut || 0), Number(t.netCash || 0)
-      ];
-    } else if (repId === 'profit-loss') {
-      const m = res.metrics || {};
-      headers.length = 0;
-      headers.push('Financial Metric', 'Amount (PKR)');
-      exportedRows = [
-        ['Gross Sales Trading Revenue', Number(m.grossSales || 0)],
-        ['Less: Customer Discounts Allowed', Number(m.discountsGiven || 0)],
-        ['Less: Sales Returns & Refunds', Number(m.returnsRefunded || 0)],
-        ['Net Sales Revenue', Number(m.netSales || 0)],
-        ['Less: Cost of Goods Sold (COGS)', Number(m.cogs || 0)],
-        ['Gross Trading Profit', Number(m.grossProfit || 0)],
-        ['Gross Profit Margin (%)', Number((m.profitMargin || 0).toFixed(2))]
-      ];
-      totalsRow = ['NET TRADING RESULT', Number(m.grossProfit || 0)];
-    } else {
-      exportedRows = rows.map(r => Object.values(r).filter(v => typeof v !== 'object'));
-    }
 
     // Extract Summary KPI Cards from DOM
     const summaryCards = Array.from(dom.kpiBar.querySelectorAll('.rep-kpi-card')).map(c => ({
@@ -2305,6 +2355,64 @@
     URL.revokeObjectURL(url);
 
     showToast('Report exported as formatted Excel CSV!', 'success');
+  }
+
+  // Universal Native PDF Exporter
+  async function handleExportPdf() {
+    if (!state.currentReportData) {
+      showToast('No report data to export', 'warning');
+      return;
+    }
+
+    const res = state.currentReportData;
+    const repId = state.activeReportId;
+    const { title, headers, exportedRows, totalsRow, isLandscape } = getReportExportData(repId, res);
+
+    if (!exportedRows || (exportedRows.length === 0 && repId !== 'profit-loss')) {
+      showToast('Report contains no records to export', 'warning');
+      return;
+    }
+
+    const dateRange = dom.fromDate.value ? `${dom.fromDate.value} to ${dom.toDate.value || 'Today'}` : 'All Recorded Time';
+    const filterSummary = [
+      dom.partySelect?.value ? `Party: ${dom.partySelect.options[dom.partySelect.selectedIndex]?.text}` : '',
+      dom.categorySelect?.value ? `Category: ${dom.categorySelect.options[dom.categorySelect.selectedIndex]?.text}` : '',
+      dom.areaSelect?.value ? `Territory: ${dom.areaSelect.value}` : '',
+      dom.paymentTypeSelect?.value !== 'All' ? `Payment: ${dom.paymentTypeSelect.value}` : ''
+    ].filter(Boolean).join(' | ');
+
+    const summaryCards = Array.from(dom.kpiBar.querySelectorAll('.rep-kpi-card')).map(c => ({
+      label: c.querySelector('.rep-kpi-title')?.textContent?.trim() || '',
+      value: c.querySelector('.rep-kpi-val')?.textContent?.trim() || ''
+    }));
+
+    const filename = `Shahzaib_Traders_${repId.replace(/[^a-zA-Z0-9_-]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+    try {
+      if (window.electronAPI?.exportPDF) {
+        const result = await window.electronAPI.exportPDF({
+          title,
+          subtitle: 'Shahzaib Traders - Enterprise Business Reports',
+          dateRange: `Period: ${dateRange}`,
+          filterSummary,
+          headers,
+          rows: exportedRows,
+          totals: totalsRow,
+          summaryCards,
+          landscape: isLandscape,
+          filename
+        });
+
+        if (result && result.success) {
+          showToast(`Report exported successfully as PDF! (${result.filePath})`, 'success');
+          return;
+        }
+        if (result && result.cancelled) return;
+      }
+    } catch (err) {
+      console.warn('Native PDF export failed, falling back to print dialog:', err);
+      handlePrintReport();
+    }
   }
 
   // ========================================================
@@ -2454,7 +2562,7 @@
       dom.btnExportPdfOpt.addEventListener('click', (e) => {
         e.stopPropagation();
         if (dom.exportMenu) dom.exportMenu.classList.add('hidden');
-        handlePrintReport();
+        handleExportPdf();
       });
     }
 

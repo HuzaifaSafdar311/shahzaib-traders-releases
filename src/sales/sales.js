@@ -197,10 +197,7 @@
       removeSaleItem(idx);
       return;
     }
-    if (qty > stock) {
-      if (window.showToast) window.showToast(`Only ${stock} available in stock for "${it.productTitle}".`, 'warning');
-      qty = stock;
-    }
+
 
     it.totalQty = qty;
     const packSize = it.packSize || 1;
@@ -385,7 +382,7 @@
           </div>
         </td>
         <td style="text-align: center;">
-          <button type="button" class="btn-f1-add ${isOut ? 'disabled' : ''}" ${isOut ? 'disabled' : ''}
+          <button type="button" class="btn-f1-add"
             onclick="event.stopPropagation(); window.SalesModule.selectF1Product(${idx})"
             title="${isReturnMode ? 'Add to Return Voucher' : 'Add to Bill'}">
             + Add
@@ -448,11 +445,7 @@
       return;
     }
 
-    const stock = Number(p.stockQty || 0);
-    if (stock <= 0) {
-      if (window.showToast) window.showToast(`Cannot add: "${p.titleEng}" is Out of Stock (0 available).`, 'error');
-      return;
-    }
+
 
     // Prompt user to select Retailer or Wholesale rate if not bypassed and not explicitly forced
     const chkAsk = document.getElementById('chkRateModalAlwaysAsk');
@@ -467,15 +460,6 @@
     const existingQty = existingIdx !== -1 ? Number(saleState.items[existingIdx].totalQty || 0) : 0;
 
     let qtyToAdd = requestedQty;
-    if (existingQty + requestedQty > stock) {
-      const canAdd = Math.max(0, stock - existingQty);
-      if (canAdd <= 0) {
-        if (window.showToast) window.showToast(`Cannot add: "${p.titleEng}" is already at maximum available stock (${stock}) in bill.`, 'warning');
-        return;
-      }
-      qtyToAdd = canAdd;
-      if (window.showToast) window.showToast(`Only ${canAdd} more "${p.titleEng}" added (Stock: ${stock}, In bill: ${existingQty}).`, 'warning');
-    }
 
     const costPrice = Number(p.purchasePrice || p.averageCost || 0);
     const wholesalePrice = Number(p.wholesalePrice || 0);
@@ -551,12 +535,7 @@
       return;
     }
 
-    if (delta > 0 && newQty > stock) {
-      if (window.showToast) {
-        window.showToast(`Cannot increase: Available stock for "${it.productTitle}" is ${stock}.`, 'warning');
-      }
-      return;
-    }
+
 
     it.totalQty = newQty;
     const packSize = it.packSize || 1;
@@ -1080,6 +1059,7 @@
     el.totalProfitPreview = document.getElementById('saleTotalProfitPreview');
     el.grossTotal = document.getElementById('saleGrossTotal');
     el.specialDiscount = document.getElementById('saleSpecialDiscount');
+    el.specialDiscountPercent = document.getElementById('saleSpecialDiscountPercent');
     el.netTotal = document.getElementById('saleNetTotal');
     el.paidAmount = document.getElementById('salePaidAmount');
     el.balanceDue = document.getElementById('saleBalanceDue');
@@ -1596,23 +1576,7 @@
     const discAmt = grossLine * (discPct / 100);
     const netLine = Math.max(0, grossLine - discAmt);
 
-    // Stock availability verification
-    const currentStock = Number(p.stockQty || 0);
-    if (currentStock <= 0) {
-      if (window.showToast) window.showToast(`Cannot add: "${p.titleEng}" is Out of Stock (0 available).`, 'error');
-      return;
-    }
     const existingIdx = saleState.items.findIndex(it => it.productId === p.id || it.productCode === p.code);
-    const existingQty = existingIdx !== -1 ? Number(saleState.items[existingIdx].totalQty || 0) : 0;
-    if (existingQty + totalQty > currentStock) {
-      const remaining = Math.max(0, currentStock - existingQty);
-      if (remaining <= 0) {
-        if (window.showToast) window.showToast(`Cannot add: "${p.titleEng}" is already at maximum available stock (${currentStock}) in slip.`, 'warning');
-      } else {
-        if (window.showToast) window.showToast(`Stock limit: Only ${remaining} more available for "${p.titleEng}" (Stock: ${currentStock}, In Slip: ${existingQty}).`, 'warning');
-      }
-      return;
-    }
 
     // Warning if selling below purchase cost!
     if (costPrice > 0 && rate < costPrice) {
@@ -1811,11 +1775,11 @@
             <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustCartItemQty(${idx}, -1)" title="Decrease quantity">−</button>
             <input type="number" class="pos-qty-input-step font-num font-bold text-center" 
               style="width: 44px; height: 26px; border: none; background: transparent; text-align: center;"
-              value="${item.totalQty}" min="1" max="${availStock}"
+              value="${item.totalQty}" min="1"
               onchange="window.SalesModule.changeItemQty(${idx}, this.value)"
               onfocus="this.select()"
               title="Quantity">
-            <button type="button" class="pos-qty-btn-step ${isMaxReached ? 'disabled' : ''}" ${isMaxReached ? 'disabled' : ''} onclick="window.SalesModule.adjustCartItemQty(${idx}, 1)" title="${isMaxReached ? 'Stock limit reached' : 'Increase quantity'}">+</button>
+            <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustCartItemQty(${idx}, 1)" title="Increase quantity">+</button>
           </div>
         </td>
         <td class="pos-cell-disc text-center" style="text-align: center; vertical-align: middle;">
@@ -2064,24 +2028,7 @@
         `;
       }
 
-      // Live stock verification check (only for Paid bills, non-blocking for existing edits)
-      if (!isEstimated) {
-        const freshProducts = window.appData?.products || [];
-        if (freshProducts.length > 0 && !saleState.saleId) {
-          for (const item of itemsSnapshot) {
-            const prod = freshProducts.find(p => String(p.id) === String(item.productId) || String(p.code) === String(item.productCode));
-            if (prod) {
-              const availStock = Number(prod.stockQty || 0);
-              if (Number(item.totalQty || 0) > availStock && availStock >= 0) {
-                const msg = `Cannot confirm paid sale: "${item.productTitle}" requested quantity (${item.totalQty}) exceeds available stock (${availStock}).`;
-                if (window.showToast) window.showToast(msg, 'error');
-                alert(msg);
-                return;
-              }
-            }
-          }
-        }
-      }
+
 
       const gross = itemsSnapshot.reduce((s, it) => s + Number(it.netAmount || 0), 0);
       const specialDiscInput = document.getElementById('saleSpecialDiscount') || el.specialDiscount;
@@ -2234,6 +2181,7 @@
     }
     if (el.description) el.description.value = '';
     if (el.specialDiscount) el.specialDiscount.value = 0;
+    if (el.specialDiscountPercent) el.specialDiscountPercent.value = 0;
     if (el.paidAmount) {
       el.paidAmount.value = 0;
       delete el.paidAmount.dataset.userEdited;
@@ -2998,6 +2946,15 @@
         <div class="thermal-totals-box">
           <div class="thermal-items-count">No. of Items: ${itemsCount}</div>
           <div class="thermal-totals-list">
+            ${discVal > 0 ? `
+            <div class="thermal-total-line">
+              <span class="total-lbl">Subtotal:</span>
+              <span class="total-val">${grossVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div class="thermal-total-line">
+              <span class="total-lbl">Discount:</span>
+              <span class="total-val">-${discVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+            </div>` : ''}
             <div class="thermal-total-line">
               <span class="total-lbl">TOTAL:</span>
               <span class="total-val">${netVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
@@ -3651,7 +3608,12 @@
     if (el.paymentType) el.paymentType.value = sale.paymentType || 'Cash';
     if (el.storeTitle) el.storeTitle.value = sale.storeTitle || 'Main Store';
     if (el.description) el.description.value = sale.description || '';
-    if (el.specialDiscount) el.specialDiscount.value = Number(sale.discount || 0);
+    const saleDisc = Number(sale.discount || 0);
+    if (el.specialDiscount) el.specialDiscount.value = saleDisc;
+    const saleGross = Number(sale.totalAmount || sale.grossAmount || 0);
+    if (el.specialDiscountPercent) {
+      el.specialDiscountPercent.value = saleGross > 0 ? ((saleDisc / saleGross) * 100).toFixed(1) : 0;
+    }
 
     // Set paid amount by default to net amount so Cash sale is ready to confirm
     const net = Number(sale.netAmount || 0);
@@ -3927,8 +3889,32 @@
       });
     }
 
-    // Voucher Discount & Paid amount
-    if (el.specialDiscount) el.specialDiscount.addEventListener('input', updateVoucherTotals);
+    // Voucher Discount & Paid amount (Bidirectional sync between % and Rs)
+    let lastDiscEditSource = 'amount';
+
+    if (el.specialDiscountPercent) {
+      el.specialDiscountPercent.addEventListener('input', () => {
+        lastDiscEditSource = 'percent';
+        let grossVal = 0;
+        saleState.items.forEach(it => { grossVal += Number(it.netAmount || 0); });
+        const pct = Number(el.specialDiscountPercent.value) || 0;
+        const discAmt = (grossVal * pct) / 100;
+        if (el.specialDiscount) el.specialDiscount.value = (Math.round(discAmt * 100) / 100).toFixed(2);
+        updateVoucherTotals();
+      });
+    }
+
+    if (el.specialDiscount) {
+      el.specialDiscount.addEventListener('input', () => {
+        lastDiscEditSource = 'amount';
+        let grossVal = 0;
+        saleState.items.forEach(it => { grossVal += Number(it.netAmount || 0); });
+        const discAmt = Number(el.specialDiscount.value) || 0;
+        const pct = grossVal > 0 ? (discAmt / grossVal) * 100 : 0;
+        if (el.specialDiscountPercent) el.specialDiscountPercent.value = pct.toFixed(1);
+        updateVoucherTotals();
+      });
+    }
     if (el.paidAmount) {
       el.paidAmount.addEventListener('input', () => {
         el.paidAmount.dataset.userEdited = 'true';
@@ -5957,19 +5943,11 @@ ${window.escapeHtml(cfg.footer)}
       const stock = p ? Number(p.stockQty || 0) : 0;
       const inSlipItem = (saleState.items || []).find(it => String(it.productId) === String(productId) || (p && String(it.productCode) === String(p.code)));
       const inSlipQty = inSlipItem ? Number(inSlipItem.totalQty || 0) : 0;
-      const remainingStock = Math.max(0, stock - inSlipQty);
-
-      if (remainingStock <= 0) return;
-
       const inp = document.getElementById(`pos-qty-${productId}`);
       if (inp) {
         let val = Number(inp.value) || 1;
         val = val + delta;
         if (val < 1) val = 1;
-        if (val > remainingStock) {
-          val = remainingStock;
-          if (window.showToast) window.showToast(`Maximum available stock reached (${remainingStock}).`, 'warning');
-        }
         inp.value = val;
       }
     },

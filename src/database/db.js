@@ -1235,23 +1235,6 @@ function saveSale(saleData, items = []) {
       saleRecord.createdAt = existing.createdAt;
     }
 
-    // Stock pre-check: ensure sufficient stock for all items (only if not an estimated bill)
-    if (!isEstimated) {
-      for (const item of items) {
-        const code = String(item.productCode || item.code || '').trim();
-        const packSize = Number(item.packSize) || 1;
-        const packQty = Number(item.packQty || 0);
-        const unitQty = Number(item.unitQty || 0);
-        const totalQty = (packQty * packSize) + unitQty;
-        if (totalQty > 0) {
-          const prod = jsonData.products.find(p => (code && p.code === code) || (item.productId && p.id === item.productId));
-          const avail = prod ? (Number(prod.stockQty) || 0) : 0;
-          if (totalQty > avail) {
-            throw new Error(`Insufficient stock for "${prod ? prod.titleEng : (item.productTitle || code)}". Available: ${avail}, Requested: ${totalQty}`);
-          }
-        }
-      }
-    }
 
     jsonData.sales.unshift(saleRecord);
 
@@ -1351,23 +1334,6 @@ function saveSale(saleData, items = []) {
       dbInstance.prepare('DELETE FROM sale_items WHERE saleId = ?').run(existing.id);
     }
 
-    // Stock pre-check: ensure sufficient stock for all items (only if not an estimated bill)
-    if (!isEstimated) {
-      for (const item of items) {
-        const code = String(item.productCode || item.code || '').trim();
-        const packSize = Number(item.packSize) || 1;
-        const packQty = Number(item.packQty || 0);
-        const unitQty = Number(item.unitQty || 0);
-        const totalQty = (packQty * packSize) + unitQty;
-        if (totalQty > 0) {
-          const prod = dbInstance.prepare('SELECT id, titleEng, stockQty FROM products WHERE code = ? OR id = ?').get(code, item.productId || '');
-          const avail = prod ? (Number(prod.stockQty) || 0) : 0;
-          if (totalQty > avail) {
-            throw new Error(`Insufficient stock for "${prod ? prod.titleEng : (item.productTitle || code)}". Available: ${avail}, Requested: ${totalQty}`);
-          }
-        }
-      }
-    }
 
     const actualSaleId = existing ? existing.id : id;
     if (existing) {

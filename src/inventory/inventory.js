@@ -115,6 +115,11 @@ const inv = {
   modalPurchaseSubtotal: document.getElementById('modalPurchaseSubtotal'),
 
   purDiscount: document.getElementById('purDiscount'),
+  purDiscountPercent: document.getElementById('purDiscountPercent'),
+  purSubtotalDisplay: document.getElementById('purSubtotalDisplay'),
+  purTotalItemsCount: document.getElementById('purTotalItemsCount'),
+  purTotalUnitsCount: document.getElementById('purTotalUnitsCount'),
+  btnPurNewVoucher: document.getElementById('btnPurNewVoucher'),
   purFreightDisc: document.getElementById('purFreightDisc'),
   purFreightExpn: document.getElementById('purFreightExpn'),
   purSalesTax: document.getElementById('purSalesTax'),
@@ -1492,6 +1497,13 @@ async function autoSaveCurrentPurchase() {
   const lineSum = currentPurchaseItems.reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0);
   const vNo = inv.purVoucherNo?.value || (window.appData?.purchases?.length ? String(window.appData.purchases.length + 100) : "101");
 
+  const discount = Number(inv.purDiscount?.value) || 0;
+  const freightDisc = Number(inv.purFreightDisc?.value) || 0;
+  const freightExpn = Number(inv.purFreightExpn?.value) || 0;
+  const salesTax = Number(inv.purSalesTax?.value) || 0;
+  const extraCharges = Number(inv.purExtraCharges?.value) || 0;
+  const grandTotal = Math.max(0, lineSum - discount - freightDisc + freightExpn + salesTax + extraCharges);
+
   const purchaseData = {
     voucherNo: vNo,
     manualNo: inv.purManualNo?.value.trim() || '',
@@ -1505,12 +1517,12 @@ async function autoSaveCurrentPurchase() {
     dueDate: '',
     paymentStatus: 'Pending',
     totalAmount: lineSum,
-    discount: 0,
-    freightDisc: 0,
-    freightExpn: 0,
-    salesTax: 0,
-    extraCharges: 0,
-    grandTotal: lineSum
+    discount,
+    freightDisc,
+    freightExpn,
+    salesTax,
+    extraCharges,
+    grandTotal
   };
 
   try {
@@ -1695,6 +1707,18 @@ window.applyChangeSubstancePrice = applyChangeSubstancePrice;
 
 function calculatePurchaseBill() {
   const lineSum = currentPurchaseItems.reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0);
+  let totalUnits = 0;
+  currentPurchaseItems.forEach(it => {
+    const pSize = Number(it.packSize) || 1;
+    totalUnits += ((Number(it.packQty) || 0) * pSize) + (Number(it.unitQty) || 0);
+  });
+
+  if (inv.purTotalItemsCount) inv.purTotalItemsCount.textContent = currentPurchaseItems.length;
+  if (inv.purTotalUnitsCount) inv.purTotalUnitsCount.textContent = totalUnits;
+  if (inv.purSubtotalDisplay) {
+    inv.purSubtotalDisplay.textContent = 'Rs. ' + lineSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   const discount = Number(inv.purDiscount?.value) || 0;
   const freightDisc = Number(inv.purFreightDisc?.value) || 0;
   const freightExpn = Number(inv.purFreightExpn?.value) || 0;
@@ -1704,13 +1728,41 @@ function calculatePurchaseBill() {
   const grandTotal = Math.max(0, lineSum - discount - freightDisc + freightExpn + salesTax + extraCharges);
 
   if (inv.purGrandTotalDisplay) {
-    inv.purGrandTotalDisplay.textContent = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formatted = 'Rs. ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if ('value' in inv.purGrandTotalDisplay) inv.purGrandTotalDisplay.value = grandTotal.toFixed(2);
+    inv.purGrandTotalDisplay.textContent = formatted;
   }
 }
 
-// Bind bill footer recalculation inputs
-[inv.purDiscount, inv.purFreightDisc, inv.purFreightExpn, inv.purSalesTax, inv.purExtraCharges].forEach(input => {
-  if (input) input.addEventListener('input', calculatePurchaseBill);
+// Vendor discount bidirectional recalculation listeners
+if (inv.purDiscountPercent) {
+  inv.purDiscountPercent.addEventListener('input', () => {
+    const lineSum = currentPurchaseItems.reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0);
+    const pct = Number(inv.purDiscountPercent.value) || 0;
+    const discAmt = (lineSum * pct) / 100;
+    if (inv.purDiscount) inv.purDiscount.value = discAmt.toFixed(2);
+    calculatePurchaseBill();
+    autoSaveCurrentPurchase();
+  });
+}
+
+if (inv.purDiscount) {
+  inv.purDiscount.addEventListener('input', () => {
+    const lineSum = currentPurchaseItems.reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0);
+    const discAmt = Number(inv.purDiscount.value) || 0;
+    const pct = lineSum > 0 ? (discAmt / lineSum) * 100 : 0;
+    if (inv.purDiscountPercent) inv.purDiscountPercent.value = pct.toFixed(1);
+    calculatePurchaseBill();
+    autoSaveCurrentPurchase();
+  });
+}
+
+// Bind remaining calculation inputs
+[inv.purFreightDisc, inv.purFreightExpn, inv.purSalesTax, inv.purExtraCharges].forEach(input => {
+  if (input) input.addEventListener('input', () => {
+    calculatePurchaseBill();
+    autoSaveCurrentPurchase();
+  });
 });
 
 // Save Purchase Voucher
@@ -1788,6 +1840,7 @@ async function resetPurchaseForm() {
   if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = '';
   if (inv.pieCode) inv.pieCode.value = '';
   if (inv.purDiscount) inv.purDiscount.value = '0.00';
+  if (inv.purDiscountPercent) inv.purDiscountPercent.value = '0.0';
   if (inv.purFreightDisc) inv.purFreightDisc.value = '0.00';
   if (inv.purFreightExpn) inv.purFreightExpn.value = '0.00';
   if (inv.purSalesTax) inv.purSalesTax.value = '0.00';
@@ -1811,7 +1864,6 @@ function loadPurchaseRecord(pur) {
   if (inv.purStoreTitle) inv.purStoreTitle.value = pur.storeTitle || 'Store';
   if (inv.purDueDate) inv.purDueDate.value = pur.dueDate || '';
   if (inv.purPaymentStatus) inv.purPaymentStatus.value = pur.paymentStatus || 'Pending';
-  if (inv.purDiscount) inv.purDiscount.value = Number(pur.discount || 0).toFixed(2);
   if (inv.purFreightDisc) inv.purFreightDisc.value = Number(pur.freightDisc || 0).toFixed(2);
   if (inv.purFreightExpn) inv.purFreightExpn.value = Number(pur.freightExpn || 0).toFixed(2);
   if (inv.purSalesTax) inv.purSalesTax.value = Number(pur.salesTax || 0).toFixed(2);
@@ -1822,14 +1874,24 @@ function loadPurchaseRecord(pur) {
   } catch (e) {
     currentPurchaseItems = [];
   }
+
+  const lineSum = currentPurchaseItems.reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0);
+  const purDisc = Number(pur.discount || 0);
+  if (inv.purDiscount) inv.purDiscount.value = purDisc.toFixed(2);
+  if (inv.purDiscountPercent) {
+    inv.purDiscountPercent.value = lineSum > 0 ? ((purDisc / lineSum) * 100).toFixed(1) : '0.0';
+  }
+
   renderPurchaseLineItems();
   updatePurchaseHeaderBadges();
   updateModalPurchaseCount();
+  calculatePurchaseBill();
 }
 
 // Purchase Navigation Dock
 if (inv.btnPurSave) inv.btnPurSave.addEventListener('click', savePurchaseVoucher);
 if (inv.btnPurRefresh) inv.btnPurRefresh.addEventListener('click', resetPurchaseForm);
+if (inv.btnPurNewVoucher) inv.btnPurNewVoucher.addEventListener('click', resetPurchaseForm);
 if (inv.btnPurPrint) inv.btnPurPrint.addEventListener('click', () => window.print());
 if (inv.btnPurDelete) {
   inv.btnPurDelete.addEventListener('click', () => {
