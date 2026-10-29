@@ -103,12 +103,14 @@
                 </button>
             </nav>
 
-            <div class="sidebar-footer" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <div class="sidebar-footer"
+                style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 6px;">
                     <span class="status-indicator"></span>
                     <span class="status-label">Active</span>
                 </div>
-                <span id="sidebarAppVersion" class="app-version-tag" style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">v1.0.1</span>
+                <span id="sidebarAppVersion" class="app-version-tag"
+                    style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">v1.0.1</span>
             </div>
         </aside>
 
@@ -614,7 +616,8 @@
                                     </div>
 
                                     <!-- Row 3: Action Row -->
-                                    <div class="pur-entry-action-row" style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                    <div class="pur-entry-action-row"
+                                        style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
                                         <button type="button" id="btnAddPurchaseItem"
                                             class="btn btn-primary btn-add-voucher-line">
                                             <svg viewBox="0 0 24 24" width="15" height="15" fill="none"
@@ -631,12 +634,16 @@
                                             title="Change price of selected substance">
                                             <svg viewBox="0 0 24 24" width="15" height="15" fill="none"
                                                 stroke="currentColor" stroke-width="2">
-                                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6">
+                                                </path>
                                             </svg>
                                             <span>Change Price</span>
                                         </button>
-                                        <label class="pur-price-sync-label" style="display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; font-size: 0.83rem; font-weight: 600; color: #334155; cursor: pointer;" title="When checked, any price changes will automatically update the product catalog">
-                                            <input type="checkbox" id="pieSyncCatalogPrices" checked style="width: 16px; height: 16px; accent-color: #0284c7; cursor: pointer;">
+                                        <label class="pur-price-sync-label"
+                                            style="display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; font-size: 0.83rem; font-weight: 600; color: #334155; cursor: pointer;"
+                                            title="When checked, any price changes will automatically update the product catalog">
+                                            <input type="checkbox" id="pieSyncCatalogPrices" checked
+                                                style="width: 16px; height: 16px; accent-color: #0284c7; cursor: pointer;">
                                             <span>Update Catalog Prices</span>
                                         </label>
                                     </div>
@@ -689,7 +696,9 @@
                                         <span class="pur-stat-label">Total Qty:</span>
                                         <strong id="purTotalUnitsCount" class="font-num">0</strong>
                                     </div>
-                                    <button type="button" id="btnPurNewVoucher" class="btn btn-sm btn-outline" style="font-weight: 600; font-size: 12px; padding: 4px 10px;" title="Clear and Start New Purchase Voucher">
+                                    <button type="button" id="btnPurNewVoucher" class="btn btn-sm btn-outline"
+                                        style="font-weight: 600; font-size: 12px; padding: 4px 10px;"
+                                        title="Clear and Start New Purchase Voucher">
                                         + New Voucher
                                     </button>
                                 </div>
@@ -698,21 +707,30 @@
                                     <!-- Subtotal (Gross) -->
                                     <div class="pur-calc-cell">
                                         <span class="pur-calc-label">Subtotal (Gross):</span>
-                                        <strong id="purSubtotalDisplay" class="font-num" style="font-size: 14px; color: #1e293b;">Rs. 0.00</strong>
+                                        <strong id="purSubtotalDisplay" class="font-num"
+                                            style="font-size: 14px; color: #1e293b;">Rs. 0.00</strong>
                                     </div>
 
                                     <!-- Vendor Discount (Discount on stock from vendor) -->
                                     <div class="pur-calc-cell pur-calc-discount">
-                                        <span class="pur-calc-label" title="Discount received from vendor on purchased stock">Vendor Discount:</span>
+                                        <span class="pur-calc-label"
+                                            title="Discount received from vendor on purchased stock">Vendor
+                                            Discount:</span>
                                         <div class="pur-discount-inputs">
                                             <div class="input-with-suffix">
-                                                <input type="number" id="purDiscountPercent" class="form-control form-control-sm font-num text-right"
-                                                    min="0" max="100" step="0.1" value="0.0" placeholder="0.0" title="Vendor Discount Percentage" style="width: 58px; height: 30px; font-weight: 700;">
+                                                <input type="number" id="purDiscountPercent"
+                                                    class="form-control form-control-sm font-num text-right" min="0"
+                                                    max="100" step="0.1" value="0.0" placeholder="0.0"
+                                                    title="Vendor Discount Percentage"
+                                                    style="width: 58px; height: 30px; font-weight: 700;">
                                                 <span class="input-suffix">%</span>
                                             </div>
                                             <span class="pur-minus-sign">- Rs</span>
-                                            <input type="number" id="purDiscount" class="form-control form-control-sm font-num text-right"
-                                                min="0" step="0.01" value="0.00" placeholder="0.00" title="Vendor Discount Amount (Rs)" style="width: 90px; height: 30px; font-weight: 700;">
+                                            <input type="number" id="purDiscount"
+                                                class="form-control form-control-sm font-num text-right" min="0"
+                                                step="0.01" value="0.00" placeholder="0.00"
+                                                title="Vendor Discount Amount (Rs)"
+                                                style="width: 90px; height: 30px; font-weight: 700;">
                                         </div>
                                     </div>
 
@@ -724,8 +742,11 @@
                                 </div>
 
                                 <div class="pur-summary-right">
-                                    <button type="button" id="btnPurSave" class="btn btn-primary btn-save-purchase" title="Save Purchase Voucher (Stock In)">
-                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 4px;">
+                                    <button type="button" id="btnPurSave" class="btn btn-primary btn-save-purchase"
+                                        title="Save Purchase Voucher (Stock In)">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                                            stroke="currentColor" stroke-width="2.5"
+                                            style="vertical-align: middle; margin-right: 4px;">
                                             <polyline points="20 6 9 17 4 12"></polyline>
                                         </svg>
                                         <span>Save Voucher</span>
@@ -1583,15 +1604,15 @@
                                     <thead>
                                         <tr>
                                             <th style="width: 4%; text-align: center;">SR</th>
-                                            <th style="width: 8%; text-align: center;">CODE</th>
-                                            <th style="width: 19%; text-align: left; padding-left: 14px;">PRODUCT
+                                            <th style="width: 7%; text-align: center;">CODE</th>
+                                            <th style="width: 22%; text-align: left; padding-left: 14px;">PRODUCT
                                                 DESCRIPTION</th>
-                                            <th style="width: 8%; text-align: center;">STOCK</th>
-                                            <th style="width: 15%; text-align: center;">RATE TYPE</th>
-                                            <th style="width: 11%; text-align: center;">UNIT RATE</th>
-                                            <th style="width: 11%; text-align: center;">QUANTITY</th>
-                                            <th style="width: 8%; text-align: center;">DISC %</th>
-                                            <th style="width: 11%; text-align: right; padding-right: 16px;">AMOUNT</th>
+                                            <th style="width: 6%; text-align: center;">STOCK</th>
+                                            <th style="width: 12%; text-align: center;">RATE TYPE</th>
+                                            <th style="width: 10%; text-align: center;">UNIT RATE</th>
+                                            <th style="width: 10%; text-align: center;">QUANTITY</th>
+                                            <th style="width: 14%; text-align: center;">DISCOUNT</th>
+                                            <th style="width: 10%; text-align: right; padding-right: 16px;">AMOUNT</th>
                                             <th style="width: 5%; text-align: center;">ACTION</th>
                                         </tr>
                                     </thead>
@@ -1644,8 +1665,8 @@
                         <!-- ROW 3: BILLING SETTLEMENT & SUMMARY DECK (Clean card matching pur-entry-combined-card) -->
                         <div class="pur-entry-combined-card sale-settlement-deck" style="padding: 12px 16px;">
                             <div
-                                style="display: grid; grid-template-columns: 1.2fr 1.2fr 1.3fr 1.1fr; gap: 16px; align-items: center;">
-                                <!-- Column 1: Meta stats & notes -->
+                                style="display: grid; grid-template-columns: 1.25fr 1.2fr 1.25fr 1.1fr; gap: 16px; align-items: center;">
+                                <!-- Column 1: Meta stats, Live Profit Preview & notes -->
                                 <div style="display: flex; flex-direction: column; gap: 8px;">
                                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                                         <div class="pur-summary-pill" style="padding: 4px 10px; font-size: 12px;">
@@ -1657,14 +1678,27 @@
                                             <strong id="saleTotalPiecesCount" class="pill-count font-num">0</strong>
                                         </div>
                                     </div>
+                                    <div class="pur-summary-pill" id="saleProfitDisplayPill"
+                                        style="padding: 4px 10px; font-size: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; display: flex; align-items: center; justify-content: space-between;"
+                                        title="Estimated profit based on cost vs sale price">
+                                        <span class="pill-label" style="color: #166534; font-weight: 700;">Est.
+                                            Profit:</span>
+                                        <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                            <strong id="saleTotalProfitPreview" class="pill-count font-num"
+                                                style="color: #15803d; font-size: 12.5px;">Rs 0.00</strong>
+                                            <span id="saleTotalProfitMarginBadge" class="font-num font-bold"
+                                                style="font-size: 11px; color: #166534; background: #dcfce7; padding: 1px 6px; border-radius: 4px;"
+                                                title="Profit margin percentage">+0.0%</span>
+                                        </div>
+                                    </div>
                                     <div>
                                         <input type="text" id="saleRemarksInput" class="form-control form-control-sm"
                                             placeholder="Bill Notes / Remarks (Optional)..."
-                                            style="height: 34px; font-size: 12.5px;">
+                                            style="height: 32px; font-size: 12px;">
                                     </div>
                                 </div>
 
-                                <!-- Column 2: Financial breakdown -->
+                                <!-- Column 2: Financial breakdown & Universal / Line Discount -->
                                 <div
                                     style="display: flex; flex-direction: column; gap: 6px; padding: 0 10px; border-left: 1px dashed #cbd5e1; border-right: 1px dashed #cbd5e1;">
                                     <div
@@ -1679,14 +1713,18 @@
                                         <div style="display: inline-flex; align-items: center; gap: 4px;">
                                             <div style="position: relative; display: inline-flex; align-items: center;">
                                                 <input type="number" id="saleSpecialDiscountPercent"
-                                                    class="form-control form-control-sm font-num text-right" min="0" max="100"
-                                                    step="0.1" value="0" placeholder="0" style="width: 52px; height: 28px; font-weight: 700; padding-right: 14px;" title="Discount Percentage">
-                                                <span style="position: absolute; right: 3px; font-size: 10px; font-weight: 700; color: #64748b; pointer-events: none;">%</span>
+                                                    class="form-control form-control-sm font-num text-right" min="0"
+                                                    max="100" step="0.1" value="0" placeholder="0"
+                                                    style="width: 52px; height: 28px; font-weight: 700; padding-right: 14px;"
+                                                    title="Discount Percentage (%)">
+                                                <span
+                                                    style="position: absolute; right: 3px; font-size: 10px; font-weight: 700; color: #64748b; pointer-events: none;">%</span>
                                             </div>
                                             <span style="font-size: 11px; color: #94a3b8;">- Rs</span>
                                             <input type="number" id="saleSpecialDiscount"
                                                 class="form-control form-control-sm font-num text-right" min="0"
-                                                step="1" value="0" style="width: 80px; height: 28px; font-weight: 700;" title="Discount Amount in Rupees">
+                                                step="1" value="0" style="width: 80px; height: 28px; font-weight: 700;"
+                                                title="Discount Amount in Rupees (Rs)">
                                         </div>
                                     </div>
                                     <div
@@ -1785,7 +1823,7 @@
                             <span id="posSlipDiscountDisplay"></span>
                             <span id="posCartEstimatedNet"></span>
                             <span id="posCartCountBadge">0</span>
-                            <span id="saleTotalProfitPreview">Rs 0.00</span>
+                            <span id="posLegacySaleTotalProfitPreview" style="display:none;">Rs 0.00</span>
                             <div id="posSlipItemsTableBody"></div>
                         </div>
 
@@ -3019,33 +3057,45 @@
                                             </svg>
                                             Software Updates & Version
                                         </h3>
-                                        <p class="settings-card-subtitle">Check for new releases, patches, and automatic updates directly from GitHub.</p>
+                                        <p class="settings-card-subtitle">Check for new releases, patches, and automatic
+                                            updates directly from GitHub.</p>
                                     </div>
                                 </div>
                                 <div class="settings-card-body">
-                                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 14px 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                                    <div
+                                        style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 14px 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
                                         <div style="display: flex; align-items: center; gap: 14px;">
-                                            <div style="width: 42px; height: 42px; border-radius: 8px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 22px; height: 22px;">
+                                            <div
+                                                style="width: 42px; height: 42px; border-radius: 8px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" style="width: 22px; height: 22px;">
                                                     <circle cx="12" cy="12" r="10"></circle>
                                                     <polyline points="12 6 12 12 16 14"></polyline>
                                                 </svg>
                                             </div>
                                             <div>
-                                                <div style="font-size: 0.88rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-                                                    Installed Version: <span id="lblCurrentAppVersion" class="system-badge-pill" style="font-weight: 600;">v1.0.1</span>
+                                                <div
+                                                    style="font-size: 0.88rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                                                    Installed Version: <span id="lblCurrentAppVersion"
+                                                        class="system-badge-pill"
+                                                        style="font-weight: 600;">v1.0.1</span>
                                                 </div>
                                                 <div style="font-size: 0.78rem; color: #64748b; margin-top: 4px;">
-                                                    Update Status: <span id="updaterStatusText" style="color: #059669; font-weight: 600;">Up to date</span>
+                                                    Update Status: <span id="updaterStatusText"
+                                                        style="color: #059669; font-weight: 600;">Up to date</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 10px;">
-                                            <button type="button" id="btnCheckForUpdates" class="btn btn-primary" style="padding: 8px 18px; display: inline-flex; align-items: center; gap: 8px;">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;">
+                                            <button type="button" id="btnCheckForUpdates" class="btn btn-primary"
+                                                style="padding: 8px 18px; display: inline-flex; align-items: center; gap: 8px;">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" style="width: 15px; height: 15px;">
                                                     <polyline points="23 4 23 10 17 10"></polyline>
                                                     <polyline points="1 20 1 14 7 14"></polyline>
-                                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                                    <path
+                                                        d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15">
+                                                    </path>
                                                 </svg>
                                                 <span id="btnCheckForUpdatesText">Check for updates</span>
                                             </button>
@@ -3708,67 +3758,99 @@
     <!-- MODAL: CHANGE SUBSTANCE PRICE (PURCHASE WORKFLOW)        -->
     <!-- ======================================================== -->
     <div id="modalChangeSubstancePrice" class="modal-overlay hidden" style="z-index: 10050;">
-        <div class="modal-card" style="max-width: 500px; border-radius: 14px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-bottom: 1px solid #e2e8f0;">
+        <div class="modal-card"
+            style="max-width: 500px; border-radius: 14px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);">
+            <div class="modal-header"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-bottom: 1px solid #e2e8f0;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="background: #0284c7; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px;">PRICING</span>
-                    <h2 class="modal-title" style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #0f172a;">Change Substance Price</h2>
+                    <span
+                        style="background: #0284c7; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px;">PRICING</span>
+                    <h2 class="modal-title" style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #0f172a;">
+                        Change Substance Price</h2>
                 </div>
-                <button type="button" id="btnCloseChangePriceModal" class="btn-dots" style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #cbd5e1; background: #fff;" title="Close">✕</button>
+                <button type="button" id="btnCloseChangePriceModal" class="btn-dots"
+                    style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #cbd5e1; background: #fff;"
+                    title="Close">✕</button>
             </div>
             <div class="modal-body" style="padding: 18px 20px;">
                 <input type="hidden" id="cspProductId">
                 <input type="hidden" id="cspLineItemIndex" value="-1">
 
                 <!-- Substance Info Box -->
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;">
+                <div
+                    style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;">
                     <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;" id="cspProductTitle">-</div>
                     <div style="display: flex; gap: 14px; margin-top: 6px; font-size: 0.8rem; color: #64748b;">
-                        <span>Code: <strong id="cspProductCode" class="font-num" style="color: #0284c7;">-</strong></span>
-                        <span>Pack Size: <strong id="cspPackSize" class="font-num" style="color: #0f172a;">1</strong></span>
-                        <span>Stock: <strong id="cspCurrentStock" class="font-num" style="color: #0f172a;">0</strong></span>
+                        <span>Code: <strong id="cspProductCode" class="font-num"
+                                style="color: #0284c7;">-</strong></span>
+                        <span>Pack Size: <strong id="cspPackSize" class="font-num"
+                                style="color: #0f172a;">1</strong></span>
+                        <span>Stock: <strong id="cspCurrentStock" class="font-num"
+                                style="color: #0f172a;">0</strong></span>
                     </div>
                 </div>
 
                 <!-- Price Inputs 2x2 Grid -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="cspTradePrice" style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Trade / Purchase Rate (Cost)</label>
+                        <label for="cspTradePrice"
+                            style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Trade
+                            / Purchase Rate (Cost)</label>
                         <div style="position: relative;">
-                            <span style="position: absolute; left: 10px; top: 8px; font-size: 0.78rem; color: #94a3b8; font-weight: 700;">Rs</span>
-                            <input type="number" id="cspTradePrice" class="form-control font-num" step="0.01" min="0" style="padding-left: 32px; font-weight: 700; text-align: right; background: #fff;" placeholder="0.00">
+                            <span
+                                style="position: absolute; left: 10px; top: 8px; font-size: 0.78rem; color: #94a3b8; font-weight: 700;">Rs</span>
+                            <input type="number" id="cspTradePrice" class="form-control font-num" step="0.01" min="0"
+                                style="padding-left: 32px; font-weight: 700; text-align: right; background: #fff;"
+                                placeholder="0.00">
                         </div>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="cspWholesalePrice" style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Whole Sale Price</label>
+                        <label for="cspWholesalePrice"
+                            style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Whole
+                            Sale Price</label>
                         <div style="position: relative;">
-                            <span style="position: absolute; left: 10px; top: 8px; font-size: 0.78rem; color: #94a3b8; font-weight: 700;">Rs</span>
-                            <input type="number" id="cspWholesalePrice" class="form-control font-num" step="0.01" min="0" style="padding-left: 32px; font-weight: 700; text-align: right; background: #fff;" placeholder="0.00">
+                            <span
+                                style="position: absolute; left: 10px; top: 8px; font-size: 0.78rem; color: #94a3b8; font-weight: 700;">Rs</span>
+                            <input type="number" id="cspWholesalePrice" class="form-control font-num" step="0.01"
+                                min="0"
+                                style="padding-left: 32px; font-weight: 700; text-align: right; background: #fff;"
+                                placeholder="0.00">
                         </div>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="cspRetailPrice" style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Retail / Individual Price</label>
+                        <label for="cspRetailPrice"
+                            style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Retail
+                            / Individual Price</label>
                         <div style="position: relative;">
-                            <span style="position: absolute; left: 10px; top: 8px; font-size: 0.78rem; color: #94a3b8; font-weight: 700;">Rs</span>
-                            <input type="number" id="cspRetailPrice" class="form-control font-num" step="0.01" min="0" style="padding-left: 32px; font-weight: 700; text-align: right; color: #047857; background: #fff;" placeholder="0.00">
+                            <span
+                                style="position: absolute; left: 10px; top: 8px; font-size: 0.78rem; color: #94a3b8; font-weight: 700;">Rs</span>
+                            <input type="number" id="cspRetailPrice" class="form-control font-num" step="0.01" min="0"
+                                style="padding-left: 32px; font-weight: 700; text-align: right; color: #047857; background: #fff;"
+                                placeholder="0.00">
                         </div>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Profit Margin</label>
-                        <div style="padding: 7px 12px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; display: flex; align-items: center; justify-content: space-between; height: 35px; box-sizing: border-box;">
+                        <label
+                            style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Profit
+                            Margin</label>
+                        <div
+                            style="padding: 7px 12px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; display: flex; align-items: center; justify-content: space-between; height: 35px; box-sizing: border-box;">
                             <span style="font-size: 0.75rem; color: #065f46; font-weight: 600;">Margin</span>
-                            <span id="cspMarginBadge" class="font-num" style="font-weight: 800; color: #047857; font-size: 0.92rem;">0.0%</span>
+                            <span id="cspMarginBadge" class="font-num"
+                                style="font-weight: 800; color: #047857; font-size: 0.92rem;">0.0%</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Scope Options -->
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px;">
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.83rem; font-weight: 700; color: #1e293b; cursor: pointer; margin-bottom: 0;">
-                        <input type="checkbox" id="cspApplyToCatalog" checked style="width: 16px; height: 16px; accent-color: #0284c7; cursor: pointer;">
+                    <label
+                        style="display: flex; align-items: center; gap: 8px; font-size: 0.83rem; font-weight: 700; color: #1e293b; cursor: pointer; margin-bottom: 0;">
+                        <input type="checkbox" id="cspApplyToCatalog" checked
+                            style="width: 16px; height: 16px; accent-color: #0284c7; cursor: pointer;">
                         <span>Update Product Master Catalog permanently</span>
                     </label>
                     <div style="font-size: 0.73rem; color: #64748b; margin-left: 24px; margin-top: 3px;">
@@ -3776,9 +3858,12 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="button" id="btnCancelChangePriceModal" class="btn btn-secondary" style="font-weight: 600;">Cancel</button>
-                <button type="button" id="btnApplyChangePriceModal" class="btn btn-primary" style="font-weight: 700; padding: 7px 18px;">Apply New Price</button>
+            <div class="modal-footer"
+                style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" id="btnCancelChangePriceModal" class="btn btn-secondary"
+                    style="font-weight: 600;">Cancel</button>
+                <button type="button" id="btnApplyChangePriceModal" class="btn btn-primary"
+                    style="font-weight: 700; padding: 7px 18px;">Apply New Price</button>
             </div>
         </div>
     </div>

@@ -3349,6 +3349,68 @@
   width: 55px;
 }
 
+/* DUAL DISCOUNT WRAPPER (% and Rs) */
+.disc-dual-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.disc-dual-wrap .disc-sub-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.disc-dual-wrap .disc-sub-wrap input {
+  height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  font-family: inherit;
+  font-weight: 700;
+  color: #1e293b;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.disc-dual-wrap .disc-sub-wrap input:focus {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.disc-dual-wrap .disc-pct-input {
+  width: 48px;
+  padding: 2px 14px 2px 2px;
+  text-align: center;
+}
+
+.disc-dual-wrap .disc-amt-input {
+  width: 60px;
+  padding: 2px 2px 2px 17px;
+  text-align: center;
+}
+
+.disc-dual-wrap .disc-pct-badge {
+  position: absolute;
+  right: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.disc-dual-wrap .disc-amt-badge {
+  position: absolute;
+  left: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #64748b;
+  pointer-events: none;
+}
+
 /* QUANTITY STEPPER IN ROW */
 .pos-row-qty-stepper {
   display: inline-flex;

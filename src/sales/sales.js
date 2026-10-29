@@ -178,9 +178,14 @@
     if (!it) return;
     const rate = Math.max(0, Number(newRate) || 0);
     it.salePrice = rate;
-    const discAmt = (rate * it.totalQty) * ((it.discountPercent || 0) / 100);
-    it.discountAmount = discAmt;
-    it.netAmount = (rate * it.totalQty) - discAmt;
+    const gross = rate * Number(it.totalQty || 0);
+    if (it.discountPercent > 0) {
+      it.discountAmount = Math.round((gross * (it.discountPercent / 100)) * 100) / 100;
+    } else if (it.discountAmount > 0) {
+      it.discountAmount = Math.min(gross, it.discountAmount);
+      it.discountPercent = gross > 0 ? Number(((it.discountAmount / gross) * 100).toFixed(2)) : 0;
+    }
+    it.netAmount = Math.max(0, gross - (it.discountAmount || 0));
 
     renderItemsTable();
     updateVoucherTotals();
@@ -198,15 +203,19 @@
       return;
     }
 
-
     it.totalQty = qty;
     const packSize = it.packSize || 1;
     it.packQty = Math.floor(qty / packSize);
     it.unitQty = qty % packSize;
 
-    const discAmt = (it.salePrice * qty) * ((it.discountPercent || 0) / 100);
-    it.discountAmount = discAmt;
-    it.netAmount = (it.salePrice * qty) - discAmt;
+    const gross = (Number(it.salePrice) || 0) * qty;
+    if (it.discountPercent > 0) {
+      it.discountAmount = Math.round((gross * (it.discountPercent / 100)) * 100) / 100;
+    } else if (it.discountAmount > 0) {
+      it.discountAmount = Math.min(gross, it.discountAmount);
+      it.discountPercent = gross > 0 ? Number(((it.discountAmount / gross) * 100).toFixed(2)) : 0;
+    }
+    it.netAmount = Math.max(0, gross - (it.discountAmount || 0));
 
     renderItemsTable();
     updateVoucherTotals();
@@ -217,13 +226,51 @@
     if (!it) return;
     const pct = Math.max(0, Math.min(100, Number(discPct) || 0));
     it.discountPercent = pct;
-    const gross = it.salePrice * it.totalQty;
+    const gross = (Number(it.salePrice) || 0) * (Number(it.totalQty) || 0);
     const discAmt = gross * (pct / 100);
-    it.discountAmount = discAmt;
-    it.netAmount = gross - discAmt;
+    it.discountAmount = Math.round(discAmt * 100) / 100;
+    it.netAmount = Math.max(0, gross - it.discountAmount);
 
     renderItemsTable();
     updateVoucherTotals();
+  }
+
+  function changeItemDiscAmt(idx, discAmt) {
+    const it = saleState.items[idx];
+    if (!it) return;
+    const gross = (Number(it.salePrice) || 0) * (Number(it.totalQty) || 0);
+    const amt = Math.max(0, Math.min(gross, Number(discAmt) || 0));
+    it.discountAmount = Math.round(amt * 100) / 100;
+    it.discountPercent = gross > 0 ? Number(((amt / gross) * 100).toFixed(2)) : 0;
+    it.netAmount = Math.max(0, gross - it.discountAmount);
+
+    renderItemsTable();
+    updateVoucherTotals();
+  }
+
+  function applyDiscountPercentToAll(percent) {
+    const specPctInput = document.getElementById('saleSpecialDiscountPercent');
+    const pct = Number(percent !== undefined ? percent : (specPctInput?.value || 0)) || 0;
+    if (!saleState.items || saleState.items.length === 0) {
+      if (window.showToast) window.showToast('Please add products to the bill first.', 'warning');
+      return;
+    }
+    saleState.items.forEach(it => {
+      it.discountPercent = pct;
+      const gross = (Number(it.salePrice) || 0) * (Number(it.totalQty) || 0);
+      const discAmt = gross * (pct / 100);
+      it.discountAmount = Math.round(discAmt * 100) / 100;
+      it.netAmount = Math.max(0, gross - it.discountAmount);
+    });
+
+    // Reset overall special discount so it is not double counted
+    const specDisc = document.getElementById('saleSpecialDiscount');
+    if (specDisc) specDisc.value = 0;
+    if (specPctInput) specPctInput.value = 0;
+
+    renderItemsTable();
+    updateVoucherTotals();
+    if (window.showToast) window.showToast(`Applied ${pct}% discount across all ${saleState.items.length} items!`, 'success');
   }
 
   // ========================================================
@@ -541,8 +588,15 @@
     const packSize = it.packSize || 1;
     it.packQty = Math.floor(newQty / packSize);
     it.unitQty = newQty % packSize;
-    const discAmt = (it.salePrice * newQty) * ((it.discountPercent || 0) / 100);
-    it.netAmount = (it.salePrice * newQty) - discAmt;
+
+    const gross = (Number(it.salePrice) || 0) * newQty;
+    if (it.discountPercent > 0) {
+      it.discountAmount = Math.round((gross * (it.discountPercent / 100)) * 100) / 100;
+    } else if (it.discountAmount > 0) {
+      it.discountAmount = Math.min(gross, it.discountAmount);
+      it.discountPercent = gross > 0 ? Number(((it.discountAmount / gross) * 100).toFixed(2)) : 0;
+    }
+    it.netAmount = Math.max(0, gross - (it.discountAmount || 0));
 
     renderItemsTable();
     updateVoucherTotals();
@@ -1057,6 +1111,7 @@
     el.totalItemsCount = document.getElementById('saleTotalItemsCount');
     el.totalPiecesCount = document.getElementById('saleTotalPiecesCount');
     el.totalProfitPreview = document.getElementById('saleTotalProfitPreview');
+    el.totalProfitMarginBadge = document.getElementById('saleTotalProfitMarginBadge');
     el.grossTotal = document.getElementById('saleGrossTotal');
     el.specialDiscount = document.getElementById('saleSpecialDiscount');
     el.specialDiscountPercent = document.getElementById('saleSpecialDiscountPercent');
@@ -1729,6 +1784,13 @@
       const isWholesale = item.rateType === 'wholesale';
       const rp = Number(item.retailPrice || (prod ? prod.retailPrice : 0) || 0);
       const wp = Number(item.wholesalePrice || (prod ? prod.wholesalePrice : 0) || 0);
+      const cp = Number(item.purchasePrice || (prod ? (prod.purchasePrice || prod.averageCost) : 0) || 0);
+      const refDisc = (rp > 0 && cp > 0 && cp < rp) ? ((1 - (cp / rp)) * 100).toFixed(1) : null;
+      const itemCostBadge = cp > 0 ? `
+        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+          Cost: <span class="font-num font-bold" style="color: #475569;">Rs ${cp.toLocaleString()}</span>${refDisc ? ` • <span title="Purchase discount from Retail/List">Pur Disc: <strong style="color: #7c3aed;">${refDisc}%</strong></span>` : ''}
+        </div>
+      ` : '';
 
       const rateToggleBtn = `
         <div class="pos-row-rate-group" role="group" aria-label="Rate Selection">
@@ -1750,6 +1812,7 @@
         <td class="pos-cell-code font-num font-bold text-center" style="text-align: center; vertical-align: middle;">${window.escapeHtml(item.productCode || '-')}</td>
         <td class="pos-cell-title" style="text-align: left; padding-left: 14px; vertical-align: middle;" title="${window.escapeHtml(item.productTitle || '')}">
           <div class="pos-bill-title font-bold" style="color: #0f172a; font-size: 13px;">${window.escapeHtml(item.productTitle || '')}</div>
+          ${itemCostBadge}
         </td>
         <td class="pos-cell-stock text-center" style="text-align: center; vertical-align: middle;">
           <span class="pos-stock-badge ${availStock <= 0 ? 'badge-out' : (availStock <= 5 ? 'badge-low' : 'badge-in')} font-num font-bold">
@@ -1783,13 +1846,25 @@
           </div>
         </td>
         <td class="pos-cell-disc text-center" style="text-align: center; vertical-align: middle;">
-          <div class="pos-inline-input-wrap disc-input-wrap" style="display: inline-flex; align-items: center; justify-content: center; gap: 3px; margin: 0 auto;">
-            <input type="number" class="pos-inline-inp font-num text-center" 
-              style="width: 46px; height: 28px; padding: 2px 4px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-size: 13px;"
-              value="${item.discountPercent || 0}" min="0" max="100" step="0.5"
-              onchange="window.SalesModule.changeItemDisc(${idx}, this.value)"
-              onfocus="this.select()"
-              title="Discount percent"><span style="font-size: 11px; font-weight: 700; color: #64748b;">%</span>
+          <div class="disc-dual-wrap" style="display: inline-flex; align-items: center; justify-content: center; gap: 3px; margin: 0 auto;">
+            <div class="disc-sub-wrap" style="position: relative; display: inline-flex; align-items: center;">
+              <input type="number" class="pos-inline-inp disc-pct-input font-num text-center" 
+                style="width: 48px; height: 28px; padding: 2px 14px 2px 2px; border: 1px solid #cbd5e1; border-radius: 5px; text-align: center; font-size: 12px; font-weight: 700;"
+                value="${Number(item.discountPercent || 0)}" min="0" max="100" step="0.5"
+                onchange="window.SalesModule.changeItemDisc(${idx}, this.value)"
+                onfocus="this.select()"
+                title="Discount Percent (%)">
+              <span class="disc-pct-badge" style="position: absolute; right: 3px; font-size: 10px; font-weight: 700; color: #64748b; pointer-events: none;">%</span>
+            </div>
+            <div class="disc-sub-wrap" style="position: relative; display: inline-flex; align-items: center;">
+              <span class="disc-amt-badge" style="position: absolute; left: 3px; font-size: 9px; font-weight: 700; color: #64748b; pointer-events: none;">Rs</span>
+              <input type="number" class="pos-inline-inp disc-amt-input font-num text-center" 
+                style="width: 58px; height: 28px; padding: 2px 2px 2px 17px; border: 1px solid #cbd5e1; border-radius: 5px; text-align: center; font-size: 12px; font-weight: 700;"
+                value="${Math.round(Number(item.discountAmount || 0) * 100) / 100}" min="0" step="1"
+                onchange="window.SalesModule.changeItemDiscAmt(${idx}, this.value)"
+                onfocus="this.select()"
+                title="Discount Amount in Rupees (Rs)">
+            </div>
           </div>
         </td>
         <td class="pos-cell-total font-num font-bold text-success" style="text-align: right; padding-right: 16px; font-size: 13.5px; white-space: nowrap; vertical-align: middle;">
@@ -1855,16 +1930,29 @@
     let gross = 0;
     let totalPieces = 0;
     let totalCost = 0;
+    let totalCatalogAmount = 0;
 
     saleState.items.forEach(it => {
-      gross += Number(it.netAmount || 0);
+      const lineGross = Number(it.salePrice || 0) * Number(it.totalQty || 0);
+      const lineDisc = Number(it.discountAmount || 0);
+      const lineNet = (it.netAmount !== undefined && it.netAmount !== null) ? Number(it.netAmount) : Math.max(0, lineGross - lineDisc);
+      gross += lineNet;
       totalPieces += Number(it.totalQty || 0);
       totalCost += (Number(it.purchasePrice || 0) * Number(it.totalQty || 0));
+      totalCatalogAmount += lineGross;
     });
 
     const specialDisc = Number(el.specialDiscount?.value) || 0;
     const netTotal = Math.max(0, gross - specialDisc);
-    const estProfit = Math.max(0, netTotal - totalCost);
+    const estProfit = netTotal - totalCost;
+
+    // Margin % calculation (handles both cable trader list discount model and cost markup)
+    let marginPercent = 0;
+    if (totalCatalogAmount > 0) {
+      marginPercent = Number(((estProfit / totalCatalogAmount) * 100).toFixed(1));
+    } else if (totalCost > 0) {
+      marginPercent = Number(((estProfit / totalCost) * 100).toFixed(1));
+    }
 
     // Auto-fill Cash Received with Net Total if Cash sale and not manually modified
     const isCash = (el.paymentType?.value || 'Cash') === 'Cash';
@@ -1883,7 +1971,20 @@
     if (el.totalPiecesCount) el.totalPiecesCount.textContent = totalPieces;
     const cartCountBadge = document.getElementById('posCartCountBadge');
     if (cartCountBadge) cartCountBadge.textContent = saleState.items.length;
-    if (el.totalProfitPreview) el.totalProfitPreview.textContent = window.formatPKR ? window.formatPKR(estProfit) : `Rs ${estProfit.toFixed(2)}`;
+
+    // Profit Preview and Margin Display
+    if (el.totalProfitPreview) {
+      el.totalProfitPreview.textContent = window.formatPKR ? window.formatPKR(estProfit) : `Rs ${estProfit.toFixed(2)}`;
+      el.totalProfitPreview.style.color = estProfit >= 0 ? '#15803d' : '#dc2626';
+    }
+    const marginBadge = document.getElementById('saleTotalProfitMarginBadge') || el.totalProfitMarginBadge;
+    if (marginBadge) {
+      marginBadge.textContent = `${marginPercent >= 0 ? '+' : ''}${marginPercent.toFixed(1)}%`;
+      marginBadge.style.background = marginPercent >= 0 ? '#dcfce7' : '#fee2e2';
+      marginBadge.style.color = marginPercent >= 0 ? '#166534' : '#991b1b';
+      marginBadge.title = `Profit Margin: ${marginPercent.toFixed(1)}% | Profit: Rs ${estProfit.toFixed(2)} | Total Cost: Rs ${totalCost.toFixed(2)}`;
+    }
+
     if (el.grossTotal) el.grossTotal.textContent = window.formatPKR ? window.formatPKR(gross) : `Rs ${gross.toFixed(2)}`;
     if (el.netTotal) el.netTotal.textContent = window.formatPKR ? window.formatPKR(netTotal) : `Rs ${netTotal.toFixed(2)}`;
     
@@ -3915,6 +4016,7 @@
         updateVoucherTotals();
       });
     }
+
     if (el.paidAmount) {
       el.paidAmount.addEventListener('input', () => {
         el.paidAmount.dataset.userEdited = 'true';
@@ -5932,6 +6034,8 @@ ${window.escapeHtml(cfg.footer)}
     changeItemRate,
     changeItemQty,
     changeItemDisc,
+    changeItemDiscAmt,
+    applyDiscountPercentToAll,
     clearBillCart,
     resetVoucher,
     saveSaleVoucher,
