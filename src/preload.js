@@ -173,7 +173,8 @@ contextBridge.exposeInMainWorld('settingsAPI', {
   openBackupsFolder: () => ipcRenderer.invoke('open-backups-folder'),
   changeAppPin: (currentPin, newPin) => ipcRenderer.invoke('change-app-pin', { currentPin, newPin }),
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
-  exportAllDataJson: () => ipcRenderer.invoke('export-all-data-json')
+  exportAllDataJson: () => ipcRenderer.invoke('export-all-data-json'),
+  clearAllLedgers: (pin) => ipcRenderer.invoke('clear-all-ledgers', pin)
 });
 
 // Expose Reports API

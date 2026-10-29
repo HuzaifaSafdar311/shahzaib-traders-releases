@@ -2214,6 +2214,122 @@ function restoreDatabase(backupPath, currentDbPath) {
   }
 }
 
+function clearAllLedgers() {
+  if (isJsonFallback) {
+    const vouchersCount = Array.isArray(jsonData.accounts_vouchers) ? jsonData.accounts_vouchers.length : 0;
+    jsonData.accounts_vouchers = [];
+
+    let partiesCount = 0;
+    if (Array.isArray(jsonData.parties)) {
+      partiesCount = jsonData.parties.length;
+      for (const p of jsonData.parties) {
+        p.openingBalance = 0;
+        p.currentBalance = 0;
+      }
+    }
+
+    if (Array.isArray(jsonData.sales)) {
+      for (const s of jsonData.sales) {
+        if (s.partyId && s.partyId !== "walk-in") {
+          s.partyId = "walk-in";
+          s.previousBalance = 0;
+          s.balanceDue = 0;
+          s.paidAmount = Number(s.netAmount ?? s.totalAmount ?? 0);
+        }
+      }
+    }
+
+    if (Array.isArray(jsonData.purchases)) {
+      for (const pu of jsonData.purchases) {
+        if (pu.partyId && pu.partyId !== "walk-in") {
+          pu.partyId = "walk-in";
+        }
+      }
+    }
+
+    if (Array.isArray(jsonData.sales_returns)) {
+      for (const sr of jsonData.sales_returns) {
+        if (sr.partyId && sr.partyId !== "walk-in") {
+          sr.partyId = "walk-in";
+          sr.refundMode = "Cash";
+        }
+      }
+    }
+
+    saveJsonData();
+    return {
+      success: true,
+      clearedVouchers: vouchersCount,
+      resetParties: partiesCount
+    };
+  }
+
+  if (!dbInstance) {
+    throw new Error("Database instance is not initialized");
+  }
+
+  dbInstance.exec("BEGIN TRANSACTION;");
+  try {
+    let vouchersCount = 0;
+    let partiesCount = 0;
+    try {
+      vouchersCount = dbInstance.prepare("SELECT COUNT(*) as c FROM accounts_vouchers").get()?.c || 0;
+    } catch (_) {}
+    try {
+      partiesCount = dbInstance.prepare("SELECT COUNT(*) as c FROM parties").get()?.c || 0;
+    } catch (_) {}
+
+    // 1. Delete all accounts vouchers (CRV & CPV)
+    try {
+      dbInstance.exec("DELETE FROM accounts_vouchers;");
+    } catch (_) {}
+
+    // 2. Reset all parties opening and current balance to 0
+    try {
+      dbInstance.exec("UPDATE parties SET openingBalance = 0, currentBalance = 0;");
+    } catch (_) {}
+
+    // 3. Clear party ledger debt on historical sales, purchases, and returns
+    try {
+      dbInstance.exec(`
+        UPDATE sales
+        SET partyId = 'walk-in', previousBalance = 0, balanceDue = 0, paidAmount = COALESCE(netAmount, totalAmount, 0)
+        WHERE partyId IS NOT NULL AND partyId != '' AND partyId != 'walk-in';
+      `);
+    } catch (_) {}
+
+    try {
+      dbInstance.exec(`
+        UPDATE purchases
+        SET partyId = 'walk-in'
+        WHERE partyId IS NOT NULL AND partyId != '' AND partyId != 'walk-in';
+      `);
+    } catch (_) {}
+
+    try {
+      dbInstance.exec(`
+        UPDATE sales_returns
+        SET partyId = 'walk-in', refundMode = 'Cash'
+        WHERE partyId IS NOT NULL AND partyId != '' AND partyId != 'walk-in';
+      `);
+    } catch (_) {}
+
+    dbInstance.exec("COMMIT;");
+    checkpoint();
+
+    return {
+      success: true,
+      clearedVouchers: vouchersCount,
+      resetParties: partiesCount
+    };
+  } catch (err) {
+    try {
+      dbInstance.exec("ROLLBACK;");
+    } catch (_) {}
+    throw err;
+  }
+}
+
 module.exports = {
   initDatabase,
   closeDatabase,
@@ -2327,5 +2443,6 @@ module.exports = {
   backupDatabase,
   restoreDatabase,
   optimizeDatabase,
-  exportAllDatabaseJson
+  exportAllDatabaseJson,
+  clearAllLedgers
 };

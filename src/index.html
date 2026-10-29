@@ -2914,6 +2914,32 @@
                                         <button type="button" id="btnExportFullJson" class="btn btn-secondary"
                                             style="padding: 8px 18px;">Export Full JSON</button>
                                     </div>
+                                    <!-- Action 5: Clear All Registered Ledgers (Danger Zone) -->
+                                    <div class="db-action-item"
+                                        style="border-left: 3.5px solid #dc2626; background: #fef2f2;">
+                                        <div class="db-action-info">
+                                            <div class="db-action-icon" style="color: #dc2626; background: #fee2e2;">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <div class="db-action-title" style="color: #991b1b; font-weight: 700;">
+                                                    Clear All Registered Ledgers
+                                                </div>
+                                                <div class="db-action-desc" style="color: #7f1d1d;">
+                                                    Deletes all CRV &amp; CPV payment vouchers, resets party balances to Rs. 0.00, and clears transaction ledger debt. Requires Master PIN.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button" id="btnClearAllLedgers" class="btn btn-danger"
+                                            style="padding: 8px 18px; background: #dc2626; border-color: #dc2626; color: #ffffff; font-weight: 600; white-space: nowrap;">
+                                            Clear All Ledgers
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div id="backupStatusText"
@@ -3476,6 +3502,45 @@
             <div class="modal-footer">
                 <button type="button" id="btnCancelConfirm" class="btn btn-secondary">Cancel</button>
                 <button type="button" id="btnExecuteConfirm" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Clear All Registered Ledgers PIN Confirmation -->
+    <div id="modalClearLedgersPin" class="modal-overlay hidden" style="z-index: 10060;">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header" style="background: #fef2f2; border-bottom: 1px solid #fee2e2;">
+                <h3 class="modal-title" style="color: #991b1b; display: flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    Clear All Registered Ledgers
+                </h3>
+                <button type="button" id="btnCloseClearLedgersModal" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 18px;">
+                <div style="background: #fff5f5; border-left: 3px solid #ef4444; padding: 10px 12px; margin-bottom: 14px; border-radius: 4px;">
+                    <div style="font-weight: 700; color: #991b1b; font-size: 0.85rem; margin-bottom: 4px;">⚠️ Permanent Ledger Reset</div>
+                    <div style="font-size: 0.78rem; color: #7f1d1d; line-height: 1.45;">
+                        This will permanently delete all <strong>Cash Receipts (CRV) &amp; Payments (CPV)</strong>, reset customer and vendor balances to <strong>Rs. 0.00</strong>, and clear historical debt.
+                        An automatic safety backup copy of the database will be created before proceeding.
+                    </div>
+                </div>
+                <div class="settings-form-row" style="margin-bottom: 8px;">
+                    <label class="settings-label" for="inputClearLedgersPin" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">
+                        Enter 4-Digit Master PIN to Confirm <span class="req">*</span>
+                    </label>
+                    <input type="password" id="inputClearLedgersPin" class="settings-input pin-box-input" maxlength="4" placeholder="••••" autocomplete="off" style="font-size: 1.5rem; letter-spacing: 6px; text-align: center; height: 46px; border: 1.5px solid #cbd5e1; border-radius: 6px;">
+                    <div id="clearLedgersPinError" style="display: none; color: #dc2626; font-size: 0.78rem; font-weight: 600; margin-top: 6px; text-align: center;"></div>
+                </div>
+            </div>
+            <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 12px 18px;">
+                <button type="button" id="btnCancelClearLedgers" class="btn btn-secondary">Cancel</button>
+                <button type="button" id="btnConfirmClearLedgers" class="btn btn-danger" style="background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 600;">
+                    Authorize &amp; Clear
+                </button>
             </div>
         </div>
     </div>

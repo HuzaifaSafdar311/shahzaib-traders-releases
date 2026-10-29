@@ -700,6 +700,26 @@ app.whenReady().then(() => {
     return shell.openPath(backupDir);
   });
 
+  ipcMain.handle('clear-all-ledgers', async (_event, inputPin) => {
+    if (!checkPinMatch(inputPin)) {
+      return { success: false, message: 'Invalid Master PIN. Authorization denied.' };
+    }
+    try {
+      const safetyBackup = db.backupDatabase(getDbFilePath());
+      const result = db.clearAllLedgers();
+      return {
+        success: true,
+        message: 'All registered ledgers have been cleared successfully.',
+        safetyBackup: safetyBackup?.filename || null,
+        clearedVouchers: result.clearedVouchers || 0,
+        resetParties: result.resetParties || 0
+      };
+    } catch (err) {
+      console.error('Error clearing ledgers:', err);
+      return { success: false, message: 'Failed to clear ledgers: ' + err.message };
+    }
+  });
+
   ipcMain.handle('change-app-pin', async (_event, { currentPin, newPin }) => {
     if (!checkPinMatch(currentPin)) {
       return { success: false, message: 'Current PIN is incorrect. Please re-enter current PIN.' };

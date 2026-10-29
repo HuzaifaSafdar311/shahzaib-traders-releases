@@ -74,6 +74,13 @@ window.SettingsModule = (function () {
     el.btnOpenBackupsFolder = document.getElementById('btnOpenBackupsFolder');
     el.btnExportJson = document.getElementById('btnExportFullJson');
     el.backupStatusText = document.getElementById('backupStatusText');
+    el.btnClearAllLedgers = document.getElementById('btnClearAllLedgers');
+    el.modalClearLedgersPin = document.getElementById('modalClearLedgersPin');
+    el.inputClearLedgersPin = document.getElementById('inputClearLedgersPin');
+    el.clearLedgersPinError = document.getElementById('clearLedgersPinError');
+    el.btnCloseClearLedgersModal = document.getElementById('btnCloseClearLedgersModal');
+    el.btnCancelClearLedgers = document.getElementById('btnCancelClearLedgers');
+    el.btnConfirmClearLedgers = document.getElementById('btnConfirmClearLedgers');
 
     // System Info & Diagnostics
     el.sysAppVersion = document.getElementById('sysAppVersion');
@@ -713,6 +720,115 @@ window.SettingsModule = (function () {
           }
         } catch (err) {
           showToast('Export error: ' + err.message, 'error');
+        }
+      });
+    }
+
+    // 8. Clear All Registered Ledgers with Master PIN
+    if (el.btnClearAllLedgers) {
+      el.btnClearAllLedgers.addEventListener('click', () => {
+        if (el.modalClearLedgersPin) {
+          if (el.inputClearLedgersPin) el.inputClearLedgersPin.value = '';
+          if (el.clearLedgersPinError) {
+            el.clearLedgersPinError.style.display = 'none';
+            el.clearLedgersPinError.textContent = '';
+          }
+          el.modalClearLedgersPin.classList.remove('hidden');
+          setTimeout(() => {
+            if (el.inputClearLedgersPin) el.inputClearLedgersPin.focus();
+          }, 50);
+        }
+      });
+    }
+
+    const closeClearLedgersModal = () => {
+      if (el.modalClearLedgersPin) {
+        el.modalClearLedgersPin.classList.add('hidden');
+      }
+      if (el.inputClearLedgersPin) el.inputClearLedgersPin.value = '';
+      if (el.clearLedgersPinError) {
+        el.clearLedgersPinError.style.display = 'none';
+        el.clearLedgersPinError.textContent = '';
+      }
+    };
+
+    if (el.btnCloseClearLedgersModal) {
+      el.btnCloseClearLedgersModal.addEventListener('click', closeClearLedgersModal);
+    }
+    if (el.btnCancelClearLedgers) {
+      el.btnCancelClearLedgers.addEventListener('click', closeClearLedgersModal);
+    }
+
+    const executeClearLedgers = async () => {
+      const pin = (el.inputClearLedgersPin ? el.inputClearLedgersPin.value : '').trim();
+      if (!pin) {
+        if (el.clearLedgersPinError) {
+          el.clearLedgersPinError.textContent = 'Please enter your 4-digit Master PIN.';
+          el.clearLedgersPinError.style.display = 'block';
+        }
+        return;
+      }
+
+      if (el.btnConfirmClearLedgers) {
+        el.btnConfirmClearLedgers.disabled = true;
+        el.btnConfirmClearLedgers.textContent = 'Clearing Ledgers...';
+      }
+
+      try {
+        const res = await window.settingsAPI.clearAllLedgers(pin);
+        if (res && res.success) {
+          closeClearLedgersModal();
+          showToast(`✅ ${res.message || 'All registered ledgers cleared successfully!'}`, 'success');
+
+          if (typeof loadDatabaseStats === 'function') {
+            loadDatabaseStats();
+          }
+
+          if (window.reloadFromDatabase) await window.reloadFromDatabase();
+          if (window.AccountsModule && window.AccountsModule.onActivate) await window.AccountsModule.onActivate();
+          if (window.GeneralInfoModule && window.GeneralInfoModule.onActivate) await window.GeneralInfoModule.onActivate();
+
+          window.alert(
+            '✅ ALL REGISTERED LEDGERS CLEARED!\n\n' +
+            '• All Cash Receipt & Payment Vouchers (CRV/CPV) have been deleted.\n' +
+            '• Customer & Supplier balances have been reset to Rs. 0.00.\n' +
+            '• Historical transaction ledger debt has been cleared.\n\n' +
+            (res.safetyBackup ? `Safety database backup created:\n${res.safetyBackup}\n\n` : '') +
+            'All views have been updated.'
+          );
+        } else {
+          if (el.clearLedgersPinError) {
+            el.clearLedgersPinError.textContent = res?.message || 'Incorrect PIN. Authorization denied.';
+            el.clearLedgersPinError.style.display = 'block';
+          }
+          if (el.inputClearLedgersPin) {
+            el.inputClearLedgersPin.select();
+            el.inputClearLedgersPin.focus();
+          }
+        }
+      } catch (err) {
+        if (el.clearLedgersPinError) {
+          el.clearLedgersPinError.textContent = 'Error clearing ledgers: ' + err.message;
+          el.clearLedgersPinError.style.display = 'block';
+        }
+      } finally {
+        if (el.btnConfirmClearLedgers) {
+          el.btnConfirmClearLedgers.disabled = false;
+          el.btnConfirmClearLedgers.textContent = 'Authorize & Clear';
+        }
+      }
+    };
+
+    if (el.btnConfirmClearLedgers) {
+      el.btnConfirmClearLedgers.addEventListener('click', executeClearLedgers);
+    }
+    if (el.inputClearLedgersPin) {
+      el.inputClearLedgersPin.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          executeClearLedgers();
+        } else if (e.key === 'Escape') {
+          closeClearLedgersModal();
         }
       });
     }
