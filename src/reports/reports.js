@@ -18,6 +18,8 @@
     selectedSubCategoryId: '',
     selectedAreaName: '',
     selectedPaymentType: 'All',
+    includeInactive: false,
+    valuationBasis: 'purchasePrice',
     searchQuery: '',
 
     // Master Cache
@@ -278,6 +280,19 @@
                   <option value="Credit">Credit Only</option>
                 </select>
               </div>
+              <div class="rep-form-group" id="repValuationGroup" style="display: none;">
+                <label>Stock Valuation Basis</label>
+                <select id="repValuationSelect" class="rep-form-control">
+                  <option value="purchasePrice">Purchase Price</option>
+                  <option value="averageCost">Average Cost</option>
+                </select>
+              </div>
+              <div class="rep-form-group" id="repInactiveFilterGroup" style="display: flex; align-items: flex-end; padding-bottom: 8px;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #475569; margin: 0;">
+                  <input type="checkbox" id="repIncludeInactive" style="cursor: pointer; width: 16px; height: 16px;">
+                  <span>Include Inactive</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -487,20 +502,39 @@
       const elPur = document.getElementById('statPurchaseTotal');
       if (elPur) elPur.textContent = `${purchases.length} Bills | ${formatMoney(totalPur)}`;
 
-      // 5. Accounts
+      // 5. Accounts (Customer Receivables Hub Card - exact 1:1 match with report)
       let totalRec = 0;
-      parties.forEach(p => {
-        if (!p.partyType || p.partyType.toLowerCase().includes('customer')) {
-          totalRec += Math.max(0, Number(p.currentBalance || p.openingBalance || 0));
-        }
-      });
+      if (window.ReportsEngine && window.ReportsEngine.generateCustomerReceivablesReport) {
+        const recReport = window.ReportsEngine.generateCustomerReceivablesReport(parties, {});
+        totalRec = recReport.totals.totalReceivable || 0;
+      } else {
+        parties.forEach(p => {
+          const pType = String(p.partyTypeName || p.partyType || '').toLowerCase();
+          const isSupplier = pType.includes('supplier') || pType.includes('vendor') || p.isSupplier;
+          const isInactive = p.status === 'Inactive' || p.status === 'inactive' || p.inActive === 1 || p.inActive === '1';
+          if (!isSupplier && !isInactive) {
+            const bal = (p.currentBalance !== null && p.currentBalance !== undefined) ? Number(p.currentBalance) : Number(p.openingBalance || 0);
+            if (bal > 0) totalRec += bal;
+          }
+        });
+      }
       const elAcc = document.getElementById('statAccountsTotal');
       if (elAcc) elAcc.textContent = `Receivable: ${formatMoney(totalRec)}`;
 
       // 6. PnL
       const elPnl = document.getElementById('statPnlTotal');
       if (elPnl) {
-        const margin = totalSalesNet > 0 ? (((totalSalesNet - stockCostVal) / totalSalesNet) * 100) : 0;
+        let totalCogs = 0;
+        sales.forEach(s => {
+          const items = Array.isArray(s.items) ? s.items : (typeof s.itemsJson === 'string' ? JSON.parse(s.itemsJson || '[]') : []);
+          items.forEach(it => {
+            const qty = Number(it.totalQty || (Number(it.packQty || 0) * Number(it.packSize || 1) + Number(it.unitQty || 0)));
+            const cost = Number(it.costAtSale || it.purchasePrice || 0);
+            totalCogs += (qty * cost);
+          });
+        });
+        const grossProfit = totalSalesNet - totalCogs;
+        const margin = totalSalesNet > 0 ? ((grossProfit / totalSalesNet) * 100) : 0;
         elPnl.textContent = `${margin.toFixed(1)}% Est Margin`;
       }
     } catch (e) {
@@ -559,6 +593,48 @@
   // Load Master Data into State
   async function loadMasterData() {
     try {
+      // 0. Primary unified master data fetch from SQLite
+      if (window.electronAPI && window.electronAPI.getReportsMasterData) {
+        try {
+          const md = await window.electronAPI.getReportsMasterData();
+          if (md) {
+            state.masterData.sales = Array.isArray(md.sales) ? md.sales : [];
+            state.masterData.purchases = Array.isArray(md.purchases) ? md.purchases : [];
+            state.masterData.products = Array.isArray(md.products) ? md.products : [];
+            state.masterData.returns = Array.isArray(md.returns) ? md.returns : [];
+            state.masterData.categories = Array.isArray(md.categories) ? md.categories : [];
+            state.masterData.subCategories = Array.isArray(md.subCategories) ? md.subCategories : [];
+            state.masterData.parties = Array.isArray(md.parties) ? md.parties : [];
+            state.masterData.areas = Array.isArray(md.areas) ? md.areas : [];
+            state.masterData.vouchers = Array.isArray(md.vouchers) ? md.vouchers : [];
+            state.masterData.expenses = Array.isArray(md.expenses) ? md.expenses : [];
+            state.masterData.companyInfo = md.companyInfo || {};
+
+            const catMap = {};
+            for (const c of (state.masterData.categories || [])) {
+              if (c && c.id) catMap[String(c.id)] = c.name;
+            }
+            const subCatMap = {};
+            for (const sc of (state.masterData.subCategories || [])) {
+              if (sc && sc.id) subCatMap[String(sc.id)] = sc.name;
+            }
+            state.masterData.products.forEach(p => {
+              if (!p.categoryName && (p.categoryId || p.category_id)) {
+                p.categoryName = catMap[String(p.categoryId || p.category_id)] || 'General';
+              }
+              if (!p.subCategoryName && (p.subCategoryId || p.sub_category_id)) {
+                p.subCategoryName = subCatMap[String(p.subCategoryId || p.sub_category_id)] || '--';
+              }
+            });
+
+            populateFilterDropdowns();
+            updateHubCardStats();
+            return;
+          }
+        } catch (e) {
+          console.warn('getReportsMasterData fetch fallback:', e);
+        }
+      }
       // 1. Instant synchronous hydration from window.appData (if present)
       if (window.appData) {
         if (Array.isArray(window.appData.sales) && window.appData.sales.length) {
@@ -727,10 +803,10 @@
   }
 
   // Navigate to Category Detailed Reporting (Level 2: Reports & Filters Screen)
-  function openCategoryReport(cat) {
+  async function openCategoryReport(cat) {
     if (dom.hubView) dom.hubView.classList.add('hidden');
     if (dom.detailView) dom.detailView.classList.remove('hidden');
-    switchCategory(cat);
+    await switchCategory(cat);
   }
 
   // Switch Main Category
@@ -770,13 +846,16 @@
     }
 
     renderSubPills();
-    generateActiveReport();
+    await generateActiveReport();
   }
 
   // ========================================================
   // REPORT EXECUTION & RENDERING
   // ========================================================
-  function generateActiveReport() {
+  async function generateActiveReport(forceReload = true) {
+    if (forceReload) {
+      await loadMasterData();
+    }
     const filters = {
       fromDate: dom.fromDate ? dom.fromDate.value : '',
       toDate: dom.toDate ? dom.toDate.value : '',
@@ -799,13 +878,13 @@
     } else if (repId === 'bill-wise-sales') {
       result = window.ReportsEngine.generateBillWiseSalesReport(confirmedSales, filters);
     } else if (repId === 'party-wise-sales') {
-      result = window.ReportsEngine.generatePartyWiseSalesReport(confirmedSales, state.masterData.parties, filters);
+      result = window.ReportsEngine.generatePartyWiseSalesReport(confirmedSales, state.masterData.parties, filters, state.masterData.returns);
     } else if (repId === 'item-wise-sales') {
-      result = window.ReportsEngine.generateItemWiseSalesReport(confirmedSales, state.masterData.products, filters);
+      result = window.ReportsEngine.generateItemWiseSalesReport(confirmedSales, state.masterData.products, filters, state.masterData.returns);
     } else if (repId === 'territory-wise-sales') {
       result = window.ReportsEngine.generateTerritoryWiseSalesReport(confirmedSales, state.masterData.parties, state.masterData.areas, filters);
     } else if (repId === 'bill-wise-profit') {
-      result = window.ReportsEngine.generateBillWiseProfitReport(confirmedSales, filters);
+      result = window.ReportsEngine.generateBillWiseProfitReport(confirmedSales, state.masterData.products, filters, state.masterData.returns);
     } else if (repId === 'sales-returns') {
       result = window.ReportsEngine.generateSalesReturnReport(state.masterData.returns, filters);
     } else if (repId === 'bill-wise-purchases') {
@@ -831,9 +910,9 @@
     } else if (repId === 'cpv-report') {
       result = window.ReportsEngine.generateCPVReport(state.masterData.vouchers, filters);
     } else if (repId === 'cash-book') {
-      result = window.ReportsEngine.generateCashBookReport(state.masterData.vouchers, state.masterData.sales, state.masterData.purchases, filters);
+      result = window.ReportsEngine.generateCashBookReport(state.masterData.vouchers, confirmedSales, state.masterData.purchases, filters, state.masterData.expenses, state.masterData.returns);
     } else if (repId === 'profit-loss') {
-      result = window.ReportsEngine.generateProfitAndLossReport(state.masterData.sales, state.masterData.purchases, state.masterData.vouchers, state.masterData.returns, filters);
+      result = window.ReportsEngine.generateProfitAndLossReport(confirmedSales, state.masterData.purchases, state.masterData.vouchers, state.masterData.returns, filters, state.masterData.expenses, state.masterData.products);
     }
 
     state.currentReportData = result;
@@ -1746,20 +1825,28 @@
     else if (repId === 'cash-book') {
       th = `
         <tr>
-          <th class="text-center" style="width: 110px;">Date</th>
-          <th class="text-right" style="width: 150px;">Counter Cash Sales</th>
-          <th class="text-right" style="width: 150px;">CRV Recoveries</th>
-          <th class="text-right" style="width: 160px;">Total Cash Inflow</th>
-          <th class="text-right" style="width: 160px;">CPV Cash Outflow</th>
-          <th class="text-right" style="width: 160px;">Net Day Cash Flow</th>
+          <th class="text-center" style="width: 100px;">Date</th>
+          <th class="text-right" style="width: 130px;">Cash Sales (+)</th>
+          <th class="text-right" style="width: 130px;">CRV Cash (+)</th>
+          <th class="text-right" style="width: 140px;">Total Inflow</th>
+          <th class="text-right" style="width: 130px;">Cash Purchases (-)</th>
+          <th class="text-right" style="width: 130px;">CPV Payments (-)</th>
+          <th class="text-right" style="width: 130px;">Expenses (-)</th>
+          <th class="text-right" style="width: 120px;">Cash Refunds (-)</th>
+          <th class="text-right" style="width: 140px;">Total Outflow</th>
+          <th class="text-right" style="width: 150px;">Net Day Cash</th>
         </tr>
       `;
       tb = rows.map(r => `
         <tr>
-          <td class="text-center"><strong>${r.date}</strong></td>
+          <td class="text-center font-num"><strong>${r.date}</strong></td>
           <td class="text-right font-num rep-amount-primary">${formatMoney(r.cashSales)}</td>
           <td class="text-right font-num rep-amount-success">${formatMoney(r.crvReceived)}</td>
           <td class="text-right font-num rep-amount-success"><strong>${formatMoney(r.totalIn)}</strong></td>
+          <td class="text-right font-num rep-amount-danger">${formatMoney(r.cashPurchases)}</td>
+          <td class="text-right font-num rep-amount-danger">${formatMoney(r.cpvPaid)}</td>
+          <td class="text-right font-num rep-amount-danger">${formatMoney(r.cashExpenses)}</td>
+          <td class="text-right font-num rep-amount-danger">${formatMoney(r.cashRefunds || 0)}</td>
           <td class="text-right font-num rep-amount-danger"><strong>${formatMoney(r.totalOut)}</strong></td>
           <td class="text-right font-num ${r.netCash >= 0 ? 'rep-amount-success' : 'rep-amount-danger'}"><strong>${formatMoney(r.netCash)}</strong></td>
         </tr>
@@ -1770,6 +1857,10 @@
           <td class="text-right font-num"><strong>${formatMoney(t.cashSales)}</strong></td>
           <td class="text-right font-num"><strong>${formatMoney(t.crvReceived)}</strong></td>
           <td class="text-right font-num rep-amount-success"><strong>${formatMoney(t.totalIn)}</strong></td>
+          <td class="text-right font-num rep-amount-danger"><strong>${formatMoney(t.cashPurchases)}</strong></td>
+          <td class="text-right font-num rep-amount-danger"><strong>${formatMoney(t.cpvPaid)}</strong></td>
+          <td class="text-right font-num rep-amount-danger"><strong>${formatMoney(t.cashExpenses)}</strong></td>
+          <td class="text-right font-num rep-amount-danger"><strong>${formatMoney(t.cashRefunds || 0)}</strong></td>
           <td class="text-right font-num rep-amount-danger"><strong>${formatMoney(t.totalOut)}</strong></td>
           <td class="text-right font-num ${t.netCash >= 0 ? 'rep-amount-success' : 'rep-amount-danger'}"><strong>${formatMoney(t.netCash)}</strong></td>
         </tr>
@@ -1787,48 +1878,88 @@
           <th class="text-right" style="width: 180px;">Amount (PKR)</th>
         </tr>
       `;
+      let expRows = '';
+      const cats = m.expensesByCategory || {};
+      for (const [cName, cAmt] of Object.entries(cats)) {
+        expRows += `
+          <tr style="background: #fafafa; font-size: 0.85rem; color: #475569;">
+            <td></td>
+            <td class="text-left" style="padding-left: 28px;">• ${cName}</td>
+            <td class="text-left">Operational Expense</td>
+            <td class="text-right font-num rep-amount-muted">- ${formatMoney(cAmt)}</td>
+          </tr>
+        `;
+      }
+
       tb = `
         <tr>
-          <td class="text-center">1</td>
+          <td class="text-center font-num">1</td>
           <td class="text-left"><strong>Gross Sales Revenue</strong></td>
           <td class="text-left">Total Invoice Sales Value</td>
           <td class="text-right font-num rep-amount-primary"><strong>${formatMoney(m.grossSales)}</strong></td>
         </tr>
         <tr>
-          <td class="text-center">2</td>
-          <td class="text-left">Less: Trade Discounts Allowed</td>
+          <td class="text-center font-num">2</td>
+          <td class="text-left">Less: Special Discounts Given</td>
           <td class="text-left">Deductions on Invoices</td>
-          <td class="text-right font-num rep-amount-muted">- ${formatMoney(m.discountsGiven)}</td>
+          <td class="text-right font-num rep-amount-danger">- ${formatMoney(m.discountsGiven)}</td>
         </tr>
         <tr>
-          <td class="text-center">3</td>
+          <td class="text-center font-num">3</td>
           <td class="text-left">Less: Sales Returns & Refunds</td>
           <td class="text-left">Returned Merchandise</td>
           <td class="text-right font-num rep-amount-danger">- ${formatMoney(m.returnsRefunded)}</td>
         </tr>
-        <tr style="font-weight: 700;">
-          <td class="text-center">4</td>
+        <tr style="font-weight: 700; background: #f0fdf4;">
+          <td class="text-center font-num">4</td>
           <td class="text-left" style="color: #15803d;">NET TRADING SALES REVENUE</td>
           <td class="text-left">Gross - Discounts - Returns</td>
-          <td class="text-right font-num rep-amount-success">${formatMoney(m.netSales)}</td>
+          <td class="text-right font-num rep-amount-success"><strong>${formatMoney(m.netSales)}</strong></td>
         </tr>
         <tr>
-          <td class="text-center">5</td>
+          <td class="text-center font-num">5</td>
           <td class="text-left">Cost of Goods Sold (COGS)</td>
           <td class="text-left">Purchase Rate x Units Sold</td>
-          <td class="text-right font-num rep-amount-muted">- ${formatMoney(m.cogs)}</td>
+          <td class="text-right font-num rep-amount-danger">- ${formatMoney(m.cogs)}</td>
         </tr>
-        <tr style="font-weight: 800; font-size: 0.95rem;">
-          <td class="text-center">6</td>
+        <tr style="font-weight: 800; font-size: 0.95rem; background: #f8fafc;">
+          <td class="text-center font-num">6</td>
           <td class="text-left" style="color: #0369a1;">GROSS TRADING PROFIT</td>
-          <td class="text-left">Net Sales - COGS</td>
-          <td class="text-right font-num ${m.grossProfit >= 0 ? 'rep-amount-success' : 'rep-amount-danger'}">${formatMoney(m.grossProfit)}</td>
+          <td class="text-left">Net Sales - COGS (Margin: ${(m.profitMargin || 0).toFixed(2)}%)</td>
+          <td class="text-right font-num ${m.grossProfit >= 0 ? 'rep-amount-success' : 'rep-amount-danger'}"><strong>${formatMoney(m.grossProfit)}</strong></td>
+        </tr>
+        ${Number(m.discountReceived || 0) > 0 ? `
+        <tr>
+          <td class="text-center font-num">7</td>
+          <td class="text-left">Add: Discounts Received (CPV)</td>
+          <td class="text-left">Supplier Settlement Discounts</td>
+          <td class="text-right font-num rep-amount-success">+ ${formatMoney(m.discountReceived)}</td>
+        </tr>` : ''}
+        ${Number(m.discountAllowed || 0) > 0 ? `
+        <tr>
+          <td class="text-center font-num">${Number(m.discountReceived || 0) > 0 ? '8' : '7'}</td>
+          <td class="text-left">Less: Discounts Allowed (CRV)</td>
+          <td class="text-left">Customer Settlement Discounts</td>
+          <td class="text-right font-num rep-amount-danger">- ${formatMoney(m.discountAllowed)}</td>
+        </tr>` : ''}
+        <tr>
+          <td class="text-center font-num">⚡</td>
+          <td class="text-left"><strong>Less: Operating Expenses</strong></td>
+          <td class="text-left">Shop Operational Costs & Overhead</td>
+          <td class="text-right font-num rep-amount-danger"><strong>- ${formatMoney(m.operatingExpenses)}</strong></td>
+        </tr>
+        ${expRows}
+        <tr style="font-weight: 800; font-size: 1.05rem; background: #f0fdf4; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a;">
+          <td class="text-center font-num">★</td>
+          <td class="text-left" style="color: #047857;">NET OPERATING PROFIT / (LOSS)</td>
+          <td class="text-left">Gross Profit + Disc Rec - Expenses - Disc Allowed</td>
+          <td class="text-right font-num ${m.netProfit >= 0 ? 'rep-amount-success' : 'rep-amount-danger'}"><strong>${formatMoney(m.netProfit)}</strong></td>
         </tr>
       `;
       tf = `
         <tr>
-          <td colspan="3" class="text-left"><strong>OVERALL PROFIT MARGIN RATIO</strong></td>
-          <td class="text-right font-num"><strong class="rep-badge rep-badge-green">${(m.profitMargin || 0).toFixed(2)}%</strong></td>
+          <td colspan="3" class="text-left"><strong>NET PROFIT MARGIN RATIO</strong></td>
+          <td class="text-right font-num"><strong class="rep-badge rep-badge-green">${(m.netMargin || 0).toFixed(2)}%</strong></td>
         </tr>
       `;
     }
@@ -1872,8 +2003,10 @@
   // Generate complete full-dataset table HTML for printing & PDF export
   function generateFullTableHtml(res) {
     if (!res) return '';
-    const allRows = res.rows || [];
-    const { th, tb, tf } = buildTableMarkup(res, allRows, 0);
+    const q = (dom.tableSearch && dom.tableSearch.value || '').trim().toLowerCase();
+    const allRows = (q && state.filteredRows) ? state.filteredRows : (res.rows || []);
+    const effectiveRes = (q && state.effectiveTotals) ? { ...res, totals: state.effectiveTotals } : res;
+    const { th, tb, tf } = buildTableMarkup(effectiveRes, allRows, 0);
     return `
       <table class="rep-data-table" style="width: 100%; border-collapse: collapse;">
         <thead>${th}</thead>
@@ -1906,6 +2039,28 @@
       })
       : allMatchingRows;
 
+    // Compute recomputed totals when search filter query is active
+    let effectiveTotals = res.totals || {};
+    if (q) {
+      const rec = filteredRows.length;
+      const t = { records: rec };
+      filteredRows.forEach(r => {
+        for (const [k, v] of Object.entries(r)) {
+          if (typeof v === 'number' && !k.toLowerCase().includes('id') && !k.toLowerCase().includes('sr') && k !== 'packSize') {
+            t[k] = (t[k] || 0) + v;
+          }
+        }
+      });
+      if (t.revenue > 0) t.margin = ((t.profit || 0) / t.revenue) * 100;
+      if (t.netRevenue > 0) t.marginPercent = ((t.totalProfit || 0) / t.netRevenue) * 100;
+      if (t.costValue > 0) t.marginPct = ((t.margin || 0) / t.costValue) * 100;
+      effectiveTotals = { ...res.totals, ...t, records: rec };
+    }
+
+    state.filteredRows = filteredRows;
+    state.effectiveTotals = effectiveTotals;
+    const effectiveRes = { ...res, totals: effectiveTotals };
+
     const totalRecords = filteredRows.length;
     const pageSizeVal = state.pagination.pageSize;
     const pageSize = pageSizeVal === 'all' ? totalRecords : (Number(pageSizeVal) || 20);
@@ -1919,7 +2074,7 @@
     const endIdx = Math.min(startIdx + pageSize, totalRecords);
     const rows = pageSizeVal === 'all' ? filteredRows : filteredRows.slice(startIdx, endIdx);
 
-    const { th, tb, tf } = buildTableMarkup(res, rows, startIdx);
+    const { th, tb, tf } = buildTableMarkup(effectiveRes, rows, startIdx);
 
     dom.tableHead.innerHTML = th;
     dom.tableBody.innerHTML = rows.length > 0 || repId === 'profit-loss'
@@ -1934,6 +2089,17 @@
   function renderProfitAndLossView(res) {
     if (!res || !res.metrics) return;
     const m = res.metrics;
+
+    let expenseCategoriesHtml = '';
+    const cats = m.expensesByCategory || {};
+    for (const [catName, catAmt] of Object.entries(cats)) {
+      expenseCategoriesHtml += `
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #64748b; padding: 2px 0 2px 16px;">
+          <span>• ${catName}</span>
+          <span class="font-num">- ${formatMoney(catAmt)}</span>
+        </div>
+      `;
+    }
 
     dom.pnlCard.innerHTML = `
       <div style="border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px; text-align: center;">
@@ -1969,9 +2135,37 @@
         <strong class="font-num" style="color: ${m.grossProfit >= 0 ? '#059669' : '#dc2626'};">${formatMoney(m.grossProfit)}</strong>
       </div>
 
-      <div style="display: flex; justify-content: space-between; margin-top: 10px; padding: 10px 14px; background: #f8fafc; border-radius: 8px; font-size: 0.85rem; border: 1px solid #e2e8f0;">
+      <div style="display: flex; justify-content: space-between; margin-top: 6px; padding: 6px 12px; background: #f8fafc; border-radius: 6px; font-size: 0.85rem; border: 1px solid #e2e8f0;">
         <span style="font-weight: 600;">Gross Profit Margin Ratio:</span>
-        <strong class="font-num" style="color: #059669; font-size: 1rem;">${m.profitMargin.toFixed(2)}%</strong>
+        <strong class="font-num" style="color: #059669;">${(m.profitMargin || 0).toFixed(2)}%</strong>
+      </div>
+
+      ${Number(m.discountReceived || 0) > 0 ? `
+      <div class="rep-pnl-row" style="margin-top: 12px;">
+        <span>Add: Settlement Discounts Received (CPV)</span>
+        <span class="font-num" style="color: #059669;">+ ${formatMoney(m.discountReceived)}</span>
+      </div>` : ''}
+
+      ${Number(m.discountAllowed || 0) > 0 ? `
+      <div class="rep-pnl-row" style="margin-top: ${Number(m.discountReceived || 0) > 0 ? '4px' : '12px'};">
+        <span>Less: Settlement Discounts Allowed (CRV)</span>
+        <span class="font-num" style="color: #dc2626;">- ${formatMoney(m.discountAllowed)}</span>
+      </div>` : ''}
+
+      <div class="rep-pnl-row" style="margin-top: 12px;">
+        <span>Less: Total Operating Expenses</span>
+        <span class="font-num" style="color: #dc2626; font-weight: 600;">- ${formatMoney(m.operatingExpenses)}</span>
+      </div>
+      ${expenseCategoriesHtml}
+
+      <div class="rep-pnl-row grand" style="margin-top: 16px; border-top: 2px solid #0f172a; padding-top: 12px; background: #f0fdf4;">
+        <span style="color: #047857; font-weight: 800;">NET OPERATING PROFIT / (LOSS)</span>
+        <strong class="font-num" style="color: ${m.netProfit >= 0 ? '#047857' : '#dc2626'}; font-size: 1.25rem;">${formatMoney(m.netProfit)}</strong>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; margin-top: 8px; padding: 10px 14px; background: #ecfdf5; border-radius: 8px; font-size: 0.9rem; border: 1px solid #a7f3d0;">
+        <span style="font-weight: 700; color: #065f46;">Net Profit Margin Ratio:</span>
+        <strong class="font-num" style="color: #047857; font-size: 1.1rem;">${(m.netMargin || 0).toFixed(2)}%</strong>
       </div>
     `;
   }
@@ -2032,8 +2226,9 @@
   // ========================================================
   function getReportExportData(repId, res) {
     if (!res) return { title: 'Report', headers: [], exportedRows: [], totalsRow: [], isLandscape: false };
-    const rows = res.rows || [];
-    const t = res.totals || {};
+    const q = (dom.tableSearch && dom.tableSearch.value || '').trim().toLowerCase();
+    const rows = (q && state.filteredRows) ? state.filteredRows : (res.rows || []);
+    const t = (q && state.effectiveTotals) ? state.effectiveTotals : (res.totals || {});
     const m = res.metrics || {};
     const title = res.title || state.activeReportLabel || 'Business Report';
 
@@ -2203,12 +2398,12 @@
       isLandscape = true;
       headers = ['Sr #', 'Category Name', 'Unique Items', 'Total Stock Units', 'Total Cost Valuation', 'Total Retail Valuation', 'Potential Gross Margin', 'Margin %'];
       exportedRows = rows.map((r, i) => [
-        i + 1, cleanText(r.categoryName, '-'), Number(r.productCount || 0), Number(r.stockQty || 0),
+        i + 1, cleanText(r.categoryName, '-'), Number(r.itemsCount || r.productCount || 0), Number(r.totalQty || r.stockQty || 0),
         Number(r.costValue || 0), Number(r.retailValue || 0), Number(r.margin || 0),
         Number((r.marginPct || 0).toFixed(1))
       ]);
       totalsRow = [
-        'TOTALS', `${rows.length} Categories`, Number(t.productCount || 0), Number(t.totalQty || 0),
+        'TOTALS', `${rows.length} Categories`, Number(t.itemsCount || t.productCount || 0), Number(t.totalQty || 0),
         Number(t.costValue || 0), Number(t.retailValue || 0), Number(t.margin || 0),
         Number((t.marginPct || 0).toFixed(1))
       ];
@@ -2220,12 +2415,13 @@
       ]);
       totalsRow = ['TOTALS', `${t.records || rows.length} Customers`, '', '', '', '', Number(t.totalReceivable || 0)];
     } else if (repId === 'supplier-payables') {
-      headers = ['Sr #', 'Supplier / Vendor Name', 'Contact Person', 'Phone', 'City', 'Payable Balance (Cr)'];
+      isLandscape = true;
+      headers = ['Sr #', 'Supplier / Vendor Name', 'Contact Person', 'Phone', 'City', 'Payable Balance (Cr)', 'Advance Paid (Dr)'];
       exportedRows = rows.map((r, i) => [
         i + 1, cleanText(r.name, '-'), cleanText(r.contactPerson, '-'), cleanText(r.phone, '-'), cleanText(r.city, '-'),
-        Number(r.payableAmount || 0)
+        Number(r.payableAmount || 0), Number(r.advanceAmount || 0)
       ]);
-      totalsRow = ['TOTALS', `${t.records || rows.length} Suppliers`, '', '', '', Number(t.totalPayable || 0)];
+      totalsRow = ['TOTALS', `${t.records || rows.length} Suppliers`, '', '', '', Number(t.totalPayable || 0), Number(t.totalAdvancePaid || 0)];
     } else if (repId === 'crv-report') {
       isLandscape = true;
       headers = ['Date', 'Voucher #', 'Customer / Account Title', 'Territory', 'Mode', 'Amount Received', 'Discount Allowed', 'Total Credit', 'Remarks / Details'];
@@ -2243,26 +2439,56 @@
       ]);
       totalsRow = ['TOTALS', `${t.records || rows.length} Vouchers`, '', '', '', Number(t.amount || 0), Number(t.discount || 0), Number(t.netAmount || 0), ''];
     } else if (repId === 'cash-book') {
-      headers = ['Date', 'Counter Cash Sales', 'CRV Recoveries', 'Total Cash Inflow', 'CPV Cash Outflow', 'Net Day Cash Flow'];
+      isLandscape = true;
+      headers = ['Date', 'Cash Sales (+)', 'CRV Cash (+)', 'Total Inflow (+)', 'Cash Purchases (-)', 'CPV Payments (-)', 'Daily Expenses (-)', 'Cash Refunds (-)', 'Total Outflow (-)', 'Net Day Cash'];
       exportedRows = rows.map(r => [
-        r.date, Number(r.cashSales || 0), Number(r.crvReceived || 0), Number(r.totalIn || 0),
-        Number(r.totalOut || 0), Number(r.netCash || 0)
+        r.date,
+        Number(r.cashSales || 0),
+        Number(r.crvReceived || 0),
+        Number(r.totalIn || 0),
+        Number(r.cashPurchases || 0),
+        Number(r.cpvPaid || 0),
+        Number(r.cashExpenses || 0),
+        Number(r.cashRefunds || 0),
+        Number(r.totalOut || 0),
+        Number(r.netCash || 0)
       ]);
       totalsRow = [
-        'TOTALS', Number(t.cashSales || 0), Number(t.crvReceived || 0),
-        Number(t.totalIn || 0), Number(t.totalOut || 0), Number(t.netCash || 0)
+        'TOTALS',
+        Number(t.cashSales || 0),
+        Number(t.crvReceived || 0),
+        Number(t.totalIn || 0),
+        Number(t.cashPurchases || 0),
+        Number(t.cpvPaid || 0),
+        Number(t.cashExpenses || 0),
+        Number(t.cashRefunds || 0),
+        Number(t.totalOut || 0),
+        Number(t.netCash || 0)
       ];
     } else if (repId === 'profit-loss') {
       headers = ['Sr #', 'Statement Component', 'Accounting Basis', 'Amount (PKR)'];
       exportedRows = [
         [1, 'Gross Sales Revenue', 'Total Invoice Sales Value', Number(m.grossSales || 0)],
-        [2, 'Less: Trade Discounts Allowed', 'Deductions on Invoices', -Number(m.discountsGiven || 0)],
+        [2, 'Less: Special Discounts Given', 'Deductions on Invoices', -Number(m.discountsGiven || 0)],
         [3, 'Less: Sales Returns & Refunds', 'Returned Merchandise', -Number(m.returnsRefunded || 0)],
         [4, 'NET TRADING SALES REVENUE', 'Gross - Discounts - Returns', Number(m.netSales || 0)],
-        [5, 'Less: Cost of Goods Sold (COGS)', 'Purchase Rate x Units Sold', -Number(m.cogs || 0)],
+        [5, 'Less: Cost of Goods Sold (COGS)', 'Purchase Cost Basis of Goods Sold', -Number(m.cogs || 0)],
         [6, 'GROSS TRADING PROFIT', 'Net Sales - COGS', Number(m.grossProfit || 0)]
       ];
-      totalsRow = ['GROSS PROFIT MARGIN RATIO', '', '', `${(m.profitMargin || 0).toFixed(2)}%`];
+      let sr = 7;
+      if (Number(m.discountReceived || 0) > 0) {
+        exportedRows.push([sr++, 'Add: Settlement Discounts Received (CPV)', 'Discounts from Suppliers', Number(m.discountReceived || 0)]);
+      }
+      if (Number(m.discountAllowed || 0) > 0) {
+        exportedRows.push([sr++, 'Less: Settlement Discounts Allowed (CRV)', 'Early Settlement Discounts to Customers', -Number(m.discountAllowed || 0)]);
+      }
+      exportedRows.push([sr++, 'Less: Total Operating Expenses', 'Shop Operations & Overhead', -Number(m.operatingExpenses || 0)]);
+      const cats = m.expensesByCategory || {};
+      for (const [catName, catAmt] of Object.entries(cats)) {
+        exportedRows.push(['', `   • ${catName}`, 'Operating Expense Breakdown', -Number(catAmt || 0)]);
+      }
+      exportedRows.push([sr++, 'NET OPERATING PROFIT / (LOSS)', 'Gross Profit + Disc Rec - Expenses - Disc Allowed', Number(m.netProfit || 0)]);
+      totalsRow = ['NET PROFIT MARGIN RATIO', '', '', `${(m.netMargin || 0).toFixed(2)}%`];
     } else {
       const keys = rows[0] ? Object.keys(rows[0]).filter(k => k !== 'id') : ['Details'];
       headers = keys.map(k => k.toUpperCase());
@@ -2640,10 +2866,19 @@
       await loadMasterData();
       showCardsHubView();
     },
+    reloadMasterData: async () => {
+      await loadMasterData();
+      if (dom.detailView && !dom.detailView.classList.contains('hidden')) {
+        await generateActiveReport(false);
+      } else {
+        updateHubCardStats();
+      }
+    },
     showCardsHubView,
     openCategoryReport,
     switchCategory,
-    generateReport: generateActiveReport
+    generateReport: generateActiveReport,
+    loadMasterData
   };
 
 })();

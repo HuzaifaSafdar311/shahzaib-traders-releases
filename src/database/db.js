@@ -171,6 +171,90 @@ function runAdditiveMigrations(db, dbPath) {
       console.warn('Could not update PRAGMA user_version to 2:', e.message);
     }
   }
+
+  // Version 3: sale_return_items.purchasePrice, purchase_items.packSize
+  if (currentVersion < 3) {
+    try {
+      if (!tableHasColumn(db, 'sale_return_items', 'purchasePrice')) {
+        db.exec("ALTER TABLE sale_return_items ADD COLUMN purchasePrice REAL DEFAULT 0;");
+      }
+      if (!tableHasColumn(db, 'purchase_items', 'packSize')) {
+        db.exec("ALTER TABLE purchase_items ADD COLUMN packSize REAL DEFAULT 1;");
+      }
+    } catch (e) {
+      console.warn('Migration v3 note:', e.message);
+    }
+
+    try {
+      db.exec('PRAGMA user_version = 3;');
+    } catch (e) {
+      console.warn('Could not update PRAGMA user_version to 3:', e.message);
+    }
+  }
+
+  // Version 4: Explicit List Price minus Discount columns & effectiveCost backfill
+  if (currentVersion < 4) {
+    try {
+      if (dbPath && fs.existsSync(dbPath)) {
+        backupDatabase(dbPath);
+      }
+    } catch (bkErr) {
+      console.warn('Pre-migration v4 backup note:', bkErr.message);
+    }
+
+    try {
+      if (!tableHasColumn(db, 'purchase_items', 'companyDiscountPercent')) {
+        db.exec("ALTER TABLE purchase_items ADD COLUMN companyDiscountPercent REAL DEFAULT NULL;");
+      }
+      if (!tableHasColumn(db, 'purchase_items', 'effectiveCost')) {
+        db.exec("ALTER TABLE purchase_items ADD COLUMN effectiveCost REAL DEFAULT NULL;");
+      }
+      if (!tableHasColumn(db, 'products', 'companyDiscountPercent')) {
+        db.exec("ALTER TABLE products ADD COLUMN companyDiscountPercent REAL DEFAULT NULL;");
+      }
+      if (!tableHasColumn(db, 'products', 'effectiveCost')) {
+        db.exec("ALTER TABLE products ADD COLUMN effectiveCost REAL DEFAULT NULL;");
+      }
+      if (!tableHasColumn(db, 'sale_items', 'effectiveCost')) {
+        db.exec("ALTER TABLE sale_items ADD COLUMN effectiveCost REAL DEFAULT NULL;");
+      }
+
+      // Populate effectiveCost for old rows
+      db.exec(`
+        UPDATE products
+        SET effectiveCost = CASE WHEN purchasePrice > 0 THEN purchasePrice ELSE averageCost END
+        WHERE effectiveCost IS NULL;
+      `);
+      db.exec(`
+        UPDATE products
+        SET companyDiscountPercent = purchaseDiscountPercent
+        WHERE companyDiscountPercent IS NULL AND purchasePricingMode = 'list_discount' AND purchaseDiscountPercent IS NOT NULL;
+      `);
+      db.exec(`
+        UPDATE purchase_items
+        SET effectiveCost = CASE WHEN netCost > 0 THEN netCost WHEN tradePrice > 0 THEN tradePrice ELSE 0 END
+        WHERE effectiveCost IS NULL;
+      `);
+      db.exec(`
+        UPDATE purchase_items
+        SET companyDiscountPercent = discountValue
+        WHERE companyDiscountPercent IS NULL AND pricingMode = 'list_discount' AND discountValue > 0;
+      `);
+      db.exec(`
+        UPDATE sale_items
+        SET effectiveCost = CASE WHEN costAtSale > 0 THEN costAtSale WHEN purchasePrice > 0 THEN purchasePrice ELSE 0 END
+        WHERE effectiveCost IS NULL;
+      `);
+    } catch (e) {
+      console.warn('Migration v4 note:', e.message);
+    }
+
+    try {
+      db.exec('PRAGMA user_version = 4;');
+    } catch (e) {
+      console.warn('Could not update PRAGMA user_version to 4:', e.message);
+    }
+  }
 }
 
 function initDatabase(dbPath) {
@@ -812,7 +896,7 @@ function updateProductPrices(idOrCode, prices = {}) {
   if (!codeOrId) return { success: false, message: 'Invalid product' };
   const now = new Date().toISOString();
 
-  const { purchasePrice, wholesalePrice, retailPrice, purchasePricingMode, purchaseDiscountPercent } = prices;
+  const { purchasePrice, wholesalePrice, retailPrice, purchasePricingMode, purchaseDiscountPercent, companyDiscountPercent, effectiveCost } = prices;
 
   if (isJsonFallback) {
     const prod = jsonData.products.find(p => p.id === codeOrId || String(p.code) === codeOrId);
@@ -821,10 +905,19 @@ function updateProductPrices(idOrCode, prices = {}) {
     if (wholesalePrice !== undefined && Number(wholesalePrice) >= 0) prod.wholesalePrice = Number(wholesalePrice);
     if (retailPrice !== undefined && Number(retailPrice) >= 0) prod.retailPrice = Number(retailPrice);
     if (purchasePricingMode !== undefined) prod.purchasePricingMode = purchasePricingMode;
-    if (purchaseDiscountPercent !== undefined) prod.purchaseDiscountPercent = (purchaseDiscountPercent !== null && purchaseDiscountPercent !== '') ? Number(purchaseDiscountPercent) : null;
+    const finalCompDisc = (companyDiscountPercent !== undefined && companyDiscountPercent !== null && companyDiscountPercent !== '') ? Number(companyDiscountPercent) : ((purchaseDiscountPercent !== undefined && purchaseDiscountPercent !== null && purchaseDiscountPercent !== '') ? Number(purchaseDiscountPercent) : prod.companyDiscountPercent);
+    prod.purchaseDiscountPercent = finalCompDisc;
+    prod.companyDiscountPercent = finalCompDisc;
     const tp = Number(prod.purchasePrice) || 0;
     const rp = Number(prod.retailPrice) || 0;
     prod.profitMargin = tp > 0 ? Number((((rp - tp) / tp) * 100).toFixed(1)) : 0;
+    if (effectiveCost !== undefined && Number(effectiveCost) > 0) {
+      prod.effectiveCost = Number(effectiveCost);
+    } else if (finalCompDisc > 0 && tp > 0) {
+      prod.effectiveCost = Math.round(tp * (1 - (finalCompDisc / 100)) * 100) / 100;
+    } else {
+      prod.effectiveCost = tp;
+    }
     prod.updatedAt = now;
     saveJsonData();
     return { success: true, data: prod };
@@ -837,8 +930,16 @@ function updateProductPrices(idOrCode, prices = {}) {
   const newWP = (wholesalePrice !== undefined && Number(wholesalePrice) >= 0) ? Number(wholesalePrice) : Number(prod.wholesalePrice || 0);
   const newRP = (retailPrice !== undefined && Number(retailPrice) >= 0) ? Number(retailPrice) : Number(prod.retailPrice || 0);
   const newMode = (purchasePricingMode !== undefined) ? purchasePricingMode : (prod.purchasePricingMode || null);
-  const newDisc = (purchaseDiscountPercent !== undefined && purchaseDiscountPercent !== null && purchaseDiscountPercent !== '') ? Number(purchaseDiscountPercent) : (prod.purchaseDiscountPercent !== undefined ? prod.purchaseDiscountPercent : null);
+  const finalCompDisc = (companyDiscountPercent !== undefined && companyDiscountPercent !== null && companyDiscountPercent !== '') ? Number(companyDiscountPercent) : ((purchaseDiscountPercent !== undefined && purchaseDiscountPercent !== null && purchaseDiscountPercent !== '') ? Number(purchaseDiscountPercent) : (prod.companyDiscountPercent !== undefined ? prod.companyDiscountPercent : null));
   const margin = newPP > 0 ? Number((((newRP - newPP) / newPP) * 100).toFixed(1)) : 0;
+  let finalEff = (effectiveCost !== undefined && Number(effectiveCost) > 0) ? Number(effectiveCost) : 0;
+  if (finalEff <= 0) {
+    if (finalCompDisc > 0 && newPP > 0) {
+      finalEff = Math.round(newPP * (1 - (finalCompDisc / 100)) * 100) / 100;
+    } else {
+      finalEff = Number(prod.effectiveCost > 0 ? prod.effectiveCost : newPP);
+    }
+  }
 
   dbInstance.prepare(`
     UPDATE products SET
@@ -848,11 +949,13 @@ function updateProductPrices(idOrCode, prices = {}) {
       profitMargin = ?,
       purchasePricingMode = ?,
       purchaseDiscountPercent = ?,
+      companyDiscountPercent = ?,
+      effectiveCost = ?,
       updatedAt = ?
     WHERE id = ? OR code = ?
-  `).run(newPP, newWP, newRP, margin, newMode, newDisc, now, prod.id, prod.code);
+  `).run(newPP, newWP, newRP, margin, newMode, finalCompDisc, finalCompDisc, finalEff, now, prod.id, prod.code);
   checkpoint();
-  return { success: true, id: prod.id, code: prod.code, purchasePrice: newPP, wholesalePrice: newWP, retailPrice: newRP, profitMargin: margin, purchasePricingMode: newMode, purchaseDiscountPercent: newDisc };
+  return { success: true, id: prod.id, code: prod.code, purchasePrice: newPP, wholesalePrice: newWP, retailPrice: newRP, profitMargin: margin, purchasePricingMode: newMode, purchaseDiscountPercent: finalCompDisc, companyDiscountPercent: finalCompDisc, effectiveCost: finalEff };
 }
 
 // ============================================
@@ -891,6 +994,23 @@ function getNextPurchaseVoucherNo() {
   if (numericNos.length === 0) return '101';
   const max = Math.max(...numericNos);
   return String(max + 1);
+}
+
+
+function isRegisteredPartySql(partyId) {
+  if (!partyId || partyId === 'walk-in') return false;
+  if (!dbInstance) return false;
+  try {
+    return Boolean(dbInstance.prepare('SELECT 1 FROM parties WHERE id = ?').get(partyId));
+  } catch (_) {
+    return false;
+  }
+}
+
+function isRegisteredPartyJson(partyId) {
+  if (!partyId || partyId === 'walk-in') return false;
+  if (!jsonData || !Array.isArray(jsonData.parties)) return true;
+  return jsonData.parties.some(p => p.id === partyId);
 }
 
 function savePurchase(purchaseData, items = []) {
@@ -934,7 +1054,7 @@ function savePurchase(purchaseData, items = []) {
       for (const oldIt of oldItems) {
         let packSize = 1;
         const prod = jsonData.products.find(p => p.code === oldIt.productCode || p.id === oldIt.productId);
-        if (prod && Number(prod.packSize) > 0) packSize = Number(prod.packSize);
+        if (Number(it.packSize) > 0) packSize = Number(it.packSize); else if (prod && Number(prod.packSize) > 0) packSize = Number(prod.packSize); // Estimated
         const oldIncoming = (Number(oldIt.packQty || 0) * packSize) + Number(oldIt.unitQty || 0) + Number(oldIt.bonus || 0);
         if (prod && oldIncoming > 0) {
           prod.stockQty = Math.max(0, (Number(prod.stockQty) || 0) - oldIncoming);
@@ -1026,7 +1146,7 @@ function savePurchase(purchaseData, items = []) {
     }
 
     saveJsonData();
-    const isRegParty = purchaseData.partyId && purchaseData.partyId !== 'walk-in' && !purchaseData.partyId.startsWith('pt-');
+    const isRegParty = isRegisteredPartyJson(purchaseData.partyId);
     if (pIdx !== -1) {
       if (oldPartyId === purchaseData.partyId) {
         const delta = (Number(purchaseData.grandTotal) || 0) - oldGrandTotal;
@@ -1034,7 +1154,7 @@ function savePurchase(purchaseData, items = []) {
           generalInfoDb.updatePartyBalance(purchaseData.partyId, delta);
         }
       } else {
-        if (oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-') && oldGrandTotal > 0) {
+        if (isRegisteredPartyJson(oldPartyId) && oldGrandTotal > 0) {
           generalInfoDb.updatePartyBalance(oldPartyId, -oldGrandTotal);
         }
         if (isRegParty && (Number(purchaseData.grandTotal) || 0) > 0) {
@@ -1055,14 +1175,14 @@ function savePurchase(purchaseData, items = []) {
     if (existing) {
       oldGrandTotal = Number(existing.grandTotal) || 0;
       oldPartyId = existing.partyId || '';
-      const oldItems = dbInstance.prepare('SELECT productCode, productId, packQty, unitQty, bonus FROM purchase_items WHERE purchaseId = ?').all(existing.id);
+      const oldItems = dbInstance.prepare('SELECT productCode, productId, packQty, unitQty, bonus, packSize FROM purchase_items WHERE purchaseId = ?').all(existing.id);
       for (const oldIt of oldItems) {
         let packSize = 1;
         const pRec = dbInstance.prepare('SELECT packSize FROM products WHERE code = ? OR id = ?').get(oldIt.productCode || '', oldIt.productId || '');
         if (pRec && Number(pRec.packSize) > 0) packSize = Number(pRec.packSize);
         const oldIncoming = (Number(oldIt.packQty || 0) * packSize) + Number(oldIt.unitQty || 0) + Number(oldIt.bonus || 0);
         if (oldIncoming > 0) {
-          dbInstance.prepare('UPDATE products SET stockQty = MAX(0, stockQty - ?) WHERE code = ? OR id = ?').run(oldIncoming, oldIt.productCode || '', oldIt.productId || '');
+          dbInstance.prepare('UPDATE products SET stockQty = stockQty - ? WHERE code = ? OR id = ?').run(oldIncoming, oldIt.productCode || '', oldIt.productId || '');
         }
       }
 
@@ -1109,8 +1229,9 @@ function savePurchase(purchaseData, items = []) {
         id, purchaseId, srNo, productId, productCode, productTitle,
         packQty, unitQty, bonus, tradePrice, profitMargin,
         retailPrice, wholesalePrice, tradeOffer, discountPercent, netAmount,
-        pricingMode, listPrice, discountType, discountValue, netCost
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        pricingMode, listPrice, discountType, discountValue, netCost,
+        packSize, companyDiscountPercent, effectiveCost
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const updateProductStockDirect = dbInstance.prepare(`
@@ -1121,7 +1242,9 @@ function savePurchase(purchaseData, items = []) {
         retailPrice = CASE WHEN ? > 0 THEN ? ELSE retailPrice END,
         profitMargin = CASE WHEN ? > 0 AND ? > 0 THEN ROUND(((CAST(? AS REAL) - CAST(? AS REAL)) / CAST(? AS REAL)) * 100, 1) ELSE profitMargin END,
         purchasePricingMode = 'direct',
-        purchaseDiscountPercent = NULL
+        purchaseDiscountPercent = NULL,
+        companyDiscountPercent = NULL,
+        effectiveCost = CASE WHEN ? > 0 THEN ? ELSE effectiveCost END
       WHERE code = ? OR id = ?
     `);
 
@@ -1131,9 +1254,11 @@ function savePurchase(purchaseData, items = []) {
         purchasePrice = ?,
         wholesalePrice = ?,
         retailPrice = ?,
-        profitMargin = CASE WHEN ? > 0 AND ? > 0 THEN ROUND(((CAST(? AS REAL) - CAST(? AS REAL)) / CAST(? AS REAL)) * 100, 1) ELSE profitMargin END,
+        profitMargin = ?,
         purchasePricingMode = 'list_discount',
-        purchaseDiscountPercent = ?
+        purchaseDiscountPercent = ?,
+        companyDiscountPercent = ?,
+        effectiveCost = ?
       WHERE code = ? OR id = ?
     `);
 
@@ -1158,11 +1283,19 @@ function savePurchase(purchaseData, items = []) {
       if (packSize <= 0) packSize = 1;
       const incomingQty = (Number(item.packQty || item.pQty || 0) * packSize) + Number(item.unitQty || item.uQty || 0) + Number(item.bonus || 0);
 
-      const itemPricingMode = item.pricingMode === 'list_discount' ? 'list_discount' : 'direct';
-      const itemListPrice = Number(item.listPrice) || (itemPricingMode === 'list_discount' ? Number(item.retailPrice || 0) : 0);
+      const itemPricingMode = (item.pricingMode === 'list_discount' || (Number(item.companyDiscountPercent) > 0)) ? 'list_discount' : 'direct';
+      const itemListPrice = Number(item.listPrice) || (itemPricingMode === 'list_discount' ? Number(item.retailPrice || item.purchasePrice || 0) : tp);
       const itemDiscType = item.discountType === 'flat' ? 'flat' : 'percent';
-      const itemDiscVal = Number(item.discountValue !== undefined ? item.discountValue : (itemPricingMode === 'list_discount' ? item.discountPercent : 0)) || 0;
-      const itemNetCost = Number(item.netCost !== undefined ? item.netCost : tp) || tp;
+      const itemDiscVal = Number(item.companyDiscountPercent !== undefined && item.companyDiscountPercent !== null ? item.companyDiscountPercent : (item.discountValue !== undefined ? item.discountValue : (itemPricingMode === 'list_discount' ? item.discountPercent : 0))) || 0;
+      let itemEffectiveCost = Number(item.effectiveCost !== undefined && item.effectiveCost !== null ? item.effectiveCost : (item.netCost !== undefined ? item.netCost : 0));
+      if (itemEffectiveCost <= 0) {
+        if (itemPricingMode === 'list_discount' && itemListPrice > 0) {
+          itemEffectiveCost = Math.round((itemListPrice * (1 - (itemDiscVal / 100))) * 100) / 100;
+        } else {
+          itemEffectiveCost = tp;
+        }
+      }
+      const lineNetAmount = Number(item.netAmount !== undefined ? item.netAmount : (itemEffectiveCost * incomingQty));
 
       insertItem.run(
         itemId, id, sr, item.productId || '', code, item.productTitle || '',
@@ -1170,21 +1303,39 @@ function savePurchase(purchaseData, items = []) {
         tp, Number(item.profitMargin || item.proPercent || 0),
         rp, wp,
         Number(item.tradeOffer || item.to || 0), Number(item.discountPercent || item.discPercent || 0),
-        Number(item.netAmount || 0),
-        itemPricingMode, itemListPrice, itemDiscType, itemDiscVal, itemNetCost
+        lineNetAmount,
+        itemPricingMode, itemListPrice, itemDiscType, itemDiscVal, itemEffectiveCost,
+        packSize, itemDiscVal, itemEffectiveCost
       );
 
       if (incomingQty > 0 && code) {
         if (item.syncCatalogPrices === false) {
           updateProductStockOnly.run(incomingQty, code, item.productId || '');
         } else if (itemPricingMode === 'list_discount') {
-          const discBench = itemListPrice > 0 ? Number((((itemListPrice - itemNetCost) / itemListPrice) * 100).toFixed(2)) : 0;
-          updateProductStockListDisc.run(incomingQty, itemNetCost, itemListPrice, itemListPrice, itemNetCost, itemListPrice, itemListPrice, itemNetCost, itemNetCost, discBench, code, item.productId || '');
+          updateProductStockListDisc.run(
+            incomingQty,
+            itemListPrice, // purchasePrice stays as list price!
+            itemListPrice,
+            itemListPrice,
+            itemDiscVal,
+            itemDiscVal,
+            itemDiscVal,
+            itemEffectiveCost,
+            code, item.productId || ''
+          );
         } else {
-          updateProductStockDirect.run(incomingQty, tp, tp, wp, wp, rp, rp, tp, rp, rp, tp, tp, code, item.productId || '');
+          updateProductStockDirect.run(
+            incomingQty,
+            tp, tp,
+            wp, wp,
+            rp, rp,
+            tp, rp, rp, tp, tp,
+            tp, tp,
+            code, item.productId || ''
+          );
         }
 
-        const effectiveUnitCost = itemNetCost > 0 ? itemNetCost : tp;
+        const effectiveUnitCost = itemEffectiveCost > 0 ? itemEffectiveCost : tp;
         if (effectiveUnitCost > 0) {
           const pRec = dbInstance.prepare('SELECT stockQty, averageCost, purchasePrice FROM products WHERE code = ? OR id = ?').get(code, item.productId || '');
           if (pRec) {
@@ -1198,9 +1349,7 @@ function savePurchase(purchaseData, items = []) {
       sr++;
     }
 
-    dbInstance.exec('COMMIT;');
-    checkpoint();
-    const isRegPartySql = purchaseData.partyId && purchaseData.partyId !== 'walk-in' && !purchaseData.partyId.startsWith('pt-');
+    const isRegPartySql = isRegisteredPartySql(purchaseData.partyId);
     if (existing) {
       if (oldPartyId === purchaseData.partyId) {
         const delta = (Number(purchaseData.grandTotal) || 0) - oldGrandTotal;
@@ -1208,7 +1357,7 @@ function savePurchase(purchaseData, items = []) {
           generalInfoDb.updatePartyBalance(purchaseData.partyId, delta);
         }
       } else {
-        if (oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-') && oldGrandTotal > 0) {
+        if (isRegisteredPartySql(oldPartyId) && oldGrandTotal > 0) {
           generalInfoDb.updatePartyBalance(oldPartyId, -oldGrandTotal);
         }
         if (isRegPartySql && (Number(purchaseData.grandTotal) || 0) > 0) {
@@ -1218,6 +1367,9 @@ function savePurchase(purchaseData, items = []) {
     } else if (isRegPartySql && Number(purchaseData.grandTotal) > 0) {
       generalInfoDb.updatePartyBalance(purchaseData.partyId, Number(purchaseData.grandTotal));
     }
+
+    dbInstance.exec('COMMIT;');
+    checkpoint();
     return { success: true, id, voucherNo };
   } catch (err) {
     dbInstance.exec('ROLLBACK;');
@@ -1229,7 +1381,7 @@ function deletePurchase(id) {
   if (isJsonFallback) {
     const p = jsonData.purchases.find(pr => pr.id === id || pr.voucherNo === id);
     if (p) {
-      const isRegParty = p.partyId && p.partyId !== 'walk-in' && !p.partyId.startsWith('pt-');
+      const isRegParty = isRegisteredPartyJson(p.partyId);
       if (isRegParty && Number(p.grandTotal) > 0) {
         generalInfoDb.updatePartyBalance(p.partyId, -Number(p.grandTotal));
       }
@@ -1253,18 +1405,40 @@ function deletePurchase(id) {
   try {
     const p = dbInstance.prepare('SELECT id, partyId, grandTotal FROM purchases WHERE id = ? OR voucherNo = ?').get(id, id);
     if (p) {
-      const isRegPartySql = p.partyId && p.partyId !== 'walk-in' && !p.partyId.startsWith('pt-');
+      const isRegPartySql = isRegisteredPartySql(p.partyId);
       if (isRegPartySql && Number(p.grandTotal) > 0) {
         generalInfoDb.updatePartyBalance(p.partyId, -Number(p.grandTotal));
       }
-      const items = dbInstance.prepare('SELECT productCode, productId, packQty, unitQty, bonus FROM purchase_items WHERE purchaseId = ?').all(p.id);
+      const items = dbInstance.prepare('SELECT productCode, productId, packQty, unitQty, bonus, packSize FROM purchase_items WHERE purchaseId = ?').all(p.id);
       for (const it of items) {
-        let packSize = 1;
-        const pRec = dbInstance.prepare('SELECT packSize FROM products WHERE code = ? OR id = ?').get(it.productCode || '', it.productId || '');
-        if (pRec && Number(pRec.packSize) > 0) packSize = Number(pRec.packSize);
+        let packSize = Number(it.packSize) || 0;
+        if (packSize <= 0) {
+          const pRec = dbInstance.prepare('SELECT packSize FROM products WHERE code = ? OR id = ?').get(it.productCode || '', it.productId || '');
+          if (pRec && pRec.packSize > 0) packSize = Number(pRec.packSize);
+        }
+        if (packSize <= 0) packSize = 1;
         const incoming = (Number(it.packQty || 0) * packSize) + Number(it.unitQty || 0) + Number(it.bonus || 0);
         if (incoming > 0) {
           dbInstance.prepare('UPDATE products SET stockQty = MAX(0, stockQty - ?) WHERE code = ? OR id = ?').run(incoming, it.productCode || '', it.productId || '');
+        }
+
+        const remainingPi = dbInstance.prepare('SELECT effectiveCost, netCost, tradePrice, packQty, unitQty, bonus, packSize FROM purchase_items WHERE (productCode = ? OR productId = ?) AND purchaseId != ?').all(it.productCode || '', it.productId || '', p.id);
+        if (remainingPi.length > 0) {
+          let totU = 0;
+          let totC = 0;
+          for (const pi of remainingPi) {
+            const ps = Number(pi.packSize) || 1;
+            const q = (Number(pi.packQty || 0) * ps) + Number(pi.unitQty || 0) + Number(pi.bonus || 0);
+            const c = Number(pi.effectiveCost !== null && pi.effectiveCost !== undefined ? pi.effectiveCost : (pi.netCost || pi.tradePrice || 0));
+            totU += q;
+            totC += (q * c);
+          }
+          const newAvg = totU > 0 ? (totC / totU) : 0;
+          const lastPi = remainingPi[remainingPi.length - 1];
+          const lastCost = Number(lastPi.effectiveCost !== null && lastPi.effectiveCost !== undefined ? lastPi.effectiveCost : (lastPi.netCost || lastPi.tradePrice || 0));
+          dbInstance.prepare('UPDATE products SET averageCost = ?, effectiveCost = ? WHERE code = ? OR id = ?').run(Number(newAvg.toFixed(2)), lastCost, it.productCode || '', it.productId || '');
+        } else {
+          dbInstance.prepare('UPDATE products SET averageCost = purchasePrice, effectiveCost = purchasePrice WHERE code = ? OR id = ?').run(it.productCode || '', it.productId || '');
         }
       }
       dbInstance.prepare('DELETE FROM purchase_items WHERE purchaseId = ?').run(p.id);
@@ -1431,10 +1605,10 @@ function saveSale(saleData, items = []) {
     }
 
     saveJsonData();
-    const isRegParty = saleRecord.partyId && saleRecord.partyId !== 'walk-in' && !saleRecord.partyId.startsWith('pt-');
+    const isRegParty = isRegisteredPartyJson(saleRecord.partyId);
     if (isEstimated) {
       // If converting from a previously paid bill with balance due, revert the old balance
-      if (existing && existing.billStatus !== 'Estimated' && oldBalanceDue > 0 && oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-')) {
+      if (existing && existing.billStatus !== 'Estimated' && oldBalanceDue > 0 && isRegisteredPartyJson(oldPartyId)) {
         generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
       }
     } else if (existing) {
@@ -1448,7 +1622,7 @@ function saveSale(saleData, items = []) {
           generalInfoDb.updatePartyBalance(saleRecord.partyId, delta);
         }
       } else {
-        if (oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-') && oldBalanceDue > 0) {
+        if (isRegisteredPartyJson(oldPartyId) && oldBalanceDue > 0) {
           generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
         }
         if (isRegParty && (Number(saleRecord.balanceDue) || 0) > 0) {
@@ -1524,8 +1698,9 @@ function saveSale(saleData, items = []) {
         packSize, packQty, unitQty, totalQty,
         purchasePrice, wholesalePrice, retailPrice, salePrice,
         discountPercent, discountAmount, netAmount, createdAt,
-        costAtSale, listPrice, discountType, discountValue, purchaseDiscountAtSale
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        costAtSale, listPrice, discountType, discountValue, purchaseDiscountAtSale,
+        effectiveCost
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const deductStock = dbInstance.prepare(`
@@ -1539,7 +1714,7 @@ function saveSale(saleData, items = []) {
       let packSize = Number(item.packSize) || 1;
       const packQty = Number(item.packQty || 0);
       const unitQty = Number(item.unitQty || 0);
-      const totalQty = (packQty * packSize) + unitQty;
+      const totalQty = Number(item.totalQty) > 0 ? Number(item.totalQty) : ((packQty * packSize) + unitQty);
       const salePrice = Number(item.salePrice || item.retailPrice || 0);
       const purchasePrice = Number(item.purchasePrice || 0);
       const wholesalePrice = Number(item.wholesalePrice || 0);
@@ -1554,12 +1729,24 @@ function saveSale(saleData, items = []) {
       const discountValue = Number(item.discountValue !== undefined ? item.discountValue : (item.discountPercent || 0));
       const purchaseDiscountAtSale = Number(item.purchaseDiscountAtSale || 0);
 
+      let lineEff = Number(item.effectiveCost !== undefined && item.effectiveCost !== null ? item.effectiveCost : 0);
+      if (lineEff <= 0) {
+        const prodRec = dbInstance.prepare('SELECT effectiveCost, averageCost, purchasePrice FROM products WHERE code = ? OR id = ?').get(code, item.productId || '');
+        if (prodRec) {
+          lineEff = Number(prodRec.effectiveCost > 0 ? prodRec.effectiveCost : (prodRec.averageCost > 0 ? prodRec.averageCost : (prodRec.purchasePrice > 0 ? prodRec.purchasePrice : 0)));
+        }
+      }
+      if (lineEff <= 0) {
+        lineEff = costAtSale > 0 ? costAtSale : purchasePrice;
+      }
+
       insertItem.run(
         itemId, actualSaleId, sr, item.productId || '', code, item.productTitle || '',
         packSize, packQty, unitQty, totalQty,
-        costAtSale, wholesalePrice, retailPrice, salePrice,
+        lineEff, wholesalePrice, retailPrice, salePrice,
         discountPercent, discountAmount, netAmount, now,
-        costAtSale, listPrice, discountType, discountValue, purchaseDiscountAtSale
+        lineEff, listPrice, discountType, discountValue, purchaseDiscountAtSale,
+        lineEff
       );
 
       if (!isEstimated && totalQty > 0) {
@@ -1568,12 +1755,10 @@ function saveSale(saleData, items = []) {
       sr++;
     }
 
-    dbInstance.exec('COMMIT;');
-    checkpoint();
-    const isRegPartySql = saleRecord.partyId && saleRecord.partyId !== 'walk-in' && !saleRecord.partyId.startsWith('pt-');
+    const isRegPartySql = isRegisteredPartySql(saleRecord.partyId);
     if (isEstimated) {
       // If converting from a previously paid bill, revert the old balance
-      if (existing && existing.billStatus !== 'Estimated' && oldBalanceDue > 0 && oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-')) {
+      if (existing && existing.billStatus !== 'Estimated' && oldBalanceDue > 0 && isRegisteredPartySql(oldPartyId)) {
         generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
       }
     } else if (existing) {
@@ -1587,7 +1772,7 @@ function saveSale(saleData, items = []) {
           generalInfoDb.updatePartyBalance(saleRecord.partyId, delta);
         }
       } else {
-        if (oldPartyId && oldPartyId !== 'walk-in' && !oldPartyId.startsWith('pt-') && oldBalanceDue > 0) {
+        if (isRegisteredPartySql(oldPartyId) && oldBalanceDue > 0) {
           generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
         }
         if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) > 0) {
@@ -1597,6 +1782,9 @@ function saveSale(saleData, items = []) {
     } else if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) > 0) {
       generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
     }
+
+    dbInstance.exec('COMMIT;');
+    checkpoint();
     return { success: true, id: actualSaleId, voucherNo };
   } catch (err) {
     dbInstance.exec('ROLLBACK;');
@@ -1666,6 +1854,7 @@ function getAllData() {
     purchases: getAllPurchases(),
     sales: getAllSales(),
     sales_returns: getAllSaleReturns(),
+    expenses: tradeFeaturesDb && tradeFeaturesDb.getAllExpenses ? tradeFeaturesDb.getAllExpenses() : [],
     parties: generalInfoDb.getParties ? generalInfoDb.getParties() : [],
     party_types: generalInfoDb.getPartyTypes ? generalInfoDb.getPartyTypes() : [],
     areas: generalInfoDb.getAreas ? generalInfoDb.getAreas() : [],
@@ -1681,6 +1870,7 @@ function getReportsMasterData() {
     purchases: getAllPurchases(),
     products: getAllProducts(),
     returns: getAllSaleReturns(),
+    expenses: tradeFeaturesDb && tradeFeaturesDb.getAllExpenses ? tradeFeaturesDb.getAllExpenses() : [],
     categories: getAllProductCategories(),
     subCategories: getSubCategoriesByCategory(),
     units: getAllUnits(),
@@ -1910,9 +2100,6 @@ function saveSaleReturn(returnData, items = []) {
       sr++;
     }
 
-    dbInstance.exec('COMMIT;');
-    checkpoint();
-
     // Revert previous credit return if needed
     if (oldPartyId && oldRefundMode === 'Credit' && oldTotalAmount > 0) {
       generalInfoDb.updatePartyBalance(oldPartyId, oldTotalAmount);
@@ -1921,6 +2108,9 @@ function saveSaleReturn(returnData, items = []) {
     if (returnData.refundMode === 'Credit' && returnData.partyId && Number(returnData.totalAmount) > 0) {
       generalInfoDb.updatePartyBalance(returnData.partyId, -Number(returnData.totalAmount));
     }
+
+    dbInstance.exec('COMMIT;');
+    checkpoint();
     return { success: true, id, returnNo };
   } catch (err) {
     dbInstance.exec('ROLLBACK;');
@@ -1968,13 +2158,13 @@ function deleteSaleReturn(id) {
       }
       dbInstance.prepare('DELETE FROM sale_return_items WHERE returnId = ?').run(r.id);
       dbInstance.prepare('DELETE FROM sales_returns WHERE id = ?').run(r.id);
+
+      if (creditPartyId && creditAmount > 0) {
+        generalInfoDb.updatePartyBalance(creditPartyId, creditAmount);
+      }
     }
     dbInstance.exec('COMMIT;');
     checkpoint();
-
-    if (creditPartyId && creditAmount > 0) {
-      generalInfoDb.updatePartyBalance(creditPartyId, creditAmount);
-    }
     return { success: true };
   } catch (err) {
     dbInstance.exec('ROLLBACK;');

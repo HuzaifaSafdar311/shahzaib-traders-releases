@@ -641,7 +641,7 @@ function getDailyClosingSummary(dateStr) {
 
   if (isJson) {
     const totalCashSales = (jsonStore.sales || [])
-      .filter(s => s.entryDate === date && s.paymentType === 'Cash')
+      .filter(s => s.entryDate === date && (s.billStatus === undefined || s.billStatus === null || s.billStatus !== 'Estimated') && Number(s.paidAmount) > 0)
       .reduce((sum, s) => sum + (Number(s.paidAmount) || 0), 0);
 
     const totalCrvReceived = (jsonStore.accounts_vouchers || [])
@@ -656,17 +656,21 @@ function getDailyClosingSummary(dateStr) {
       .filter(e => e.entryDate === date && (e.paymentMode === 'Cash' || !e.paymentMode))
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
+    const totalCashRefunds = (jsonStore.sales_returns || [])
+      .filter(r => r.entryDate === date && r.refundMode === 'Cash')
+      .reduce((sum, r) => sum + (Number(r.totalAmount ?? r.netRefund ?? r.grandTotal ?? 0) || 0), 0);
+
     const existingClosing = (jsonStore.day_end_closings || []).find(c => c.closingDate === date) || null;
     let openingDrawerCash = 0;
     if (existingClosing) {
-      openingDrawerCash = existingClosing.openingDrawerCash;
+      openingDrawerCash = Number(existingClosing.openingDrawerCash) || 0;
     } else {
       const prevClosings = (jsonStore.day_end_closings || [])
         .filter(c => c.closingDate < date)
         .sort((a, b) => (b.closingDate || '').localeCompare(a.closingDate || ''));
-      if (prevClosings.length) openingDrawerCash = prevClosings[0].closingDrawerBalance || 0;
+      if (prevClosings.length) openingDrawerCash = Number(prevClosings[0].closingDrawerBalance) || 0;
     }
-    const expectedDrawerCash = openingDrawerCash + totalCashSales + totalCrvReceived - totalCpvPaid - totalExpensesPaid;
+    const expectedDrawerCash = openingDrawerCash + totalCashSales + totalCrvReceived - totalCpvPaid - totalExpensesPaid - totalCashRefunds;
 
     return {
       date,
@@ -675,6 +679,7 @@ function getDailyClosingSummary(dateStr) {
       totalCrvReceived,
       totalCpvPaid,
       totalExpensesPaid,
+      totalCashRefunds,
       expectedDrawerCash,
       existingClosing
     };
@@ -682,51 +687,62 @@ function getDailyClosingSummary(dateStr) {
 
   if (!db) return null;
   try {
-    // 1. Total Cash Sales for date
+    // 1. Total Cash collected on sales for date (includes full cash sales and credit sales with down payments)
     const cashSalesRow = db.prepare(`
       SELECT COALESCE(SUM(paidAmount), 0) as totalCashSale
       FROM sales
-      WHERE entryDate = ? AND paymentType = 'Cash'
+      WHERE entryDate = ? AND (billStatus IS NULL OR billStatus != 'Estimated') AND paidAmount > 0
     `).get(date);
-    const totalCashSales = cashSalesRow ? cashSalesRow.totalCashSale : 0;
+    const totalCashSales = cashSalesRow ? Number(cashSalesRow.totalCashSale) || 0 : 0;
 
     // 2. Total CRV (Cash Receipts) for date
     const crvRow = db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as totalCrv
       FROM accounts_vouchers
-      WHERE entryDate = ? AND voucherType = 'CRV' AND paymentMode = 'Cash'
+      WHERE entryDate = ? AND voucherType = 'CRV' AND (paymentMode = 'Cash' OR paymentMode IS NULL OR paymentMode = '')
     `).get(date);
-    const totalCrvReceived = crvRow ? crvRow.totalCrv : 0;
+    const totalCrvReceived = crvRow ? Number(crvRow.totalCrv) || 0 : 0;
 
-    // 3. Total CPV (Cash Payments to suppliers) for date
+    // 3. Total CPV (Cash Payments) for date
     const cpvRow = db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as totalCpv
       FROM accounts_vouchers
-      WHERE entryDate = ? AND voucherType = 'CPV' AND paymentMode = 'Cash'
+      WHERE entryDate = ? AND voucherType = 'CPV' AND (paymentMode = 'Cash' OR paymentMode IS NULL OR paymentMode = '')
     `).get(date);
-    const totalCpvPaid = cpvRow ? cpvRow.totalCpv : 0;
+    const totalCpvPaid = cpvRow ? Number(cpvRow.totalCpv) || 0 : 0;
 
     // 4. Total Daily Expenses for date
     const expRow = db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as totalExp
       FROM expenses
-      WHERE entryDate = ? AND paymentMode = 'Cash'
+      WHERE entryDate = ? AND (paymentMode = 'Cash' OR paymentMode IS NULL OR paymentMode = '')
     `).get(date);
-    const totalExpensesPaid = expRow ? expRow.totalExp : 0;
+    const totalExpensesPaid = expRow ? Number(expRow.totalExp) || 0 : 0;
 
-    // 5. Check if there was an existing closing record for this date
+    // 5. Total Cash Refunded on Sales Returns
+    let totalCashRefunds = 0;
+    try {
+      const retRow = db.prepare(`
+        SELECT COALESCE(SUM(COALESCE(totalAmount, netRefund, grandTotal, 0)), 0) as totalRefunds
+        FROM sales_returns
+        WHERE entryDate = ? AND refundMode = 'Cash'
+      `).get(date);
+      if (retRow) totalCashRefunds = Number(retRow.totalRefunds) || 0;
+    } catch (_e) {}
+
+    // 6. Check existing closing record for date
     const existingClosing = db.prepare('SELECT * FROM day_end_closings WHERE closingDate = ?').get(date);
 
-    // 6. Get previous day's closing drawer balance as opening cash
+    // 7. Get previous day's closing drawer balance as opening cash
     let openingDrawerCash = 0;
     if (existingClosing) {
-      openingDrawerCash = existingClosing.openingDrawerCash;
+      openingDrawerCash = Number(existingClosing.openingDrawerCash) || 0;
     } else {
       const prevClosing = db.prepare('SELECT closingDrawerBalance FROM day_end_closings WHERE closingDate < ? ORDER BY closingDate DESC LIMIT 1').get(date);
-      if (prevClosing) openingDrawerCash = prevClosing.closingDrawerBalance;
+      if (prevClosing) openingDrawerCash = Number(prevClosing.closingDrawerBalance) || 0;
     }
 
-    const expectedDrawerCash = openingDrawerCash + totalCashSales + totalCrvReceived - totalCpvPaid - totalExpensesPaid;
+    const expectedDrawerCash = openingDrawerCash + totalCashSales + totalCrvReceived - totalCpvPaid - totalExpensesPaid - totalCashRefunds;
 
     return {
       date,
@@ -735,6 +751,7 @@ function getDailyClosingSummary(dateStr) {
       totalCrvReceived,
       totalCpvPaid,
       totalExpensesPaid,
+      totalCashRefunds,
       expectedDrawerCash,
       existingClosing
     };

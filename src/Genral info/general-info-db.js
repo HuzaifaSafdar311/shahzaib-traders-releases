@@ -814,22 +814,17 @@ function updatePartyBalance(partyId, deltaBalance) {
       if (p.currentBalance === undefined) {
         p.currentBalance = Number(p.openingBalance) || 0;
       }
-      p.currentBalance = Number(p.currentBalance || 0) + num;
+      p.currentBalance = Math.round((Number(p.currentBalance || 0) + num) * 100) / 100;
       if (saveJsonFn) saveJsonFn();
     }
     return;
   }
-  if (!db) return;
-  try {
-    db.prepare(`
-      UPDATE parties
-      SET currentBalance = COALESCE(currentBalance, openingBalance, 0) + ?
-      WHERE id = ?
-    `).run(num, String(partyId));
-    if (checkpointFn) checkpointFn();
-  } catch (err) {
-    console.warn('Could not update party balance in DB:', err);
-  }
+  if (!db) throw new Error('Database not initialized');
+  db.prepare(`
+    UPDATE parties
+    SET currentBalance = ROUND(COALESCE(currentBalance, openingBalance, 0) + ?, 2)
+    WHERE id = ?
+  `).run(num, String(partyId));
 }
 
 module.exports = {

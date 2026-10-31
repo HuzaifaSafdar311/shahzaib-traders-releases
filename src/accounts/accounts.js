@@ -1017,6 +1017,9 @@
           dom.voucherStatus.textContent = 'Saved';
           dom.voucherStatus.style.color = '#0284c7';
         }
+        if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
+          window.ReportsModule.reloadMasterData().catch(() => {});
+        }
       }
     } catch (err) {
       console.error('Failed to save accounts voucher:', err);
@@ -1050,6 +1053,9 @@
         updatePartyBanner(inList);
       }
       await resetVoucher();
+      if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
+        window.ReportsModule.reloadMasterData().catch(() => {});
+      }
     } catch (err) {
       console.error('Error deleting voucher:', err);
       showToast('Failed to delete voucher: ' + err.message, 'error');

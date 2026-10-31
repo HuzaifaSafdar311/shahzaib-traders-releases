@@ -1863,7 +1863,7 @@
       const rowProfitPill = isShowConfidential ? `
         <div style="display: flex; flex-direction: column; align-items: flex-end; margin-top: 3px; font-size: 10px; font-weight: 700; color: ${profitColor};">
           <span>Profit: Rs ${profitPerUnit.toFixed(2)}/u (Rs ${lineProfit.toFixed(2)})</span>
-          <span>Spread: ${spreadDisplay} • Margin: ${marginOnSale.toFixed(1)}%</span>
+          <span>${purDiscAtSale !== null ? `Profit % on list price: ${(spreadPts >= 0 ? "+" : "") + spreadPts.toFixed(1)}%` : `Spread: ${spreadDisplay} • Margin: ${marginOnSale.toFixed(1)}%`}</span>
           ${profitPerUnit < -0.005 ? '<span style="color: #dc2626; font-size: 9.5px; font-weight: 800; background: #fee2e2; padding: 1px 4px; border-radius: 3px; margin-top: 1px;">⚠️ Selling below cost</span>' : ''}
         </div>
       ` : '';
@@ -2240,11 +2240,15 @@
       const selectedPtObj = saleState.selectedPartyType || sharedPartyTypes.find(t => String(t.id) === String(el.partyTypeSelect?.value)) || {};
       const ptTitle = selectedPtObj.name || 'General Party';
 
-      const isSpecificCustomer = Boolean(saleState.selectedCustomer);
-      const chosenPartyId = isSpecificCustomer ? saleState.selectedCustomer.id : (selectedPtObj.id || 'walk-in');
       const enteredCustomerName = customerNameInput?.value?.trim();
+      let matchedParty = saleState.selectedCustomer;
+      if (!matchedParty && enteredCustomerName && enteredCustomerName !== 'Walk-in Cash Customer' && enteredCustomerName !== 'Walk-in Customer') {
+        matchedParty = (sharedAllParties || []).find(p => (p.name || '').trim().toLowerCase() === enteredCustomerName.toLowerCase());
+      }
+      const isSpecificCustomer = Boolean(matchedParty);
+      const chosenPartyId = isSpecificCustomer ? matchedParty.id : 'walk-in';
       const chosenPartyTitle = enteredCustomerName || (isSpecificCustomer
-        ? (saleState.selectedCustomer.name || saleState.selectedCustomer.partyTitle)
+        ? (matchedParty.name || matchedParty.partyTitle)
         : `Walk-in (${ptTitle})`);
       const chosenCustomerPhone = customerPhoneInput?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer.phone || '') : '') || '';
       const chosenCustomerArea = customerAreaInput?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer.areaName || saleState.selectedCustomer.city || '') : '') || '';
@@ -2302,6 +2306,10 @@
         await window.reloadFromDatabase();
       }
       renderPosProductCatalog();
+
+      if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
+        window.ReportsModule.reloadMasterData().catch(() => {});
+      }
 
       await loadAndRenderSalesTable();
 
@@ -6249,6 +6257,9 @@ ${window.escapeHtml(cfg.footer)}
       window.salesAPI?.deleteSale(id).then(async () => {
         if (window.showToast) window.showToast(isEst ? 'Estimated bill deleted' : 'Sale deleted and stock restored', 'success');
         if (window.reloadFromDatabase) await window.reloadFromDatabase();
+        if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
+          window.ReportsModule.reloadMasterData().catch(() => {});
+        }
         await loadAndRenderSalesTable();
         if (el.modalHistory && !el.modalHistory.classList.contains('hidden')) {
           filterAndRenderModalHistory();

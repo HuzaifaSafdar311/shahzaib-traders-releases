@@ -946,10 +946,16 @@ function updateLineNetPreview() {
   const tradeOffer = Number(inv.pieTradeOffer?.value) || 0;
   const discPercent = Number(inv.pieDiscPercent?.value) || 0;
 
+  const isListMode = (currentPurLinePricingMode === 'list_discount');
+  const netCostInp = Number(document.getElementById('pieNetCost')?.value) || 0;
+  const listInp = Number(document.getElementById('pieListPrice')?.value) || 0;
+  const discInp = Number(document.getElementById('pieListDiscVal')?.value) || 0;
+  const effRate = isListMode ? (netCostInp > 0 ? netCostInp : (listInp > 0 ? Math.round(listInp * (1 - (discInp / 100)) * 100) / 100 : tp)) : tp;
+
   const totalUnits = (pQty * packSize) + uQty;
-  let rawAmount = totalUnits * tp;
+  let rawAmount = totalUnits * effRate;
   if (tradeOffer > 0) rawAmount -= tradeOffer;
-  if (discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
+  if (!isListMode && discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
   const net = Math.max(0, rawAmount);
   if (inv.pieLineNetPreview) {
     const formatted = 'Rs. ' + net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1356,7 +1362,22 @@ function selectProductForPurchase(prod) {
   if (inv.pieCode) inv.pieCode.value = prod.code;
   if (inv.pieProductSelect) inv.pieProductSelect.value = prod.code;
   if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = prod.titleEng || '';
-  if (inv.pieTradePrice) inv.pieTradePrice.value = Number(prod.purchasePrice || prod.tradePrice || 0).toFixed(2);
+  
+  const isListMode = (prod.purchasePricingMode === 'list_discount' || (Number(prod.companyDiscountPercent) > 0));
+  if (isListMode) {
+    setPurLinePricingMode('list_discount');
+    const listInp = document.getElementById('pieListPrice');
+    const discInp = document.getElementById('pieListDiscVal');
+    const listP = Number(prod.purchasePrice || prod.retailPrice || 0);
+    const discP = Number(prod.companyDiscountPercent !== undefined && prod.companyDiscountPercent !== null ? prod.companyDiscountPercent : (prod.purchaseDiscountPercent || 0));
+    if (listInp) listInp.value = listP.toFixed(2);
+    if (discInp) discInp.value = discP.toFixed(2);
+    recalculatePurLineListMath('list');
+  } else {
+    setPurLinePricingMode('direct');
+    if (inv.pieTradePrice) inv.pieTradePrice.value = Number(prod.effectiveCost || prod.purchasePrice || prod.tradePrice || 0).toFixed(2);
+  }
+
   const pieWholesale = document.getElementById('pieWholesalePrice');
   if (pieWholesale) pieWholesale.value = Number(prod.wholesalePrice || 0).toFixed(2);
   const pieRetail = document.getElementById('pieRetailPrice');
@@ -1418,13 +1439,35 @@ function addPurchaseLineItem() {
     return;
   }
 
-  const totalUnits = (pQty * (Number(prod.packSize) || 1)) + uQty;
-  let rawAmount = totalUnits * tp;
+  const packSize = Number(prod.packSize) || 1;
+  const totalUnits = (pQty * packSize) + uQty;
+
+  const isListMode = (currentPurLinePricingMode === 'list_discount');
+  const listPriceInput = Number(document.getElementById('pieListPrice')?.value) || 0;
+  const listDiscVal = Number(document.getElementById('pieListDiscVal')?.value) || 0;
+  const netCostInput = Number(document.getElementById('pieNetCost')?.value) || 0;
+
+  let listPrice = 0;
+  let companyDiscountPercent = null;
+  let effectiveCost = 0;
+
+  if (isListMode) {
+    listPrice = listPriceInput > 0 ? listPriceInput : (Number(prod.purchasePrice) || Number(prod.retailPrice) || 0);
+    companyDiscountPercent = listDiscVal;
+    effectiveCost = netCostInput > 0 ? netCostInput : Math.round(listPrice * (1 - (companyDiscountPercent / 100)) * 100) / 100;
+  } else {
+    listPrice = tp > 0 ? tp : Number(prod.purchasePrice || 0);
+    companyDiscountPercent = null;
+    effectiveCost = tp;
+  }
+
+  // Line netAmount = effectiveCost * totalQty (minus tradeOffer if applicable)
+  let rawAmount = totalUnits * effectiveCost;
   if (tradeOffer > 0) rawAmount -= tradeOffer;
-  if (discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
+  if (!isListMode && discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
   const netAmount = Math.max(0, rawAmount);
 
-  const marginPercent = tp > 0 ? (((rp - tp) / tp) * 100).toFixed(1) : '0';
+  const marginPercent = isListMode ? companyDiscountPercent.toFixed(1) : (tp > 0 ? (((rp - tp) / tp) * 100).toFixed(1) : '0');
 
   const lineItem = {
     srNo: currentPurchaseItems.length + 1,
@@ -1433,14 +1476,21 @@ function addPurchaseLineItem() {
     productTitle: prod.titleEng,
     packQty: pQty,
     unitQty: uQty,
-    packSize: prod.packSize || 1,
+    packSize: packSize,
     bonus,
-    tradePrice: tp,
+    tradePrice: isListMode ? effectiveCost : tp,
     profitMargin: marginPercent,
-    retailPrice: rp,
+    retailPrice: isListMode ? listPrice : rp,
     wholesalePrice: wp,
     tradeOffer,
     discountPercent: discPercent,
+    pricingMode: currentPurLinePricingMode,
+    listPrice: listPrice,
+    discountType: currentPurLineDiscType,
+    discountValue: listDiscVal,
+    netCost: effectiveCost,
+    companyDiscountPercent: isListMode ? companyDiscountPercent : null,
+    effectiveCost: effectiveCost,
     netAmount: netAmount.toFixed(2)
   };
 
@@ -1451,16 +1501,50 @@ function addPurchaseLineItem() {
   autoSaveCurrentPurchase();
 
   const syncCatalog = document.getElementById('pieSyncCatalogPrices')?.checked;
-  if (syncCatalog && (tp > 0 || wp > 0 || rp > 0)) {
+  if (syncCatalog) {
     try {
       if (window.api?.updateProductPrices) {
-        window.api.updateProductPrices(prod.id, { purchasePrice: tp, wholesalePrice: wp, retailPrice: rp });
+        if (isListMode) {
+          window.api.updateProductPrices(prod.id, {
+            purchasePrice: listPrice, // products.purchasePrice stays list price!
+            wholesalePrice: wp || listPrice,
+            retailPrice: rp || listPrice,
+            purchasePricingMode: 'list_discount',
+            purchaseDiscountPercent: companyDiscountPercent,
+            companyDiscountPercent: companyDiscountPercent,
+            effectiveCost: effectiveCost
+          });
+        } else if (tp > 0 || wp > 0 || rp > 0) {
+          window.api.updateProductPrices(prod.id, {
+            purchasePrice: tp,
+            wholesalePrice: wp,
+            retailPrice: rp,
+            purchasePricingMode: 'direct',
+            purchaseDiscountPercent: null,
+            companyDiscountPercent: null,
+            effectiveCost: tp
+          });
+        }
       }
       if (prod) {
-        if (tp > 0) prod.purchasePrice = tp;
-        if (wp > 0) prod.wholesalePrice = wp;
-        if (rp > 0) prod.retailPrice = rp;
-        if (tp > 0 && rp > 0) prod.profitMargin = Number((((rp - tp) / tp) * 100).toFixed(1));
+        if (isListMode) {
+          prod.purchasePrice = listPrice;
+          prod.wholesalePrice = wp || listPrice;
+          prod.retailPrice = rp || listPrice;
+          prod.purchasePricingMode = 'list_discount';
+          prod.purchaseDiscountPercent = companyDiscountPercent;
+          prod.companyDiscountPercent = companyDiscountPercent;
+          prod.effectiveCost = effectiveCost;
+        } else {
+          if (tp > 0) prod.purchasePrice = tp;
+          if (wp > 0) prod.wholesalePrice = wp;
+          if (rp > 0) prod.retailPrice = rp;
+          prod.purchasePricingMode = 'direct';
+          prod.purchaseDiscountPercent = null;
+          prod.companyDiscountPercent = null;
+          prod.effectiveCost = tp;
+          if (tp > 0 && rp > 0) prod.profitMargin = Number((((rp - tp) / tp) * 100).toFixed(1));
+        }
       }
     } catch (e) {
       console.warn('Sync catalog price error:', e);
@@ -1564,8 +1648,8 @@ function renderPurchaseLineItems() {
             <td class="col-pur-uqty font-num">${item.unitQty}</td>
             <td class="col-pur-bonus font-num">${item.bonus || 0}</td>
             <td class="col-pur-tprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change rate">
-              ${Number(item.tradePrice).toFixed(2)}
-              ${item.pricingMode === 'list_discount' ? `<div style="font-size: 10px; color: #7c3aed; font-weight: 700;">List ${Number(item.listPrice || item.retailPrice || 0).toFixed(0)} -${item.discountValue}${item.discountType === 'flat' ? 'Rs' : '%'}</div>` : ''}
+              ${Number(item.effectiveCost !== undefined && item.effectiveCost !== null ? item.effectiveCost : (item.netCost || item.tradePrice)).toFixed(2)}
+              ${(item.pricingMode === 'list_discount' || (item.companyDiscountPercent > 0)) ? `<div style="font-size: 10px; color: #7c3aed; font-weight: 700;">List ${Number(item.listPrice || item.retailPrice || item.purchasePrice || 0).toFixed(0)} -${Number(item.companyDiscountPercent || item.discountValue || 0)}% = Cost ${Number(item.effectiveCost !== undefined ? item.effectiveCost : (item.netCost || item.tradePrice)).toFixed(2)}</div>` : ''}
             </td>
             <td class="col-pur-pro font-num text-success">${item.profitMargin}%</td>
             <td class="col-pur-pprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change retail price">${Number(item.retailPrice).toFixed(2)}</td>
@@ -1983,6 +2067,9 @@ async function savePurchaseVoucher() {
       await window.api.savePurchase(purchaseData, currentPurchaseItems);
     }
     await window.reloadFromDatabase();
+    if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
+      window.ReportsModule.reloadMasterData().catch(() => {});
+    }
     showAlert(`Purchase Voucher #${purchaseData.voucherNo} saved successfully! Stock updated.`, 'Success');
     applyPurchaseDateFilter();
     resetPurchaseForm();
@@ -2072,6 +2159,9 @@ if (inv.btnPurDelete) {
         try {
           if (window.api?.deletePurchase) await window.api.deletePurchase(vNo);
           await window.reloadFromDatabase();
+          if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
+            window.ReportsModule.reloadMasterData().catch(() => {});
+          }
           resetPurchaseForm();
         } catch (e) {
           showAlert('Error deleting voucher: ' + e.message);

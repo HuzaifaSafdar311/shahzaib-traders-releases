@@ -351,10 +351,7 @@ function saveVoucher(voucherData) {
       );
     }
 
-    db.exec('COMMIT;');
-    if (checkpointFn) checkpointFn();
-
-    // Adjust Party Balance
+    // Adjust Party Balance inside transaction
     if (generalInfoRef && generalInfoRef.updatePartyBalance) {
       if (existing) {
         if (oldPartyId === partyId) {
@@ -367,6 +364,9 @@ function saveVoucher(voucherData) {
         generalInfoRef.updatePartyBalance(partyId, balanceDelta);
       }
     }
+
+    db.exec('COMMIT;');
+    if (checkpointFn) checkpointFn();
 
     return { success: true, id, voucherNo, voucherType };
   } catch (err) {
@@ -401,14 +401,15 @@ function deleteVoucher(id) {
     const v = db.prepare('SELECT id, voucherType, partyType, partyId, netAmount FROM accounts_vouchers WHERE id = ? OR voucherNo = ?').get(id, id);
     if (v) {
       db.prepare('DELETE FROM accounts_vouchers WHERE id = ?').run(v.id);
-      db.exec('COMMIT;');
-      if (checkpointFn) checkpointFn();
 
       if (v.partyId && generalInfoRef && generalInfoRef.updatePartyBalance) {
         const isSupp = isSupplierParty(v.partyId, v.partyType);
         const delta = getVoucherBalanceDelta(isSupp, v.voucherType, v.netAmount);
         generalInfoRef.updatePartyBalance(v.partyId, -delta);
       }
+
+      db.exec('COMMIT;');
+      if (checkpointFn) checkpointFn();
     } else {
       db.exec('COMMIT;');
     }
