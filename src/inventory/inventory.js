@@ -1185,6 +1185,171 @@ if (inv.purPartySelect) {
   });
 }
 
+
+// ========================================================
+// LINE INWARD PRICING MODE MANAGEMENT (DIRECT vs LIST - DISCOUNT)
+// ========================================================
+let currentPurLinePricingMode = 'direct';
+let currentPurLineDiscType = 'percent';
+let purLastEditedField = 'discount'; // 'list', 'discount', or 'netCost'
+
+function setPurLinePricingMode(mode) {
+  currentPurLinePricingMode = mode;
+  const btnDirect = document.getElementById('btnPurModeDirect');
+  const btnList = document.getElementById('btnPurModeList');
+  const directCells = document.getElementById('pieDirectRateCells');
+  const listCells = document.getElementById('pieListDiscCells');
+  const badge = document.getElementById('purListDiscFormulaBadge');
+
+  if (mode === 'list_discount') {
+    if (btnList) {
+      btnList.classList.add('active');
+      btnList.style.background = '#fff';
+      btnList.style.color = '#0f172a';
+      btnList.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+    }
+    if (btnDirect) {
+      btnDirect.classList.remove('active');
+      btnDirect.style.background = 'transparent';
+      btnDirect.style.color = '#64748b';
+      btnDirect.style.boxShadow = 'none';
+    }
+    if (directCells) directCells.style.display = 'none';
+    if (listCells) listCells.style.display = 'contents';
+    if (badge) badge.style.display = 'inline-block';
+    recalculatePurLineListMath(purLastEditedField);
+  } else {
+    currentPurLinePricingMode = 'direct';
+    if (btnDirect) {
+      btnDirect.classList.add('active');
+      btnDirect.style.background = '#fff';
+      btnDirect.style.color = '#0f172a';
+      btnDirect.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+    }
+    if (btnList) {
+      btnList.classList.remove('active');
+      btnList.style.background = 'transparent';
+      btnList.style.color = '#64748b';
+      btnList.style.boxShadow = 'none';
+    }
+    if (directCells) directCells.style.display = 'contents';
+    if (listCells) listCells.style.display = 'none';
+    if (badge) badge.style.display = 'none';
+  }
+}
+
+function recalculatePurLineListMath(source) {
+  if (source) purLastEditedField = source;
+  const listInp = document.getElementById('pieListPrice');
+  const discInp = document.getElementById('pieListDiscVal');
+  const netInp = document.getElementById('pieNetCost');
+  const tpInp = inv.pieTradePrice || document.getElementById('pieTradePrice');
+  const rpInp = document.getElementById('pieRetailPrice');
+  const wpInp = document.getElementById('pieWholesalePrice');
+  const formulaBadge = document.getElementById('purListDiscFormulaBadge');
+
+  const list = Math.max(0, Number(listInp?.value) || 0);
+
+  if (purLastEditedField === 'netCost') {
+    let net = Math.max(0, Number(netInp?.value) || 0);
+    if (list > 0) {
+      if (currentPurLineDiscType === 'percent') {
+        let disc = Math.max(0, Math.min(100, ((list - net) / list) * 100));
+        disc = Math.round(disc * 100) / 100;
+        if (discInp) discInp.value = disc.toFixed(2);
+      } else {
+        let flat = Math.max(0, Math.min(list, list - net));
+        flat = Math.round(flat * 100) / 100;
+        if (discInp) discInp.value = flat.toFixed(2);
+      }
+    } else {
+      if (discInp) discInp.value = '0.00';
+    }
+  } else {
+    let disc = Math.max(0, Number(discInp?.value) || 0);
+    let net = 0;
+    if (currentPurLineDiscType === 'percent') {
+      disc = Math.min(100, disc);
+      net = list - (list * (disc / 100));
+    } else {
+      disc = Math.min(list, disc);
+      net = list - disc;
+    }
+    net = Math.max(0, Math.round(net * 100) / 100);
+    if (netInp) netInp.value = net.toFixed(2);
+  }
+
+  const finalNet = Math.max(0, Number(netInp?.value) || 0);
+  if (tpInp) tpInp.value = finalNet.toFixed(2);
+  if (rpInp) rpInp.value = list.toFixed(2);
+  if (wpInp) wpInp.value = list.toFixed(2);
+
+  const discVal = Number(discInp?.value) || 0;
+  if (formulaBadge) {
+    if (currentPurLineDiscType === 'percent') {
+      formulaBadge.textContent = `List ${list.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - ${discVal.toFixed(2)}% = ${finalNet.toFixed(2)}`;
+    } else {
+      formulaBadge.textContent = `List ${list.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - Rs ${discVal.toFixed(2)} = ${finalNet.toFixed(2)}`;
+    }
+  }
+
+  updateLineNetPreview();
+}
+
+function initPurPricingModeEvents() {
+  const btnDirect = document.getElementById('btnPurModeDirect');
+  const btnList = document.getElementById('btnPurModeList');
+  const btnToggleDisc = document.getElementById('btnPieListDiscToggle');
+  const listInp = document.getElementById('pieListPrice');
+  const discInp = document.getElementById('pieListDiscVal');
+  const netInp = document.getElementById('pieNetCost');
+
+  if (btnDirect) btnDirect.onclick = () => setPurLinePricingMode('direct');
+  if (btnList) btnList.onclick = () => setPurLinePricingMode('list_discount');
+
+  if (btnToggleDisc) {
+    btnToggleDisc.onclick = () => {
+      currentPurLineDiscType = currentPurLineDiscType === 'percent' ? 'flat' : 'percent';
+      btnToggleDisc.textContent = currentPurLineDiscType === 'percent' ? '%' : 'Rs';
+      const badge = document.getElementById('pieListDiscTypeBadge');
+      if (badge) badge.textContent = currentPurLineDiscType === 'percent' ? '%' : 'Rs';
+      recalculatePurLineListMath('discType');
+    };
+  }
+
+  if (listInp) {
+    listInp.addEventListener('input', () => recalculatePurLineListMath('list'));
+    listInp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        discInp?.focus();
+        discInp?.select();
+      }
+    });
+  }
+  if (discInp) {
+    discInp.addEventListener('input', () => recalculatePurLineListMath('discount'));
+    discInp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        netInp?.focus();
+        netInp?.select();
+      }
+    });
+  }
+  if (netInp) {
+    netInp.addEventListener('input', () => recalculatePurLineListMath('netCost'));
+    netInp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        inv.piePackQty?.focus();
+        inv.piePackQty?.select();
+      }
+    });
+  }
+}
+setTimeout(initPurPricingModeEvents, 300);
+
 // Code and Product Dropdown Sync
 function selectProductForPurchase(prod) {
   if (!prod) return;
@@ -1398,7 +1563,10 @@ function renderPurchaseLineItems() {
             <td class="col-pur-pqty font-num">${item.packQty}</td>
             <td class="col-pur-uqty font-num">${item.unitQty}</td>
             <td class="col-pur-bonus font-num">${item.bonus || 0}</td>
-            <td class="col-pur-tprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change rate">${Number(item.tradePrice).toFixed(2)}</td>
+            <td class="col-pur-tprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change rate">
+              ${Number(item.tradePrice).toFixed(2)}
+              ${item.pricingMode === 'list_discount' ? `<div style="font-size: 10px; color: #7c3aed; font-weight: 700;">List ${Number(item.listPrice || item.retailPrice || 0).toFixed(0)} -${item.discountValue}${item.discountType === 'flat' ? 'Rs' : '%'}</div>` : ''}
+            </td>
             <td class="col-pur-pro font-num text-success">${item.profitMargin}%</td>
             <td class="col-pur-pprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change retail price">${Number(item.retailPrice).toFixed(2)}</td>
             <td class="col-pur-wprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change wholesale price">${Number(item.wholesalePrice).toFixed(2)}</td>
@@ -2405,6 +2573,10 @@ function loadProductRecord(p) {
   if (inv.piUnitSelect) inv.piUnitSelect.value = p.unitId || '';
   if (inv.piPackSize) inv.piPackSize.value = p.packSize || 1;
   if (inv.piPurchasePrice) inv.piPurchasePrice.value = Number(p.purchasePrice || 0).toFixed(2);
+  const piMode = document.getElementById('piPurchasePricingMode');
+  const piDisc = document.getElementById('piPurchaseDiscountPercent');
+  if (piMode) piMode.value = p.purchasePricingMode || 'direct';
+  if (piDisc) piDisc.value = (p.purchaseDiscountPercent !== undefined && p.purchaseDiscountPercent !== null) ? Number(p.purchaseDiscountPercent).toFixed(2) : '';
   if (inv.piProfitMargin) inv.piProfitMargin.value = Number(p.profitMargin || 0).toFixed(2);
   if (inv.piRetailPrice) inv.piRetailPrice.value = Number(p.retailPrice || 0).toFixed(2);
   if (inv.piWholesalePrice) inv.piWholesalePrice.value = Number(p.wholesalePrice || 0).toFixed(2);

@@ -521,6 +521,19 @@
 
                                 <!-- Collapsible Drawer (Product Row + Add Item Button) -->
                                 <div id="purItemEntryDrawer" class="pur-item-entry-drawer collapsed">
+                                    <!-- Inward Mode Toggle & Live Formula Banner -->
+                                    <div class="pur-mode-selector-strip" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding: 4px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Line Inward Mode:</span>
+                                            <div class="btn-group-segmented" role="group" style="display: inline-flex; background: #e2e8f0; border-radius: 6px; padding: 2px;">
+                                                <button type="button" id="btnPurModeDirect" class="btn-seg active" style="padding: 2px 10px; font-size: 11.5px; font-weight: 700; border: none; border-radius: 4px; cursor: pointer; background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">Direct Rate</button>
+                                                <button type="button" id="btnPurModeList" class="btn-seg" style="padding: 2px 10px; font-size: 11.5px; font-weight: 700; border: none; border-radius: 4px; cursor: pointer; background: transparent; color: #64748b;">List Price + Discount</button>
+                                            </div>
+                                        </div>
+                                        <div id="purListDiscFormulaBadge" style="display: none; font-size: 11.5px; font-weight: 700; color: #0284c7; background: #f0f9ff; padding: 2px 10px; border-radius: 5px; border: 1px solid #bae6fd;">
+                                            List 0.00 - 0% = 0.00
+                                        </div>
+                                    </div>
                                     <!-- Row 2: Product Name through Net Total in ONE row -->
                                     <div class="pur-entry-inputs-row">
                                         <!-- SR # -->
@@ -564,30 +577,56 @@
                                                 min="0" value="0">
                                         </div>
 
-                                        <!-- Trade Price -->
-                                        <div class="pur-pie-cell pur-pie-rate">
-                                            <label>Trade Price</label>
-                                            <input type="number" id="pieTradePrice"
-                                                class="form-control font-num text-right" min="0" step="0.01"
-                                                value="0.00">
+                                        <!-- Mode B: Direct Rate Cells -->
+                                        <div id="pieDirectRateCells" style="display: contents;">
+                                            <div class="pur-pie-cell pur-pie-rate">
+                                                <label>Trade Price</label>
+                                                <input type="number" id="pieTradePrice"
+                                                    class="form-control font-num text-right" min="0" step="0.01"
+                                                    value="0.00">
+                                            </div>
+                                            <div class="pur-pie-cell pur-pie-rate">
+                                                <label>Whole Sale Price</label>
+                                                <input type="number" id="pieWholesalePrice"
+                                                    class="form-control font-num text-right" min="0" step="0.01"
+                                                    value="0.00">
+                                                <span id="pieWholesalePricePill" style="display:none">0.00</span>
+                                            </div>
+                                            <div class="pur-pie-cell pur-pie-rate">
+                                                <label>Individual Price</label>
+                                                <input type="number" id="pieRetailPrice"
+                                                    class="form-control font-num text-right" min="0" step="0.01"
+                                                    value="0.00">
+                                                <span id="pieRetailPricePill" style="display:none">0.00</span>
+                                            </div>
                                         </div>
 
-                                        <!-- Whole Sale Price -->
-                                        <div class="pur-pie-cell pur-pie-rate">
-                                            <label>Whole Sale Price</label>
-                                            <input type="number" id="pieWholesalePrice"
-                                                class="form-control font-num text-right" min="0" step="0.01"
-                                                value="0.00">
-                                            <span id="pieWholesalePricePill" style="display:none">0.00</span>
-                                        </div>
-
-                                        <!-- Individual Price -->
-                                        <div class="pur-pie-cell pur-pie-rate">
-                                            <label>Individual Price</label>
-                                            <input type="number" id="pieRetailPrice"
-                                                class="form-control font-num text-right" min="0" step="0.01"
-                                                value="0.00">
-                                            <span id="pieRetailPricePill" style="display:none">0.00</span>
+                                        <!-- Mode A: List Price + Discount Cells -->
+                                        <div id="pieListDiscCells" style="display: none;">
+                                            <div class="pur-pie-cell pur-pie-rate">
+                                                <label style="color: #0284c7; font-weight: 700;">List Price <span class="text-danger">*</span></label>
+                                                <input type="number" id="pieListPrice"
+                                                    class="form-control font-num text-right font-bold" min="0" step="0.01"
+                                                    value="0.00" placeholder="0.00" style="border-color: #7dd3fc;">
+                                            </div>
+                                            <div class="pur-pie-cell pur-pie-rate">
+                                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                                                    <label style="color: #7c3aed; font-weight: 700; font-size: 11px; margin: 0;">Trade Disc</label>
+                                                    <button type="button" id="btnPieListDiscToggle" style="font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 3px; border: 1px solid #c4b5fd; background: #ede9fe; color: #6d28d9; cursor: pointer;" title="Toggle between Percent (%) and Flat Rupee (Rs) discount">%</button>
+                                                </div>
+                                                <div style="position: relative; display: flex; align-items: center;">
+                                                    <input type="number" id="pieListDiscVal"
+                                                        class="form-control font-num text-right font-bold" min="0" step="0.01"
+                                                        value="0.00" placeholder="0.00" style="padding-right: 22px; border-color: #c4b5fd;">
+                                                    <span id="pieListDiscTypeBadge" style="position: absolute; right: 6px; font-size: 11px; font-weight: 700; color: #7c3aed; pointer-events: none;">%</span>
+                                                </div>
+                                            </div>
+                                            <div class="pur-pie-cell pur-pie-rate">
+                                                <label style="color: #059669; font-weight: 700;">Net Cost (Auto)</label>
+                                                <input type="number" id="pieNetCost"
+                                                    class="form-control font-num text-right font-bold text-success" min="0" step="0.01"
+                                                    value="0.00" placeholder="0.00" style="border-color: #6ee7b7; background: #ecfdf5;">
+                                            </div>
                                         </div>
 
                                         <!-- T.Offer -->
@@ -1081,6 +1120,37 @@
                                             <span class="info-val" id="ciDisplayNotes"
                                                 style="font-weight: 400; font-size: 12.5px; color: #64748b;">-</span>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right: Sales Billing Counter Visibility Options -->
+                            <div class="settings-card">
+                                <div class="settings-card-header">
+                                    <div>
+                                        <h3 class="settings-card-title">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                            </svg>
+                                            Sales Counter Cost &amp; Profit Visibility
+                                        </h3>
+                                        <p class="settings-card-subtitle">
+                                            Manage confidential margin &amp; purchasing rate visibility on the POS counter screen.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="settings-card-body">
+                                    <div style="padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                                        <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; margin-bottom: 0;">
+                                            <input type="checkbox" id="chkShowCostAndProfitOnBilling" checked style="width: 18px; height: 18px; accent-color: #0284c7; cursor: pointer; margin-top: 2px;">
+                                            <div>
+                                                <strong style="font-size: 13px; color: #0f172a; display: block;">Show purchase cost, purchase discount &amp; profit margins on billing screen</strong>
+                                                <span style="font-size: 11.5px; color: #64748b; display: block; margin-top: 2px;">
+                                                    When enabled, the billing counter displays unit purchase cost, supplier discount benchmark, live profit/margin per row, and spread vs list. (Customer invoices and thermal receipts never display cost or profit).
+                                                </span>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -3855,12 +3925,27 @@
                     </div>
                 </div>
 
+                <!-- Mode Switcher & Benchmark Line -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 5px 10px; background: #f1f5f9; border-radius: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Method:</span>
+                        <div class="btn-group-segmented" role="group" style="display: inline-flex; background: #e2e8f0; border-radius: 5px; padding: 2px;">
+                            <button type="button" id="btnCspMethodDirect" style="padding: 2px 8px; font-size: 11px; font-weight: 700; border: none; border-radius: 3px; cursor: pointer; background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">Direct Rate</button>
+                            <button type="button" id="btnCspMethodList" style="padding: 2px 8px; font-size: 11px; font-weight: 700; border: none; border-radius: 3px; cursor: pointer; background: transparent; color: #64748b;">List - Discount</button>
+                        </div>
+                    </div>
+                    <div id="cspBenchmarkPill" style="font-size: 11.5px; font-weight: 700; color: #7c3aed; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 2px 8px; border-radius: 4px;">
+                        Benchmark Disc: <strong id="cspBenchDiscVal">0%</strong>
+                    </div>
+                </div>
+
                 <!-- Price Inputs 2x2 Grid -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="cspTradePrice"
-                            style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Trade
-                            / Purchase Rate (Cost)</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <label for="cspTradePrice" style="font-size: 0.78rem; font-weight: 700; color: #475569; margin: 0;">Trade / Cost Rate</label>
+                            <span id="cspCostFormulaHint" style="font-size: 10.5px; color: #0284c7; font-weight: 600;">Net Rate</span>
+                        </div>
                         <div style="position: relative;">
                             <span
                                 style="position: absolute; left: 10px; top: 8px; font-size: 0.78rem; color: #94a3b8; font-weight: 700;">Rs</span>
@@ -4968,6 +5053,24 @@
                                 (%)</label>
                             <input type="number" id="piTaxPercent"
                                 class="form-control form-control-sm font-num text-right" min="0" step="0.1" value="0.0">
+                        </div>
+                    </div>
+
+                    <!-- Row 4.5: Pricing Mode & Benchmark Purchase Discount -->
+                    <div style="display: flex; gap: 12px; margin-bottom: 8px; padding: 6px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; align-items: center;">
+                        <div style="width: 170px;">
+                            <label style="font-size: 10.5px; font-weight: 700; color: #475569; text-transform: uppercase;">Purchase Pricing Mode</label>
+                            <select id="piPurchasePricingMode" class="form-control form-control-sm font-bold" style="height: 28px; font-size: 12px;">
+                                <option value="direct">Direct Rate</option>
+                                <option value="list_discount">List Price - Discount</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 10.5px; font-weight: 700; color: #7c3aed; text-transform: uppercase;">Purchase Benchmark Discount (%)</label>
+                            <input type="number" id="piPurchaseDiscountPercent" class="form-control form-control-sm font-num text-right font-bold" min="0" max="100" step="0.01" placeholder="0.00" style="height: 28px; font-size: 12px; border-color: #c4b5fd;">
+                        </div>
+                        <div style="font-size: 11px; color: #64748b; align-self: flex-end; padding-bottom: 4px;">
+                            Bi-directional sync with List (Retail) price
                         </div>
                     </div>
 

@@ -365,6 +365,27 @@ window.SettingsModule = (function () {
       // Security inputs
       if (el.chkRequirePinDelete) el.chkRequirePinDelete.checked = cachedSettings.requirePinOnDelete !== 'false';
 
+      // Confidential Cost & Profit Visibility on Billing Counter
+      const chkCostProfit = document.getElementById('chkShowCostAndProfitOnBilling');
+      if (chkCostProfit) {
+        chkCostProfit.checked = cachedSettings.showCostAndProfitOnBilling !== 'false';
+        chkCostProfit.onchange = async () => {
+          try {
+            const val = chkCostProfit.checked ? 'true' : 'false';
+            await window.settingsAPI.saveSettings({ showCostAndProfitOnBilling: val });
+            cachedSettings.showCostAndProfitOnBilling = val;
+            if (window.appSettings) window.appSettings.showCostAndProfitOnBilling = val;
+            if (window.appData && window.appData.settings) window.appData.settings.showCostAndProfitOnBilling = val;
+            if (window.showToast) window.showToast('Billing cost & profit visibility preference saved.', 'success');
+            if (window.SalesModule && typeof window.SalesModule.renderItemsTable === 'function') {
+              window.SalesModule.renderItemsTable();
+            }
+          } catch (e) {
+            console.warn('Save billing visibility error:', e);
+          }
+        };
+      }
+
       // Display & Font Size Sync
       const activeScale = (typeof window.getGlobalFontScale === 'function' ? window.getGlobalFontScale() : null)
         || Number(cachedSettings.appFontSizePercent || 100);
