@@ -1487,61 +1487,10 @@ function addPurchaseLineItem(overrideProd) {
   renderPurchaseLineItems();
   updateModalPurchaseCount();
   updatePurchaseHeaderBadges();
-  autoSaveCurrentPurchase();
-
-  const syncCatalog = document.getElementById('pieSyncCatalogPrices')?.checked;
-  if (syncCatalog) {
-    try {
-      if (window.api?.updateProductPrices) {
-        if (isListMode) {
-          window.api.updateProductPrices(prod.id, {
-            purchasePrice: listPrice, // products.purchasePrice stays list price!
-            wholesalePrice: wp || listPrice,
-            retailPrice: rp || listPrice,
-            purchasePricingMode: 'list_discount',
-            purchaseDiscountPercent: companyDiscountPercent,
-            companyDiscountPercent: companyDiscountPercent,
-            effectiveCost: effectiveCost
-          });
-        } else if (tp > 0 || wp > 0 || rp > 0) {
-          window.api.updateProductPrices(prod.id, {
-            purchasePrice: tp,
-            wholesalePrice: wp,
-            retailPrice: rp,
-            purchasePricingMode: 'direct',
-            purchaseDiscountPercent: null,
-            companyDiscountPercent: null,
-            effectiveCost: tp
-          });
-        }
-      }
-      if (prod) {
-        if (isListMode) {
-          prod.purchasePrice = listPrice;
-          prod.wholesalePrice = wp || listPrice;
-          prod.retailPrice = rp || listPrice;
-          prod.purchasePricingMode = 'list_discount';
-          prod.purchaseDiscountPercent = companyDiscountPercent;
-          prod.companyDiscountPercent = companyDiscountPercent;
-          prod.effectiveCost = effectiveCost;
-        } else {
-          if (tp > 0) prod.purchasePrice = tp;
-          if (wp > 0) prod.wholesalePrice = wp;
-          if (rp > 0) prod.retailPrice = rp;
-          prod.purchasePricingMode = 'direct';
-          prod.purchaseDiscountPercent = null;
-          prod.companyDiscountPercent = null;
-          prod.effectiveCost = tp;
-          if (tp > 0 && rp > 0) prod.profitMargin = Number((((rp - tp) / tp) * 100).toFixed(1));
-        }
-      }
-    } catch (e) {
-      console.warn('Sync catalog price error:', e);
-    }
-  }
+  calculatePurchaseBill();
 
   if (window.showToast) {
-    window.showToast(`Item "${lineItem.productTitle}" added!`, 'success');
+    window.showToast(`Item "${lineItem.productTitle}" added to voucher table!`, 'success');
   }
 
   // Reset inputs
@@ -1756,7 +1705,7 @@ function removePurchaseLineItem(index) {
   if (purSlipCurrentPage > totalPages) purSlipCurrentPage = totalPages;
   renderPurchaseLineItems(false);
   updateModalPurchaseCount();
-  autoSaveCurrentPurchase();
+  calculatePurchaseBill();
 }
 window.removePurchaseLineItem = removePurchaseLineItem;
 window.addPurchaseLineItem = addPurchaseLineItem;
@@ -1798,48 +1747,9 @@ setTimeout(() => {
 }, 500);
 
 async function autoSaveCurrentPurchase() {
-  if (!inv.purPartySelect || !inv.purPartySelect.value) return;
-  const selectedParty = inv.purPartySelect.options[inv.purPartySelect.selectedIndex];
-  const partyTitle = selectedParty ? selectedParty.text : '';
-
-  const lineSum = currentPurchaseItems.reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0);
-  const vNo = inv.purVoucherNo?.value || (window.appData?.purchases?.length ? String(window.appData.purchases.length + 100) : "101");
-
-  const discount = Number(inv.purDiscount?.value) || 0;
-  const freightDisc = Number(inv.purFreightDisc?.value) || 0;
-  const freightExpn = Number(inv.purFreightExpn?.value) || 0;
-  const salesTax = Number(inv.purSalesTax?.value) || 0;
-  const extraCharges = Number(inv.purExtraCharges?.value) || 0;
-  const grandTotal = Math.max(0, lineSum - discount - freightDisc + freightExpn + salesTax + extraCharges);
-
-  const purchaseData = {
-    voucherNo: vNo,
-    manualNo: inv.purManualNo?.value.trim() || '',
-    entryDate: inv.purEntryDate?.value || new Date().toISOString().split('T')[0],
-    partyId: inv.purPartySelect.value,
-    partyTitle,
-    description: '',
-    storeTitle: 'Main Store',
-    receivable: 0,
-    contactPerson: '',
-    dueDate: '',
-    paymentStatus: 'Pending',
-    totalAmount: lineSum,
-    discount,
-    freightDisc,
-    freightExpn,
-    salesTax,
-    extraCharges,
-    grandTotal
-  };
-
-  try {
-    if (window.api?.savePurchase) {
-      await window.api.savePurchase(purchaseData, currentPurchaseItems);
-    }
-  } catch (err) {
-    console.warn('Auto save purchase error:', err);
-  }
+  // Stock and purchases must ONLY be added to the database when the user explicitly clicks 'Save Voucher' (savePurchaseVoucher).
+  // Adding items to the voucher table does not touch the database stock.
+  calculatePurchaseBill();
 }
 
 // ========================================================
@@ -2012,7 +1922,7 @@ async function applyChangeSubstancePrice() {
 
     renderPurchaseLineItems();
     updateModalPurchaseCount();
-    autoSaveCurrentPurchase();
+    calculatePurchaseBill();
   } else {
     // Update drawer inputs
     if (inv.pieTradePrice) inv.pieTradePrice.value = tp.toFixed(2);
