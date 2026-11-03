@@ -18,7 +18,7 @@
     pendingAddProduct: null,
     salesList: [],
     slipCurrentPage: 1,
-    slipPageSize: 4
+    slipPageSize: 10
   };
 
   // DOM Elements Cache
@@ -596,13 +596,28 @@
       const discAmt = lineGross * ((saleState.items[existingIdx].discountPercent || 0) / 100);
       saleState.items[existingIdx].discountAmount = discAmt;
       saleState.items[existingIdx].netAmount = lineGross - discAmt;
-      const pageSize = saleState.slipPageSize || 4;
+      const pageSize = saleState.slipPageSize || 10;
       saleState.slipCurrentPage = Math.floor(existingIdx / pageSize) + 1;
     } else {
       const grossLine = qtyToAdd * rate;
       const listPrice = rateType === 'wholesale' ? (wholesalePrice || retailPrice) : (retailPrice || wholesalePrice);
-      const wacCost = Number(p.averageCost || p.purchasePrice || 0);
-      const purDiscAtSale = (listPrice > 0 && wacCost > 0) ? Number((((listPrice - wacCost) / listPrice) * 100).toFixed(2)) : (Number(p.purchaseDiscountPercent) || 0);
+
+      // Resolve Actual Cost Price:
+      let actualCost = 0;
+      if (p.effectiveCost !== undefined && p.effectiveCost !== null && Number(p.effectiveCost) > 0) {
+        actualCost = Number(p.effectiveCost);
+      } else if (p.purchasePricingMode === 'list_discount') {
+        const disc = Number(p.purchaseDiscountPercent !== undefined && p.purchaseDiscountPercent !== null ? p.purchaseDiscountPercent : p.companyDiscountPercent) || 0;
+        if (disc > 0 && listPrice > 0) {
+          actualCost = Math.round(listPrice * (1 - (disc / 100)) * 100) / 100;
+        } else {
+          actualCost = Number(p.purchasePrice || p.averageCost || 0);
+        }
+      } else {
+        actualCost = Number(p.purchasePrice || p.averageCost || 0);
+      }
+
+      const purDiscAtSale = (listPrice > 0 && actualCost > 0) ? Number((((listPrice - actualCost) / listPrice) * 100).toFixed(2)) : (Number(p.purchaseDiscountPercent || p.companyDiscountPercent) || 0);
 
       saleState.items.push({
         id: `si-${Date.now()}-${saleState.items.length + 1}`,
@@ -614,8 +629,9 @@
         packQty: Math.floor(qtyToAdd / (p.packSize || 1)),
         unitQty: qtyToAdd % (p.packSize || 1),
         totalQty: qtyToAdd,
-        purchasePrice: wacCost,
-        costAtSale: wacCost,
+        purchasePrice: actualCost,
+        costAtSale: actualCost,
+        effectiveCost: actualCost,
         wholesalePrice: wholesalePrice,
         retailPrice: retailPrice,
         listPrice: listPrice,
@@ -628,7 +644,7 @@
         purchaseDiscountAtSale: purDiscAtSale,
         netAmount: grossLine
       });
-      const pageSize = saleState.slipPageSize || 4;
+      const pageSize = saleState.slipPageSize || 10;
       saleState.slipCurrentPage = Math.ceil(saleState.items.length / pageSize);
     }
 
@@ -1753,7 +1769,7 @@
       });
     }
 
-    const pageSize = saleState.slipPageSize || 4;
+    const pageSize = saleState.slipPageSize || 10;
     saleState.slipCurrentPage = Math.ceil(saleState.items.length / pageSize) || 1;
 
     clearEntryFields();
@@ -1786,7 +1802,7 @@
   function removeSaleItem(idx) {
     if (idx >= 0 && idx < saleState.items.length) {
       saleState.items.splice(idx, 1);
-      const pageSize = saleState.slipPageSize || 4;
+      const pageSize = saleState.slipPageSize || 10;
       const totalPages = Math.ceil(saleState.items.length / pageSize) || 1;
       if (saleState.slipCurrentPage > totalPages) {
         saleState.slipCurrentPage = totalPages;
@@ -1851,7 +1867,7 @@
       btnSell.style.cursor = 'pointer';
     }
 
-    const pageSize = saleState.slipPageSize || 4;
+    const pageSize = saleState.slipPageSize || 10;
     const totalPages = Math.ceil(saleState.items.length / pageSize) || 1;
     if (!saleState.slipCurrentPage || saleState.slipCurrentPage < 1) saleState.slipCurrentPage = 1;
     if (saleState.slipCurrentPage > totalPages) saleState.slipCurrentPage = totalPages;
@@ -1872,7 +1888,15 @@
       const rp = Number(item.retailPrice || (prod ? prod.retailPrice : 0) || 0);
       const wp = Number(item.wholesalePrice || (prod ? prod.wholesalePrice : 0) || 0);
       const listP = Number(item.listPrice || (isWholesale ? (wp || rp) : (rp || wp)) || item.salePrice || 0);
-      const cp = Number(item.costAtSale !== undefined ? item.costAtSale : (item.purchasePrice || (prod ? (prod.averageCost || prod.purchasePrice) : 0) || 0));
+      const cp = Number(
+        (item.effectiveCost !== undefined && item.effectiveCost !== null && Number(item.effectiveCost) > 0)
+          ? item.effectiveCost
+          : ((item.costAtSale !== undefined && item.costAtSale !== null && Number(item.costAtSale) > 0)
+              ? item.costAtSale
+              : ((item.purchasePrice !== undefined && item.purchasePrice !== null && Number(item.purchasePrice) > 0)
+                  ? item.purchasePrice
+                  : (prod ? (prod.effectiveCost || prod.purchasePrice || prod.averageCost || 0) : 0)))
+      );
 
       const purDiscAtSale = (listP > 0 && cp > 0) ? Number((((listP - cp) / listP) * 100).toFixed(2)) : (item.purchaseDiscountAtSale ? Number(item.purchaseDiscountAtSale) : null);
       const purDiscText = purDiscAtSale !== null ? (purDiscAtSale.toFixed(2) + '%') : '-';
@@ -2027,7 +2051,7 @@
 
     const headerPag = document.getElementById('posHeaderPaginationBar');
     if (headerPag) {
-      if (saleState.items.length > 4) {
+      if (totalPages > 1) {
         headerPag.style.display = 'flex';
         const hInfo = document.getElementById('posHeaderPaginationInfo');
         const hPrev = document.getElementById('btnPosHeaderPrev');
@@ -2084,7 +2108,14 @@
       const lineNet = (it.netAmount !== undefined && it.netAmount !== null) ? Number(it.netAmount) : Math.max(0, lineGross - lineDisc);
       gross += lineNet;
       totalPieces += Number(it.totalQty || 0);
-      totalCost += (Number(it.costAtSale !== undefined ? it.costAtSale : (it.purchasePrice || 0)) * Number(it.totalQty || 0));
+      const cp = Number(
+        (it.effectiveCost !== undefined && it.effectiveCost !== null && Number(it.effectiveCost) > 0)
+          ? it.effectiveCost
+          : ((it.costAtSale !== undefined && it.costAtSale !== null && Number(it.costAtSale) > 0)
+              ? it.costAtSale
+              : (it.purchasePrice || 0))
+      );
+      totalCost += (cp * Number(it.totalQty || 0));
       totalCatalogAmount += lineGross;
     });
 
@@ -2111,7 +2142,13 @@
       const rp = Number(it.retailPrice || 0);
       const wp = Number(it.wholesalePrice || 0);
       const lp = Number(it.listPrice || (isWp ? (wp || rp) : (rp || wp)) || it.salePrice || 0);
-      const cp = Number(it.costAtSale !== undefined ? it.costAtSale : (it.purchasePrice || 0));
+      const cp = Number(
+        (it.effectiveCost !== undefined && it.effectiveCost !== null && Number(it.effectiveCost) > 0)
+          ? it.effectiveCost
+          : ((it.costAtSale !== undefined && it.costAtSale !== null && Number(it.costAtSale) > 0)
+              ? it.costAtSale
+              : (it.purchasePrice || 0))
+      );
       const sp = Number(it.salePrice || 0);
 
       totalListVal += (lp * q);
@@ -4403,7 +4440,7 @@
     selectedCustomer: null,
     returnsList: [],
     slipCurrentPage: 1,
-    slipPageSize: 4
+    slipPageSize: 10
   };
 
   const retEl = {};
@@ -4687,7 +4724,7 @@
       });
     }
 
-    const pageSize = returnState.slipPageSize || 4;
+    const pageSize = returnState.slipPageSize || 10;
     returnState.slipCurrentPage = Math.ceil(returnState.items.length / pageSize) || 1;
 
     renderReturnItemsTable();
@@ -4891,7 +4928,7 @@
     const qty = Math.max(1, Number(qtyToAdd) || 1);
 
     const existingIdx = returnState.items.findIndex(it => String(it.productId) === String(p.id) || it.productCode === p.code);
-    const pageSize = returnState.slipPageSize || 4;
+    const pageSize = returnState.slipPageSize || 10;
     if (existingIdx !== -1) {
       returnState.items[existingIdx].totalQty += qty;
       returnState.items[existingIdx].returnRate = rate;
@@ -5035,7 +5072,7 @@
   function removeReturnItem(idx) {
     if (idx >= 0 && idx < returnState.items.length) {
       returnState.items.splice(idx, 1);
-      const pageSize = returnState.slipPageSize || 4;
+      const pageSize = returnState.slipPageSize || 10;
       const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
       if (returnState.slipCurrentPage > totalPages) {
         returnState.slipCurrentPage = totalPages;
@@ -5073,7 +5110,7 @@
 
     if (tbody) {
       tbody.innerHTML = '';
-      const pageSize = returnState.slipPageSize || 4;
+      const pageSize = returnState.slipPageSize || 10;
       const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
       if (!returnState.slipCurrentPage || returnState.slipCurrentPage < 1) returnState.slipCurrentPage = 1;
       if (returnState.slipCurrentPage > totalPages) returnState.slipCurrentPage = totalPages;
@@ -6289,7 +6326,7 @@ ${window.escapeHtml(cfg.footer)}
     },
     showPosRightView,
     changeSlipPage: (delta) => {
-      const pageSize = saleState.slipPageSize || 4;
+      const pageSize = saleState.slipPageSize || 10;
       const totalPages = Math.ceil(saleState.items.length / pageSize) || 1;
       const newPage = (saleState.slipCurrentPage || 1) + delta;
       if (newPage >= 1 && newPage <= totalPages) {
@@ -6298,7 +6335,7 @@ ${window.escapeHtml(cfg.footer)}
       }
     },
     changeReturnSlipPage: (delta) => {
-      const pageSize = returnState.slipPageSize || 4;
+      const pageSize = returnState.slipPageSize || 10;
       const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
       const newPage = (returnState.slipCurrentPage || 1) + delta;
       if (newPage >= 1 && newPage <= totalPages) {
