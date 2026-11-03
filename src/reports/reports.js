@@ -147,6 +147,7 @@
   function renderReportsTemplate() {
     const container = document.getElementById('reportsView');
     if (!container) return;
+    if (document.getElementById('repHubView')) return;
 
     container.innerHTML = `
       <div class="reports-container">
@@ -594,9 +595,10 @@
   async function loadMasterData() {
     try {
       // 0. Primary unified master data fetch from SQLite
-      if (window.electronAPI && window.electronAPI.getReportsMasterData) {
+      const rApi = window.reportsAPI || window.electronAPI;
+      if (rApi && rApi.getReportsMasterData) {
         try {
-          const md = await window.electronAPI.getReportsMasterData();
+          const md = await rApi.getReportsMasterData();
           if (md) {
             state.masterData.sales = Array.isArray(md.sales) ? md.sales : [];
             state.masterData.purchases = Array.isArray(md.purchases) ? md.purchases : [];
@@ -810,7 +812,7 @@
   }
 
   // Switch Main Category
-  function switchCategory(cat) {
+  async function switchCategory(cat) {
     state.activeCategory = cat;
     const catalog = reportCatalog[cat] || [];
     state.activeReportId = catalog.length ? catalog[0].id : '';
@@ -1360,7 +1362,12 @@
           <td class="text-right font-num rep-amount-primary">${formatMoney(r.billNet)}</td>
           <td class="text-right font-num rep-amount-muted">${formatMoney(r.billCost)}</td>
           <td class="text-right font-num rep-amount-success">${formatMoney(r.profit)}</td>
-          <td class="text-right font-num"><span class="rep-badge rep-badge-green">${r.margin.toFixed(1)}%</span></td>
+          <td class="text-right font-num">
+            ${r.profitMethod === 'list'
+              ? `<span class="rep-badge rep-badge-blue" title="List Spread: Pur Disc ${(r.purDiscountPercent || 0).toFixed(1)}% - Sale Disc ${(r.saleDiscountPercent || 0).toFixed(1)}% = Spread ${(r.spreadPoints || r.margin).toFixed(1)}%">${(r.spreadPoints !== undefined ? r.spreadPoints : r.margin).toFixed(1)}% (List)</span>`
+              : `<span class="rep-badge rep-badge-green" title="Direct Margin: Sale - Cost">${r.margin.toFixed(1)}%</span>`
+            }
+          </td>
         </tr>
       `).join('');
       tf = `

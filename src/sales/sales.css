@@ -5778,3 +5778,98 @@
 
 
 
+
+
+/* Clean Sales Table UI UX Polish (4 Items Display) */
+.pos-bill-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+}
+
+.pos-bill-table thead th {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  text-transform: uppercase !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  padding: 8px 6px !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+}
+
+.pos-bill-row td {
+  padding: 6px 6px !important;
+  vertical-align: middle !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.pos-bill-row:hover {
+  background: #f8fafc !important;
+}
+
+.voucher-table-scroll {
+  overflow-y: auto !important;
+  max-height: 240px;
+}
+
+/* Sticky Header on Scroll */
+.pos-bill-table thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 5 !important;
+}
+
+/* Styled Scrollbars matching Sale Return */
+.voucher-table-scroll::-webkit-scrollbar,
+#saleEntryPage::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.voucher-table-scroll::-webkit-scrollbar-track,
+#saleEntryPage::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.voucher-table-scroll::-webkit-scrollbar-thumb,
+#saleEntryPage::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.voucher-table-scroll::-webkit-scrollbar-thumb:hover,
+#saleEntryPage::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* POS Bill Table Amount Column and Profit Deck Alignment */
+.pos-bill-table .pos-cell-total {
+  text-align: right !important;
+  vertical-align: middle !important;
+  padding-right: 14px !important;
+  overflow: hidden !important;
+}
+
+.pos-row-profit-deck {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  text-align: right !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  margin-top: 2px !important;
+  line-height: 1.25 !important;
+}
+
+.pos-row-profit-deck span {
+  display: block !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  text-align: right !important;
+}

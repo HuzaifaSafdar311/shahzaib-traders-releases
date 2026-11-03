@@ -2184,12 +2184,14 @@ textarea.form-control-sm {
 }
 
 /* 2. Product Name */
+.pur-pie-prod,
 .pur-pie-product {
-  flex: 2.4;
-  min-width: 200px;
+  flex: 2.6;
+  min-width: 210px;
   position: relative;
   z-index: 100;
 }
+.pur-pie-prod label,
 .pur-pie-product label {
   justify-content: flex-start;
   text-align: left;
@@ -2200,13 +2202,25 @@ textarea.form-control-sm {
   width: 100%;
 }
 
-/* 3. ALL 9 Numeric & Rate Inputs: EXACT EQUAL WIDTH */
-.pur-pie-qty,
-.pur-pie-rate,
-.pur-pie-small,
+/* 3. Inputs Sizing with ample width to prevent header label collisions */
+.pur-pie-qty {
+  flex: 0.9;
+  min-width: 70px;
+}
+
+.pur-pie-rate {
+  flex: 1.25;
+  min-width: 105px;
+}
+
+.pur-pie-small {
+  flex: 0.8;
+  min-width: 65px;
+}
+
 .pur-pie-net {
-  flex: 1;
-  min-width: 82px;
+  flex: 1.35;
+  min-width: 110px;
 }
 
 /* Centered label and value for quantities */
@@ -2218,9 +2232,13 @@ textarea.form-control-sm {
   text-align: center !important;
 }
 
-/* Right-aligned label and value for rates, discounts, net total */
+/* Centered label for rates & small cells to prevent label collisions */
 .pur-pie-rate label,
-.pur-pie-small label,
+.pur-pie-small label {
+  justify-content: center;
+  text-align: center;
+}
+
 .pur-pie-net label {
   justify-content: flex-end;
   text-align: right;
@@ -2280,17 +2298,38 @@ textarea.form-control-sm {
   box-shadow: 0 2px 5px rgba(2, 132, 199, 0.35);
 }
 
-/* ── 3. Report Table (Clean Equal Column Alignment) ── */
-.pur-items-grid {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  min-height: 220px;
+/* ── 3. Report Table (Clean Equal Column Alignment, Fixed Height, No Scrollbar) ── */
+.pur-items-grid,
+.voucher-grid-container.pur-items-grid {
+  position: relative !important;
+  z-index: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 310px !important;
+  max-height: none !important;
   margin: 0 !important;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow: visible !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  overflow-y: hidden !important;
+  overflow-x: auto !important;
+}
+
+.pur-items-grid .pur-data-table {
+  flex-shrink: 0 !important;
+}
+
+.pur-items-grid .table-footer.pagination-footer {
+  margin-top: auto !important;
+  flex-shrink: 0 !important;
+  border-top: 1px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  padding: 6px 14px !important;
+  height: 44px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
 }
 
 .pur-data-table {
@@ -2491,4 +2530,21 @@ textarea.form-control-sm {
 
 .btn-save-purchase:hover {
   background: #0369a1 !important;
+}
+
+
+/* Purchase Line Items Grid Fixed 4-Item Display & Contained Pagination */
+.pur-items-grid,
+.voucher-grid-container.pur-items-grid {
+  height: 310px !important;
+  max-height: 310px !important;
+  overflow: hidden !important;
+}
+
+.voucher-table-scroll {
+  overflow-y: hidden !important;
+}
+
+.pur-data-table tbody tr {
+  height: 48px !important;
 }

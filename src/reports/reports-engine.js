@@ -5,10 +5,15 @@
 // ========================================================
 
 (function (root, factory) {
+  const engine = factory();
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
-  } else {
-    root.ReportsEngine = factory();
+    module.exports = engine;
+  }
+  if (typeof window !== 'undefined') {
+    window.ReportsEngine = engine;
+  }
+  if (root) {
+    root.ReportsEngine = engine;
   }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
@@ -522,6 +527,9 @@
 
       const items = getItems(s);
       let billCost = 0;
+      let billListTotal = 0;
+      let billPurDiscAmt = 0;
+      let billSaleDiscAmt = 0;
 
       for (const it of items) {
         const qty = toNum(it.totalQty || (toNum(it.packQty) * toNum(it.packSize || 1) + toNum(it.unitQty)));
@@ -530,7 +538,18 @@
         // Unified cost rule: recorded sale item cost -> product averageCost -> product purchasePrice
         const costRate = getCostRate(it, prod);
         billCost += (qty * costRate);
+
+        const lp = toNum(it.listPrice || (prod ? (prod.retailPrice || prod.wholesalePrice) : 0) || it.salePrice || 0);
+        const sp = toNum(it.salePrice || (prod ? prod.retailPrice : 0) || costRate);
+        billListTotal += (lp * qty);
+        billPurDiscAmt += (Math.max(0, lp - costRate) * qty);
+        billSaleDiscAmt += (Math.max(0, lp - sp) * qty);
       }
+      billSaleDiscAmt += toNum(s.discount);
+
+      const avgPurDisc = billListTotal > 0 ? ((billPurDiscAmt / billListTotal) * 100) : 0;
+      const avgSaleDisc = billListTotal > 0 ? ((billSaleDiscAmt / billListTotal) * 100) : 0;
+      const spreadPoints = avgPurDisc - avgSaleDisc;
 
       const billNet = toNum(s.netAmount);
       const vRef = String(s.voucherNo || s.invoiceNo || s.id || '').trim();
@@ -557,7 +576,11 @@
         netAfterReturns,
         billCost,
         profit,
-        margin
+        margin,
+        profitMethod: s.profitMethod || 'direct',
+        spreadPoints,
+        purDiscountPercent: avgPurDisc,
+        saleDiscountPercent: avgSaleDisc
       });
     }
 

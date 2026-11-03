@@ -940,22 +940,20 @@ function updateLineNetPreview() {
   }
 
   const packSize = Number(prod?.packSize) || 1;
-  const pQty = Number(inv.piePackQty?.value) || 0;
-  const uQty = Number(inv.pieUnitQty?.value) || 0;
-  const tp = Number(inv.pieTradePrice?.value) || 0;
+  let pQty = Number(inv.piePackQty?.value) || 0;
+  let uQty = Number(inv.pieUnitQty?.value) || 0;
+  if (packSize <= 1) {
+    if (uQty > 0) pQty = 0;
+    else if (pQty > 0) uQty = 0;
+  }
+  const tp = Number(inv.pieTradePrice?.value) || Number(prod.effectiveCost || prod.purchasePrice || prod.tradePrice || 0);
   const tradeOffer = Number(inv.pieTradeOffer?.value) || 0;
   const discPercent = Number(inv.pieDiscPercent?.value) || 0;
 
-  const isListMode = (currentPurLinePricingMode === 'list_discount');
-  const netCostInp = Number(document.getElementById('pieNetCost')?.value) || 0;
-  const listInp = Number(document.getElementById('pieListPrice')?.value) || 0;
-  const discInp = Number(document.getElementById('pieListDiscVal')?.value) || 0;
-  const effRate = isListMode ? (netCostInp > 0 ? netCostInp : (listInp > 0 ? Math.round(listInp * (1 - (discInp / 100)) * 100) / 100 : tp)) : tp;
-
   const totalUnits = (pQty * packSize) + uQty;
-  let rawAmount = totalUnits * effRate;
+  let rawAmount = totalUnits * tp;
   if (tradeOffer > 0) rawAmount -= tradeOffer;
-  if (!isListMode && discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
+  if (discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
   const net = Math.max(0, rawAmount);
   if (inv.pieLineNetPreview) {
     const formatted = 'Rs. ' + net.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1093,7 +1091,7 @@ function renderPurchaseHistoryTable() {
     try {
       const items = pur.itemsJson ? JSON.parse(pur.itemsJson) : [];
       itemsCount = items.length;
-    } catch (_) {}
+    } catch (_) { }
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -1199,49 +1197,14 @@ let currentPurLinePricingMode = 'direct';
 let currentPurLineDiscType = 'percent';
 let purLastEditedField = 'discount'; // 'list', 'discount', or 'netCost'
 
-function setPurLinePricingMode(mode) {
-  currentPurLinePricingMode = mode;
-  const btnDirect = document.getElementById('btnPurModeDirect');
-  const btnList = document.getElementById('btnPurModeList');
+function setPurLinePricingMode(_mode) {
+  currentPurLinePricingMode = 'direct';
   const directCells = document.getElementById('pieDirectRateCells');
   const listCells = document.getElementById('pieListDiscCells');
   const badge = document.getElementById('purListDiscFormulaBadge');
-
-  if (mode === 'list_discount') {
-    if (btnList) {
-      btnList.classList.add('active');
-      btnList.style.background = '#fff';
-      btnList.style.color = '#0f172a';
-      btnList.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-    }
-    if (btnDirect) {
-      btnDirect.classList.remove('active');
-      btnDirect.style.background = 'transparent';
-      btnDirect.style.color = '#64748b';
-      btnDirect.style.boxShadow = 'none';
-    }
-    if (directCells) directCells.style.display = 'none';
-    if (listCells) listCells.style.display = 'contents';
-    if (badge) badge.style.display = 'inline-block';
-    recalculatePurLineListMath(purLastEditedField);
-  } else {
-    currentPurLinePricingMode = 'direct';
-    if (btnDirect) {
-      btnDirect.classList.add('active');
-      btnDirect.style.background = '#fff';
-      btnDirect.style.color = '#0f172a';
-      btnDirect.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-    }
-    if (btnList) {
-      btnList.classList.remove('active');
-      btnList.style.background = 'transparent';
-      btnList.style.color = '#64748b';
-      btnList.style.boxShadow = 'none';
-    }
-    if (directCells) directCells.style.display = 'contents';
-    if (listCells) listCells.style.display = 'none';
-    if (badge) badge.style.display = 'none';
-  }
+  if (directCells) directCells.style.display = 'contents';
+  if (listCells) listCells.style.display = 'none';
+  if (badge) badge.style.display = 'none';
 }
 
 function recalculatePurLineListMath(source) {
@@ -1362,21 +1325,19 @@ function selectProductForPurchase(prod) {
   if (inv.pieCode) inv.pieCode.value = prod.code;
   if (inv.pieProductSelect) inv.pieProductSelect.value = prod.code;
   if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = prod.titleEng || '';
-  
-  const isListMode = (prod.purchasePricingMode === 'list_discount' || (Number(prod.companyDiscountPercent) > 0));
-  if (isListMode) {
-    setPurLinePricingMode('list_discount');
-    const listInp = document.getElementById('pieListPrice');
-    const discInp = document.getElementById('pieListDiscVal');
-    const listP = Number(prod.purchasePrice || prod.retailPrice || 0);
-    const discP = Number(prod.companyDiscountPercent !== undefined && prod.companyDiscountPercent !== null ? prod.companyDiscountPercent : (prod.purchaseDiscountPercent || 0));
-    if (listInp) listInp.value = listP.toFixed(2);
-    if (discInp) discInp.value = discP.toFixed(2);
-    recalculatePurLineListMath('list');
+  const packSize = Number(prod.packSize) || 1;
+  if (packSize <= 1) {
+    if (inv.piePackQty) inv.piePackQty.value = 1;
+    if (inv.pieUnitQty) inv.pieUnitQty.value = 0;
   } else {
-    setPurLinePricingMode('direct');
-    if (inv.pieTradePrice) inv.pieTradePrice.value = Number(prod.effectiveCost || prod.purchasePrice || prod.tradePrice || 0).toFixed(2);
+    if (inv.piePackQty && (!Number(inv.piePackQty.value) || Number(inv.piePackQty.value) <= 0)) {
+      inv.piePackQty.value = 1;
+    }
+    if (inv.pieUnitQty) inv.pieUnitQty.value = 0;
   }
+
+  setPurLinePricingMode('direct');
+  if (inv.pieTradePrice) inv.pieTradePrice.value = Number(prod.effectiveCost || prod.purchasePrice || prod.tradePrice || 0).toFixed(2);
 
   const pieWholesale = document.getElementById('pieWholesalePrice');
   if (pieWholesale) pieWholesale.value = Number(prod.wholesalePrice || 0).toFixed(2);
@@ -1404,18 +1365,23 @@ if (inv.pieCode) {
 }
 
 // Add Item to Voucher
-function addPurchaseLineItem() {
-  if (!inv.purPartySelect || !inv.purPartySelect.value) {
-    showAlert('Please select Party Name first!');
-    inv.purPartySelect?.focus();
-    return;
+function addPurchaseLineItem(overrideProd) {
+  if (inv.purPartySelect && !inv.purPartySelect.value && inv.purPartySelect.options && inv.purPartySelect.options.length > 1) {
+    inv.purPartySelect.selectedIndex = 1;
+    inv.purPartySelect.dispatchEvent(new Event('change'));
   }
 
-  const code = inv.pieCode?.value.trim();
-  const searchTitle = (inv.pieProductSearchInput?.value || '').trim().toLowerCase();
-  let prod = (window.appData?.products || []).find(p => String(p.code).trim() === code);
-  if (!prod && searchTitle) {
-    prod = (window.appData?.products || []).find(p => (p.titleEng || '').toLowerCase() === searchTitle);
+  let prod = overrideProd;
+  if (!prod) {
+    const code = inv.pieCode?.value.trim() || inv.pieProductSelect?.value?.trim();
+    const searchTitle = (inv.pieProductSearchInput?.value || '').trim().toLowerCase();
+    prod = (window.appData?.products || []).find(p => String(p.code).trim() === code);
+    if (!prod && searchTitle) {
+      prod = (window.appData?.products || []).find(p => (p.titleEng || '').toLowerCase() === searchTitle);
+    }
+    if (!prod && searchTitle) {
+      prod = (window.appData?.products || []).find(p => (p.titleEng || '').toLowerCase().includes(searchTitle));
+    }
   }
 
   if (!prod) {
@@ -1424,8 +1390,8 @@ function addPurchaseLineItem() {
     return;
   }
 
-  const pQty = Number(inv.piePackQty?.value) || 0;
-  const uQty = Number(inv.pieUnitQty?.value) || 0;
+  let pQty = Number(inv.piePackQty?.value) || 0;
+  let uQty = Number(inv.pieUnitQty?.value) || 0;
   const bonus = Number(inv.pieBonus?.value) || 0;
   const tp = Number(inv.pieTradePrice?.value) || 0;
   const wp = Number(document.getElementById('pieWholesalePrice')?.value) || Number(prod.wholesalePrice) || 0;
@@ -1433,41 +1399,40 @@ function addPurchaseLineItem() {
   const tradeOffer = Number(inv.pieTradeOffer?.value) || 0;
   const discPercent = Number(inv.pieDiscPercent?.value) || 0;
 
-  if (pQty === 0 && uQty === 0 && bonus === 0) {
-    showAlert('Please enter quantity (Pack Qty or Unit Qty)!');
-    inv.piePackQty?.focus();
-    return;
+  const packSize = Number(prod.packSize) || 1;
+
+  // Single-unit product handling (packSize <= 1):
+  // If user entered uQty, use uQty and clear pQty (prevents 1 default pack + 10 units = 11 units bug)
+  if (packSize <= 1) {
+    if (uQty > 0) {
+      pQty = 0;
+    } else if (pQty > 0) {
+      uQty = 0;
+    } else {
+      pQty = 1;
+    }
+  } else {
+    // Pack product (packSize > 1)
+    if (pQty === 0 && uQty === 0 && bonus === 0) {
+      pQty = 1;
+      if (inv.piePackQty) inv.piePackQty.value = 1;
+    }
   }
 
-  const packSize = Number(prod.packSize) || 1;
   const totalUnits = (pQty * packSize) + uQty;
 
-  const isListMode = (currentPurLinePricingMode === 'list_discount');
-  const listPriceInput = Number(document.getElementById('pieListPrice')?.value) || 0;
-  const listDiscVal = Number(document.getElementById('pieListDiscVal')?.value) || 0;
-  const netCostInput = Number(document.getElementById('pieNetCost')?.value) || 0;
-
-  let listPrice = 0;
-  let companyDiscountPercent = null;
-  let effectiveCost = 0;
-
-  if (isListMode) {
-    listPrice = listPriceInput > 0 ? listPriceInput : (Number(prod.purchasePrice) || Number(prod.retailPrice) || 0);
-    companyDiscountPercent = listDiscVal;
-    effectiveCost = netCostInput > 0 ? netCostInput : Math.round(listPrice * (1 - (companyDiscountPercent / 100)) * 100) / 100;
-  } else {
-    listPrice = tp > 0 ? tp : Number(prod.purchasePrice || 0);
-    companyDiscountPercent = null;
-    effectiveCost = tp;
-  }
+  const isListMode = false;
+  const listPrice = tp > 0 ? tp : Number(prod.purchasePrice || 0);
+  const companyDiscountPercent = null;
+  const effectiveCost = tp;
 
   // Line netAmount = effectiveCost * totalQty (minus tradeOffer if applicable)
   let rawAmount = totalUnits * effectiveCost;
   if (tradeOffer > 0) rawAmount -= tradeOffer;
-  if (!isListMode && discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
+  if (discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
   const netAmount = Math.max(0, rawAmount);
 
-  const marginPercent = isListMode ? companyDiscountPercent.toFixed(1) : (tp > 0 ? (((rp - tp) / tp) * 100).toFixed(1) : '0');
+  const marginPercent = tp > 0 ? (((rp - tp) / tp) * 100).toFixed(1) : '0';
 
   const lineItem = {
     srNo: currentPurchaseItems.length + 1,
@@ -1478,23 +1443,39 @@ function addPurchaseLineItem() {
     unitQty: uQty,
     packSize: packSize,
     bonus,
-    tradePrice: isListMode ? effectiveCost : tp,
+    tradePrice: tp,
     profitMargin: marginPercent,
-    retailPrice: isListMode ? listPrice : rp,
+    retailPrice: rp,
     wholesalePrice: wp,
     tradeOffer,
     discountPercent: discPercent,
-    pricingMode: currentPurLinePricingMode,
+    pricingMode: currentPurLinePricingMode || 'direct',
     listPrice: listPrice,
-    discountType: currentPurLineDiscType,
-    discountValue: listDiscVal,
+    discountType: currentPurLineDiscType || 'percent',
+    discountValue: discPercent,
     netCost: effectiveCost,
-    companyDiscountPercent: isListMode ? companyDiscountPercent : null,
+    companyDiscountPercent: null,
     effectiveCost: effectiveCost,
     netAmount: netAmount.toFixed(2)
   };
 
-  currentPurchaseItems.push(lineItem);
+  const existingIdx = currentPurchaseItems.findIndex(it => String(it.productId) === String(prod.id) || String(it.productCode) === String(prod.code));
+  if (existingIdx !== -1) {
+    const existing = currentPurchaseItems[existingIdx];
+    existing.packQty = (Number(existing.packQty) || 0) + pQty;
+    existing.unitQty = (Number(existing.unitQty) || 0) + uQty;
+    existing.totalQty = (existing.packQty * packSize) + existing.unitQty;
+    let rawAmount = existing.totalQty * effectiveCost;
+    if (tradeOffer > 0) rawAmount -= tradeOffer;
+    if (discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
+    existing.netAmount = Math.max(0, rawAmount).toFixed(2);
+    const pageSize = purSlipPageSize || 4;
+    purSlipCurrentPage = Math.floor(existingIdx / pageSize) + 1;
+  } else {
+    currentPurchaseItems.push(lineItem);
+    const pageSize = purSlipPageSize || 4;
+    purSlipCurrentPage = Math.ceil(currentPurchaseItems.length / pageSize);
+  }
   renderPurchaseLineItems();
   updateModalPurchaseCount();
   updatePurchaseHeaderBadges();
@@ -1573,10 +1554,22 @@ function addPurchaseLineItem() {
   if (inv.pieProductSearchInput) inv.pieProductSearchInput.focus();
 }
 
-if (inv.btnAddPurchaseItem) inv.btnAddPurchaseItem.addEventListener('click', addPurchaseLineItem);
+if (inv.btnAddPurchaseItem) inv.btnAddPurchaseItem.addEventListener('click', () => addPurchaseLineItem());
+// Press Enter in drawer inputs to quickly add item
+[inv.piePackQty, inv.pieUnitQty, inv.pieTradePrice, document.getElementById('pieWholesalePrice'), document.getElementById('pieRetailPrice'), inv.pieDiscPercent].forEach(inp => {
+  if (inp) {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addPurchaseLineItem();
+      }
+    });
+  }
+});
+
 
 // Toggle Add Item Drawer (Accordion / Slide Down)
-window.togglePurchaseItemDrawer = function(forceState) {
+window.togglePurchaseItemDrawer = function (forceState) {
   const drawer = document.getElementById('purItemEntryDrawer');
   const btn = document.getElementById('btnToggleAddItem');
   if (!drawer) return;
@@ -1610,136 +1603,191 @@ if (btnToggleAddItem) {
   });
 }
 
-function removePurchaseLineItem(index) {
-  currentPurchaseItems.splice(index, 1);
-  currentPurchaseItems.forEach((item, i) => { item.srNo = i + 1; });
-  renderPurchaseLineItems();
-  updateModalPurchaseCount();
-}
+let purSlipCurrentPage = 1;
+const purSlipPageSize = 4;
 
-let purLinePagination = null;
-function renderPurchaseLineItems() {
+function changePurchaseSlipPage(delta) {
+  const total = currentPurchaseItems.length;
+  const totalPages = Math.max(1, Math.ceil(total / purSlipPageSize));
+  const newPage = (purSlipCurrentPage || 1) + delta;
+  if (newPage >= 1 && newPage <= totalPages) {
+    purSlipCurrentPage = newPage;
+    renderPurchaseLineItems(false);
+  }
+}
+window.changePurchaseSlipPage = changePurchaseSlipPage;
+window.purNextPage = () => changePurchaseSlipPage(1);
+window.purPrevPage = () => changePurchaseSlipPage(-1);
+
+function renderPurchaseLineItems(targetPage = false) {
   if (!inv.purchaseItemsTableBody) return;
 
   const pieSrUpdate = document.getElementById('pieSrNo');
   if (pieSrUpdate) pieSrUpdate.value = currentPurchaseItems.length + 1;
 
-  if (!purLinePagination && window.createTablePagination) {
-    purLinePagination = window.createTablePagination({
-      container: '#subviewPurchaseVoucher .pur-items-grid',
-      tbody: inv.purchaseItemsTableBody,
-      emptyStateEl: inv.purchaseItemsEmptyState,
-      fixedPageSize: 6,
-      onRenderPage: (slice, startIdx) => {
-        inv.purchaseItemsTableBody.innerHTML = '';
-        slice.forEach((item, idx) => {
-          const actualIdx = startIdx + idx;
-          const menuId = `purRowMenu_${actualIdx}`;
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="col-pur-sr font-num">${item.srNo || (actualIdx + 1)}</td>
-            <td class="col-pur-name font-bold">
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-                <span>${window.escapeHtml(item.productTitle)}</span>
-                <button type="button" class="btn-xs" onclick="window.openChangeSubstancePriceModal(${actualIdx})" title="Change price of this substance" style="padding: 1px 6px; font-size: 0.7rem; border-radius: 4px; border: 1px solid #93c5fd; background: #eff6ff; color: #1d4ed8; font-weight: 700; cursor: pointer; white-space: nowrap;">💰 Price</button>
-              </div>
-            </td>
-            <td class="col-pur-pqty font-num">${item.packQty}</td>
-            <td class="col-pur-uqty font-num">${item.unitQty}</td>
-            <td class="col-pur-bonus font-num">${item.bonus || 0}</td>
-            <td class="col-pur-tprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change rate">
-              ${Number(item.effectiveCost !== undefined && item.effectiveCost !== null ? item.effectiveCost : (item.netCost || item.tradePrice)).toFixed(2)}
-              ${(item.pricingMode === 'list_discount' || (item.companyDiscountPercent > 0)) ? `<div style="font-size: 10px; color: #7c3aed; font-weight: 700;">List ${Number(item.listPrice || item.retailPrice || item.purchasePrice || 0).toFixed(0)} -${Number(item.companyDiscountPercent || item.discountValue || 0)}% = Cost ${Number(item.effectiveCost !== undefined ? item.effectiveCost : (item.netCost || item.tradePrice)).toFixed(2)}</div>` : ''}
-            </td>
-            <td class="col-pur-pro font-num text-success">${item.profitMargin}%</td>
-            <td class="col-pur-pprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change retail price">${Number(item.retailPrice).toFixed(2)}</td>
-            <td class="col-pur-wprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8;" title="Click to change wholesale price">${Number(item.wholesalePrice).toFixed(2)}</td>
-            <td class="col-pur-toffer font-num">${Number(item.tradeOffer).toFixed(2)}</td>
-            <td class="col-pur-disc font-num">${item.discountPercent}%</td>
-            <td class="col-pur-amount font-num font-bold text-accent">${Number(item.netAmount).toFixed(2)}</td>
-            <td class="col-pur-action" style="overflow: visible; position: relative;">
-              <div class="dots-wrapper">
-                <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, '${menuId}')" title="Actions">
-                  <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="1.5"></circle>
-                    <circle cx="12" cy="5" r="1.5"></circle>
-                    <circle cx="12" cy="19" r="1.5"></circle>
-                  </svg>
-                </button>
-                <div id="${menuId}" class="action-menu hidden">
-                  <button type="button" class="action-menu-item text-primary" onclick="window.openChangeSubstancePriceModal(${actualIdx})">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                    </svg>
-                    <span>Change Price</span>
-                  </button>
-                  <button type="button" class="action-menu-item" onclick="window.editPurchaseLineItem(${actualIdx})">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 20h9"></path>
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                    </svg>
-                    <span>Edit Line</span>
-                  </button>
-                  <button type="button" class="action-menu-item text-danger" onclick="window.removePurchaseLineItem(${actualIdx})">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    <span>Delete</span>
-                  </button>
-                </div>
-              </div>
-            </td>
-          `;
-          inv.purchaseItemsTableBody.appendChild(tr);
-        });
-      }
+  const total = currentPurchaseItems.length;
+  const totalPages = Math.max(1, Math.ceil(total / purSlipPageSize));
+
+  if (targetPage === 'last' || targetPage === true) {
+    purSlipCurrentPage = totalPages;
+  }
+  if (!purSlipCurrentPage || purSlipCurrentPage < 1) purSlipCurrentPage = 1;
+  if (purSlipCurrentPage > totalPages) purSlipCurrentPage = totalPages;
+
+  const startIdx = (purSlipCurrentPage - 1) * purSlipPageSize;
+  const endIdx = Math.min(startIdx + purSlipPageSize, total);
+
+  // Update table badge
+  const badgeEl = document.getElementById('purTableItemsBadge');
+  if (badgeEl) badgeEl.textContent = `${total} ${total === 1 ? 'Item' : 'Items'}`;
+
+  // Handle empty state
+  if (inv.purchaseItemsEmptyState) {
+    if (total === 0) {
+      inv.purchaseItemsEmptyState.classList.remove('hidden');
+      inv.purchaseItemsEmptyState.style.display = 'block';
+    } else {
+      inv.purchaseItemsEmptyState.classList.add('hidden');
+      inv.purchaseItemsEmptyState.style.display = 'none';
+    }
+  }
+
+  // Clear tbody
+  inv.purchaseItemsTableBody.innerHTML = '';
+
+  if (total > 0) {
+    const pageSlice = currentPurchaseItems.slice(startIdx, endIdx);
+    pageSlice.forEach((item, idx) => {
+      const actualIdx = startIdx + idx;
+      const tr = document.createElement('tr');
+      tr.style.height = '48px';
+      tr.ondblclick = () => window.editPurchaseLineItem(actualIdx);
+      tr.title = "Double-click to edit line";
+      tr.innerHTML = `
+        <td class="col-pur-sr font-num" style="text-align: center; vertical-align: middle; font-weight: 700; font-size: 12px; color: #64748b;">${item.srNo || (actualIdx + 1)}</td>
+        <td class="col-pur-name font-bold" style="text-align: left; vertical-align: middle; padding-left: 10px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+            <span style="color: #0f172a; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.escapeHtml(item.productTitle)}</span>
+            <button type="button" class="btn-xs" onclick="window.openChangeSubstancePriceModal(${actualIdx})" title="Change price of this substance" style="padding: 1px 6px; font-size: 0.7rem; border-radius: 4px; border: 1px solid #93c5fd; background: #eff6ff; color: #1d4ed8; font-weight: 700; cursor: pointer; white-space: nowrap;">Price</button>
+          </div>
+        </td>
+        <td class="col-pur-pqty font-num" style="text-align: center; vertical-align: middle;">${item.packQty}</td>
+        <td class="col-pur-uqty font-num" style="text-align: center; vertical-align: middle;">${item.unitQty}</td>
+        <td class="col-pur-bonus font-num" style="text-align: center; vertical-align: middle;">${item.bonus || 0}</td>
+        <td class="col-pur-tprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8; text-align: right; vertical-align: middle;" title="Click to change rate">
+          ${Number(item.effectiveCost !== undefined && item.effectiveCost !== null ? item.effectiveCost : (item.netCost || item.tradePrice)).toFixed(2)}
+          ${(item.pricingMode === 'list_discount' || (item.companyDiscountPercent > 0)) ? `<div style="font-size: 10px; color: #7c3aed; font-weight: 700;">List ${Number(item.listPrice || item.retailPrice || item.purchasePrice || 0).toFixed(0)} -${Number(item.companyDiscountPercent || item.discountValue || 0)}% = Cost ${Number(item.effectiveCost !== undefined ? item.effectiveCost : (item.netCost || item.tradePrice)).toFixed(2)}</div>` : ''}
+        </td>
+        <td class="col-pur-pro font-num text-success" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8; text-align: center; vertical-align: middle;" title="Click to change profit margin">${item.profitMargin}%</td>
+        <td class="col-pur-pprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8; text-align: right; vertical-align: middle;" title="Click to change retail price">${Number(item.retailPrice).toFixed(2)}</td>
+        <td class="col-pur-wprice font-num" onclick="window.openChangeSubstancePriceModal(${actualIdx})" style="cursor: pointer; text-decoration: underline dotted #94a3b8; text-align: right; vertical-align: middle;" title="Click to change wholesale price">${Number(item.wholesalePrice).toFixed(2)}</td>
+        <td class="col-pur-toffer font-num" style="text-align: right; vertical-align: middle;">${Number(item.tradeOffer).toFixed(2)}</td>
+        <td class="col-pur-disc font-num" style="text-align: right; vertical-align: middle;">${item.discountPercent}%</td>
+        <td class="col-pur-amount font-num font-bold text-accent" style="text-align: right; vertical-align: middle;">${Number(item.netAmount).toFixed(2)}</td>
+        <td class="col-pur-action" style="text-align: center; vertical-align: middle;">
+          <button type="button" class="btn-icon-danger" onclick="window.removePurchaseLineItem(${actualIdx})" title="Remove selected product" style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid #fecaca; background: #fef2f2; color: #dc2626; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto; transition: all 0.15s ease;" onmouseover="this.style.background='#fee2e2'; this.style.borderColor='#f87171'" onmouseout="this.style.background='#fef2f2'; this.style.borderColor='#fecaca'">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
+        </td>
+      `;
+      inv.purchaseItemsTableBody.appendChild(tr);
     });
   }
 
-  if (purLinePagination) {
-    purLinePagination.setItems(currentPurchaseItems, false);
+  // Synchronize Header Pagination Controls
+  const headerPag = document.getElementById('purHeaderPaginationControls');
+  if (headerPag) {
+    if (total > purSlipPageSize) {
+      headerPag.style.display = 'flex';
+      const hInfo = document.getElementById('purHeaderPaginationInfo');
+      const hPrev = document.getElementById('btnPurHeaderPrev');
+      const hNext = document.getElementById('btnPurHeaderNext');
+      if (hInfo) hInfo.textContent = `Page ${purSlipCurrentPage} of ${totalPages} (${total} items)`;
+      if (hPrev) hPrev.disabled = (purSlipCurrentPage <= 1);
+      if (hNext) hNext.disabled = (purSlipCurrentPage >= totalPages);
+    } else {
+      headerPag.style.display = 'none';
+    }
   }
 
-  renderModalPurchaseItems();
-  calculatePurchaseBill();
+  // Synchronize Footer Pagination Bar
+  const footerPag = document.getElementById('purSlipPaginationBar');
+  if (footerPag) {
+    if (total > 0) {
+      footerPag.style.display = 'flex';
+      const fInfo = document.getElementById('purSlipPaginationInfo');
+      const fPrev = document.getElementById('btnPurSlipPrev');
+      const fNext = document.getElementById('btnPurSlipNext');
+      const fNumbers = document.getElementById('purSlipPaginationNumbers');
+      if (fInfo) fInfo.textContent = totalPages > 1
+        ? `Showing ${startIdx + 1} to ${endIdx} of ${total} entries (Page ${purSlipCurrentPage} of ${totalPages})`
+        : `Showing ${startIdx + 1} to ${endIdx} of ${total} entries`;
+      if (fPrev) fPrev.disabled = (purSlipCurrentPage <= 1);
+      if (fNext) fNext.disabled = (purSlipCurrentPage >= totalPages);
+      if (fNumbers && window.renderPaginationNumbers) {
+        window.renderPaginationNumbers(fNumbers, purSlipCurrentPage, totalPages, (targetP) => {
+          purSlipCurrentPage = targetP;
+          renderPurchaseLineItems(false);
+        });
+      }
+    } else {
+      footerPag.style.display = 'none';
+    }
+  }
 }
-
-function editPurchaseLineItem(index) {
-  const item = currentPurchaseItems[index];
-  if (!item) return;
-
-  if (inv.pieCode) inv.pieCode.value = item.productCode || '';
-  if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = item.productTitle || '';
-  if (inv.piePackQty) inv.piePackQty.value = item.packQty || 0;
-  if (inv.pieUnitQty) inv.pieUnitQty.value = item.unitQty || 0;
-  if (inv.pieBonus) inv.pieBonus.value = item.bonus || 0;
-  if (inv.pieTradePrice) inv.pieTradePrice.value = Number(item.tradePrice || 0).toFixed(2);
-  const wpEl = document.getElementById('pieWholesalePrice');
-  if (wpEl) wpEl.value = Number(item.wholesalePrice || 0).toFixed(2);
-  const rpEl = document.getElementById('pieRetailPrice');
-  if (rpEl) rpEl.value = Number(item.retailPrice || 0).toFixed(2);
-  if (inv.pieTradeOffer) inv.pieTradeOffer.value = Number(item.tradeOffer || 0).toFixed(2);
-  if (inv.pieDiscPercent) inv.pieDiscPercent.value = Number(item.discountPercent || 0).toFixed(1);
-
-  currentPurchaseItems.splice(index, 1);
-  currentPurchaseItems.forEach((it, i) => { it.srNo = i + 1; });
-  renderPurchaseLineItems();
-  updateLineNetPreview();
-  autoSaveCurrentPurchase();
-
-  if (inv.piePackQty) inv.piePackQty.focus();
-}
-window.editPurchaseLineItem = editPurchaseLineItem;
 
 function removePurchaseLineItem(index) {
   currentPurchaseItems.splice(index, 1);
   currentPurchaseItems.forEach((item, i) => { item.srNo = i + 1; });
-  renderPurchaseLineItems();
+  const totalPages = Math.max(1, Math.ceil(currentPurchaseItems.length / purSlipPageSize));
+  if (purSlipCurrentPage > totalPages) purSlipCurrentPage = totalPages;
+  renderPurchaseLineItems(false);
   updateModalPurchaseCount();
   autoSaveCurrentPurchase();
 }
 window.removePurchaseLineItem = removePurchaseLineItem;
+window.addPurchaseLineItem = addPurchaseLineItem;
+window.selectProductForPurchase = selectProductForPurchase;
+window.changePurchaseSlipPage = changePurchaseSlipPage;
+window.purNextPage = () => changePurchaseSlipPage(1);
+window.purPrevPage = () => changePurchaseSlipPage(-1);
+window.getCurrentPurchaseItems = () => currentPurchaseItems;
+window.renderPurchaseLineItems = renderPurchaseLineItems;
+
+// Keyboard navigation (PageUp / PageDown) for purchase table
+document.addEventListener('keydown', (e) => {
+  const viewPur = document.getElementById('viewPurchase');
+  if (!viewPur || viewPur.classList.contains('hidden')) return;
+  const totalPages = Math.max(1, Math.ceil(currentPurchaseItems.length / purSlipPageSize));
+  if (totalPages <= 1) return;
+  if (e.key === 'PageDown') {
+    e.preventDefault();
+    changePurchaseSlipPage(1);
+  } else if (e.key === 'PageUp') {
+    e.preventDefault();
+    changePurchaseSlipPage(-1);
+  }
+});
+
+// Wheel navigation for purchase table (flip page without scrolling layout)
+setTimeout(() => {
+  const gridEl = document.querySelector('#viewPurchase .pur-items-grid');
+  if (gridEl) {
+    gridEl.addEventListener('wheel', (e) => {
+      const totalPages = Math.max(1, Math.ceil(currentPurchaseItems.length / purSlipPageSize));
+      if (totalPages <= 1) return;
+      if (Math.abs(e.deltaY) > 30) {
+        if (e.deltaY > 0) changePurchaseSlipPage(1);
+        else changePurchaseSlipPage(-1);
+      }
+    }, { passive: true });
+  }
+}, 500);
 
 async function autoSaveCurrentPurchase() {
   if (!inv.purPartySelect || !inv.purPartySelect.value) return;
@@ -1882,14 +1930,48 @@ function updateCspMarginBadge() {
   const tp = Number(document.getElementById('cspTradePrice')?.value) || 0;
   const rp = Number(document.getElementById('cspRetailPrice')?.value) || 0;
   const badge = document.getElementById('cspMarginBadge');
-  if (!badge) return;
+  const marginInp = document.getElementById('cspMarginInput');
+
   if (tp > 0) {
     const margin = (((rp - tp) / tp) * 100).toFixed(1);
-    badge.textContent = `${margin}%`;
-    badge.style.color = Number(margin) >= 0 ? '#047857' : '#b91c1c';
+    if (badge) {
+      badge.textContent = `${margin}%`;
+      badge.style.color = Number(margin) >= 0 ? '#047857' : '#b91c1c';
+    }
+    if (marginInp && document.activeElement !== marginInp) {
+      marginInp.value = margin;
+      marginInp.style.color = Number(margin) >= 0 ? '#047857' : '#b91c1c';
+    }
   } else {
-    badge.textContent = '0.0%';
-    badge.style.color = '#047857';
+    if (badge) {
+      badge.textContent = '0.0%';
+      badge.style.color = '#047857';
+    }
+    if (marginInp && document.activeElement !== marginInp) {
+      marginInp.value = '0.0';
+      marginInp.style.color = '#047857';
+    }
+  }
+}
+
+function onCspMarginInputChange() {
+  const tp = Number(document.getElementById('cspTradePrice')?.value) || 0;
+  const marginInp = document.getElementById('cspMarginInput');
+  const margin = Number(marginInp?.value) || 0;
+  const inRp = document.getElementById('cspRetailPrice');
+  const badge = document.getElementById('cspMarginBadge');
+
+  if (marginInp) {
+    marginInp.style.color = margin >= 0 ? '#047857' : '#b91c1c';
+  }
+
+  if (tp > 0 && inRp) {
+    const newRetail = tp * (1 + (margin / 100));
+    inRp.value = Math.max(0, newRetail).toFixed(2);
+    if (badge) {
+      badge.textContent = `${margin.toFixed(1)}%`;
+      badge.style.color = margin >= 0 ? '#047857' : '#b91c1c';
+    }
   }
 }
 
@@ -1901,7 +1983,8 @@ async function applyChangeSubstancePrice() {
   const rp = Number(document.getElementById('cspRetailPrice')?.value) || 0;
   const updateCatalog = document.getElementById('cspApplyToCatalog')?.checked;
   const title = document.getElementById('cspProductTitle')?.textContent || 'Substance';
-  const marginPercent = tp > 0 ? (((rp - tp) / tp) * 100).toFixed(1) : '0';
+  const marginInp = document.getElementById('cspMarginInput');
+  const marginPercent = marginInp && marginInp.value !== '' ? Number(marginInp.value).toFixed(1) : (tp > 0 ? (((rp - tp) / tp) * 100).toFixed(1) : '0');
 
   if (lineIdx >= 0 && currentPurchaseItems[lineIdx]) {
     const item = currentPurchaseItems[lineIdx];
@@ -2068,7 +2151,7 @@ async function savePurchaseVoucher() {
     }
     await window.reloadFromDatabase();
     if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
-      window.ReportsModule.reloadMasterData().catch(() => {});
+      window.ReportsModule.reloadMasterData().catch(() => { });
     }
     showAlert(`Purchase Voucher #${purchaseData.voucherNo} saved successfully! Stock updated.`, 'Success');
     applyPurchaseDateFilter();
@@ -2160,7 +2243,7 @@ if (inv.btnPurDelete) {
           if (window.api?.deletePurchase) await window.api.deletePurchase(vNo);
           await window.reloadFromDatabase();
           if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
-            window.ReportsModule.reloadMasterData().catch(() => {});
+            window.ReportsModule.reloadMasterData().catch(() => { });
           }
           resetPurchaseForm();
         } catch (e) {
@@ -2183,10 +2266,40 @@ if (inv.btnSavePurchaseModal) {
   });
 }
 
-// Live preview listeners for item entry inside modal
+// Live preview listeners and selection helpers for item entry inside modal
 [inv.piePackQty, inv.pieUnitQty, inv.pieBonus, inv.pieTradePrice, document.getElementById('pieWholesalePrice'), document.getElementById('pieRetailPrice'), inv.pieTradeOffer, inv.pieDiscPercent].forEach(input => {
-  if (input) input.addEventListener('input', updateLineNetPreview);
+  if (input) {
+    input.addEventListener('input', updateLineNetPreview);
+    input.addEventListener('focus', () => input.select());
+    input.addEventListener('click', () => input.select());
+  }
 });
+
+if (inv.pieUnitQty) {
+  inv.pieUnitQty.addEventListener('input', () => {
+    const prod = (window.appData?.products || []).find(p => p.code === inv.pieCode?.value);
+    const packSize = Number(prod?.packSize) || 1;
+    if (packSize <= 1 && Number(inv.pieUnitQty.value) > 0) {
+      if (inv.piePackQty && Number(inv.piePackQty.value) > 0) {
+        inv.piePackQty.value = 0;
+      }
+    }
+    updateLineNetPreview();
+  });
+}
+
+if (inv.piePackQty) {
+  inv.piePackQty.addEventListener('input', () => {
+    const prod = (window.appData?.products || []).find(p => p.code === inv.pieCode?.value);
+    const packSize = Number(prod?.packSize) || 1;
+    if (packSize <= 1 && Number(inv.piePackQty.value) > 0) {
+      if (inv.pieUnitQty && Number(inv.pieUnitQty.value) > 0) {
+        inv.pieUnitQty.value = 0;
+      }
+    }
+    updateLineNetPreview();
+  });
+}
 
 // Bind Change Substance Price Modal Event Listeners
 const btnOpenChangePriceModal = document.getElementById('btnOpenChangePriceModal');
@@ -2211,13 +2324,26 @@ if (btnApplyChangePriceModal) btnApplyChangePriceModal.addEventListener('click',
   if (el) el.addEventListener('input', updateCspMarginBadge);
 });
 
+const cspMarginInp = document.getElementById('cspMarginInput');
+if (cspMarginInp) {
+  cspMarginInp.addEventListener('input', onCspMarginInputChange);
+  cspMarginInp.addEventListener('focus', () => cspMarginInp.select());
+  cspMarginInp.addEventListener('click', () => cspMarginInp.select());
+  cspMarginInp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      applyChangeSubstancePrice();
+    }
+  });
+}
+
 // Purchase Filter Toolbar Event Bindings
 if (inv.purFilterDate) {
   inv.purFilterDate.addEventListener('change', applyPurchaseDateFilter);
   inv.purFilterDate.addEventListener('click', () => {
     try {
       if (typeof inv.purFilterDate.showPicker === 'function') inv.purFilterDate.showPicker();
-    } catch (_) {}
+    } catch (_) { }
   });
 }
 
@@ -2885,16 +3011,25 @@ function closeProductSearchModal() {
 if (window.findProductAPI?.onProductSelected) {
   window.findProductAPI.onProductSelected((p) => {
     if (!p) return;
-    const isInventoryActive = window.currentTab === 'inventory' ||
-      (!window.currentTab && document.getElementById('inventoryView') && !document.getElementById('inventoryView').classList.contains('hidden'));
+    const invView = document.getElementById('inventoryView');
+    const purView = document.getElementById('viewPurchase');
+    const isPurVisible = purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none'));
+    const isPurchaseActive = (currentSubTab === 'purchase') || (window.currentSubTab === 'purchase') || isPurVisible || (inv.modalAddPurchase && !inv.modalAddPurchase.classList.contains('hidden'));
 
-    if (isInventoryActive) {
-      if (currentSubTab === 'purchase') {
-        selectProductForPurchase(p);
-      } else {
-        switchSubTab('product-info');
-        loadProductRecord(p);
+    if (isPurchaseActive) {
+      if (typeof window.togglePurchaseItemDrawer === 'function') {
+        window.togglePurchaseItemDrawer(true);
       }
+      selectProductForPurchase(p);
+      addPurchaseLineItem(p);
+      if (window.showToast) window.showToast(`Added: ${p.titleEng || p.code}`, 'success');
+      return;
+    }
+
+    const isInventoryActive = (invView && invView.classList.contains('active')) || (window.currentTab === 'inventory');
+    if (isInventoryActive) {
+      switchSubTab('product-info');
+      loadProductRecord(p);
     }
   });
 }
@@ -2927,10 +3062,22 @@ function renderF1ProductSearch() {
       <td>${window.escapeHtml(p.location || '-')}</td>
     `;
     tr.addEventListener('click', () => {
-      if (window.currentTab === 'sale' && window.SalesModule?.selectProduct) {
-        window.SalesModule.selectProduct(p);
-      } else if (currentSubTab === 'purchase') {
+      const salesView = document.getElementById('salesView');
+      const isSale = (window.currentTab === 'sale') || (salesView && salesView.classList.contains('active'));
+      const purView = document.getElementById('viewPurchase');
+      const isPurVisible = purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none'));
+      const isPur = (currentSubTab === 'purchase') || (window.currentSubTab === 'purchase') || isPurVisible || (inv.modalAddPurchase && !inv.modalAddPurchase.classList.contains('hidden'));
+
+      if (isSale && window.SalesModule?.addProductToCart) {
+        window.SalesModule.addProductToCart(p.id || p.code, 1);
+        if (window.SalesModule?.selectProduct) window.SalesModule.selectProduct(p, false);
+      } else if (isPur) {
+        if (typeof window.togglePurchaseItemDrawer === 'function') {
+          window.togglePurchaseItemDrawer(true);
+        }
         selectProductForPurchase(p);
+        addPurchaseLineItem(p);
+        if (window.showToast) window.showToast(`Added: ${p.titleEng || p.code}`, 'success');
       } else {
         switchSubTab('product-info');
         loadProductRecord(p);
@@ -2945,6 +3092,15 @@ if (inv.btnPiFind) inv.btnPiFind.addEventListener('click', openProductSearchModa
 if (inv.btnPieFind) inv.btnPieFind.addEventListener('click', openProductSearchModal);
 if (inv.btnProductInfoList) inv.btnProductInfoList.addEventListener('click', openProductSearchModal);
 if (inv.btnCloseProductSearch) inv.btnCloseProductSearch.addEventListener('click', closeProductSearchModal);
+if (inv.pieProductSearchInput) {
+  inv.pieProductSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'F1') {
+      e.preventDefault();
+      openProductSearchModal();
+    }
+  });
+}
+
 if (inv.f1SearchInput) inv.f1SearchInput.addEventListener('input', renderF1ProductSearch);
 
 // Global F1 Hotkey Listener (Active only for Inventory or Sales views, never in Accounts)

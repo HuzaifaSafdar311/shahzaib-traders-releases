@@ -122,7 +122,7 @@ function renderPaginationNumbers(container, currentPage, totalPages, onPageClick
 
   const createBtn = (p, text = p, isCurrent = false) => {
     const btn = document.createElement('button');
-    btn.className = `btn-page ${isCurrent ? 'active' : ''}`.trim();
+    btn.className = `btn-page btn-page-num ${isCurrent ? 'active' : ''}`.trim();
     btn.textContent = text;
     btn.disabled = isCurrent;
     btn.addEventListener('click', () => onPageClick(p));
@@ -493,23 +493,27 @@ function createTablePagination({
       const prevBtn = footer.querySelector('.btn-prev');
       const nextBtn = footer.querySelector('.btn-next');
 
-      prevBtn.onclick = (e) => {
-        e.stopPropagation();
-        if (currentPage > 1) {
-          currentPage--;
-          render();
-        }
-      };
+      if (prevBtn) {
+        prevBtn.onclick = (e) => {
+          e.stopPropagation();
+          if (currentPage > 1) {
+            currentPage--;
+            render();
+          }
+        };
+      }
 
-      nextBtn.onclick = (e) => {
-        e.stopPropagation();
-        const pageSize = calculateSize();
-        const totalPages = Math.max(1, Math.ceil(allItems.length / pageSize));
-        if (currentPage < totalPages) {
-          currentPage++;
-          render();
-        }
-      };
+      if (nextBtn) {
+        nextBtn.onclick = (e) => {
+          e.stopPropagation();
+          const pageSize = calculateSize();
+          const totalPages = Math.max(1, Math.ceil(allItems.length / pageSize));
+          if (currentPage < totalPages) {
+            currentPage++;
+            render();
+          }
+        };
+      }
     }
     return footer;
   }
@@ -572,10 +576,14 @@ function createTablePagination({
     }
 
     const endIdx = Math.min(startIdx + pageSize, total);
-    infoEl.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${total} entries`;
+    if (infoEl) {
+      infoEl.textContent = totalPages > 1 
+        ? `Showing ${startIdx + 1} to ${endIdx} of ${total} entries (Page ${currentPage} of ${totalPages})`
+        : `Showing ${startIdx + 1} to ${endIdx} of ${total} entries`;
+    }
 
-    prevBtn.disabled = currentPage <= 1;
-    nextBtn.disabled = currentPage >= totalPages;
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
 
     if (window.renderPaginationNumbers) {
       window.renderPaginationNumbers(numbersEl, currentPage, totalPages, (targetPage) => {
@@ -593,12 +601,47 @@ function createTablePagination({
   });
 
   return {
-    setItems(items, resetPage = false) {
+    setItems(items, targetPage = false) {
       allItems = Array.isArray(items) ? items : [];
-      if (resetPage) currentPage = 1;
+      const pageSize = calculateSize();
+      const totalPages = Math.max(1, Math.ceil(allItems.length / pageSize));
+      if (targetPage === 'last') {
+        currentPage = totalPages;
+      } else if (typeof targetPage === 'number') {
+        currentPage = Math.max(1, Math.min(targetPage, totalPages));
+      } else if (targetPage === true) {
+        currentPage = 1;
+      } else {
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+      }
       render();
     },
+    goToPage(p) {
+      const pageSize = calculateSize();
+      const totalPages = Math.max(1, Math.ceil(allItems.length / pageSize));
+      currentPage = Math.max(1, Math.min(p, totalPages));
+      render();
+    },
+    nextPage() {
+      const pageSize = calculateSize();
+      const totalPages = Math.max(1, Math.ceil(allItems.length / pageSize));
+      if (currentPage < totalPages) {
+        currentPage++;
+        render();
+      }
+    },
+    prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        render();
+      }
+    },
     getCurrentPage() { return currentPage; },
+    getTotalPages() {
+      const pageSize = calculateSize();
+      return Math.max(1, Math.ceil(allItems.length / pageSize));
+    },
     getPageSize() { return calculateSize(); },
     refresh() { render(); }
   };

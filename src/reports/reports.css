@@ -1,3 +1,8 @@
+#reportsView {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
 /* ========================================================
    Shahzaib Traders - Reports Module Stylesheet
    Professional Enterprise Business Analytics & Reporting

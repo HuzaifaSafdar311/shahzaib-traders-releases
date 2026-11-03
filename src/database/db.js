@@ -255,6 +255,23 @@ function runAdditiveMigrations(db, dbPath) {
       console.warn('Could not update PRAGMA user_version to 4:', e.message);
     }
   }
+
+  // Version 5: Sales profitMethod (direct | list)
+  if (currentVersion < 5) {
+    try {
+      if (!tableHasColumn(db, 'sales', 'profitMethod')) {
+        db.exec("ALTER TABLE sales ADD COLUMN profitMethod TEXT DEFAULT 'direct';");
+      }
+    } catch (e) {
+      console.warn('Migration v5 (sales.profitMethod) note:', e.message);
+    }
+
+    try {
+      db.exec('PRAGMA user_version = 5;');
+    } catch (e) {
+      console.warn('Could not update PRAGMA user_version to 5:', e.message);
+    }
+  }
 }
 
 function initDatabase(dbPath) {
@@ -426,6 +443,7 @@ function initDatabase(dbPath) {
         paidAmount REAL DEFAULT 0,
         balanceDue REAL DEFAULT 0,
         billStatus TEXT DEFAULT 'Paid',
+        profitMethod TEXT DEFAULT 'direct',
         itemsJson TEXT DEFAULT '[]',
         createdAt TEXT NOT NULL
       );
@@ -1499,6 +1517,7 @@ function saveSale(saleData, items = []) {
 
   const billStatus = saleData.billStatus === 'Estimated' ? 'Estimated' : 'Paid';
   const isEstimated = (billStatus === 'Estimated');
+  const profitMethod = saleData.profitMethod === 'list' ? 'list' : 'direct';
 
   const saleRecord = {
     id,
@@ -1519,6 +1538,7 @@ function saveSale(saleData, items = []) {
     paidAmount: Number(saleData.paidAmount) || 0,
     balanceDue: Number(saleData.balanceDue) || 0,
     billStatus,
+    profitMethod,
     itemsJson,
     createdAt: now
   };
@@ -1663,13 +1683,13 @@ function saveSale(saleData, items = []) {
           voucherNo = ?, manualNo = ?, entryDate = ?, partyId = ?, partyTitle = ?,
           customerPhone = ?, areaName = ?, description = ?, storeTitle = ?, paymentType = ?,
           previousBalance = ?, grossAmount = ?, discount = ?, netAmount = ?,
-          paidAmount = ?, balanceDue = ?, billStatus = ?, itemsJson = ?
+          paidAmount = ?, balanceDue = ?, billStatus = ?, profitMethod = ?, itemsJson = ?
         WHERE id = ?
       `).run(
         voucherNo, saleRecord.manualNo, saleRecord.entryDate, saleRecord.partyId, saleRecord.partyTitle,
         saleRecord.customerPhone, saleRecord.areaName, saleRecord.description, saleRecord.storeTitle, saleRecord.paymentType,
         saleRecord.previousBalance, saleRecord.grossAmount, saleRecord.discount, saleRecord.netAmount,
-        saleRecord.paidAmount, saleRecord.balanceDue, billStatus, itemsJson, actualSaleId
+        saleRecord.paidAmount, saleRecord.balanceDue, billStatus, profitMethod, itemsJson, actualSaleId
       );
     } else {
       dbInstance.prepare(`
@@ -1677,18 +1697,18 @@ function saveSale(saleData, items = []) {
           id, voucherNo, manualNo, entryDate, partyId, partyTitle,
           customerPhone, areaName, description, storeTitle, paymentType,
           previousBalance, grossAmount, discount, netAmount,
-          paidAmount, balanceDue, billStatus, itemsJson, createdAt
+          paidAmount, balanceDue, billStatus, profitMethod, itemsJson, createdAt
         ) VALUES (
           ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?,
           ?, ?, ?, ?,
-          ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?
         )
       `).run(
         actualSaleId, voucherNo, saleRecord.manualNo, saleRecord.entryDate, saleRecord.partyId, saleRecord.partyTitle,
         saleRecord.customerPhone, saleRecord.areaName, saleRecord.description, saleRecord.storeTitle, saleRecord.paymentType,
         saleRecord.previousBalance, saleRecord.grossAmount, saleRecord.discount, saleRecord.netAmount,
-        saleRecord.paidAmount, saleRecord.balanceDue, billStatus, itemsJson, now
+        saleRecord.paidAmount, saleRecord.balanceDue, billStatus, profitMethod, itemsJson, now
       );
     }
 

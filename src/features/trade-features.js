@@ -151,6 +151,26 @@
       };
     }
 
+    if (window.findProductAPI?.onProductSelected && !window._findProductEstimateListenerRegistered) {
+      window._findProductEstimateListenerRegistered = true;
+      window.findProductAPI.onProductSelected((product) => {
+        const modalEst = document.getElementById('modalEstimate');
+        if (modalEst && !modalEst.classList.contains('hidden') && product) {
+          const codeInput = document.getElementById('estItemCode');
+          const rateInput = document.getElementById('estRate');
+          const qtyInput = document.getElementById('estQty');
+          const lineAmt = document.getElementById('estLineAmount');
+          const sel = document.getElementById('estProductSelect');
+          if (codeInput) codeInput.value = product.code || '';
+          if (sel) sel.value = product.code || '';
+          const r = Number(product.retailPrice || product.wholesalePrice || 0);
+          if (rateInput) rateInput.value = r;
+          if (qtyInput) qtyInput.value = 1;
+          if (lineAmt) lineAmt.value = formatMoney(r);
+        }
+      });
+    }
+
     const btnAdd = document.getElementById('btnEstAddItem');
     if (btnAdd) btnAdd.onclick = addEstimateItem;
 

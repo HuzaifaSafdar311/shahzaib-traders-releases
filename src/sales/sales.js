@@ -14,10 +14,11 @@
     selectedProduct: null,
     selectedCustomer: null,
     rateMode: 'retail', // 'retail' | 'wholesale'
+    profitMethod: (typeof localStorage !== 'undefined' && localStorage.getItem('pos_profit_method')) || 'direct', // 'direct' | 'list'
     pendingAddProduct: null,
     salesList: [],
     slipCurrentPage: 1,
-    slipPageSize: 5
+    slipPageSize: 4
   };
 
   // DOM Elements Cache
@@ -73,6 +74,30 @@
       updateVoucherTotals();
       if (window.showToast) window.showToast(`Converted all items in bill to ${mode === 'wholesale' ? 'Wholesale' : 'Retail'} rates.`, 'info');
     }
+  }
+
+  // ========================================================
+  // PROFIT CALCULATION METHOD MANAGEMENT (DIRECT vs LIST SPREAD)
+  // ========================================================
+  function setProfitMethod(method) {
+    const m = (method === 'list') ? 'list' : 'direct';
+    saleState.profitMethod = m;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('pos_profit_method', m);
+      }
+    } catch (_) {}
+
+    const btnDirect = document.getElementById('btnProfitMethodDirect') || el.btnProfitMethodDirect;
+    const btnList = document.getElementById('btnProfitMethodList') || el.btnProfitMethodList;
+    const sel = document.getElementById('posProfitMethodSelect') || el.posProfitMethodSelect;
+
+    if (btnDirect) btnDirect.classList.toggle('active', m === 'direct');
+    if (btnList) btnList.classList.toggle('active', m === 'list');
+    if (sel) sel.value = m;
+
+    renderItemsTable();
+    updateVoucherTotals();
   }
 
   // ========================================================
@@ -571,7 +596,7 @@
       const discAmt = lineGross * ((saleState.items[existingIdx].discountPercent || 0) / 100);
       saleState.items[existingIdx].discountAmount = discAmt;
       saleState.items[existingIdx].netAmount = lineGross - discAmt;
-      const pageSize = saleState.slipPageSize || 5;
+      const pageSize = saleState.slipPageSize || 4;
       saleState.slipCurrentPage = Math.floor(existingIdx / pageSize) + 1;
     } else {
       const grossLine = qtyToAdd * rate;
@@ -603,7 +628,7 @@
         purchaseDiscountAtSale: purDiscAtSale,
         netAmount: grossLine
       });
-      const pageSize = saleState.slipPageSize || 5;
+      const pageSize = saleState.slipPageSize || 4;
       saleState.slipCurrentPage = Math.ceil(saleState.items.length / pageSize);
     }
 
@@ -709,6 +734,15 @@
     if (btnWholesale) btnWholesale.addEventListener('click', handleWholesaleSwitch);
     if (btnEntryRetail) btnEntryRetail.addEventListener('click', handleRetailSwitch);
     if (btnEntryWholesale) btnEntryWholesale.addEventListener('click', handleWholesaleSwitch);
+
+    // Profit Calculation Method Segmented Control (Direct vs List Spread)
+    const btnProfitDirect = document.getElementById('btnProfitMethodDirect') || el.btnProfitMethodDirect;
+    const btnProfitList = document.getElementById('btnProfitMethodList') || el.btnProfitMethodList;
+    const selProfitMethod = document.getElementById('posProfitMethodSelect') || el.posProfitMethodSelect;
+
+    if (btnProfitDirect) btnProfitDirect.addEventListener('click', () => setProfitMethod('direct'));
+    if (btnProfitList) btnProfitList.addEventListener('click', () => setProfitMethod('list'));
+    if (selProfitMethod) selProfitMethod.addEventListener('change', (e) => setProfitMethod(e.target.value));
 
     // Toggle collapsible product entry drawer (matches Inventory #btnToggleAddItem)
     const btnToggleSale = document.getElementById('btnToggleAddItemSale');
@@ -1148,6 +1182,10 @@
     el.discountPercent = document.getElementById('saleDiscountPercent');
     el.lineAmount = document.getElementById('saleLineAmount');
     el.btnAddItem = document.getElementById('btnSaleAddItem');
+    el.btnProfitMethodDirect = document.getElementById('btnProfitMethodDirect');
+    el.btnProfitMethodList = document.getElementById('btnProfitMethodList');
+    el.posProfitMethodSelect = document.getElementById('posProfitMethodSelect');
+    el.saleProfitPillLabel = document.getElementById('saleProfitPillLabel');
 
     // Items Table
     el.itemsTableBody = document.getElementById('saleItemsTableBody');
@@ -1247,6 +1285,7 @@
     }
 
     bindEvents();
+    setProfitMethod(saleState.profitMethod || (typeof localStorage !== 'undefined' && localStorage.getItem('pos_profit_method')) || 'direct');
     await loadNextVoucherNo();
     await loadPartyTypes();
     populateProductDropdown();
@@ -1714,7 +1753,7 @@
       });
     }
 
-    const pageSize = saleState.slipPageSize || 5;
+    const pageSize = saleState.slipPageSize || 4;
     saleState.slipCurrentPage = Math.ceil(saleState.items.length / pageSize) || 1;
 
     clearEntryFields();
@@ -1747,7 +1786,7 @@
   function removeSaleItem(idx) {
     if (idx >= 0 && idx < saleState.items.length) {
       saleState.items.splice(idx, 1);
-      const pageSize = saleState.slipPageSize || 5;
+      const pageSize = saleState.slipPageSize || 4;
       const totalPages = Math.ceil(saleState.items.length / pageSize) || 1;
       if (saleState.slipCurrentPage > totalPages) {
         saleState.slipCurrentPage = totalPages;
@@ -1812,7 +1851,7 @@
       btnSell.style.cursor = 'pointer';
     }
 
-    const pageSize = saleState.slipPageSize || 5;
+    const pageSize = saleState.slipPageSize || 4;
     const totalPages = Math.ceil(saleState.items.length / pageSize) || 1;
     if (!saleState.slipCurrentPage || saleState.slipCurrentPage < 1) saleState.slipCurrentPage = 1;
     if (saleState.slipCurrentPage > totalPages) saleState.slipCurrentPage = totalPages;
@@ -1826,6 +1865,7 @@
 
     visibleItems.forEach((item, relIdx) => {
       const idx = startIdx + relIdx;
+      const isListMethod = (saleState.profitMethod === 'list');
       const prod = (window.appData?.products || []).find(pr => String(pr.id) === String(item.productId) || String(pr.code) === String(item.productCode));
       const availStock = prod ? Number(prod.stockQty || 0) : 999999;
       const isWholesale = item.rateType === 'wholesale';
@@ -1840,16 +1880,22 @@
 
       const itemCostBadge = isShowConfidential ? `
         <div class="pos-pur-bench-line" style="font-size: 11px; color: #64748b; margin-top: 2px;">
-          Pur Cost: <span class="font-num font-bold" style="color: #475569;">${purCostText}</span> | Pur Disc: <strong style="color: #7c3aed;">${purDiscText}</strong>
+          ${isListMethod
+            ? `List: <span class="font-num font-bold" style="color: #475569;">Rs ${listP > 0 ? listP.toFixed(2) : '-'}</span> | Pur Disc: <strong style="color: #7c3aed;">${purDiscText}</strong>`
+            : `Pur Cost: <span class="font-num font-bold" style="color: #475569;">${purCostText}</span> | Pur Disc: <strong style="color: #7c3aed;">${purDiscText}</strong>`
+          }
         </div>
       ` : '';
 
       // Live profit calculations per row
-      const profitPerUnit = Number(item.salePrice || 0) - cp;
+      const sp = Number(item.salePrice || 0);
+      const profitPerUnit = sp - cp;
       const lineProfit = profitPerUnit * Number(item.totalQty || 0);
-      const saleDiscPct = listP > 0 ? Number((((listP - Number(item.salePrice || 0)) / listP) * 100).toFixed(2)) : 0;
+
+      // Sale discount % from list
+      const saleDiscPct = listP > 0 ? Number((((listP - sp) / listP) * 100).toFixed(2)) : 0;
       const spreadPts = purDiscAtSale !== null ? (purDiscAtSale - saleDiscPct) : null;
-      const marginOnSale = Number(item.salePrice || 0) > 0 ? ((profitPerUnit / Number(item.salePrice || 0)) * 100) : 0;
+      const marginOnSale = sp > 0 ? ((profitPerUnit / sp) * 100) : 0;
 
       // Color coding: green when profit > 0, amber when ~0, red when negative
       let profitColor = '#15803d';
@@ -1859,24 +1905,39 @@
         profitColor = '#dc2626';
       }
 
-      const spreadDisplay = spreadPts !== null ? ((spreadPts >= 0 ? '+' : '') + spreadPts.toFixed(2) + ' pts') : '-';
+      const qtyVal = Number(item.totalQty || 1);
+      let profitText = '';
+      let marginText = '';
+
+      if (isListMethod) {
+        // Method 2: List Method (Purchase Discount - Sale Discount)
+        profitText = `Spread: Rs ${lineProfit.toFixed(2)}`;
+        marginText = `Spread: ${(spreadPts >= 0 ? '+' : '') + spreadPts.toFixed(1)}%`;
+      } else {
+        // Method 1: Direct Method (Sale Price - Cost Price)
+        profitText = qtyVal > 1 
+          ? `Profit: Rs ${lineProfit.toFixed(2)} (${profitPerUnit.toFixed(2)}/u)`
+          : `Profit: Rs ${lineProfit.toFixed(2)}`;
+        marginText = `Margin: ${marginOnSale.toFixed(1)}%`;
+      }
+
       const rowProfitPill = isShowConfidential ? `
-        <div style="display: flex; flex-direction: column; align-items: flex-end; margin-top: 3px; font-size: 10px; font-weight: 700; color: ${profitColor};">
-          <span>Profit: Rs ${profitPerUnit.toFixed(2)}/u (Rs ${lineProfit.toFixed(2)})</span>
-          <span>${purDiscAtSale !== null ? `Profit % on list price: ${(spreadPts >= 0 ? "+" : "") + spreadPts.toFixed(1)}%` : `Spread: ${spreadDisplay} • Margin: ${marginOnSale.toFixed(1)}%`}</span>
-          ${profitPerUnit < -0.005 ? '<span style="color: #dc2626; font-size: 9.5px; font-weight: 800; background: #fee2e2; padding: 1px 4px; border-radius: 3px; margin-top: 1px;">⚠️ Selling below cost</span>' : ''}
+        <div class="pos-row-profit-deck" style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; margin-top: 2px; font-size: 10px; font-weight: 600; color: ${profitColor}; line-height: 1.25; text-align: right; max-width: 100%; overflow: hidden;">
+          <span style="display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;">${profitText}</span>
+          <span style="display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;">${marginText}</span>
+          ${profitPerUnit < -0.005 ? '<span style="color: #dc2626; font-size: 9px; font-weight: 800; background: #fee2e2; border: 1px solid #fecaca; padding: 1px 5px; border-radius: 3px; margin-top: 1px; white-space: nowrap;">Selling below cost</span>' : ''}
         </div>
       ` : '';
 
       const rateToggleBtn = `
         <div class="pos-row-rate-group" role="group" aria-label="Rate Selection">
           <button type="button" class="btn-rate-seg btn-seg-retail ${!isWholesale ? 'active' : ''}" 
-            onclick="window.SalesModule.toggleItemRate(${idx}, 'retail')" title="Retail Price: Rs ${rp.toLocaleString()} (Click to select)">
-            🏷️ Retail
+            onclick="window.SalesModule.toggleItemRate(${idx}, 'retail')" title="Retail Price: Rs ${rp.toLocaleString()}">
+            Retail
           </button>
           <button type="button" class="btn-rate-seg btn-seg-wholesale ${isWholesale ? 'active' : ''}" 
-            onclick="window.SalesModule.toggleItemRate(${idx}, 'wholesale')" title="Wholesale Price: Rs ${wp.toLocaleString()} (Click to select)">
-            📦 Wholesale
+            onclick="window.SalesModule.toggleItemRate(${idx}, 'wholesale')" title="Wholesale Price: Rs ${wp.toLocaleString()}">
+            Wholesale
           </button>
         </div>
       `;
@@ -1886,15 +1947,16 @@
 
       const tr = document.createElement('tr');
       tr.className = 'pos-bill-row';
+      tr.style.height = '50px';
       tr.innerHTML = `
-        <td class="pos-cell-sr text-center font-num text-muted" style="text-align: center; vertical-align: middle;">${idx + 1}</td>
-        <td class="pos-cell-code font-num font-bold text-center" style="text-align: center; vertical-align: middle;">${window.escapeHtml(item.productCode || '-')}</td>
+        <td class="pos-cell-sr text-center font-num" style="text-align: center; vertical-align: middle; font-weight: 700; font-size: 12px; color: #64748b;">${idx + 1}</td>
+        <td class="pos-cell-code font-num font-bold text-center" style="text-align: center; vertical-align: middle; font-size: 12px; color: #0284c7;">${window.escapeHtml(item.productCode || '-')}</td>
         <td class="pos-cell-title" style="text-align: left; padding-left: 14px; vertical-align: middle;" title="${window.escapeHtml(item.productTitle || '')}">
-          <div class="pos-bill-title font-bold" style="color: #0f172a; font-size: 13px;">${window.escapeHtml(item.productTitle || '')}</div>
+          <div class="pos-bill-title font-bold" style="color: #0f172a; font-size: 13.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.escapeHtml(item.productTitle || '')}</div>
           ${itemCostBadge}
         </td>
         <td class="pos-cell-stock text-center" style="text-align: center; vertical-align: middle;">
-          <span class="pos-stock-badge ${availStock <= 0 ? 'badge-out' : (availStock <= 5 ? 'badge-low' : 'badge-in')} font-num font-bold">
+          <span class="pos-stock-badge font-num font-bold" style="padding: 2px 7px; border-radius: 4px; font-size: 12px; ${availStock <= 0 ? 'background: #fee2e2; color: #dc2626;' : (availStock <= 5 ? 'background: #fef3c7; color: #d97706;' : 'background: #dcfce7; color: #15803d;')}">
             ${availStock}
           </span>
         </td>
@@ -1905,7 +1967,7 @@
           <div class="pos-inline-input-wrap rate-input-wrap" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; margin: 0 auto;">
             <span class="cur-sym" style="font-size: 11px; font-weight: 700; color: #64748b;">Rs</span>
             <input type="number" class="pos-inline-inp font-num font-bold text-center" 
-              style="width: 78px; height: 28px; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-size: 13px;" 
+              style="width: 78px; height: 30px; padding: 2px 6px; border: 1.5px solid #cbd5e1; border-radius: 6px; text-align: center; font-size: 13px; color: #0f172a;" 
               value="${Number(item.salePrice || 0)}" min="0" step="0.01" 
               onchange="window.SalesModule.changeItemRate(${idx}, this.value)" 
               onfocus="this.select()" 
@@ -1913,27 +1975,27 @@
           </div>
         </td>
         <td class="pos-cell-qty text-center" style="text-align: center; vertical-align: middle;">
-          <div class="pos-row-qty-stepper" style="display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;">
-            <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustCartItemQty(${idx}, -1)" title="Decrease quantity">−</button>
+          <div class="pos-row-qty-stepper" style="display: inline-flex; align-items: center; justify-content: center; margin: 0 auto; border: 1.5px solid #cbd5e1; border-radius: 6px; background: #ffffff; overflow: hidden;">
+            <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustCartItemQty(${idx}, -1)" title="Decrease quantity" style="width: 26px; height: 28px; border: none; background: #f8fafc; color: #475569; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.15s ease;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f8fafc'">−</button>
             <input type="number" class="pos-qty-input-step font-num font-bold text-center" 
-              style="width: 44px; height: 26px; border: none; background: transparent; text-align: center;" 
+              style="width: 44px; height: 28px; border: none; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; background: transparent; text-align: center; font-size: 13px; color: #0f172a;" 
               value="${item.totalQty}" min="1" 
               onchange="window.SalesModule.changeItemQty(${idx}, this.value)" 
               onfocus="this.select()" 
               title="Quantity">
-            <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustCartItemQty(${idx}, 1)" title="Increase quantity">+</button>
+            <button type="button" class="pos-qty-btn-step" onclick="window.SalesModule.adjustCartItemQty(${idx}, 1)" title="Increase quantity" style="width: 26px; height: 28px; border: none; background: #f8fafc; color: #475569; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.15s ease;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f8fafc'">+</button>
           </div>
         </td>
         <td class="pos-cell-disc text-center" style="text-align: center; vertical-align: middle;">
-          <div class="disc-dual-wrap" style="display: inline-flex; align-items: center; justify-content: center; gap: 3px; margin: 0 auto;">
+          <div class="disc-dual-wrap" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; margin: 0 auto;">
             <button type="button" class="btn-xs font-bold" onclick="window.SalesModule.toggleItemDiscType(${idx})" 
-              style="padding: 2px 5px; font-size: 10px; border-radius: 4px; border: 1px solid #c4b5fd; background: ${isFlatDisc ? '#f3e8ff' : '#e0e7ff'}; color: #6d28d9; cursor: pointer;" 
+              style="padding: 3px 6px; font-size: 10.5px; border-radius: 5px; border: 1px solid #c4b5fd; background: ${isFlatDisc ? '#f3e8ff' : '#e0e7ff'}; color: #6d28d9; cursor: pointer;" 
               title="Click to toggle between Percent (%) and Flat Rupee (Rs) discount">
               ${isFlatDisc ? 'Rs' : '%'}
             </button>
             <div class="disc-sub-wrap" style="position: relative; display: inline-flex; align-items: center;">
               <input type="number" class="pos-inline-inp disc-val-input font-num text-center font-bold" 
-                style="width: 58px; height: 28px; padding: 2px 14px 2px 4px; border: 1px solid #cbd5e1; border-radius: 5px; text-align: center; font-size: 12px; font-weight: 700;" 
+                style="width: 58px; height: 30px; padding: 2px 14px 2px 4px; border: 1.5px solid #cbd5e1; border-radius: 6px; text-align: center; font-size: 12.5px; font-weight: 700; color: #0f172a;" 
                 value="${discValDisplay}" 
                 min="0" ${isFlatDisc ? ('max="' + listP + '"') : 'max="100"'} step="0.5" 
                 onchange="window.SalesModule.changeItemDisc(${idx}, this.value, '${item.discountType || 'percent'}')" 
@@ -1943,13 +2005,20 @@
             </div>
           </div>
         </td>
-        <td class="pos-cell-total font-num font-bold text-success" style="text-align: right; padding-right: 16px; font-size: 13.5px; white-space: nowrap; vertical-align: middle;">
-          Rs ${Number(item.netAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <td class="pos-cell-total font-num" style="text-align: right; padding-right: 14px; vertical-align: middle;">
+          <div class="font-bold text-success" style="font-size: 13.5px; line-height: 1.2; white-space: nowrap;">
+            Rs ${Number(item.netAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
           ${rowProfitPill}
         </td>
         <td class="pos-cell-del text-center" style="text-align: center; vertical-align: middle;">
-          <button type="button" class="pos-item-del-btn" onclick="window.SalesModule.removeItem(${idx})" title="Remove item from bill" style="display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;">
-            ✕
+          <button type="button" class="btn-icon-danger pos-item-del-btn" onclick="window.SalesModule.removeItem(${idx})" title="Remove item from bill" style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid #fecaca; background: #fef2f2; color: #dc2626; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto; transition: all 0.15s ease;" onmouseover="this.style.background='#fee2e2'; this.style.borderColor='#f87171'" onmouseout="this.style.background='#fef2f2'; this.style.borderColor='#fecaca'">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
           </button>
         </td>
       `;
@@ -1958,7 +2027,7 @@
 
     const headerPag = document.getElementById('posHeaderPaginationBar');
     if (headerPag) {
-      if (saleState.items.length > 5) {
+      if (saleState.items.length > 4) {
         headerPag.style.display = 'flex';
         const hInfo = document.getElementById('posHeaderPaginationInfo');
         const hPrev = document.getElementById('btnPosHeaderPrev');
@@ -1978,7 +2047,7 @@
         const pagNumbers = document.getElementById('posSlipPaginationNumbers');
         const btnPrev = document.getElementById('btnPosSlipPrev');
         const btnNext = document.getElementById('btnPosSlipNext');
-        if (pagInfo) pagInfo.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${saleState.items.length} entries`;
+        if (pagInfo) pagInfo.textContent = totalPages > 1 ? `Showing ${startIdx + 1} to ${endIdx} of ${saleState.items.length} entries (Page ${currentPage} of ${totalPages})` : `Showing ${startIdx + 1} to ${endIdx} of ${saleState.items.length} entries`;
         if (btnPrev) btnPrev.disabled = currentPage <= 1;
         if (btnNext) btnNext.disabled = currentPage >= totalPages;
         if (pagNumbers && window.renderPaginationNumbers) {
@@ -2031,6 +2100,30 @@
       marginPercent = Number(((estProfit / totalCost) * 100).toFixed(1));
     }
 
+    // List Method stats (Purchase Discount minus Sale Discount)
+    let totalListVal = 0;
+    let totalPurDiscAmt = 0;
+    let totalSaleDiscAmt = 0;
+
+    saleState.items.forEach(it => {
+      const q = Number(it.totalQty || 0);
+      const isWp = it.rateType === 'wholesale';
+      const rp = Number(it.retailPrice || 0);
+      const wp = Number(it.wholesalePrice || 0);
+      const lp = Number(it.listPrice || (isWp ? (wp || rp) : (rp || wp)) || it.salePrice || 0);
+      const cp = Number(it.costAtSale !== undefined ? it.costAtSale : (it.purchasePrice || 0));
+      const sp = Number(it.salePrice || 0);
+
+      totalListVal += (lp * q);
+      totalPurDiscAmt += (Math.max(0, lp - cp) * q);
+      totalSaleDiscAmt += (Math.max(0, lp - sp) * q);
+    });
+    totalSaleDiscAmt += specialDisc;
+
+    const avgPurDiscPct = totalListVal > 0 ? ((totalPurDiscAmt / totalListVal) * 100) : 0;
+    const avgSaleDiscPct = totalListVal > 0 ? ((totalSaleDiscAmt / totalListVal) * 100) : 0;
+    const overallSpread = avgPurDiscPct - avgSaleDiscPct;
+
     // Auto-fill Cash Received with Net Total if Cash sale and not manually modified
     const isCash = (el.paymentType?.value || 'Cash') === 'Cash';
     if (isCash && el.paidAmount && el.paidAmount.dataset.userEdited !== 'true') {
@@ -2060,12 +2153,25 @@
       el.totalProfitPreview.textContent = window.formatPKR ? window.formatPKR(estProfit) : `Rs ${estProfit.toFixed(2)}`;
       el.totalProfitPreview.style.color = estProfit >= 0 ? '#15803d' : '#dc2626';
     }
+    const isListMethod = (saleState.profitMethod === 'list');
+    const profitPillLabel = document.getElementById('saleProfitPillLabel') || el.saleProfitPillLabel;
+    if (profitPillLabel) {
+      profitPillLabel.textContent = isListMethod ? 'Est. Profit (List Spread):' : 'Est. Profit (Direct):';
+    }
+
     const marginBadge = document.getElementById('saleTotalProfitMarginBadge') || el.totalProfitMarginBadge;
     if (marginBadge) {
-      marginBadge.textContent = `${marginPercent >= 0 ? '+' : ''}${marginPercent.toFixed(1)}%`;
-      marginBadge.style.background = marginPercent >= 0 ? '#dcfce7' : '#fee2e2';
-      marginBadge.style.color = marginPercent >= 0 ? '#166534' : '#991b1b';
-      marginBadge.title = `Profit Margin: ${marginPercent.toFixed(1)}% | Profit: Rs ${estProfit.toFixed(2)} | Total Cost: Rs ${totalCost.toFixed(2)}`;
+      if (isListMethod) {
+        marginBadge.textContent = `${overallSpread >= 0 ? '+' : ''}${overallSpread.toFixed(1)}% Spread`;
+        marginBadge.style.background = overallSpread >= 0 ? '#dcfce7' : '#fee2e2';
+        marginBadge.style.color = overallSpread >= 0 ? '#166534' : '#991b1b';
+        marginBadge.title = `List Method: Purchase Discount (${avgPurDiscPct.toFixed(1)}%) - Sale Discount (${avgSaleDiscPct.toFixed(1)}%) = Spread ${overallSpread.toFixed(1)}%\nPur Discount: Rs ${totalPurDiscAmt.toFixed(2)} - Sale Discount: Rs ${totalSaleDiscAmt.toFixed(2)} = Profit Rs ${estProfit.toFixed(2)}`;
+      } else {
+        marginBadge.textContent = `${marginPercent >= 0 ? '+' : ''}${marginPercent.toFixed(1)}% Margin`;
+        marginBadge.style.background = marginPercent >= 0 ? '#dcfce7' : '#fee2e2';
+        marginBadge.style.color = marginPercent >= 0 ? '#166534' : '#991b1b';
+        marginBadge.title = `Direct Margin: ${marginPercent.toFixed(1)}% | Net Total: Rs ${netTotal.toFixed(2)} - Total Cost: Rs ${totalCost.toFixed(2)} = Profit Rs ${estProfit.toFixed(2)}`;
+      }
     }
 
     if (el.grossTotal) el.grossTotal.textContent = window.formatPKR ? window.formatPKR(gross) : `Rs ${gross.toFixed(2)}`;
@@ -2273,7 +2379,8 @@
         netAmount: net,
         paidAmount: paid,
         balanceDue: balanceDue,
-        billStatus: chosenStatus
+        billStatus: chosenStatus,
+        profitMethod: saleState.profitMethod || 'direct'
       };
 
       let res;
@@ -3869,6 +3976,7 @@
       el.saleBillStatus.value = saleState.billStatus;
       updateBillStatusSelectStyle(saleState.billStatus);
     }
+    setProfitMethod(sale.profitMethod || 'direct');
 
     if (el.partyTypeSelect) el.partyTypeSelect.value = sale.partyTypeId || '';
     selectSalePartyType(sale.partyTypeId || '');
@@ -4189,18 +4297,27 @@
     // Connect with Find Product Window callback
     if (window.findProductAPI?.onProductSelected) {
       window.findProductAPI.onProductSelected((product) => {
-        const isSaleActive = window.currentTab === 'sale' ||
-          (document.getElementById('salesView') && !document.getElementById('salesView').classList.contains('hidden'));
+        const salesView = document.getElementById('salesView');
+        const isSaleActive = (salesView && salesView.classList.contains('active')) || (window.currentTab === 'sale');
 
-        if (isSaleActive) {
-          if (currentSaleSubTab === 'return') {
-            addReturnProductToCart(product.id || product.code, 1);
-            selectReturnProduct(product, false);
-          } else {
-            const rateMode = product._chosenRateType || saleState.rateMode || 'retail';
-            addProductToCart(product.id || product.code, 1, rateMode, true);
-            selectProduct(product, false);
-          }
+        const isModalOpen = (
+          (document.getElementById('modalEstimate') && !document.getElementById('modalEstimate').classList.contains('hidden')) ||
+          (document.getElementById('modalClosing') && !document.getElementById('modalClosing').classList.contains('hidden')) ||
+          (document.getElementById('modalClaims') && !document.getElementById('modalClaims').classList.contains('hidden')) ||
+          (document.getElementById('modalExpenses') && !document.getElementById('modalExpenses').classList.contains('hidden'))
+        );
+
+        if (!isSaleActive || isModalOpen) {
+          return;
+        }
+
+        if (currentSaleSubTab === 'return') {
+          addReturnProductToCart(product.id || product.code, 1);
+          selectReturnProduct(product, false);
+        } else {
+          const rateMode = product._chosenRateType || saleState.rateMode || 'retail';
+          addProductToCart(product.id || product.code, 1, rateMode, true);
+          selectProduct(product, false);
         }
       });
     }
@@ -4286,7 +4403,7 @@
     selectedCustomer: null,
     returnsList: [],
     slipCurrentPage: 1,
-    slipPageSize: 5
+    slipPageSize: 4
   };
 
   const retEl = {};
@@ -4570,7 +4687,7 @@
       });
     }
 
-    const pageSize = returnState.slipPageSize || 5;
+    const pageSize = returnState.slipPageSize || 4;
     returnState.slipCurrentPage = Math.ceil(returnState.items.length / pageSize) || 1;
 
     renderReturnItemsTable();
@@ -4774,7 +4891,7 @@
     const qty = Math.max(1, Number(qtyToAdd) || 1);
 
     const existingIdx = returnState.items.findIndex(it => String(it.productId) === String(p.id) || it.productCode === p.code);
-    const pageSize = returnState.slipPageSize || 5;
+    const pageSize = returnState.slipPageSize || 4;
     if (existingIdx !== -1) {
       returnState.items[existingIdx].totalQty += qty;
       returnState.items[existingIdx].returnRate = rate;
@@ -4918,7 +5035,7 @@
   function removeReturnItem(idx) {
     if (idx >= 0 && idx < returnState.items.length) {
       returnState.items.splice(idx, 1);
-      const pageSize = returnState.slipPageSize || 5;
+      const pageSize = returnState.slipPageSize || 4;
       const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
       if (returnState.slipCurrentPage > totalPages) {
         returnState.slipCurrentPage = totalPages;
@@ -4956,7 +5073,7 @@
 
     if (tbody) {
       tbody.innerHTML = '';
-      const pageSize = returnState.slipPageSize || 5;
+      const pageSize = returnState.slipPageSize || 4;
       const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
       if (!returnState.slipCurrentPage || returnState.slipCurrentPage < 1) returnState.slipCurrentPage = 1;
       if (returnState.slipCurrentPage > totalPages) returnState.slipCurrentPage = totalPages;
@@ -6060,6 +6177,8 @@ ${window.escapeHtml(cfg.footer)}
       initReturnModule();
     },
     loadEstimateIntoBill,
+    setProfitMethod,
+    getProfitMethod: () => saleState.profitMethod,
     renderA4SaleBill,
     renderThermalSaleBill,
     switchSubTab: switchSaleSubTab,
@@ -6170,7 +6289,7 @@ ${window.escapeHtml(cfg.footer)}
     },
     showPosRightView,
     changeSlipPage: (delta) => {
-      const pageSize = saleState.slipPageSize || 5;
+      const pageSize = saleState.slipPageSize || 4;
       const totalPages = Math.ceil(saleState.items.length / pageSize) || 1;
       const newPage = (saleState.slipCurrentPage || 1) + delta;
       if (newPage >= 1 && newPage <= totalPages) {
@@ -6179,7 +6298,7 @@ ${window.escapeHtml(cfg.footer)}
       }
     },
     changeReturnSlipPage: (delta) => {
-      const pageSize = returnState.slipPageSize || 5;
+      const pageSize = returnState.slipPageSize || 4;
       const totalPages = Math.ceil(returnState.items.length / pageSize) || 1;
       const newPage = (returnState.slipCurrentPage || 1) + delta;
       if (newPage >= 1 && newPage <= totalPages) {
