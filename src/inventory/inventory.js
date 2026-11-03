@@ -198,6 +198,14 @@ const inv = {
   piUnitSelect: document.getElementById('piUnitSelect'),
   piPackSize: document.getElementById('piPackSize'),
   piTaxPercent: document.getElementById('piTaxPercent'),
+  piPurchasePricingMode: document.getElementById('piPurchasePricingMode'),
+  piPurchaseDiscountPercent: document.getElementById('piPurchaseDiscountPercent'),
+  piPurchaseDiscountWrap: document.getElementById('piPurchaseDiscountWrap'),
+  piPricingModeHint: document.getElementById('piPricingModeHint'),
+  lblPiPurchasePrice: document.getElementById('lblPiPurchasePrice'),
+  lblPiProfitMargin: document.getElementById('lblPiProfitMargin'),
+  lblPiRetailPrice: document.getElementById('lblPiRetailPrice'),
+  lblPiWholesalePrice: document.getElementById('lblPiWholesalePrice'),
   piPurchasePrice: document.getElementById('piPurchasePrice'),
   piProfitMargin: document.getElementById('piProfitMargin'),
   piRetailPrice: document.getElementById('piRetailPrice'),
@@ -2730,28 +2738,106 @@ if (inv.piCategorySelect) {
   inv.piCategorySelect.addEventListener('change', updateProductSubCategoryDropdown);
 }
 
-// Live Profit Margin % and Retail Price Auto-Math
-function calcMarginFromRetail() {
-  const purchase = Number(inv.piPurchasePrice?.value) || 0;
-  const retail = Number(inv.piRetailPrice?.value) || 0;
-  if (purchase > 0) {
-    const margin = ((retail - purchase) / purchase) * 100;
-    if (inv.piProfitMargin) inv.piProfitMargin.value = margin.toFixed(2);
+// Product Modal Pricing Modes & Live Calculations
+function updateProductPricingModeUI() {
+  const mode = inv.piPurchasePricingMode?.value || 'direct';
+  const isListMode = (mode === 'list_discount');
+  const discWrap = document.getElementById('piPurchaseDiscountWrap') || inv.piPurchaseDiscountWrap;
+  const hintEl = document.getElementById('piPricingModeHint') || inv.piPricingModeHint;
+  const lblPurchase = document.getElementById('lblPiPurchasePrice') || inv.lblPiPurchasePrice;
+  const lblRetail = document.getElementById('lblPiRetailPrice') || inv.lblPiRetailPrice;
+  const inPurchase = inv.piPurchasePrice;
+  const inDiscount = inv.piPurchaseDiscountPercent;
+
+  if (isListMode) {
+    if (discWrap) discWrap.style.display = 'block';
+    if (inDiscount) inDiscount.disabled = false;
+    if (lblPurchase) lblPurchase.textContent = 'Actual Cost Price (Net)';
+    if (lblRetail) lblRetail.textContent = 'List Price (Retail / Quoted)';
+    if (hintEl) hintEl.textContent = 'List Price Mode: Quoted = List Price. Actual Cost = List - Disc%.';
+    if (inPurchase) {
+      inPurchase.readOnly = true;
+      inPurchase.style.backgroundColor = '#f1f5f9';
+      inPurchase.style.color = '#0f172a';
+      inPurchase.title = 'Calculated automatically: List Price * (1 - Discount%)';
+    }
+    recalculateProductPricingMath('modeChange');
+  } else {
+    if (discWrap) discWrap.style.display = 'none';
+    if (inDiscount) {
+      inDiscount.disabled = true;
+      inDiscount.value = '';
+    }
+    if (lblPurchase) lblPurchase.textContent = 'Purchase Price';
+    if (lblRetail) lblRetail.textContent = 'Retail Price';
+    if (hintEl) hintEl.textContent = 'Direct Rate Mode: Manual entry of purchase rate. Benchmark discount is disabled.';
+    if (inPurchase) {
+      inPurchase.readOnly = false;
+      inPurchase.style.backgroundColor = '#ffffff';
+      inPurchase.style.color = '';
+      inPurchase.title = 'Manual entry of purchase rate';
+    }
+    recalculateProductPricingMath('modeChange');
   }
+}
+
+function recalculateProductPricingMath(source) {
+  const mode = inv.piPurchasePricingMode?.value || 'direct';
+  if (mode === 'list_discount') {
+    // List Price Mode:
+    // Input: List Price (piRetailPrice), Benchmark Discount % (piPurchaseDiscountPercent)
+    // Output: Actual / Cost Price = List Price * (1 - Discount%)
+    // Display / Quoted Price = List Price (piRetailPrice)
+    const listPrice = Math.max(0, Number(inv.piRetailPrice?.value) || 0);
+    const discPct = Math.max(0, Math.min(100, Number(inv.piPurchaseDiscountPercent?.value) || 0));
+
+    // Actual Cost Price = List Price * (1 - Discount%)
+    const actualCost = Math.round(listPrice * (1 - (discPct / 100)) * 100) / 100;
+    if (inv.piPurchasePrice) {
+      inv.piPurchasePrice.value = actualCost.toFixed(2);
+    }
+    // Margin % = ((List Price - Actual Cost) / Actual Cost) * 100
+    if (inv.piProfitMargin) {
+      const margin = actualCost > 0 ? (((listPrice - actualCost) / actualCost) * 100) : 0;
+      inv.piProfitMargin.value = margin.toFixed(2);
+    }
+    // Wholesale price defaults to List Price if 0 or on initial list price entry
+    if (inv.piWholesalePrice && (Number(inv.piWholesalePrice.value) <= 0 || source === 'listInit')) {
+      inv.piWholesalePrice.value = listPrice.toFixed(2);
+    }
+  } else {
+    // Direct Rate Mode: Manual entry of purchase rate
+    if (source === 'margin') {
+      const purchase = Number(inv.piPurchasePrice?.value) || 0;
+      const margin = Number(inv.piProfitMargin?.value) || 0;
+      if (purchase > 0 && inv.piRetailPrice) {
+        const retail = purchase * (1 + (margin / 100));
+        inv.piRetailPrice.value = retail.toFixed(2);
+      }
+    } else {
+      const purchase = Number(inv.piPurchasePrice?.value) || 0;
+      const retail = Number(inv.piRetailPrice?.value) || 0;
+      if (purchase > 0 && inv.piProfitMargin) {
+        const margin = ((retail - purchase) / purchase) * 100;
+        inv.piProfitMargin.value = margin.toFixed(2);
+      }
+    }
+  }
+}
+
+function calcMarginFromRetail() {
+  recalculateProductPricingMath('retail');
 }
 
 function calcRetailFromMargin() {
-  const purchase = Number(inv.piPurchasePrice?.value) || 0;
-  const margin = Number(inv.piProfitMargin?.value) || 0;
-  if (purchase > 0) {
-    const retail = purchase * (1 + (margin / 100));
-    if (inv.piRetailPrice) inv.piRetailPrice.value = retail.toFixed(2);
-  }
+  recalculateProductPricingMath('margin');
 }
 
-if (inv.piPurchasePrice) inv.piPurchasePrice.addEventListener('input', calcMarginFromRetail);
-if (inv.piRetailPrice) inv.piRetailPrice.addEventListener('input', calcMarginFromRetail);
-if (inv.piProfitMargin) inv.piProfitMargin.addEventListener('input', calcRetailFromMargin);
+if (inv.piPurchasePricingMode) inv.piPurchasePricingMode.addEventListener('change', updateProductPricingModeUI);
+if (inv.piPurchaseDiscountPercent) inv.piPurchaseDiscountPercent.addEventListener('input', () => recalculateProductPricingMath('discount'));
+if (inv.piPurchasePrice) inv.piPurchasePrice.addEventListener('input', () => recalculateProductPricingMath('purchase'));
+if (inv.piRetailPrice) inv.piRetailPrice.addEventListener('input', () => recalculateProductPricingMath('retail'));
+if (inv.piProfitMargin) inv.piProfitMargin.addEventListener('input', () => recalculateProductPricingMath('margin'));
 
 // Barcode Generator
 if (inv.btnPiGenBarcode) {
@@ -2788,14 +2874,31 @@ function loadProductRecord(p) {
   if (inv.piPackingType) inv.piPackingType.value = p.packingType || 'Piece';
   if (inv.piUnitSelect) inv.piUnitSelect.value = p.unitId || '';
   if (inv.piPackSize) inv.piPackSize.value = p.packSize || 1;
-  if (inv.piPurchasePrice) inv.piPurchasePrice.value = Number(p.purchasePrice || 0).toFixed(2);
-  const piMode = document.getElementById('piPurchasePricingMode');
-  const piDisc = document.getElementById('piPurchaseDiscountPercent');
-  if (piMode) piMode.value = p.purchasePricingMode || 'direct';
-  if (piDisc) piDisc.value = (p.purchaseDiscountPercent !== undefined && p.purchaseDiscountPercent !== null) ? Number(p.purchaseDiscountPercent).toFixed(2) : '';
+
+  const piMode = document.getElementById('piPurchasePricingMode') || inv.piPurchasePricingMode;
+  const piDisc = document.getElementById('piPurchaseDiscountPercent') || inv.piPurchaseDiscountPercent;
+  const mode = p.purchasePricingMode === 'list_discount' ? 'list_discount' : 'direct';
+  if (piMode) piMode.value = mode;
+
+  const discVal = (p.purchaseDiscountPercent !== undefined && p.purchaseDiscountPercent !== null && p.purchaseDiscountPercent !== '')
+    ? Number(p.purchaseDiscountPercent)
+    : ((p.companyDiscountPercent !== undefined && p.companyDiscountPercent !== null && p.companyDiscountPercent !== '') ? Number(p.companyDiscountPercent) : '');
+  if (piDisc) piDisc.value = discVal !== '' ? Number(discVal).toFixed(2) : '';
+
+  const retPrice = Number(p.retailPrice !== undefined && p.retailPrice !== null ? p.retailPrice : (p.listPrice || 0));
+  if (inv.piRetailPrice) inv.piRetailPrice.value = retPrice.toFixed(2);
+  if (inv.piWholesalePrice) inv.piWholesalePrice.value = Number(p.wholesalePrice || retPrice || 0).toFixed(2);
+
+  // Actual Cost Price:
+  let costPrice = Number(p.purchasePrice || 0);
+  if (mode === 'list_discount' && discVal !== '' && retPrice > 0) {
+    costPrice = Math.round(retPrice * (1 - (Number(discVal) / 100)) * 100) / 100;
+  } else if (p.effectiveCost > 0) {
+    costPrice = Number(p.effectiveCost);
+  }
+  if (inv.piPurchasePrice) inv.piPurchasePrice.value = costPrice.toFixed(2);
   if (inv.piProfitMargin) inv.piProfitMargin.value = Number(p.profitMargin || 0).toFixed(2);
-  if (inv.piRetailPrice) inv.piRetailPrice.value = Number(p.retailPrice || 0).toFixed(2);
-  if (inv.piWholesalePrice) inv.piWholesalePrice.value = Number(p.wholesalePrice || 0).toFixed(2);
+
   if (inv.piAverageCost) inv.piAverageCost.value = Number(p.averageCost || 0).toFixed(2);
   if (inv.piMinStock) inv.piMinStock.value = p.minStock || 0;
   if (inv.piReorderLevel) inv.piReorderLevel.value = p.reorderLevel || 0;
@@ -2809,6 +2912,8 @@ function loadProductRecord(p) {
   if (inv.piBatchExpiry) inv.piBatchExpiry.checked = !!p.useBatchExpiry;
   if (inv.piLoosePackSize) inv.piLoosePackSize.checked = !!p.loosePackSize;
   if (inv.piInActive) inv.piInActive.checked = !!p.inActive;
+
+  updateProductPricingModeUI();
 }
 
 async function resetProductInfoForm() {
@@ -2828,6 +2933,13 @@ async function resetProductInfoForm() {
   if (inv.piRetailPrice) inv.piRetailPrice.value = '0.00';
   if (inv.piWholesalePrice) inv.piWholesalePrice.value = '0.00';
   if (inv.piStockQty) inv.piStockQty.value = 0;
+
+  const piMode = document.getElementById('piPurchasePricingMode') || inv.piPurchasePricingMode;
+  const piDisc = document.getElementById('piPurchaseDiscountPercent') || inv.piPurchaseDiscountPercent;
+  if (piMode) piMode.value = 'direct';
+  if (piDisc) piDisc.value = '';
+  updateProductPricingModeUI();
+
   if (inv.piFormModeBadge) {
     inv.piFormModeBadge.textContent = `New Product (#${nextCode})`;
     inv.piFormModeBadge.className = 'badge-price-pill bg-green-pill font-num font-bold';
@@ -2851,6 +2963,29 @@ async function saveProductRecord() {
   const unitSelect = inv.piUnitSelect;
   const unitName = unitSelect?.options[unitSelect.selectedIndex]?.text || '';
 
+  const pricingMode = inv.piPurchasePricingMode?.value || 'direct';
+  const discPercent = (inv.piPurchaseDiscountPercent?.value !== '' && inv.piPurchaseDiscountPercent?.value !== undefined && inv.piPurchaseDiscountPercent?.value !== null)
+    ? Number(inv.piPurchaseDiscountPercent.value)
+    : null;
+
+  const rawRetail = Number(inv.piRetailPrice?.value) || 0;
+  const rawWholesale = Number(inv.piWholesalePrice?.value) || 0;
+  let finalRetail = rawRetail;
+  let finalWholesale = rawWholesale;
+  let actualCost = Number(inv.piPurchasePrice?.value) || 0;
+  let listPrice = rawRetail;
+
+  if (pricingMode === 'list_discount') {
+    // 1. List Price must remain quoted base reference
+    // 2. Retail Price & Sale Price must remain set to List Price (e.g. 1,200). DO NOT overwrite with discounted value!
+    finalRetail = listPrice;
+    if (finalWholesale <= 0) finalWholesale = listPrice;
+    // 3. Calculated discounted amount ONLY assigned to Actual Price (Purchase / Cost Price)
+    if (discPercent !== null && listPrice > 0) {
+      actualCost = Math.round(listPrice * (1 - (discPercent / 100)) * 100) / 100;
+    }
+  }
+
   const isNew = currentProductFormMode === 'new';
   const prod = {
     id: !isNew ? currentEditingProductId : undefined,
@@ -2868,11 +3003,16 @@ async function saveProductRecord() {
     unitId: inv.piUnitSelect?.value || '',
     unitName,
     packSize: Number(inv.piPackSize?.value) || 1,
-    purchasePrice: Number(inv.piPurchasePrice?.value) || 0,
+    purchasePricingMode: pricingMode,
+    purchaseDiscountPercent: pricingMode === 'list_discount' ? discPercent : null,
+    companyDiscountPercent: pricingMode === 'list_discount' ? discPercent : null,
+    listPrice: listPrice,
+    purchasePrice: actualCost,       // Actual Price (Purchase / Cost Price) = 240
+    effectiveCost: actualCost,       // Cost = 240
     profitMargin: Number(inv.piProfitMargin?.value) || 0,
-    retailPrice: Number(inv.piRetailPrice?.value) || 0,
-    wholesalePrice: Number(inv.piWholesalePrice?.value) || 0,
-    averageCost: Number(inv.piAverageCost?.value) || 0,
+    retailPrice: finalRetail,        // Quoted / Retail Price = 1,200
+    wholesalePrice: finalWholesale,  // Wholesale Price = 1,200
+    averageCost: actualCost,
     minStock: Number(inv.piMinStock?.value) || 0,
     reorderLevel: Number(inv.piReorderLevel?.value) || 0,
     stockQty: Number(inv.piStockQty?.value) || 0,
