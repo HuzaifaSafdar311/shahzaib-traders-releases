@@ -1171,11 +1171,18 @@ function savePurchase(purchaseData, items = []) {
       if (packSize <= 0) packSize = 1;
       const incomingQty = (Number(item.packQty || item.pQty || 0) * packSize) + Number(item.unitQty || item.uQty || 0) + Number(item.bonus || 0);
 
-      const itemPricingMode = item.pricingMode === 'list_discount' ? 'list_discount' : 'direct';
-      const itemListPrice = Number(item.listPrice) || (itemPricingMode === 'list_discount' ? Number(item.retailPrice || 0) : 0);
+      const itemDiscVal = Number(item.companyDiscountPercent !== undefined && item.companyDiscountPercent !== null ? item.companyDiscountPercent : (item.discountValue !== undefined ? item.discountValue : (Number(item.discountPercent) || 0))) || 0;
+      const itemPricingMode = (item.pricingMode === 'list_discount' || itemDiscVal > 0) ? 'list_discount' : 'direct';
+      const itemListPrice = Number(item.listPrice) || (itemPricingMode === 'list_discount' ? Number(item.retailPrice || item.tradePrice || item.purchasePrice || 0) : tp);
       const itemDiscType = item.discountType === 'flat' ? 'flat' : 'percent';
-      const itemDiscVal = Number(item.discountValue !== undefined ? item.discountValue : (itemPricingMode === 'list_discount' ? item.discountPercent : 0)) || 0;
-      const itemNetCost = Number(item.netCost !== undefined ? item.netCost : tp) || tp;
+      let itemNetCost = Number(item.effectiveCost !== undefined && item.effectiveCost !== null && Number(item.effectiveCost) > 0 ? item.effectiveCost : (item.netCost !== undefined ? item.netCost : 0));
+      if (itemNetCost <= 0 || (itemPricingMode === 'list_discount' && itemNetCost === itemListPrice && itemDiscVal > 0)) {
+        if (itemPricingMode === 'list_discount' && itemListPrice > 0 && itemDiscVal > 0) {
+          itemNetCost = Math.round((itemListPrice * (1 - (itemDiscVal / 100))) * 100) / 100;
+        } else {
+          itemNetCost = tp;
+        }
+      }
 
       jsonData.purchase_items.push({
         id: `pi-${Date.now()}-${sr}`,
@@ -1380,13 +1387,13 @@ function savePurchase(purchaseData, items = []) {
       if (packSize <= 0) packSize = 1;
       const incomingQty = (Number(item.packQty || item.pQty || 0) * packSize) + Number(item.unitQty || item.uQty || 0) + Number(item.bonus || 0);
 
-      const itemPricingMode = (item.pricingMode === 'list_discount' || (Number(item.companyDiscountPercent) > 0)) ? 'list_discount' : 'direct';
-      const itemListPrice = Number(item.listPrice) || (itemPricingMode === 'list_discount' ? Number(item.retailPrice || item.purchasePrice || 0) : tp);
+      const itemDiscVal = Number(item.companyDiscountPercent !== undefined && item.companyDiscountPercent !== null ? item.companyDiscountPercent : (item.discountValue !== undefined ? item.discountValue : (Number(item.discountPercent) || 0))) || 0;
+      const itemPricingMode = (item.pricingMode === 'list_discount' || itemDiscVal > 0) ? 'list_discount' : 'direct';
+      const itemListPrice = Number(item.listPrice) || (itemPricingMode === 'list_discount' ? Number(item.retailPrice || item.tradePrice || item.purchasePrice || 0) : tp);
       const itemDiscType = item.discountType === 'flat' ? 'flat' : 'percent';
-      const itemDiscVal = Number(item.companyDiscountPercent !== undefined && item.companyDiscountPercent !== null ? item.companyDiscountPercent : (item.discountValue !== undefined ? item.discountValue : (itemPricingMode === 'list_discount' ? item.discountPercent : 0))) || 0;
-      let itemEffectiveCost = Number(item.effectiveCost !== undefined && item.effectiveCost !== null ? item.effectiveCost : (item.netCost !== undefined ? item.netCost : 0));
-      if (itemEffectiveCost <= 0) {
-        if (itemPricingMode === 'list_discount' && itemListPrice > 0) {
+      let itemEffectiveCost = Number(item.effectiveCost !== undefined && item.effectiveCost !== null && Number(item.effectiveCost) > 0 ? item.effectiveCost : (item.netCost !== undefined ? item.netCost : 0));
+      if (itemEffectiveCost <= 0 || (itemPricingMode === 'list_discount' && itemEffectiveCost === itemListPrice && itemDiscVal > 0)) {
+        if (itemPricingMode === 'list_discount' && itemListPrice > 0 && itemDiscVal > 0) {
           itemEffectiveCost = Math.round((itemListPrice * (1 - (itemDiscVal / 100))) * 100) / 100;
         } else {
           itemEffectiveCost = tp;

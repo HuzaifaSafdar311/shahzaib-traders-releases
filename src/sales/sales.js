@@ -187,13 +187,21 @@
     it.rateType = mode;
     const wp = Number(prod.wholesalePrice || 0);
     const rp = Number(prod.retailPrice || 0);
-    const newRate = mode === 'wholesale' ? (wp || rp) : (rp || wp);
+    const baseRate = mode === 'wholesale' ? (wp || rp) : (rp || wp);
+    it.listPrice = baseRate;
 
-    it.salePrice = newRate;
-    const discAmt = (newRate * it.totalQty) * ((it.discountPercent || 0) / 100);
-    it.discountAmount = discAmt;
-    it.netAmount = (newRate * it.totalQty) - discAmt;
+    const discPct = Number(it.discountPercent) || 0;
+    if (discPct > 0) {
+      const netRate = baseRate - (baseRate * (discPct / 100));
+      it.salePrice = Math.max(0, Math.round(netRate * 100) / 100);
+      it.discountAmount = Math.round(((baseRate - it.salePrice) * it.totalQty) * 100) / 100;
+    } else {
+      it.salePrice = baseRate;
+      it.discountAmount = 0;
+    }
+    it.netAmount = Math.round((it.salePrice * it.totalQty) * 100) / 100;
 
+    syncSpecialDiscountInputsFromCart();
     renderItemsTable();
     updateVoucherTotals();
   }
@@ -203,19 +211,20 @@
     if (!it) return;
     const rate = Math.max(0, Number(newRate) || 0);
     it.salePrice = Math.round(rate * 100) / 100;
-    const listP = Number(it.listPrice || it.retailPrice || it.salePrice || 0);
+    const isWp = it.rateType === 'wholesale';
+    const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
 
     if (listP > 0) {
       if (it.discountType === 'flat') {
         const flat = Math.max(0, Math.min(listP, listP - rate));
         it.discountValue = Math.round(flat * 100) / 100;
-        it.discountAmount = Math.round((flat * it.totalQty) * 100) / 100;
+        it.discountAmount = Math.round((flat * (Number(it.totalQty) || 1)) * 100) / 100;
         it.discountPercent = Number((((listP - rate) / listP) * 100).toFixed(2));
       } else {
         const pct = Math.max(0, Math.min(100, (((listP - rate) / listP) * 100)));
         it.discountValue = Number(pct.toFixed(2));
         it.discountPercent = Number(pct.toFixed(2));
-        it.discountAmount = Math.round(((listP - rate) * it.totalQty) * 100) / 100;
+        it.discountAmount = Math.round(((listP - rate) * (Number(it.totalQty) || 1)) * 100) / 100;
       }
     } else {
       it.discountValue = 0;
@@ -223,7 +232,8 @@
       it.discountAmount = 0;
     }
 
-    it.netAmount = Math.round((it.salePrice * it.totalQty) * 100) / 100;
+    it.netAmount = Math.round((it.salePrice * (Number(it.totalQty) || 1)) * 100) / 100;
+    syncSpecialDiscountInputsFromCart();
     renderItemsTable();
     updateVoucherTotals();
   }
@@ -242,10 +252,65 @@
     it.packQty = Math.floor(qty / packSize);
     it.unitQty = qty % packSize;
 
-    it.netAmount = Math.round((Number(it.salePrice || 0) * qty) * 100) / 100;
-    const listP = Number(it.listPrice || it.retailPrice || it.salePrice || 0);
+    const isWp = it.rateType === 'wholesale';
+    const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
     if (listP > 0) {
       it.discountAmount = Math.round(((listP - Number(it.salePrice || 0)) * qty) * 100) / 100;
+    }
+    it.netAmount = Math.round((Number(it.salePrice || 0) * qty) * 100) / 100;
+
+    syncSpecialDiscountInputsFromCart();
+    renderItemsTable();
+    updateVoucherTotals();
+  }
+
+  function syncSpecialDiscountInputsFromCart() {
+    if (!saleState.items || saleState.items.length === 0) return;
+    let catalogGross = 0;
+    let totalDiscAmt = 0;
+    saleState.items.forEach(it => {
+      const isWp = it.rateType === 'wholesale';
+      const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
+      const q = Number(it.totalQty || 0);
+      catalogGross += (listP * q);
+      totalDiscAmt += Number(it.discountAmount || 0);
+    });
+    const avgPct = catalogGross > 0 ? ((totalDiscAmt / catalogGross) * 100) : 0;
+    const specPctInput = document.getElementById('saleSpecialDiscountPercent') || el.specialDiscountPercent;
+    const specDiscAmtInput = document.getElementById('saleSpecialDiscount') || el.specialDiscount;
+    if (specPctInput && document.activeElement !== specPctInput) {
+      specPctInput.value = avgPct > 0 ? (Number.isInteger(avgPct) ? avgPct : Number(avgPct.toFixed(2))) : 0;
+    }
+    if (specDiscAmtInput && document.activeElement !== specDiscAmtInput) {
+      specDiscAmtInput.value = Math.round(totalDiscAmt);
+    }
+  }
+
+  function applySpecialDiscountToCart(pct, syncInput = true, origin = null) {
+    const discountPct = Math.max(0, Math.min(100, Number(pct) || 0));
+    let totalDiscAmt = 0;
+    (saleState.items || []).forEach(it => {
+      const isWp = it.rateType === 'wholesale';
+      const baseRate = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
+      it.discountType = 'percent';
+      it.discountValue = discountPct;
+      it.discountPercent = discountPct;
+      const netRate = baseRate - (baseRate * (discountPct / 100));
+      it.salePrice = Math.max(0, Math.round(netRate * 100) / 100);
+      const lineDiscAmt = Math.round(((baseRate - it.salePrice) * (Number(it.totalQty) || 1)) * 100) / 100;
+      it.discountAmount = lineDiscAmt;
+      it.netAmount = Math.max(0, Math.round((it.salePrice * (Number(it.totalQty) || 1)) * 100) / 100);
+      totalDiscAmt += lineDiscAmt;
+    });
+
+    const specPctInput = document.getElementById('saleSpecialDiscountPercent') || el.specialDiscountPercent;
+    const specDiscAmtInput = document.getElementById('saleSpecialDiscount') || el.specialDiscount;
+
+    if (origin !== 'percent' && specPctInput && document.activeElement !== specPctInput) {
+      specPctInput.value = discountPct > 0 ? (Number.isInteger(discountPct) ? discountPct : Number(discountPct.toFixed(2))) : 0;
+    }
+    if (origin !== 'amount' && specDiscAmtInput && document.activeElement !== specDiscAmtInput) {
+      specDiscAmtInput.value = Math.round(totalDiscAmt);
     }
 
     renderItemsTable();
@@ -258,7 +323,8 @@
     if (discType) it.discountType = discType;
     else if (!it.discountType) it.discountType = 'percent';
 
-    const listP = Number(it.listPrice || it.retailPrice || it.salePrice || 0);
+    const isWp = it.rateType === 'wholesale';
+    const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
     const val = Math.max(0, Number(discVal) || 0);
     it.discountValue = val;
 
@@ -267,16 +333,17 @@
       it.discountPercent = pct;
       const netRate = listP - (listP * (pct / 100));
       it.salePrice = Math.max(0, Math.round(netRate * 100) / 100);
-      it.discountAmount = Math.round(((listP - it.salePrice) * it.totalQty) * 100) / 100;
+      it.discountAmount = Math.round(((listP - it.salePrice) * (Number(it.totalQty) || 1)) * 100) / 100;
     } else {
       const flat = Math.min(listP, val);
       it.discountValue = flat;
       it.salePrice = Math.max(0, Math.round((listP - flat) * 100) / 100);
-      it.discountAmount = Math.round((flat * it.totalQty) * 100) / 100;
+      it.discountAmount = Math.round((flat * (Number(it.totalQty) || 1)) * 100) / 100;
       it.discountPercent = listP > 0 ? Number((((listP - it.salePrice) / listP) * 100).toFixed(2)) : 0;
     }
 
-    it.netAmount = Math.round((it.salePrice * it.totalQty) * 100) / 100;
+    it.netAmount = Math.round((it.salePrice * (Number(it.totalQty) || 1)) * 100) / 100;
+    syncSpecialDiscountInputsFromCart();
     renderItemsTable();
     updateVoucherTotals();
   }
@@ -284,7 +351,8 @@
   function toggleItemDiscType(idx) {
     const it = saleState.items[idx];
     if (!it) return;
-    const listP = Number(it.listPrice || it.retailPrice || it.salePrice || 0);
+    const isWp = it.rateType === 'wholesale';
+    const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
     if (it.discountType === 'percent') {
       it.discountType = 'flat';
       const flat = listP > 0 ? (listP * ((Number(it.discountValue) || 0) / 100)) : 0;
@@ -300,12 +368,17 @@
   function changeItemDiscAmt(idx, discAmt) {
     const it = saleState.items[idx];
     if (!it) return;
-    const gross = (Number(it.salePrice) || 0) * (Number(it.totalQty) || 0);
+    const isWp = it.rateType === 'wholesale';
+    const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
+    const gross = listP * (Number(it.totalQty) || 1);
     const amt = Math.max(0, Math.min(gross, Number(discAmt) || 0));
     it.discountAmount = Math.round(amt * 100) / 100;
     it.discountPercent = gross > 0 ? Number(((amt / gross) * 100).toFixed(2)) : 0;
-    it.netAmount = Math.max(0, gross - it.discountAmount);
+    const perUnitDisc = (Number(it.totalQty) || 1) > 0 ? (amt / (Number(it.totalQty) || 1)) : 0;
+    it.salePrice = Math.max(0, Math.round((listP - perUnitDisc) * 100) / 100);
+    it.netAmount = Math.max(0, Math.round((it.salePrice * (Number(it.totalQty) || 1)) * 100) / 100);
 
+    syncSpecialDiscountInputsFromCart();
     renderItemsTable();
     updateVoucherTotals();
   }
@@ -317,22 +390,63 @@
       if (window.showToast) window.showToast('Please add products to the bill first.', 'warning');
       return;
     }
-    saleState.items.forEach(it => {
-      it.discountPercent = pct;
-      const gross = (Number(it.salePrice) || 0) * (Number(it.totalQty) || 0);
-      const discAmt = gross * (pct / 100);
-      it.discountAmount = Math.round(discAmt * 100) / 100;
-      it.netAmount = Math.max(0, gross - it.discountAmount);
-    });
+    applySpecialDiscountToCart(pct, true);
+    if (window.showToast) window.showToast(`Applied ${pct}% discount across all ${saleState.items.length} items!`, 'success');
+  }
 
-    // Reset overall special discount so it is not double counted
-    const specDisc = document.getElementById('saleSpecialDiscount');
-    if (specDisc) specDisc.value = 0;
-    if (specPctInput) specPctInput.value = 0;
+  async function editItemPurDisc(idx) {
+    const it = saleState.items[idx];
+    if (!it) return;
+    const isWp = it.rateType === 'wholesale';
+    const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
+    const currentDisc = Number(it.purchaseDiscountAtSale || 0);
+    const input = prompt(
+      `Set Purchase Benchmark Discount % for:\n"${it.productTitle}"\n\nList Price: Rs ${listP.toFixed(2)}\nCurrent Purchase Discount: ${currentDisc}%\n\nEnter new Purchase Discount %:`,
+      currentDisc > 0 ? String(currentDisc) : ''
+    );
+    if (input === null || input.trim() === '') return;
+    const newDisc = parseFloat(input.trim());
+    if (isNaN(newDisc) || newDisc < 0 || newDisc > 100) {
+      if (window.showToast) window.showToast('Please enter a valid discount percentage (0 to 100).', 'error');
+      return;
+    }
+    const effectiveCost = Math.round((listP * (1 - (newDisc / 100))) * 100) / 100;
+    it.purchaseDiscountAtSale = newDisc;
+    it.effectiveCost = effectiveCost;
+    it.costAtSale = effectiveCost;
+    it.purchasePrice = effectiveCost;
+
+    try {
+      if (window.api?.updateProductPrices && it.productId) {
+        await window.api.updateProductPrices(it.productId, {
+          purchasePrice: effectiveCost,
+          wholesalePrice: it.wholesalePrice || listP,
+          retailPrice: it.retailPrice || listP,
+          listPrice: listP,
+          purchasePricingMode: 'list_discount',
+          purchaseDiscountPercent: newDisc,
+          companyDiscountPercent: newDisc,
+          effectiveCost: effectiveCost
+        });
+      }
+      const prod = (window.appData?.products || []).find(p => String(p.id) === String(it.productId) || String(p.code) === String(it.productCode));
+      if (prod) {
+        prod.purchasePrice = effectiveCost;
+        prod.purchaseDiscountPercent = newDisc;
+        prod.companyDiscountPercent = newDisc;
+        prod.effectiveCost = effectiveCost;
+        prod.listPrice = listP;
+        prod.purchasePricingMode = 'list_discount';
+      }
+    } catch (err) {
+      console.warn('Failed to update product price in DB:', err);
+    }
 
     renderItemsTable();
     updateVoucherTotals();
-    if (window.showToast) window.showToast(`Applied ${pct}% discount across all ${saleState.items.length} items!`, 'success');
+    if (window.showToast) {
+      window.showToast(`Updated "${it.productTitle}" purchase discount to ${newDisc}% (Pur Cost: Rs ${effectiveCost.toFixed(2)})`, 'success');
+    }
   }
 
   // ========================================================
@@ -588,14 +702,17 @@
     }
 
     if (existingIdx !== -1) {
-      saleState.items[existingIdx].totalQty += qtyToAdd;
+      const exIt = saleState.items[existingIdx];
+      exIt.totalQty += qtyToAdd;
       const packSize = p.packSize || 1;
-      saleState.items[existingIdx].packQty = Math.floor(saleState.items[existingIdx].totalQty / packSize);
-      saleState.items[existingIdx].unitQty = saleState.items[existingIdx].totalQty % packSize;
-      const lineGross = saleState.items[existingIdx].totalQty * saleState.items[existingIdx].salePrice;
-      const discAmt = lineGross * ((saleState.items[existingIdx].discountPercent || 0) / 100);
-      saleState.items[existingIdx].discountAmount = discAmt;
-      saleState.items[existingIdx].netAmount = lineGross - discAmt;
+      exIt.packQty = Math.floor(exIt.totalQty / packSize);
+      exIt.unitQty = exIt.totalQty % packSize;
+      const isWp = exIt.rateType === 'wholesale';
+      const listP = Number(exIt.listPrice || (isWp ? (exIt.wholesalePrice || exIt.retailPrice) : (exIt.retailPrice || exIt.wholesalePrice)) || exIt.salePrice || 0);
+      if (listP > 0) {
+        exIt.discountAmount = Math.round(((listP - Number(exIt.salePrice || 0)) * exIt.totalQty) * 100) / 100;
+      }
+      exIt.netAmount = Math.round((Number(exIt.salePrice || 0) * exIt.totalQty) * 100) / 100;
       const pageSize = saleState.slipPageSize || 10;
       saleState.slipCurrentPage = Math.floor(existingIdx / pageSize) + 1;
     } else {
@@ -604,20 +721,34 @@
 
       // Resolve Actual Cost Price:
       let actualCost = 0;
-      if (p.effectiveCost !== undefined && p.effectiveCost !== null && Number(p.effectiveCost) > 0) {
+      let purDiscVal = Number(p.purchaseDiscountPercent !== undefined && p.purchaseDiscountPercent !== null ? p.purchaseDiscountPercent : p.companyDiscountPercent) || 0;
+      if (purDiscVal > 0 && listPrice > 0) {
+        actualCost = Math.round(listPrice * (1 - (purDiscVal / 100)) * 100) / 100;
+      } else if (p.effectiveCost !== undefined && p.effectiveCost !== null && Number(p.effectiveCost) > 0 && Number(p.effectiveCost) < listPrice) {
         actualCost = Number(p.effectiveCost);
-      } else if (p.purchasePricingMode === 'list_discount') {
-        const disc = Number(p.purchaseDiscountPercent !== undefined && p.purchaseDiscountPercent !== null ? p.purchaseDiscountPercent : p.companyDiscountPercent) || 0;
-        if (disc > 0 && listPrice > 0) {
-          actualCost = Math.round(listPrice * (1 - (disc / 100)) * 100) / 100;
-        } else {
-          actualCost = Number(p.purchasePrice || p.averageCost || 0);
-        }
+        purDiscVal = listPrice > 0 ? Number((((listPrice - actualCost) / listPrice) * 100).toFixed(2)) : 0;
+      } else if (p.purchasePrice !== undefined && p.purchasePrice !== null && Number(p.purchasePrice) > 0 && Number(p.purchasePrice) < listPrice) {
+        actualCost = Number(p.purchasePrice);
+        purDiscVal = listPrice > 0 ? Number((((listPrice - actualCost) / listPrice) * 100).toFixed(2)) : 0;
       } else {
-        actualCost = Number(p.purchasePrice || p.averageCost || 0);
+        actualCost = Number(p.effectiveCost || p.purchasePrice || p.averageCost || listPrice || 0);
       }
 
-      const purDiscAtSale = (listPrice > 0 && actualCost > 0) ? Number((((listPrice - actualCost) / listPrice) * 100).toFixed(2)) : (Number(p.purchaseDiscountPercent || p.companyDiscountPercent) || 0);
+      const purDiscAtSale = purDiscVal > 0 ? purDiscVal : ((listPrice > 0 && actualCost > 0 && actualCost < listPrice) ? Number((((listPrice - actualCost) / listPrice) * 100).toFixed(2)) : 0);
+
+      // Inherit active bill discount percentage if set:
+      const activeBillDisc = Number(el.specialDiscountPercent?.value) || 0;
+      let itemDiscPct = 0;
+      let itemSalePrice = rate;
+      let itemDiscAmt = 0;
+      let itemNet = grossLine;
+      if (activeBillDisc > 0) {
+        itemDiscPct = activeBillDisc;
+        const netRate = listPrice - (listPrice * (activeBillDisc / 100));
+        itemSalePrice = Math.max(0, Math.round(netRate * 100) / 100);
+        itemDiscAmt = Math.round(((listPrice - itemSalePrice) * qtyToAdd) * 100) / 100;
+        itemNet = Math.max(0, Math.round((itemSalePrice * qtyToAdd) * 100) / 100);
+      }
 
       saleState.items.push({
         id: `si-${Date.now()}-${saleState.items.length + 1}`,
@@ -635,19 +766,20 @@
         wholesalePrice: wholesalePrice,
         retailPrice: retailPrice,
         listPrice: listPrice,
-        salePrice: rate,
+        salePrice: itemSalePrice,
         rateType: rateType,
         discountType: 'percent',
-        discountValue: 0,
-        discountPercent: 0,
-        discountAmount: 0,
+        discountValue: itemDiscPct,
+        discountPercent: itemDiscPct,
+        discountAmount: itemDiscAmt,
         purchaseDiscountAtSale: purDiscAtSale,
-        netAmount: grossLine
+        netAmount: itemNet
       });
       const pageSize = saleState.slipPageSize || 10;
       saleState.slipCurrentPage = Math.ceil(saleState.items.length / pageSize);
     }
 
+    syncSpecialDiscountInputsFromCart();
     renderItemsTable();
     updateVoucherTotals();
     updateSlipMeta();
@@ -660,31 +792,25 @@
   function adjustCartItemQty(idx, delta) {
     if (!saleState.items[idx]) return;
     const it = saleState.items[idx];
-    const p = (window.appData?.products || []).find(pr => String(pr.id) === String(it.productId) || String(pr.code) === String(it.productCode));
-    const stock = p ? Number(p.stockQty || 0) : 999999;
-
-    const newQty = it.totalQty + delta;
+    const newQty = (Number(it.totalQty) || 1) + delta;
     if (newQty <= 0) {
       removeSaleItem(idx);
       return;
     }
-
-
 
     it.totalQty = newQty;
     const packSize = it.packSize || 1;
     it.packQty = Math.floor(newQty / packSize);
     it.unitQty = newQty % packSize;
 
-    const gross = (Number(it.salePrice) || 0) * newQty;
-    if (it.discountPercent > 0) {
-      it.discountAmount = Math.round((gross * (it.discountPercent / 100)) * 100) / 100;
-    } else if (it.discountAmount > 0) {
-      it.discountAmount = Math.min(gross, it.discountAmount);
-      it.discountPercent = gross > 0 ? Number(((it.discountAmount / gross) * 100).toFixed(2)) : 0;
+    const isWp = it.rateType === 'wholesale';
+    const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
+    if (listP > 0) {
+      it.discountAmount = Math.round(((listP - Number(it.salePrice || 0)) * newQty) * 100) / 100;
     }
-    it.netAmount = Math.max(0, gross - (it.discountAmount || 0));
+    it.netAmount = Math.round((Number(it.salePrice || 0) * newQty) * 100) / 100;
 
+    syncSpecialDiscountInputsFromCart();
     renderItemsTable();
     updateVoucherTotals();
   }
@@ -1807,6 +1933,14 @@
       if (saleState.slipCurrentPage > totalPages) {
         saleState.slipCurrentPage = totalPages;
       }
+      if (saleState.items.length === 0) {
+        const specPctInput = document.getElementById('saleSpecialDiscountPercent') || el.specialDiscountPercent;
+        const specDiscAmtInput = document.getElementById('saleSpecialDiscount') || el.specialDiscount;
+        if (specPctInput) specPctInput.value = 0;
+        if (specDiscAmtInput) specDiscAmtInput.value = 0;
+      } else {
+        syncSpecialDiscountInputsFromCart();
+      }
       renderItemsTable();
       updateVoucherTotals();
       renderPosProductCatalog();
@@ -1905,8 +2039,8 @@
       const itemCostBadge = isShowConfidential ? `
         <div class="pos-pur-bench-line" style="font-size: 11px; color: #64748b; margin-top: 2px;">
           ${isListMethod
-            ? `List: <span class="font-num font-bold" style="color: #475569;">Rs ${listP > 0 ? listP.toFixed(2) : '-'}</span> | Pur Disc: <strong style="color: #7c3aed;">${purDiscText}</strong>`
-            : `Pur Cost: <span class="font-num font-bold" style="color: #475569;">${purCostText}</span> | Pur Disc: <strong style="color: #7c3aed;">${purDiscText}</strong>`
+            ? `List: <span class="font-num font-bold" style="color: #475569;">Rs ${listP > 0 ? listP.toFixed(2) : '-'}</span> | Pur Disc: <strong style="color: #7c3aed; cursor: pointer; text-decoration: underline;" onclick="window.SalesModule.editItemPurDisc(${idx})" title="Click to edit purchase benchmark discount % for this product">${purDiscText} ✏️</strong>`
+            : `Pur Cost: <span class="font-num font-bold" style="color: #475569;">${purCostText}</span> | Pur Disc: <strong style="color: #7c3aed; cursor: pointer; text-decoration: underline;" onclick="window.SalesModule.editItemPurDisc(${idx})" title="Click to edit purchase benchmark discount % for this product">${purDiscText} ✏️</strong>`
           }
         </div>
       ` : '';
@@ -2097,47 +2231,15 @@
   }
 
   function updateVoucherTotals() {
-    let gross = 0;
+    let catalogGross = 0;
+    let netTotal = 0;
     let totalPieces = 0;
     let totalCost = 0;
-    let totalCatalogAmount = 0;
-
-    saleState.items.forEach(it => {
-      const lineGross = Number(it.salePrice || 0) * Number(it.totalQty || 0);
-      const lineDisc = Number(it.discountAmount || 0);
-      const lineNet = (it.netAmount !== undefined && it.netAmount !== null) ? Number(it.netAmount) : Math.max(0, lineGross - lineDisc);
-      gross += lineNet;
-      totalPieces += Number(it.totalQty || 0);
-      const cp = Number(
-        (it.effectiveCost !== undefined && it.effectiveCost !== null && Number(it.effectiveCost) > 0)
-          ? it.effectiveCost
-          : ((it.costAtSale !== undefined && it.costAtSale !== null && Number(it.costAtSale) > 0)
-              ? it.costAtSale
-              : (it.purchasePrice || 0))
-      );
-      totalCost += (cp * Number(it.totalQty || 0));
-      totalCatalogAmount += lineGross;
-    });
-
-    const specialDisc = Number(el.specialDiscount?.value) || 0;
-    const netTotal = Math.max(0, gross - specialDisc);
-    const estProfit = netTotal - totalCost;
-
-    // Margin % calculation (handles both cable trader list discount model and cost markup)
-    let marginPercent = 0;
-    if (netTotal > 0) {
-      marginPercent = Number(((estProfit / netTotal) * 100).toFixed(1));
-    } else if (totalCost > 0) {
-      marginPercent = Number(((estProfit / totalCost) * 100).toFixed(1));
-    }
-
-    // List Method stats (Purchase Discount minus Sale Discount)
-    let totalListVal = 0;
     let totalPurDiscAmt = 0;
-    let totalSaleDiscAmt = 0;
 
     saleState.items.forEach(it => {
       const q = Number(it.totalQty || 0);
+      totalPieces += q;
       const isWp = it.rateType === 'wholesale';
       const rp = Number(it.retailPrice || 0);
       const wp = Number(it.wholesalePrice || 0);
@@ -2150,15 +2252,28 @@
               : (it.purchasePrice || 0))
       );
       const sp = Number(it.salePrice || 0);
+      const lineNet = (it.netAmount !== undefined && it.netAmount !== null) ? Number(it.netAmount) : (sp * q);
 
-      totalListVal += (lp * q);
+      catalogGross += (lp * q);
+      netTotal += lineNet;
+      totalCost += (cp * q);
       totalPurDiscAmt += (Math.max(0, lp - cp) * q);
-      totalSaleDiscAmt += (Math.max(0, lp - sp) * q);
     });
-    totalSaleDiscAmt += specialDisc;
 
-    const avgPurDiscPct = totalListVal > 0 ? ((totalPurDiscAmt / totalListVal) * 100) : 0;
-    const avgSaleDiscPct = totalListVal > 0 ? ((totalSaleDiscAmt / totalListVal) * 100) : 0;
+    const totalDiscAmt = Math.max(0, catalogGross - netTotal);
+    const estProfit = netTotal - totalCost;
+
+    // Margin % calculation (handles both cable trader list discount model and cost markup)
+    let marginPercent = 0;
+    if (netTotal > 0) {
+      marginPercent = Number(((estProfit / netTotal) * 100).toFixed(1));
+    } else if (totalCost > 0) {
+      marginPercent = Number(((estProfit / totalCost) * 100).toFixed(1));
+    }
+
+    // List Method stats (Purchase Discount minus Sale Discount)
+    const avgPurDiscPct = catalogGross > 0 ? ((totalPurDiscAmt / catalogGross) * 100) : 0;
+    const avgSaleDiscPct = catalogGross > 0 ? ((totalDiscAmt / catalogGross) * 100) : 0;
     const overallSpread = avgPurDiscPct - avgSaleDiscPct;
 
     // Auto-fill Cash Received with Net Total if Cash sale and not manually modified
@@ -2202,7 +2317,7 @@
         marginBadge.textContent = `${overallSpread >= 0 ? '+' : ''}${overallSpread.toFixed(1)}% Spread`;
         marginBadge.style.background = overallSpread >= 0 ? '#dcfce7' : '#fee2e2';
         marginBadge.style.color = overallSpread >= 0 ? '#166534' : '#991b1b';
-        marginBadge.title = `List Method: Purchase Discount (${avgPurDiscPct.toFixed(1)}%) - Sale Discount (${avgSaleDiscPct.toFixed(1)}%) = Spread ${overallSpread.toFixed(1)}%\nPur Discount: Rs ${totalPurDiscAmt.toFixed(2)} - Sale Discount: Rs ${totalSaleDiscAmt.toFixed(2)} = Profit Rs ${estProfit.toFixed(2)}`;
+        marginBadge.title = `List Method: Purchase Discount (${avgPurDiscPct.toFixed(1)}%) - Sale Discount (${avgSaleDiscPct.toFixed(1)}%) = Spread ${overallSpread.toFixed(1)}%\nPur Discount: Rs ${totalPurDiscAmt.toFixed(2)} - Sale Discount: Rs ${totalDiscAmt.toFixed(2)} = Profit Rs ${estProfit.toFixed(2)}`;
       } else {
         marginBadge.textContent = `${marginPercent >= 0 ? '+' : ''}${marginPercent.toFixed(1)}% Margin`;
         marginBadge.style.background = marginPercent >= 0 ? '#dcfce7' : '#fee2e2';
@@ -2211,14 +2326,15 @@
       }
     }
 
-    if (el.grossTotal) el.grossTotal.textContent = window.formatPKR ? window.formatPKR(gross) : `Rs ${gross.toFixed(2)}`;
+    if (el.grossTotal) el.grossTotal.textContent = window.formatPKR ? window.formatPKR(catalogGross) : `Rs ${catalogGross.toFixed(2)}`;
     if (el.netTotal) el.netTotal.textContent = window.formatPKR ? window.formatPKR(netTotal) : `Rs ${netTotal.toFixed(2)}`;
     
     const slipGross = document.getElementById('posSlipGrossDisplay');
     const slipDiscount = document.getElementById('posSlipDiscountDisplay');
     const estNetEl = document.getElementById('posCartEstimatedNet');
-    if (slipGross) slipGross.textContent = `Rs ${gross.toLocaleString()}`;
-    if (slipDiscount) slipDiscount.textContent = `- Rs ${specialDisc.toLocaleString()}`;
+    if (slipGross) slipGross.textContent = `Rs ${catalogGross.toLocaleString()}`;
+    if (slipDiscount) slipDiscount.textContent = `- Rs ${totalDiscAmt.toLocaleString()}`;
+    if (estNetEl) estNetEl.textContent = `Rs ${netTotal.toLocaleString()}`;
     if (estNetEl) estNetEl.textContent = `Rs ${netTotal.toLocaleString()}`;
 
     if (el.balanceDue) el.balanceDue.textContent = window.formatPKR ? window.formatPKR(balanceDue) : `Rs ${balanceDue.toFixed(2)}`;
@@ -2357,13 +2473,26 @@
 
 
 
-      const gross = itemsSnapshot.reduce((s, it) => s + Number(it.netAmount || 0), 0);
+      let catalogGross = 0;
+      let netTotal = 0;
+      let totalDiscAmt = 0;
+
+      itemsSnapshot.forEach(it => {
+        const isWp = it.rateType === 'wholesale';
+        const lp = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
+        const q = Number(it.totalQty || 1);
+        catalogGross += (lp * q);
+        netTotal += Number(it.netAmount || 0);
+        totalDiscAmt += Number(it.discountAmount || 0);
+      });
+
       const specialDiscInput = document.getElementById('saleSpecialDiscount') || el.specialDiscount;
-      const specialDisc = Number(specialDiscInput?.value) || 0;
-      const net = Math.max(0, gross - specialDisc);
+      const finalDiscount = totalDiscAmt > 0 ? totalDiscAmt : (Number(specialDiscInput?.value) || 0);
+      const finalGross = catalogGross > 0 ? catalogGross : (netTotal + finalDiscount);
+      const finalNet = netTotal > 0 ? netTotal : Math.max(0, finalGross - finalDiscount);
       const paidInput = document.getElementById('salePaidAmount') || el.paidAmount;
       const paid = Number(paidInput?.value) || 0;
-      const balanceDue = Math.max(0, net - paid);
+      const balanceDue = Math.max(0, finalNet - paid);
 
       const prevBalEl = document.getElementById('saleCustomerPrevBalance') || el.customerPrevBalance;
       const prevBal = Number(prevBalEl?.dataset?.rawBalance || 0);
@@ -2411,9 +2540,9 @@
         storeTitle: el.storeTitle?.value || 'Main Store',
         paymentType: paymentTypeVal,
         previousBalance: prevBal,
-        grossAmount: gross,
-        discount: specialDisc,
-        netAmount: net,
+        grossAmount: finalGross,
+        discount: finalDiscount,
+        netAmount: finalNet,
         paidAmount: paid,
         balanceDue: balanceDue,
         billStatus: chosenStatus,
@@ -2832,13 +2961,20 @@
 
     const calculatedGross = items.reduce((sum, it) => {
       const qty = Number(it.totalQty ?? it.quantity ?? it.qty ?? 1);
+      const isWp = it.rateType === 'wholesale';
+      const lp = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
+      return sum + (lp * qty);
+    }, 0);
+
+    const calculatedNet = items.reduce((sum, it) => {
+      const qty = Number(it.totalQty ?? it.quantity ?? it.qty ?? 1);
       const rate = Number(it.salePrice ?? it.rate ?? it.unitPrice ?? it.retailPrice ?? it.wholesalePrice ?? 0);
       return sum + Number(it.netAmount ?? (qty * rate) ?? 0);
     }, 0);
 
     const grossVal = Number(s.grossAmount || calculatedGross || 0);
-    const discVal = Number(s.discount ?? 0);
-    const netVal = Number(s.netAmount || (grossVal - discVal) || calculatedGross || 0);
+    const discVal = Number(s.discount !== undefined ? s.discount : (calculatedGross - calculatedNet));
+    const netVal = Number(s.netAmount || calculatedNet || (grossVal - discVal) || 0);
     const prevBillVal = salePrintStudioState.includePrevBill ? Number(salePrintStudioState.prevBillAmount || 0) : 0;
     const grandPayableVal = netVal + prevBillVal;
     const paidVal = Number(s.paidAmount ?? 0);
@@ -4232,24 +4368,24 @@
     if (el.specialDiscountPercent) {
       el.specialDiscountPercent.addEventListener('input', () => {
         lastDiscEditSource = 'percent';
-        let grossVal = 0;
-        saleState.items.forEach(it => { grossVal += Number(it.netAmount || 0); });
-        const pct = Number(el.specialDiscountPercent.value) || 0;
-        const discAmt = (grossVal * pct) / 100;
-        if (el.specialDiscount) el.specialDiscount.value = (Math.round(discAmt * 100) / 100).toFixed(2);
-        updateVoucherTotals();
+        const pct = Math.max(0, Math.min(100, Number(el.specialDiscountPercent.value) || 0));
+        applySpecialDiscountToCart(pct, false, 'percent');
       });
     }
 
     if (el.specialDiscount) {
       el.specialDiscount.addEventListener('input', () => {
         lastDiscEditSource = 'amount';
-        let grossVal = 0;
-        saleState.items.forEach(it => { grossVal += Number(it.netAmount || 0); });
+        let catalogGross = 0;
+        (saleState.items || []).forEach(it => {
+          const isWp = it.rateType === 'wholesale';
+          const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
+          catalogGross += (listP * Number(it.totalQty || 1));
+        });
         const discAmt = Number(el.specialDiscount.value) || 0;
-        const pct = grossVal > 0 ? (discAmt / grossVal) * 100 : 0;
-        if (el.specialDiscountPercent) el.specialDiscountPercent.value = pct.toFixed(1);
-        updateVoucherTotals();
+        const pct = catalogGross > 0 ? Math.min(100, Math.max(0, (discAmt / catalogGross) * 100)) : 0;
+        if (el.specialDiscountPercent) el.specialDiscountPercent.value = Number(pct.toFixed(2));
+        applySpecialDiscountToCart(pct, false, 'amount');
       });
     }
 
@@ -6283,6 +6419,8 @@ ${window.escapeHtml(cfg.footer)}
     changeItemDisc,
     changeItemDiscAmt,
     applyDiscountPercentToAll,
+    applySpecialDiscountToCart,
+    editItemPurDisc,
     clearBillCart,
     resetVoucher,
     saveSaleVoucher,

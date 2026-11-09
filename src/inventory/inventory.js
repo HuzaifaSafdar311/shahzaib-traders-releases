@@ -1429,18 +1429,17 @@ function addPurchaseLineItem(overrideProd) {
 
   const totalUnits = (pQty * packSize) + uQty;
 
-  const isListMode = false;
-  const listPrice = tp > 0 ? tp : Number(prod.purchasePrice || 0);
-  const companyDiscountPercent = null;
-  const effectiveCost = tp;
+  const isListMode = (discPercent > 0 || prod.purchasePricingMode === 'list_discount');
+  const listPrice = (rp > 0 ? rp : (tp > 0 ? tp : Number(prod.listPrice || prod.retailPrice || prod.purchasePrice || 0)));
+  const companyDiscountPercent = discPercent > 0 ? discPercent : (Number(prod.purchaseDiscountPercent || prod.companyDiscountPercent) || null);
+  const effectiveCost = discPercent > 0 ? Math.round(listPrice * (1 - (discPercent / 100)) * 100) / 100 : (tp > 0 ? tp : Number(prod.effectiveCost || prod.purchasePrice || 0));
 
-  // Line netAmount = effectiveCost * totalQty (minus tradeOffer if applicable)
+  // Line netAmount = effectiveCost * totalUnits (minus tradeOffer if applicable)
   let rawAmount = totalUnits * effectiveCost;
   if (tradeOffer > 0) rawAmount -= tradeOffer;
-  if (discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
   const netAmount = Math.max(0, rawAmount);
 
-  const marginPercent = tp > 0 ? (((rp - tp) / tp) * 100).toFixed(1) : '0';
+  const marginPercent = effectiveCost > 0 ? (((listPrice - effectiveCost) / effectiveCost) * 100).toFixed(1) : '0';
 
   const lineItem = {
     srNo: currentPurchaseItems.length + 1,
@@ -1451,18 +1450,18 @@ function addPurchaseLineItem(overrideProd) {
     unitQty: uQty,
     packSize: packSize,
     bonus,
-    tradePrice: tp,
+    tradePrice: listPrice,
     profitMargin: marginPercent,
-    retailPrice: rp,
-    wholesalePrice: wp,
+    retailPrice: rp || listPrice,
+    wholesalePrice: wp || listPrice,
     tradeOffer,
     discountPercent: discPercent,
-    pricingMode: currentPurLinePricingMode || 'direct',
+    pricingMode: isListMode ? 'list_discount' : (currentPurLinePricingMode || 'direct'),
     listPrice: listPrice,
     discountType: currentPurLineDiscType || 'percent',
     discountValue: discPercent,
     netCost: effectiveCost,
-    companyDiscountPercent: null,
+    companyDiscountPercent: companyDiscountPercent,
     effectiveCost: effectiveCost,
     netAmount: netAmount.toFixed(2)
   };
@@ -1475,7 +1474,6 @@ function addPurchaseLineItem(overrideProd) {
     existing.totalQty = (existing.packQty * packSize) + existing.unitQty;
     let rawAmount = existing.totalQty * effectiveCost;
     if (tradeOffer > 0) rawAmount -= tradeOffer;
-    if (discPercent > 0) rawAmount -= (rawAmount * (discPercent / 100));
     existing.netAmount = Math.max(0, rawAmount).toFixed(2);
     const pageSize = purSlipPageSize || 4;
     purSlipCurrentPage = Math.floor(existingIdx / pageSize) + 1;
@@ -1488,6 +1486,61 @@ function addPurchaseLineItem(overrideProd) {
   updateModalPurchaseCount();
   updatePurchaseHeaderBadges();
   calculatePurchaseBill();
+  autoSaveCurrentPurchase();
+
+  const syncCatalog = document.getElementById('pieSyncCatalogPrices')?.checked;
+  if (syncCatalog) {
+    try {
+      if (window.api?.updateProductPrices) {
+        if (isListMode || discPercent > 0) {
+          window.api.updateProductPrices(prod.id, {
+            purchasePrice: effectiveCost,
+            wholesalePrice: wp || listPrice,
+            retailPrice: rp || listPrice,
+            listPrice: listPrice,
+            purchasePricingMode: 'list_discount',
+            purchaseDiscountPercent: companyDiscountPercent,
+            companyDiscountPercent: companyDiscountPercent,
+            effectiveCost: effectiveCost
+          });
+        } else if (tp > 0 || wp > 0 || rp > 0) {
+          window.api.updateProductPrices(prod.id, {
+            purchasePrice: tp,
+            wholesalePrice: wp,
+            retailPrice: rp,
+            listPrice: rp || tp,
+            purchasePricingMode: 'direct',
+            purchaseDiscountPercent: null,
+            companyDiscountPercent: null,
+            effectiveCost: tp
+          });
+        }
+      }
+      if (prod) {
+        if (isListMode || discPercent > 0) {
+          prod.purchasePrice = effectiveCost;
+          prod.wholesalePrice = wp || listPrice;
+          prod.retailPrice = rp || listPrice;
+          prod.listPrice = listPrice;
+          prod.purchasePricingMode = 'list_discount';
+          prod.purchaseDiscountPercent = companyDiscountPercent;
+          prod.companyDiscountPercent = companyDiscountPercent;
+          prod.effectiveCost = effectiveCost;
+        } else {
+          if (tp > 0) prod.purchasePrice = tp;
+          if (wp > 0) prod.wholesalePrice = wp;
+          if (rp > 0) prod.retailPrice = rp;
+          prod.listPrice = rp || tp;
+          prod.purchasePricingMode = 'direct';
+          prod.purchaseDiscountPercent = null;
+          prod.companyDiscountPercent = null;
+          prod.effectiveCost = tp;
+        }
+      }
+    } catch (e) {
+      console.warn('Sync prices failed:', e);
+    }
+  }
 
   if (window.showToast) {
     window.showToast(`Item "${lineItem.productTitle}" added to voucher table!`, 'success');
