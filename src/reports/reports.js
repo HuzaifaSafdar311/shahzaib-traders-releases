@@ -1364,8 +1364,14 @@
           <td class="text-right font-num rep-amount-success">${formatMoney(r.profit)}</td>
           <td class="text-right font-num">
             ${r.profitMethod === 'list'
-              ? `<span class="rep-badge rep-badge-blue" title="List Spread: Pur Disc ${(r.purDiscountPercent || 0).toFixed(1)}% - Sale Disc ${(r.saleDiscountPercent || 0).toFixed(1)}% = Spread ${(r.spreadPoints || r.margin).toFixed(1)}%">${(r.spreadPoints !== undefined ? r.spreadPoints : r.margin).toFixed(1)}% (List)</span>`
-              : `<span class="rep-badge rep-badge-green" title="Direct Margin: Sale - Cost">${r.margin.toFixed(1)}%</span>`
+              ? (() => {
+                  const pts = Number(r.spreadPoints != null ? r.spreadPoints : (r.margin || 0));
+                  const ptsStr = Number.isFinite(pts) ? pts.toFixed(1) : '0.0';
+                  const purD = Number(r.purDiscountPercent || 0).toFixed(1);
+                  const saleD = Number(r.saleDiscountPercent || 0).toFixed(1);
+                  return `<span class="rep-badge rep-badge-blue" title="List Spread: Pur Disc ${purD}% - Sale Disc ${saleD}% = Spread ${ptsStr}%">${ptsStr}% (List)</span>`;
+                })()
+              : `<span class="rep-badge rep-badge-green" title="Direct Margin: Sale - Cost">${Number(r.margin || 0).toFixed(1)}%</span>`
             }
           </td>
         </tr>

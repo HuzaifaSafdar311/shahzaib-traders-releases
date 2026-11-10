@@ -1499,11 +1499,12 @@ function addPurchaseLineItem(overrideProd) {
   const existingIdx = currentPurchaseItems.findIndex(it => String(it.productId) === String(prod.id) || String(it.productCode) === String(prod.code));
   if (existingIdx !== -1) {
     const existing = currentPurchaseItems[existingIdx];
-    existing.packQty = (Number(existing.packQty) || 0) + pQty;
-    existing.unitQty = (Number(existing.unitQty) || 0) + uQty;
     existing.bonus = (Number(existing.bonus) || 0) + bonus;
     existing.tradeOffer = (Number(existing.tradeOffer) || 0) + tradeOffer;
-    existing.totalQty = (existing.packQty * packSize) + existing.unitQty;
+    const combinedUnits = (Number(existing.totalQty) || (Number(existing.packQty || 0) * packSize + Number(existing.unitQty || 0))) + totalUnits;
+    existing.totalQty = combinedUnits;
+    existing.packQty = Math.floor(combinedUnits / packSize);
+    existing.unitQty = combinedUnits % packSize;
     let rawAmount = existing.totalQty * effectiveCost;
     if (existing.tradeOffer > 0) rawAmount -= existing.tradeOffer;
     existing.netAmount = Math.max(0, rawAmount).toFixed(2);

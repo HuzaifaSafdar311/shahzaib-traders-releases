@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('authAPI', {
 // Expose Electron API for Enterprise Inventory, Products, Purchases, and Exports
 contextBridge.exposeInMainWorld('electronAPI', {
   getData: () => ipcRenderer.invoke('get-data'),
+  getAllData: () => ipcRenderer.invoke('get-data'),
 
   // Units
   getUnits: () => ipcRenderer.invoke('get-units'),

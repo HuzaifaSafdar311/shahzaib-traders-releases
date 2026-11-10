@@ -467,9 +467,10 @@
     if (!modal) return;
     modal.classList.remove('hidden');
 
-    if ((!window.appData?.products || window.appData.products.length === 0) && window.electronAPI?.getAllData) {
+    if ((!window.appData?.products || window.appData.products.length === 0) && (window.electronAPI?.getAllData || window.electronAPI?.getData)) {
       try {
-        window.appData = await window.electronAPI.getAllData();
+        const fetchFn = window.electronAPI.getAllData || window.electronAPI.getData;
+        window.appData = await fetchFn();
       } catch (err) {}
     }
 
@@ -1906,9 +1907,27 @@
       return;
     }
 
-    const costPrice = Number(p.purchasePrice || p.averageCost || 0);
     const wholesalePrice = Number(p.wholesalePrice || 0);
     const retailPrice = Number(p.retailPrice || 0);
+    const rateType = (rate === wholesalePrice) ? 'wholesale' : (rate === retailPrice ? 'retail' : (saleState.rateMode || 'retail'));
+    const listPrice = rateType === 'wholesale' ? (wholesalePrice || retailPrice) : (retailPrice || wholesalePrice);
+
+    // Resolve Actual Cost Price:
+    let actualCost = 0;
+    let purDiscVal = Number(p.purchaseDiscountPercent !== undefined && p.purchaseDiscountPercent !== null ? p.purchaseDiscountPercent : p.companyDiscountPercent) || 0;
+    if (purDiscVal > 0 && listPrice > 0) {
+      actualCost = Math.round(listPrice * (1 - (purDiscVal / 100)) * 100) / 100;
+    } else if (p.effectiveCost !== undefined && p.effectiveCost !== null && Number(p.effectiveCost) > 0 && Number(p.effectiveCost) < listPrice) {
+      actualCost = Number(p.effectiveCost);
+      purDiscVal = listPrice > 0 ? Number((((listPrice - actualCost) / listPrice) * 100).toFixed(2)) : 0;
+    } else if (p.purchasePrice !== undefined && p.purchasePrice !== null && Number(p.purchasePrice) > 0 && Number(p.purchasePrice) < listPrice) {
+      actualCost = Number(p.purchasePrice);
+      purDiscVal = listPrice > 0 ? Number((((listPrice - actualCost) / listPrice) * 100).toFixed(2)) : 0;
+    } else {
+      actualCost = Number(p.effectiveCost || p.purchasePrice || p.averageCost || listPrice || 0);
+    }
+    const purDiscAtSale = purDiscVal > 0 ? purDiscVal : ((listPrice > 0 && actualCost > 0 && actualCost < listPrice) ? Number((((listPrice - actualCost) / listPrice) * 100).toFixed(2)) : 0);
+    const costPrice = actualCost;
     const discPct = Number(el.discountPercent?.value) || 0;
     const grossLine = totalQty * rate;
     const discAmt = grossLine * (discPct / 100);
@@ -1924,29 +1943,43 @@
 
     // If item already exists in voucher, update it; otherwise push new line item
     if (existingIdx !== -1) {
-      saleState.items[existingIdx].packQty += pQty;
-      saleState.items[existingIdx].unitQty += uQty;
-      saleState.items[existingIdx].totalQty += totalQty;
-      saleState.items[existingIdx].salePrice = rate;
-      saleState.items[existingIdx].discountPercent = discPct;
-      saleState.items[existingIdx].discountAmount += discAmt;
-      saleState.items[existingIdx].netAmount += netLine;
+      const exIt = saleState.items[existingIdx];
+      exIt.totalQty += totalQty;
+      exIt.packQty = Math.floor(exIt.totalQty / packSize);
+      exIt.unitQty = exIt.totalQty % packSize;
+      exIt.salePrice = rate;
+      exIt.discountPercent = discPct;
+      exIt.discountAmount += discAmt;
+      exIt.netAmount += netLine;
+      if (!exIt.effectiveCost) exIt.effectiveCost = actualCost;
+      if (!exIt.costAtSale) exIt.costAtSale = actualCost;
+      if (!exIt.purchaseDiscountAtSale) exIt.purchaseDiscountAtSale = purDiscAtSale;
+      if (!exIt.listPrice) exIt.listPrice = listPrice;
+      if (!exIt.rateType) exIt.rateType = rateType;
     } else {
       saleState.items.push({
         id: `si-${Date.now()}-${saleState.items.length + 1}`,
         productId: p.id,
         productCode: p.code,
         productTitle: p.titleEng,
+        titleUrdu: p.titleUrdu || '',
         packSize,
         packQty: pQty,
         unitQty: uQty,
         totalQty,
-        purchasePrice: costPrice,
+        purchasePrice: actualCost,
+        costAtSale: actualCost,
+        effectiveCost: actualCost,
         wholesalePrice,
         retailPrice,
+        listPrice,
         salePrice: rate,
+        rateType,
+        discountType: 'percent',
+        discountValue: discPct,
         discountPercent: discPct,
         discountAmount: discAmt,
+        purchaseDiscountAtSale: purDiscAtSale,
         netAmount: netLine
       });
     }
@@ -2126,7 +2159,9 @@
       if (isListMethod) {
         // Method 2: List Method (Purchase Discount - Sale Discount)
         profitText = `Spread: Rs ${lineProfit.toFixed(2)}`;
-        marginText = `Spread: ${(spreadPts >= 0 ? '+' : '') + spreadPts.toFixed(1)}%`;
+        marginText = (spreadPts !== null && !isNaN(spreadPts))
+          ? `Spread: ${(spreadPts >= 0 ? '+' : '') + spreadPts.toFixed(1)}%`
+          : 'Spread: -';
       } else {
         // Method 1: Direct Method (Sale Price - Cost Price)
         profitText = qtyVal > 1 
@@ -3659,11 +3694,11 @@
       paymentType: el.paymentType?.value || 'Cash',
       customerPhone: el.customerPhone?.value || '',
       areaName: el.customerArea?.value || '',
-      grossAmount: Number(el.grossTotal?.textContent.replace(/[^0-9.]/g, '') || 0),
+      grossAmount: Number(el.grossTotal?.textContent.replace(/[^0-9.-]/g, '') || 0),
       discount: Number(el.specialDiscount?.value || 0),
-      netAmount: Number(el.netTotal?.textContent.replace(/[^0-9.]/g, '') || 0),
+      netAmount: Number(el.netTotal?.textContent.replace(/[^0-9.-]/g, '') || 0),
       paidAmount: (el.saleBillStatus?.value === 'Estimated' || saleState.billStatus === 'Estimated') ? 0 : Number(el.paidAmount?.value || 0),
-      balanceDue: (el.saleBillStatus?.value === 'Estimated' || saleState.billStatus === 'Estimated') ? 0 : Number(el.balanceDue?.textContent.replace(/[^0-9.]/g, '') || 0),
+      balanceDue: (el.saleBillStatus?.value === 'Estimated' || saleState.billStatus === 'Estimated') ? 0 : Number(el.balanceDue?.textContent.replace(/[^0-9.-]/g, '') || 0),
       previousBalance: (el.saleBillStatus?.value === 'Estimated' || saleState.billStatus === 'Estimated') ? 0 : Number(el.customerPrevBalance?.dataset?.rawBalance || 0),
       billStatus: el.saleBillStatus?.value || saleState.billStatus || 'Paid',
       items: items
