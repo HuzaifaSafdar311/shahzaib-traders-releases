@@ -1501,9 +1501,11 @@ function addPurchaseLineItem(overrideProd) {
     const existing = currentPurchaseItems[existingIdx];
     existing.packQty = (Number(existing.packQty) || 0) + pQty;
     existing.unitQty = (Number(existing.unitQty) || 0) + uQty;
+    existing.bonus = (Number(existing.bonus) || 0) + bonus;
+    existing.tradeOffer = (Number(existing.tradeOffer) || 0) + tradeOffer;
     existing.totalQty = (existing.packQty * packSize) + existing.unitQty;
     let rawAmount = existing.totalQty * effectiveCost;
-    if (tradeOffer > 0) rawAmount -= tradeOffer;
+    if (existing.tradeOffer > 0) rawAmount -= existing.tradeOffer;
     existing.netAmount = Math.max(0, rawAmount).toFixed(2);
     const pageSize = purSlipPageSize || 4;
     purSlipCurrentPage = Math.floor(existingIdx / pageSize) + 1;

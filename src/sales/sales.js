@@ -2572,26 +2572,6 @@
       const paymentTypeVal = paymentTypeSelect?.value || 'Cash';
       const isCreditSale = (paymentTypeVal === 'Credit');
 
-      const paidInput = document.getElementById('salePaidAmount') || el.paidAmount;
-      let paid = Number(paidInput?.value) || 0;
-      // If Credit sale or Estimate, default paid is 0
-      if ((isCreditSale || isEstimated) && paidInput?.dataset?.userEdited !== 'true') {
-        paid = 0;
-      }
-      if (isEstimated) {
-        paid = 0;
-      }
-      const balanceDue = isEstimated ? 0 : Math.max(0, finalNet - paid);
-
-      const prevBalEl = document.getElementById('saleCustomerPrevBalance') || el.customerPrevBalance;
-      const prevBal = Number(prevBalEl?.dataset?.rawBalance || 0);
-
-      const voucherNoInput = document.getElementById('saleVoucherNo') || el.voucherNo;
-      const voucherNoVal = voucherNoInput?.value?.trim() || saleState.voucherNo || ('SV-' + String(Date.now()).slice(-4));
-
-      const entryDateInput = document.getElementById('saleEntryDate') || el.entryDate;
-      const entryDateVal = entryDateInput?.value || new Date().toISOString().split('T')[0];
-
       const customerNameInput = document.getElementById('saleCustomerName') || el.customerName;
       const customerPhoneInput = document.getElementById('saleCustomerPhone') || el.customerPhone;
       const customerAreaInput = document.getElementById('saleCustomerArea') || el.customerArea;
@@ -2609,8 +2589,28 @@
       const chosenPartyTitle = enteredCustomerName || (isSpecificCustomer
         ? (matchedParty.name || matchedParty.partyTitle)
         : `Walk-in (${ptTitle})`);
-      const chosenCustomerPhone = customerPhoneInput?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer.phone || '') : '') || '';
-      const chosenCustomerArea = customerAreaInput?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer.areaName || saleState.selectedCustomer.city || '') : '') || '';
+      const chosenCustomerPhone = customerPhoneInput?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer?.phone || '') : '') || '';
+      const chosenCustomerArea = customerAreaInput?.value?.trim() || (isSpecificCustomer ? (saleState.selectedCustomer?.areaName || saleState.selectedCustomer?.city || '') : '') || '';
+
+      const paidInput = document.getElementById('salePaidAmount') || el.paidAmount;
+      let paid = Number(paidInput?.value) || 0;
+      // If Credit sale or Estimate, default paid is 0
+      if ((isCreditSale || isEstimated) && paidInput?.dataset?.userEdited !== 'true') {
+        paid = 0;
+      }
+      if (isEstimated) {
+        paid = 0;
+      }
+      const balanceDue = isEstimated ? 0 : (isSpecificCustomer ? (finalNet - paid) : Math.max(0, finalNet - paid));
+
+      const prevBalEl = document.getElementById('saleCustomerPrevBalance') || el.customerPrevBalance;
+      const prevBal = Number(prevBalEl?.dataset?.rawBalance || 0);
+
+      const voucherNoInput = document.getElementById('saleVoucherNo') || el.voucherNo;
+      const voucherNoVal = voucherNoInput?.value?.trim() || saleState.voucherNo || ('SV-' + String(Date.now()).slice(-4));
+
+      const entryDateInput = document.getElementById('saleEntryDate') || el.entryDate;
+      const entryDateVal = entryDateInput?.value || new Date().toISOString().split('T')[0];
 
       const saleRecord = {
         id: saleState.saleId || undefined,

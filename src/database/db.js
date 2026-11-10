@@ -1145,12 +1145,13 @@ function savePurchase(purchaseData, items = []) {
       oldPartyId = oldPur.partyId || '';
       const oldItems = jsonData.purchase_items.filter(pi => pi.purchaseId === oldPur.id);
       for (const oldIt of oldItems) {
-        let packSize = 1;
         const prod = jsonData.products.find(p => p.code === oldIt.productCode || p.id === oldIt.productId);
-        if (Number(it.packSize) > 0) packSize = Number(it.packSize); else if (prod && Number(prod.packSize) > 0) packSize = Number(prod.packSize); // Estimated
+        let packSize = Number(oldIt.packSize) || 0;
+        if (packSize <= 0 && prod && Number(prod.packSize) > 0) packSize = Number(prod.packSize);
+        if (packSize <= 0) packSize = 1;
         const oldIncoming = (Number(oldIt.packQty || 0) * packSize) + Number(oldIt.unitQty || 0) + Number(oldIt.bonus || 0);
         if (prod && oldIncoming > 0) {
-          prod.stockQty = Math.max(0, (Number(prod.stockQty) || 0) - oldIncoming);
+          prod.stockQty = (Number(prod.stockQty) || 0) - oldIncoming;
         }
       }
       jsonData.purchases[pIdx] = purchaseRecord;
@@ -1280,9 +1281,12 @@ function savePurchase(purchaseData, items = []) {
       oldPartyId = existing.partyId || '';
       const oldItems = dbInstance.prepare('SELECT productCode, productId, packQty, unitQty, bonus, packSize FROM purchase_items WHERE purchaseId = ?').all(existing.id);
       for (const oldIt of oldItems) {
-        let packSize = 1;
-        const pRec = dbInstance.prepare('SELECT packSize FROM products WHERE code = ? OR id = ?').get(oldIt.productCode || '', oldIt.productId || '');
-        if (pRec && Number(pRec.packSize) > 0) packSize = Number(pRec.packSize);
+        let packSize = Number(oldIt.packSize) || 0;
+        if (packSize <= 0) {
+          const pRec = dbInstance.prepare('SELECT packSize FROM products WHERE code = ? OR id = ?').get(oldIt.productCode || '', oldIt.productId || '');
+          if (pRec && Number(pRec.packSize) > 0) packSize = Number(pRec.packSize);
+        }
+        if (packSize <= 0) packSize = 1;
         const oldIncoming = (Number(oldIt.packQty || 0) * packSize) + Number(oldIt.unitQty || 0) + Number(oldIt.bonus || 0);
         if (oldIncoming > 0) {
           dbInstance.prepare('UPDATE products SET stockQty = stockQty - ? WHERE code = ? OR id = ?').run(oldIncoming, oldIt.productCode || '', oldIt.productId || '');
@@ -1706,7 +1710,7 @@ function saveSale(saleData, items = []) {
       if (!isEstimated && totalQty > 0) {
         const prod = jsonData.products.find(p => (code && p.code === code) || (item.productId && p.id === item.productId));
         if (prod) {
-          prod.stockQty = Math.max(0, (Number(prod.stockQty) || 0) - totalQty);
+          prod.stockQty = (Number(prod.stockQty) || 0) - totalQty;
         }
       }
       sr++;
@@ -1716,12 +1720,12 @@ function saveSale(saleData, items = []) {
     const isRegParty = isRegisteredPartyJson(saleRecord.partyId);
     if (isEstimated) {
       // If converting from a previously paid bill with balance due, revert the old balance
-      if (existing && existing.billStatus !== 'Estimated' && oldBalanceDue > 0 && isRegisteredPartyJson(oldPartyId)) {
+      if (existing && existing.billStatus !== 'Estimated' && oldBalanceDue !== 0 && isRegisteredPartyJson(oldPartyId)) {
         generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
       }
     } else if (existing) {
       if (existing.billStatus === 'Estimated') {
-        if (isRegParty && (Number(saleRecord.balanceDue) || 0) > 0) {
+        if (isRegParty && (Number(saleRecord.balanceDue) || 0) !== 0) {
           generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
         }
       } else if (oldPartyId === saleRecord.partyId) {
@@ -1730,14 +1734,14 @@ function saveSale(saleData, items = []) {
           generalInfoDb.updatePartyBalance(saleRecord.partyId, delta);
         }
       } else {
-        if (isRegisteredPartyJson(oldPartyId) && oldBalanceDue > 0) {
+        if (isRegisteredPartyJson(oldPartyId) && oldBalanceDue !== 0) {
           generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
         }
-        if (isRegParty && (Number(saleRecord.balanceDue) || 0) > 0) {
+        if (isRegParty && (Number(saleRecord.balanceDue) || 0) !== 0) {
           generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
         }
       }
-    } else if (isRegParty && (Number(saleRecord.balanceDue) || 0) > 0) {
+    } else if (isRegParty && (Number(saleRecord.balanceDue) || 0) !== 0) {
       generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
     }
     return { success: true, id, voucherNo };
@@ -1812,7 +1816,7 @@ function saveSale(saleData, items = []) {
     `);
 
     const deductStock = dbInstance.prepare(`
-      UPDATE products SET stockQty = MAX(0, stockQty - ?) WHERE code = ? OR id = ?
+      UPDATE products SET stockQty = stockQty - ? WHERE code = ? OR id = ?
     `);
 
     let sr = 1;
@@ -1866,12 +1870,12 @@ function saveSale(saleData, items = []) {
     const isRegPartySql = isRegisteredPartySql(saleRecord.partyId);
     if (isEstimated) {
       // If converting from a previously paid bill, revert the old balance
-      if (existing && existing.billStatus !== 'Estimated' && oldBalanceDue > 0 && isRegisteredPartySql(oldPartyId)) {
+      if (existing && existing.billStatus !== 'Estimated' && oldBalanceDue !== 0 && isRegisteredPartySql(oldPartyId)) {
         generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
       }
     } else if (existing) {
       if (existing.billStatus === 'Estimated') {
-        if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) > 0) {
+        if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) !== 0) {
           generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
         }
       } else if (oldPartyId === saleRecord.partyId) {
@@ -1880,14 +1884,14 @@ function saveSale(saleData, items = []) {
           generalInfoDb.updatePartyBalance(saleRecord.partyId, delta);
         }
       } else {
-        if (isRegisteredPartySql(oldPartyId) && oldBalanceDue > 0) {
+        if (isRegisteredPartySql(oldPartyId) && oldBalanceDue !== 0) {
           generalInfoDb.updatePartyBalance(oldPartyId, -oldBalanceDue);
         }
-        if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) > 0) {
+        if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) !== 0) {
           generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
         }
       }
-    } else if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) > 0) {
+    } else if (isRegPartySql && (Number(saleRecord.balanceDue) || 0) !== 0) {
       generalInfoDb.updatePartyBalance(saleRecord.partyId, Number(saleRecord.balanceDue) || 0);
     }
 
@@ -1930,7 +1934,7 @@ function deleteSale(id) {
     if (s) {
       const wasEstimated = (s.billStatus === 'Estimated');
       if (!wasEstimated) {
-        if (s.balanceDue > 0 && s.partyId) {
+        if (s.balanceDue !== 0 && s.partyId) {
           generalInfoDb.updatePartyBalance(s.partyId, -Number(s.balanceDue));
         }
         const items = dbInstance.prepare('SELECT productId, productCode, totalQty FROM sale_items WHERE saleId = ?').all(s.id);

@@ -472,9 +472,9 @@ function getPartyLedger(partyId, fromDate = '', toDate = '') {
       date: r.entryDate || (r.createdAt ? r.createdAt.slice(0, 10) : ''),
       voucherNo: r.returnNo,
       type: 'Sale Return',
-      description: `Sales Return (${r.refundMode || 'Credit'}) - ${r.description || r.remarks || 'Returned Goods'}`,
-      debit: isCredit ? 0 : amount,
-      credit: amount,
+      description: `Sales Return (${r.refundMode || 'Credit'}) - ${r.description || r.remarks || 'Returned Goods'}${!isCredit ? ` (Cash: ${amount})` : ''}`,
+      debit: 0,
+      credit: isCredit ? amount : 0,
       createdAt: r.createdAt || ''
     });
   }

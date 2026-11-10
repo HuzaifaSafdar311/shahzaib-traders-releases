@@ -652,8 +652,13 @@ function getDailyClosingSummary(dateStr) {
       .filter(v => v.entryDate === date && v.voucherType === 'CPV' && (v.paymentMode === 'Cash' || !v.paymentMode))
       .reduce((sum, v) => sum + (Number(v.amount) || 0), 0);
 
+    const cpvVoucherNos = new Set((jsonStore.accounts_vouchers || [])
+      .filter(v => v.entryDate === date && v.voucherType === 'CPV')
+      .map(v => v.voucherNo)
+      .filter(Boolean));
+
     const totalExpensesPaid = (jsonStore.expenses || [])
-      .filter(e => e.entryDate === date && (e.paymentMode === 'Cash' || !e.paymentMode))
+      .filter(e => e.entryDate === date && (e.paymentMode === 'Cash' || !e.paymentMode) && (!e.voucherNo || !cpvVoucherNos.has(e.voucherNo)))
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
     const totalCashRefunds = (jsonStore.sales_returns || [])
@@ -711,12 +716,13 @@ function getDailyClosingSummary(dateStr) {
     `).get(date);
     const totalCpvPaid = cpvRow ? Number(cpvRow.totalCpv) || 0 : 0;
 
-    // 4. Total Daily Expenses for date
+    // 4. Total Daily Expenses for date (exclude any expenses that were logged via CPV vouchers to avoid double deduction)
     const expRow = db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as totalExp
       FROM expenses
       WHERE entryDate = ? AND (paymentMode = 'Cash' OR paymentMode IS NULL OR paymentMode = '')
-    `).get(date);
+        AND (voucherNo IS NULL OR voucherNo = '' OR voucherNo NOT IN (SELECT voucherNo FROM accounts_vouchers WHERE entryDate = ? AND voucherType = 'CPV'))
+    `).get(date, date);
     const totalExpensesPaid = expRow ? Number(expRow.totalExp) || 0 : 0;
 
     // 5. Total Cash Refunded on Sales Returns
