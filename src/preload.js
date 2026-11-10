@@ -70,7 +70,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Auto-Updater
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),
-  getAppVersion: () => ipcRenderer.invoke('updater:get-version')
+  getAppVersion: () => ipcRenderer.invoke('updater:get-version'),
+
+  // Duplicate Check
+  checkDuplicate: (params) => ipcRenderer.invoke('check-duplicate', params)
 });
 
 // Dedicated Sales API Bridge
@@ -79,7 +82,8 @@ contextBridge.exposeInMainWorld('salesAPI', {
   getSale: (id) => ipcRenderer.invoke('get-sale', id),
   getNextVoucherNo: () => ipcRenderer.invoke('get-next-sale-voucher-no'),
   saveSale: (saleData, items) => ipcRenderer.invoke('save-sale', saleData, items),
-  deleteSale: (id) => ipcRenderer.invoke('delete-sale', id)
+  deleteSale: (id) => ipcRenderer.invoke('delete-sale', id),
+  checkDuplicate: (params) => ipcRenderer.invoke('check-duplicate', params)
 });
 
 // Dedicated Sales Return API Bridge
@@ -98,7 +102,8 @@ contextBridge.exposeInMainWorld('accountsAPI', {
   getNextVoucherNo: (type) => ipcRenderer.invoke('get-next-accounts-voucher-no', type),
   saveVoucher: (voucherData) => ipcRenderer.invoke('save-accounts-voucher', voucherData),
   deleteVoucher: (id) => ipcRenderer.invoke('delete-accounts-voucher', id),
-  getPartyLedger: (partyId, fromDate, toDate) => ipcRenderer.invoke('get-party-ledger', partyId, fromDate, toDate)
+  getPartyLedger: (partyId, fromDate, toDate) => ipcRenderer.invoke('get-party-ledger', partyId, fromDate, toDate),
+  checkDuplicate: (params) => ipcRenderer.invoke('check-duplicate', params)
 });
 
 // Trade Features API (Expenses, Estimates / Kacha Bill, Warranty Claims, Day-End Cash Closing)

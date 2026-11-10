@@ -268,14 +268,17 @@ function setupSearchableProductDropdown({
       const rp = Number(p.retailPrice || 0).toFixed(2);
 
       if (compactRateOnly) {
+        const stockClass = stock <= 0 ? 'rate-stock-out' : (stock <= 5 ? 'rate-stock-low' : 'rate-stock-in');
+        const unitLabel = unit ? ` ${escapeHtml(unit)}` : '';
         return `
-          <div class="typeahead-item" data-index="${idx}" style="padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-            <div class="typeahead-item-main" style="flex: 1; min-width: 0; padding-right: 12px;">
+          <div class="typeahead-item" data-index="${idx}" style="padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <div class="typeahead-item-main" style="flex: 1; min-width: 0; padding-right: 8px;">
               <div class="typeahead-item-title font-bold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13.5px; color: #0f172a;" title="${escapeHtml(p.titleEng || 'Unnamed Product')}">
                 ${escapeHtml(p.titleEng || 'Unnamed Product')}
               </div>
             </div>
-            <div class="typeahead-item-rates" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <div class="typeahead-item-rates" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <span class="typeahead-rate-pill rate-stock ${stockClass}" title="Available Stock: ${stock}${unitLabel}">Stock: ${stock}${unitLabel}</span>
               <span class="typeahead-rate-pill rate-tp">TP: Rs. ${tp}</span>
               <span class="typeahead-rate-pill rate-rp">RP: Rs. ${rp}</span>
             </div>

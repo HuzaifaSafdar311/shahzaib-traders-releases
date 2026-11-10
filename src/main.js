@@ -50,11 +50,13 @@ let isQuitting = false;
 let mainWindow;
 let findProductWindow = null;
 
-function openFindProductWindow() {
+function openFindProductWindow(context) {
   if (findProductWindow && !findProductWindow.isDestroyed()) {
     if (findProductWindow.isMinimized()) findProductWindow.restore();
+    findProductWindow.show();
+    findProductWindow.setAlwaysOnTop(true);
     findProductWindow.focus();
-    findProductWindow.webContents.send('refresh-products');
+    findProductWindow.webContents.send('refresh-products', context);
     return;
   }
 
@@ -582,6 +584,11 @@ app.whenReady().then(() => {
   ipcMain.handle('get-party-ledger', async (_event, partyId, fromDate, toDate) => db.getPartyLedger(partyId, fromDate, toDate));
 
   // ============================================
+  // DUPLICATE TRANSACTION DETECTION
+  // ============================================
+  ipcMain.handle('check-duplicate', async (_event, params) => db.checkDuplicate(params));
+
+  // ============================================
   // DAILY EXPENSES IPC HANDLERS
   // ============================================
   ipcMain.handle('get-expenses', async (_event, filter) => db.getAllExpenses(filter));
@@ -786,8 +793,8 @@ app.whenReady().then(() => {
   // ============================================
   // FIND PRODUCT DEDICATED WINDOW HANDLERS
   // ============================================
-  ipcMain.on('open-find-product-window', () => {
-    openFindProductWindow();
+  ipcMain.on('open-find-product-window', (_event, context) => {
+    openFindProductWindow(context);
   });
 
   ipcMain.on('close-find-product-window', () => {

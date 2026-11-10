@@ -662,7 +662,10 @@
   // ADD PRODUCT TO BILL / CART
   // ========================================================
   function addProductToCart(productId, quantity = 1, forcedRate = null, bypassModal = false) {
-    const p = (window.appData?.products || []).find(pr => String(pr.id) === String(productId) || String(pr.code) === String(productId) || String(pr.barcode) === String(productId));
+    let p = (typeof productId === 'object' && productId !== null)
+      ? productId
+      : (window.appData?.products || []).find(pr => String(pr.id) === String(productId) || String(pr.code) === String(productId) || String(pr.barcode) === String(productId));
+    if (!p && typeof productId === 'object') p = productId;
     if (!p) {
       if (window.showToast) window.showToast('Product not found in inventory', 'warning');
       return;
@@ -827,15 +830,20 @@
     const prevBalBox = document.getElementById('posPrevBalanceBox');
     const rawPrevBal = Number(el.customerPrevBalance?.dataset?.rawBalance || 0);
     if (prevBalBox && el.customerPrevBalance) {
-      el.customerPrevBalance.textContent = `Rs ${rawPrevBal.toLocaleString()}`;
+      const formatted = window.formatPKR ? window.formatPKR(rawPrevBal) : `Rs ${rawPrevBal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      el.customerPrevBalance.textContent = formatted;
       if (rawPrevBal > 0) {
         prevBalBox.style.borderColor = '#ef4444';
         prevBalBox.style.backgroundColor = '#fef2f2';
         el.customerPrevBalance.style.color = '#dc2626';
+      } else if (rawPrevBal < 0) {
+        prevBalBox.style.borderColor = '#86efac';
+        prevBalBox.style.backgroundColor = '#f0fdf4';
+        el.customerPrevBalance.style.color = '#16a34a';
       } else {
         prevBalBox.style.borderColor = '#cbd5e1';
         prevBalBox.style.backgroundColor = '#f8fafc';
-        el.customerPrevBalance.style.color = '#0369a1';
+        el.customerPrevBalance.style.color = '#0284c7';
       }
     }
   }
@@ -1164,6 +1172,10 @@
         if (el.customerName) el.customerName.value = 'Walk-in Cash Customer';
         if (el.customerPhone) el.customerPhone.value = '';
         if (el.paymentType) el.paymentType.value = 'Cash';
+        if (el.paidAmount) {
+          el.paidAmount.value = 0;
+          delete el.paidAmount.dataset.userEdited;
+        }
         if (el.customerPrevBalance) {
           el.customerPrevBalance.textContent = 'Rs 0.00';
           el.customerPrevBalance.dataset.rawBalance = 0;
@@ -1189,7 +1201,9 @@
 
     // 8. Global Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
-      if (window.currentTab !== 'sale') return;
+      const salesView = document.getElementById('salesView');
+      const isSaleActive = (salesView && salesView.classList.contains('active')) || (window.currentTab === 'sale');
+      if (!isSaleActive) return;
 
       const rateModal = document.getElementById('modalSelectRateOnAdd');
       const isRateModalOpen = rateModal && !rateModal.classList.contains('hidden');
@@ -1266,9 +1280,39 @@
       }
     });
 
-    if (el.customerName) el.customerName.addEventListener('input', updateSlipMeta);
+    if (el.customerName) {
+      el.customerName.addEventListener('input', () => {
+        const val = el.customerName.value.trim().toLowerCase();
+        if (val && val !== 'walk-in cash customer' && val !== 'walk-in customer') {
+          const matched = (sharedAllParties || []).find(p => (p.name || '').trim().toLowerCase() === val);
+          if (matched && (!saleState.selectedCustomer || String(saleState.selectedCustomer.id) !== String(matched.id))) {
+            if (el.customerSelect) el.customerSelect.value = matched.id;
+            selectCustomerEntity(matched.id);
+            return;
+          }
+        }
+        updateSlipMeta();
+      });
+    }
     if (el.customerSelect) el.customerSelect.addEventListener('change', updateSlipMeta);
-    if (el.paymentType) el.paymentType.addEventListener('change', updateSlipMeta);
+    if (el.paymentType) {
+      el.paymentType.addEventListener('change', () => {
+        const mode = el.paymentType.value;
+        if (el.paidAmount) {
+          delete el.paidAmount.dataset.userEdited;
+          if (mode === 'Credit') {
+            el.paidAmount.value = 0;
+          } else {
+            const gross = (saleState.items || []).reduce((s, it) => s + Number(it.netAmount || 0), 0);
+            const disc = Number(el.specialDiscount?.value) || 0;
+            const net = Math.max(0, gross - disc);
+            el.paidAmount.value = net > 0 ? net : 0;
+          }
+        }
+        updateSlipMeta();
+        updateVoucherTotals();
+      });
+    }
     if (el.entryDate) el.entryDate.addEventListener('change', updateSlipMeta);
 
     renderItemsTable();
@@ -1384,6 +1428,17 @@
     el.saleResultsCounter = document.getElementById('saleResultsCounter');
     el.salesMasterTableBody = document.getElementById('salesMasterTableBody');
     el.salesEmptyState = document.getElementById('salesEmptyState');
+
+    // Sales History Pagination Controls
+    el.btnSalesHistoryPrev = document.getElementById('btnSalesHistoryPrev');
+    el.btnSalesHistoryNext = document.getElementById('btnSalesHistoryNext');
+    el.salesHistoryPaginationNumbers = document.getElementById('salesHistoryPaginationNumbers');
+    el.salesHistoryPaginationInfo = document.getElementById('salesHistoryPaginationInfo');
+    el.salesHistoryPageSize = document.getElementById('salesHistoryPageSize');
+    el.btnSalesTopPrev = document.getElementById('btnSalesTopPrev');
+    el.btnSalesTopNext = document.getElementById('btnSalesTopNext');
+    el.salesTopPageIndicator = document.getElementById('salesTopPageIndicator');
+    el.salesHistoryPaginationBar = document.getElementById('salesHistoryPaginationBar');
 
     // Quick Status Switcher Tabs (All, Paid, Estimated)
     el.btnSaleTabFilterAll = document.getElementById('btnSaleTabFilterAll');
@@ -1650,17 +1705,18 @@
     if (el.customerPhone) el.customerPhone.value = party.phone || party.altPhone || '';
     if (el.customerArea) el.customerArea.value = party.areaName || party.city || party.provinceName || party.address || '';
 
-    // Fetch up-to-date ledger closing balance
-    let balance = Number(party.openingBalance || 0);
+    // Always fetch fresh, exact ledger closing balance directly from accountsAPI
+    let balance = Number(party.currentBalance !== undefined ? party.currentBalance : (party.openingBalance || 0));
     try {
       if (window.accountsAPI?.getPartyLedger) {
         const ledger = await window.accountsAPI.getPartyLedger(party.id);
         if (ledger && typeof ledger.closingBalance === 'number') {
           balance = ledger.closingBalance;
+          party.currentBalance = balance;
         }
       }
     } catch (e) {
-      console.warn('Could not fetch ledger closing balance, using openingBalance:', e);
+      console.warn('Could not fetch ledger closing balance, using party currentBalance:', e);
     }
 
     if (el.customerPrevBalance) {
@@ -2276,10 +2332,17 @@
     const avgSaleDiscPct = catalogGross > 0 ? ((totalDiscAmt / catalogGross) * 100) : 0;
     const overallSpread = avgPurDiscPct - avgSaleDiscPct;
 
-    // Auto-fill Cash Received with Net Total if Cash sale and not manually modified
-    const isCash = (el.paymentType?.value || 'Cash') === 'Cash';
-    if (isCash && el.paidAmount && el.paidAmount.dataset.userEdited !== 'true') {
-      el.paidAmount.value = netTotal > 0 ? netTotal : 0;
+    const pMode = el.paymentType?.value || 'Cash';
+    const isCashOrBank = (pMode === 'Cash' || pMode === 'Bank');
+    const isCredit = (pMode === 'Credit');
+
+    // Auto-fill / reset Cash Received based on payment mode if not manually modified by cashier
+    if (el.paidAmount && el.paidAmount.dataset.userEdited !== 'true') {
+      if (isCredit) {
+        el.paidAmount.value = 0;
+      } else if (isCashOrBank) {
+        el.paidAmount.value = netTotal > 0 ? netTotal : 0;
+      }
     }
 
     const paid = Number(el.paidAmount?.value) || 0;
@@ -2360,9 +2423,24 @@
     }
     updateSlipMeta();
 
+    const newLedgerRow = document.getElementById('posNewLedgerRow');
+    if (newLedgerRow) {
+      if (saleState.selectedCustomer || prevBal !== 0 || isCredit || balanceDue > 0) {
+        newLedgerRow.style.display = 'flex';
+      } else {
+        newLedgerRow.style.display = 'none';
+      }
+    }
+
     if (el.finalCustomerBalance) {
       el.finalCustomerBalance.textContent = window.formatPKR ? window.formatPKR(newCustomerBalance) : `Rs ${newCustomerBalance.toFixed(2)}`;
-      el.finalCustomerBalance.className = newCustomerBalance > 0 ? 'calc-val text-danger' : 'calc-val text-success';
+      if (newCustomerBalance > 0) {
+        el.finalCustomerBalance.style.color = '#dc2626';
+      } else if (newCustomerBalance < 0) {
+        el.finalCustomerBalance.style.color = '#16a34a';
+      } else {
+        el.finalCustomerBalance.style.color = '#475569';
+      }
     }
   }
 
@@ -2490,9 +2568,20 @@
       const finalDiscount = totalDiscAmt > 0 ? totalDiscAmt : (Number(specialDiscInput?.value) || 0);
       const finalGross = catalogGross > 0 ? catalogGross : (netTotal + finalDiscount);
       const finalNet = netTotal > 0 ? netTotal : Math.max(0, finalGross - finalDiscount);
+      const paymentTypeSelect = document.getElementById('salePaymentType') || el.paymentType;
+      const paymentTypeVal = paymentTypeSelect?.value || 'Cash';
+      const isCreditSale = (paymentTypeVal === 'Credit');
+
       const paidInput = document.getElementById('salePaidAmount') || el.paidAmount;
-      const paid = Number(paidInput?.value) || 0;
-      const balanceDue = Math.max(0, finalNet - paid);
+      let paid = Number(paidInput?.value) || 0;
+      // If Credit sale or Estimate, default paid is 0
+      if ((isCreditSale || isEstimated) && paidInput?.dataset?.userEdited !== 'true') {
+        paid = 0;
+      }
+      if (isEstimated) {
+        paid = 0;
+      }
+      const balanceDue = isEstimated ? 0 : Math.max(0, finalNet - paid);
 
       const prevBalEl = document.getElementById('saleCustomerPrevBalance') || el.customerPrevBalance;
       const prevBal = Number(prevBalEl?.dataset?.rawBalance || 0);
@@ -2506,8 +2595,6 @@
       const customerNameInput = document.getElementById('saleCustomerName') || el.customerName;
       const customerPhoneInput = document.getElementById('saleCustomerPhone') || el.customerPhone;
       const customerAreaInput = document.getElementById('saleCustomerArea') || el.customerArea;
-      const paymentTypeSelect = document.getElementById('salePaymentType') || el.paymentType;
-      const paymentTypeVal = paymentTypeSelect?.value || 'Cash';
 
       const selectedPtObj = saleState.selectedPartyType || sharedPartyTypes.find(t => String(t.id) === String(el.partyTypeSelect?.value)) || {};
       const ptTitle = selectedPtObj.name || 'General Party';
@@ -2549,6 +2636,57 @@
         profitMethod: saleState.profitMethod || 'direct'
       };
 
+      // Check for duplicate sales entry
+      const checkDupFn = window.salesAPI?.checkDuplicate || window.api?.checkDuplicate || window.electronAPI?.checkDuplicate;
+      if (checkDupFn) {
+        try {
+          const dupRes = await checkDupFn({
+            module: 'sales',
+            id: saleRecord.id,
+            partyId: saleRecord.partyId,
+            partyTitle: saleRecord.partyTitle,
+            entryDate: saleRecord.entryDate,
+            netAmount: saleRecord.netAmount,
+            items: itemsSnapshot
+          });
+          if (dupRes && dupRes.duplicate) {
+            const firstMatch = (dupRes.matches && dupRes.matches[0]) || {};
+            const matchInfo = firstMatch.voucherNo ? ` (${firstMatch.voucherNo} dated ${firstMatch.entryDate})` : '';
+            const confirmMsg = `A similar entry already exists${matchInfo}. Are you sure you want to proceed with this entry?`;
+
+            const proceed = await new Promise(resolve => {
+              if (window.openConfirmModal) {
+                window.openConfirmModal({
+                  title: 'Duplicate Entry Warning',
+                  message: confirmMsg,
+                  confirmText: 'Proceed',
+                  cancelText: 'Cancel',
+                  confirmClass: 'btn-primary',
+                  onConfirm: () => resolve(true),
+                  onCancel: () => resolve(false)
+                });
+              } else {
+                resolve(confirm(confirmMsg));
+              }
+            });
+
+            if (!proceed) {
+              saleState.isSaving = false;
+              if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `
+                  <span style="font-size: 15px;">✓</span>
+                  <span>Confirm Sale</span>
+                `;
+              }
+              return;
+            }
+          }
+        } catch (dupErr) {
+          console.warn('Sales duplicate check skipped on error:', dupErr);
+        }
+      }
+
       let res;
       if (window.salesAPI?.saveSale) {
         res = await window.salesAPI.saveSale(saleRecord, itemsSnapshot);
@@ -2574,10 +2712,11 @@
 
       closeAddSaleModal();
 
-      // Reload global store to reflect updated stock quantities
+      // Reload global store to reflect updated stock quantities & refresh customer balances
       if (window.reloadFromDatabase) {
         await window.reloadFromDatabase();
       }
+      await loadAllParties();
       renderPosProductCatalog();
 
       if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
@@ -2632,7 +2771,8 @@
     if (el.manualNo) el.manualNo.value = '';
     if (el.partyTypeSelect) el.partyTypeSelect.value = '';
     if (el.customerSelect) el.customerSelect.value = '';
-    if (el.customerName) el.customerName.value = '';
+    if (el.customerName) el.customerName.value = 'Walk-in Cash Customer';
+    if (el.paymentType) el.paymentType.value = 'Cash';
     if (el.partySelectLabel) el.partySelectLabel.textContent = 'Registered Staff';
     if (el.customerNameLabel) el.customerNameLabel.textContent = 'Customer Name';
     populateCustomerDropdown(null);
@@ -2975,10 +3115,10 @@
     const grossVal = Number(s.grossAmount || calculatedGross || 0);
     const discVal = Number(s.discount !== undefined ? s.discount : (calculatedGross - calculatedNet));
     const netVal = Number(s.netAmount || calculatedNet || (grossVal - discVal) || 0);
-    const prevBillVal = salePrintStudioState.includePrevBill ? Number(salePrintStudioState.prevBillAmount || 0) : 0;
+    const prevBillVal = (salePrintStudioState.includePrevBill && !isEstimatedBill) ? Number(salePrintStudioState.prevBillAmount || 0) : 0;
     const grandPayableVal = netVal + prevBillVal;
-    const paidVal = Number(s.paidAmount ?? 0);
-    const balanceVal = Math.max(0, grandPayableVal - paidVal);
+    const paidVal = isEstimatedBill ? 0 : Number(s.paidAmount ?? 0);
+    const balanceVal = isEstimatedBill ? 0 : Math.max(0, grandPayableVal - paidVal);
 
     return {
       s,
@@ -3212,21 +3352,22 @@
                   <td class="a4-tot-val">+${prevBillVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>` : ''}
                 <tr class="total-highlight-row">
-                  <td class="a4-tot-lbl">Total</td>
+                  <td class="a4-tot-lbl">${isEstimatedBill ? 'Estimated Total' : 'Total'}</td>
                   <td class="a4-tot-curr">Rs</td>
                   <td class="a4-tot-val">${grandPayableVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
-                ${paidVal > 0 ? `
+                ${(!isEstimatedBill && paidVal > 0) ? `
                 <tr>
                   <td class="a4-tot-lbl">Amount Paid</td>
                   <td class="a4-tot-curr">Rs</td>
                   <td class="a4-tot-val">${paidVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>` : ''}
+                ${!isEstimatedBill ? `
                 <tr class="balance-highlight-row">
                   <td class="a4-tot-lbl">Balance Due</td>
                   <td class="a4-tot-curr">Rs</td>
                   <td class="a4-tot-val">${balanceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
+                </tr>` : ''}
               </table>
             </div>
           </div>
@@ -3341,9 +3482,9 @@
     }
 
     const itemsCount = (items || []).length;
-    const effectivePrev = (includePrevBill || prevBillVal > 0) ? Number(prevBillVal || 0) : 0;
-    const effectivePaid = Number(paidVal || 0);
-    const remainingVal = Math.max(0, (netVal + effectivePrev) - effectivePaid);
+    const effectivePrev = (!isEstimatedBill && (includePrevBill || prevBillVal > 0)) ? Number(prevBillVal || 0) : 0;
+    const effectivePaid = isEstimatedBill ? 0 : Number(paidVal || 0);
+    const remainingVal = isEstimatedBill ? 0 : Math.max(0, (netVal + effectivePrev) - effectivePaid);
 
     const footerText = cleanInvoiceEmoji(cfg.footer || 'Shahzaib Traders Management System');
 
@@ -3428,23 +3569,24 @@
               <span class="total-val">-${discVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
             </div>` : ''}
             <div class="thermal-total-line">
-              <span class="total-lbl">TOTAL:</span>
+              <span class="total-lbl">${isEstimatedBill ? 'ESTIMATED TOTAL:' : 'TOTAL:'}</span>
               <span class="total-val">${netVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
             </div>
-            ${effectivePrev > 0 ? `
+            ${(!isEstimatedBill && effectivePrev > 0) ? `
             <div class="thermal-total-line">
               <span class="total-lbl">Previous Balance:</span>
               <span class="total-val">${effectivePrev.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
             </div>` : ''}
-            ${effectivePaid > 0 ? `
+            ${(!isEstimatedBill && effectivePaid > 0) ? `
             <div class="thermal-total-line">
               <span class="total-lbl">Paid:</span>
               <span class="total-val">${effectivePaid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
             </div>` : ''}
+            ${!isEstimatedBill ? `
             <div class="thermal-total-line thermal-remaining-line">
               <span class="total-lbl">Remaining:</span>
               <span class="total-val">${remainingVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-            </div>
+            </div>` : ''}
           </div>
         </div>
 
@@ -3520,9 +3662,9 @@
       grossAmount: Number(el.grossTotal?.textContent.replace(/[^0-9.]/g, '') || 0),
       discount: Number(el.specialDiscount?.value || 0),
       netAmount: Number(el.netTotal?.textContent.replace(/[^0-9.]/g, '') || 0),
-      paidAmount: Number(el.paidAmount?.value || 0),
-      balanceDue: Number(el.balanceDue?.textContent.replace(/[^0-9.]/g, '') || 0),
-      previousBalance: Number(el.customerPrevBalance?.dataset?.rawBalance || 0),
+      paidAmount: (el.saleBillStatus?.value === 'Estimated' || saleState.billStatus === 'Estimated') ? 0 : Number(el.paidAmount?.value || 0),
+      balanceDue: (el.saleBillStatus?.value === 'Estimated' || saleState.billStatus === 'Estimated') ? 0 : Number(el.balanceDue?.textContent.replace(/[^0-9.]/g, '') || 0),
+      previousBalance: (el.saleBillStatus?.value === 'Estimated' || saleState.billStatus === 'Estimated') ? 0 : Number(el.customerPrevBalance?.dataset?.rawBalance || 0),
       billStatus: el.saleBillStatus?.value || saleState.billStatus || 'Paid',
       items: items
     };
@@ -3601,9 +3743,10 @@
     } catch (_) {}
 
     // Initialize Previous Bill Option:
-    // If customer has a positive ledger balance, populate & enable previous bill option
+    // If customer has a positive ledger balance and bill is NOT an estimate, populate & enable previous bill option
+    const isEstimated = (s.billStatus === 'Estimated');
     const rawPrevBal = Number(s.previousBalance ?? (el.customerPrevBalance?.dataset?.rawBalance || 0));
-    if (rawPrevBal > 0) {
+    if (rawPrevBal > 0 && !isEstimated) {
       salePrintStudioState.includePrevBill = true;
       salePrintStudioState.prevBillAmount = rawPrevBal;
       if (el.chkIncludePrevBill) el.chkIncludePrevBill.checked = true;
@@ -3826,7 +3969,7 @@
       return true;
     });
 
-    renderSalesMasterTable(filtered);
+    renderSalesMasterTable(filtered, true);
   }
 
   function resetSalesFilters() {
@@ -3837,124 +3980,123 @@
     applySalesFilter();
   }
 
-  function renderSalesMasterTable(list) {
+  let salesHistoryPagination = {
+    currentPage: 1,
+    pageSize: 10,
+    list: []
+  };
+
+  function changeSalesHistoryPage(delta) {
+    const total = salesHistoryPagination.list.length;
+    let pageSize = salesHistoryPagination.pageSize;
+    if (el.salesHistoryPageSize) {
+      const val = el.salesHistoryPageSize.value;
+      pageSize = val === 'all' ? 999999 : (parseInt(val, 10) || 10);
+      salesHistoryPagination.pageSize = pageSize;
+    }
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const target = salesHistoryPagination.currentPage + delta;
+    if (target >= 1 && target <= totalPages) {
+      salesHistoryPagination.currentPage = target;
+      renderSalesMasterTable(salesHistoryPagination.list, false);
+    }
+  }
+
+  function setSalesHistoryPage(page) {
+    const total = salesHistoryPagination.list.length;
+    let pageSize = salesHistoryPagination.pageSize;
+    if (el.salesHistoryPageSize) {
+      const val = el.salesHistoryPageSize.value;
+      pageSize = val === 'all' ? 999999 : (parseInt(val, 10) || 10);
+      salesHistoryPagination.pageSize = pageSize;
+    }
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (page >= 1 && page <= totalPages) {
+      salesHistoryPagination.currentPage = page;
+      renderSalesMasterTable(salesHistoryPagination.list, false);
+    }
+  }
+
+  function renderSalesMasterTable(list, resetPage = false) {
     if (!el.salesMasterTableBody) return;
-    el.salesMasterTableBody.innerHTML = '';
+    salesHistoryPagination.list = Array.isArray(list) ? list : [];
 
+    if (resetPage) {
+      salesHistoryPagination.currentPage = 1;
+    }
+
+    const total = salesHistoryPagination.list.length;
+    let pageSize = salesHistoryPagination.pageSize;
+    if (el.salesHistoryPageSize) {
+      const val = el.salesHistoryPageSize.value;
+      pageSize = val === 'all' ? 999999 : (parseInt(val, 10) || 10);
+      salesHistoryPagination.pageSize = pageSize;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (salesHistoryPagination.currentPage > totalPages) salesHistoryPagination.currentPage = totalPages;
+    if (salesHistoryPagination.currentPage < 1) salesHistoryPagination.currentPage = 1;
+
+    const currentPage = salesHistoryPagination.currentPage;
+
+    // Update Counters and Page Indicators
     if (el.saleResultsCounter) {
-      el.saleResultsCounter.textContent = `${list.length} Invoice${list.length === 1 ? '' : 's'}`;
+      el.saleResultsCounter.textContent = `${total} Invoice${total === 1 ? '' : 's'}`;
+    }
+    if (el.salesTopPageIndicator) {
+      el.salesTopPageIndicator.textContent = `Page ${currentPage} / ${totalPages}`;
     }
 
-    if (!window.salesPagination && window.createTablePagination) {
-      window.salesPagination = window.createTablePagination({
-        container: '#salesHistoryTableContainer',
-        tbody: el.salesMasterTableBody,
-        emptyStateEl: el.salesEmptyState,
-        onRenderPage: (slice, startIdx) => {
-          el.salesMasterTableBody.innerHTML = '';
-          slice.forEach((s, idx) => {
-            const globalSr = startIdx + idx + 1;
-            let itemsCount = 0;
-            try {
-              const parsed = typeof s.itemsJson === 'string' ? JSON.parse(s.itemsJson) : (s.items || []);
-              itemsCount = Array.isArray(parsed) ? parsed.length : 0;
-            } catch (e) {}
+    // Enable/disable navigation buttons
+    const isPrevDisabled = currentPage <= 1;
+    const isNextDisabled = currentPage >= totalPages;
+    if (el.btnSalesTopPrev) el.btnSalesTopPrev.disabled = isPrevDisabled;
+    if (el.btnSalesTopNext) el.btnSalesTopNext.disabled = isNextDisabled;
+    if (el.btnSalesHistoryPrev) el.btnSalesHistoryPrev.disabled = isPrevDisabled;
+    if (el.btnSalesHistoryNext) el.btnSalesHistoryNext.disabled = isNextDisabled;
 
-            const contactStr = [s.customerPhone, s.areaName].filter(Boolean).join(' • ') || '-';
-            const isEst = (s.billStatus === 'Estimated');
-            const statusBadge = isEst
-              ? '<span class="badge-status-estimate" title="Estimated Bill (No Stock Deducted)">📋 Estimate</span>'
-              : '<span class="badge-status-paid" title="Paid Bill (Stock Deducted)">✓ Paid</span>';
-
-            const modeBadge = (s.paymentType === 'Cash')
-              ? '<span class="badge-condition-good" style="background: #dcfce7; color: #166534;">Cash</span>'
-              : (s.paymentType === 'Credit')
-                ? '<span class="badge-condition-damaged" style="background: #fee2e2; color: #991b1b;">Credit</span>'
-                : `<span class="badge-price-pill" style="font-size: 11px;">${window.escapeHtml(s.paymentType || 'Cash')}</span>`;
-
-            const menuId = `saleMenu_${s.id || globalSr}`;
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td class="text-center font-num text-secondary">${globalSr}</td>
-              <td class="text-center font-num font-bold text-primary">${window.escapeHtml(s.voucherNo || '-')}</td>
-              <td class="text-center font-num">${s.entryDate || '-'}</td>
-              <td class="font-bold text-ellipsis" title="${window.escapeHtml(s.partyTitle || '-')}">${window.escapeHtml(s.partyTitle || 'Walk-in Customer')}</td>
-              <td class="text-secondary text-ellipsis" style="font-size: 12px;" title="${window.escapeHtml(contactStr)}">${window.escapeHtml(contactStr)}</td>
-              <td class="text-center font-num font-bold">${itemsCount}</td>
-              <td class="text-right font-num">${Number(s.grossAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-              <td class="text-right font-num text-secondary">${Number(s.discount || 0) > 0 ? Number(s.discount).toFixed(2) : '-'}</td>
-              <td class="text-right font-num font-bold text-accent" style="font-size: 13.5px;">Rs ${Number(s.netAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-              <td class="text-right font-num font-bold text-success">${Number(s.paidAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-              <td class="text-center" style="white-space: nowrap; min-width: 145px;">
-                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: nowrap;">${statusBadge} ${modeBadge}</div>
-              </td>
-              <td class="text-center" style="white-space: nowrap; min-width: 130px;">
-                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                  ${isEst ? `
-                    <button type="button" class="btn-convert-estimate" onclick="window.SalesModule.convertEstimateToPaid('${s.id}')" title="Convert this Estimate into a confirmed Paid Bill">
-                      <span>🛒</span><span>Convert</span>
-                    </button>
-                  ` : ''}
-                  <div class="dots-wrapper">
-                    <button type="button" class="btn-dots" onclick="window.toggleRowMenu(event, '${menuId}')" title="Actions">
-                      ⋮
-                    </button>
-                    <div id="${menuId}" class="action-menu hidden">
-                      ${isEst ? `
-                        <button type="button" class="action-item" onclick="window.SalesModule.convertEstimateToPaid('${s.id}')" style="color: #16a34a; font-weight: 700;">
-                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                          <span>Convert to Paid Bill</span>
-                        </button>
-                      ` : ''}
-                      <button type="button" class="action-item" onclick="window.SalesModule.reprintSale('${s.id}')">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                          <rect x="6" y="14" width="12" height="8"></rect>
-                        </svg>
-                        <span>Print Bill / Receipt</span>
-                      </button>
-                      <button type="button" class="action-item" onclick="window.SalesModule.editSale('${s.id}')">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                        <span>Edit Voucher</span>
-                      </button>
-                      <button type="button" class="action-item action-danger" onclick="window.SalesModule.deleteSalePrompt('${s.id}')">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                        <span>Delete Voucher</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </td>
-            `;
-            el.salesMasterTableBody.appendChild(tr);
-          });
-        }
-      });
-    }
-
-    if (window.salesPagination) {
-      window.salesPagination.setItems(list, false);
-      return;
-    }
-
-    if (list.length === 0) {
+    // Handle Empty State
+    if (total === 0) {
+      el.salesMasterTableBody.innerHTML = '';
       if (el.salesEmptyState) el.salesEmptyState.style.display = 'flex';
+      if (el.salesHistoryPaginationInfo) {
+        el.salesHistoryPaginationInfo.textContent = 'Showing 0 of 0 entries';
+      }
+      if (el.salesHistoryPaginationNumbers) {
+        el.salesHistoryPaginationNumbers.innerHTML = '';
+      }
       return;
     }
 
     if (el.salesEmptyState) el.salesEmptyState.style.display = 'none';
 
-    list.forEach((s, idx) => {
+    // Calculate Slice
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, total);
+    const slice = salesHistoryPagination.list.slice(startIdx, endIdx);
+
+    // Update Pagination Info Bar
+    if (el.salesHistoryPaginationInfo) {
+      el.salesHistoryPaginationInfo.textContent = totalPages > 1
+        ? `Showing ${startIdx + 1} to ${endIdx} of ${total} entries (Page ${currentPage} of ${totalPages})`
+        : `Showing ${startIdx + 1} to ${endIdx} of ${total} entries`;
+    }
+
+    // Render Page Numbers
+    if (el.salesHistoryPaginationNumbers) {
+      if (window.renderPaginationNumbers) {
+        window.renderPaginationNumbers(el.salesHistoryPaginationNumbers, currentPage, totalPages, (targetPage) => {
+          setSalesHistoryPage(targetPage);
+        });
+      } else {
+        el.salesHistoryPaginationNumbers.innerHTML = '';
+      }
+    }
+
+    // Render Table Rows
+    el.salesMasterTableBody.innerHTML = '';
+    slice.forEach((s, idx) => {
+      const globalSr = startIdx + idx + 1;
       let itemsCount = 0;
       try {
         const parsed = typeof s.itemsJson === 'string' ? JSON.parse(s.itemsJson) : (s.items || []);
@@ -3973,11 +4115,11 @@
           ? '<span class="badge-condition-damaged" style="background: #fee2e2; color: #991b1b;">Credit</span>'
           : `<span class="badge-price-pill" style="font-size: 11px;">${window.escapeHtml(s.paymentType || 'Cash')}</span>`;
 
-      const menuId = `saleMenu_${s.id || idx}`;
+      const menuId = `saleMenu_${s.id || globalSr}`;
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="text-center font-num text-secondary">${idx + 1}</td>
+        <td class="text-center font-num text-secondary">${globalSr}</td>
         <td class="text-center font-num font-bold text-primary">${window.escapeHtml(s.voucherNo || '-')}</td>
         <td class="text-center font-num">${s.entryDate || '-'}</td>
         <td class="font-bold text-ellipsis" title="${window.escapeHtml(s.partyTitle || '-')}">${window.escapeHtml(s.partyTitle || 'Walk-in Customer')}</td>
@@ -4021,7 +4163,7 @@
                 <button type="button" class="action-item" onclick="window.SalesModule.editSale('${s.id}')">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                   <span>Edit Voucher</span>
                 </button>
@@ -4087,9 +4229,16 @@
       el.specialDiscountPercent.value = saleGross > 0 ? ((saleDisc / saleGross) * 100).toFixed(1) : 0;
     }
 
-    // Set paid amount by default to net amount so Cash sale is ready to confirm
+    // Set paid amount based on payment mode
     const net = Number(sale.netAmount || 0);
-    if (el.paidAmount) el.paidAmount.value = net;
+    const salePayType = sale.paymentType || 'Cash';
+    if (el.paidAmount) {
+      if (salePayType === 'Credit') {
+        el.paidAmount.value = 0;
+      } else {
+        el.paidAmount.value = net;
+      }
+    }
 
     // CRITICAL: Explicitly convert status to 'Paid'
     saleState.billStatus = 'Paid';
@@ -4142,7 +4291,10 @@
     if (el.storeTitle) el.storeTitle.value = sale.storeTitle || 'Main Store';
     if (el.description) el.description.value = sale.description || '';
     if (el.specialDiscount) el.specialDiscount.value = Number(sale.discount || 0);
-    if (el.paidAmount) el.paidAmount.value = Number(sale.paidAmount || 0);
+    if (el.paidAmount) {
+      el.paidAmount.value = Number(sale.paidAmount || 0);
+      el.paidAmount.dataset.userEdited = 'true';
+    }
 
     saleState.billStatus = sale.billStatus || 'Paid';
     if (el.saleBillStatus) {
@@ -4288,6 +4440,20 @@
     }
     if (el.saleFilterMode) el.saleFilterMode.addEventListener('change', applySalesFilter);
     if (el.btnSaleResetFilters) el.btnSaleResetFilters.addEventListener('click', resetSalesFilters);
+
+    // Sales History Pagination Navigation Event Listeners
+    if (el.btnSalesHistoryPrev) el.btnSalesHistoryPrev.addEventListener('click', () => changeSalesHistoryPage(-1));
+    if (el.btnSalesHistoryNext) el.btnSalesHistoryNext.addEventListener('click', () => changeSalesHistoryPage(1));
+    if (el.btnSalesTopPrev) el.btnSalesTopPrev.addEventListener('click', () => changeSalesHistoryPage(-1));
+    if (el.btnSalesTopNext) el.btnSalesTopNext.addEventListener('click', () => changeSalesHistoryPage(1));
+    if (el.salesHistoryPageSize) {
+      el.salesHistoryPageSize.addEventListener('change', (e) => {
+        const val = e.target.value;
+        salesHistoryPagination.pageSize = val === 'all' ? 999999 : (parseInt(val, 10) || 10);
+        salesHistoryPagination.currentPage = 1;
+        renderSalesMasterTable(salesHistoryPagination.list, false);
+      });
+    }
 
     // Party Type Select
     if (el.partyTypeSelect) {
@@ -4485,11 +4651,11 @@
         }
 
         if (currentSaleSubTab === 'return') {
-          addReturnProductToCart(product.id || product.code, 1);
+          addReturnProductToCart(product, 1);
           selectReturnProduct(product, false);
         } else {
           const rateMode = product._chosenRateType || saleState.rateMode || 'retail';
-          addProductToCart(product.id || product.code, 1, rateMode, true);
+          addProductToCart(product, 1, rateMode, true);
           selectProduct(product, false);
         }
       });
@@ -6489,6 +6655,8 @@ ${window.escapeHtml(cfg.footer)}
     setReturnItemQty,
     openReturnHistoryModal,
     openHistoryModal,
+    changeHistoryPage: changeSalesHistoryPage,
+    setHistoryPage: setSalesHistoryPage,
     resetReturnForm,
     saveSaleReturn,
     showReturnPosRightView,

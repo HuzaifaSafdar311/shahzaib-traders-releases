@@ -133,29 +133,75 @@ const appEl = {
 };
 
 let currentPendingDelete = null;
+let currentPendingCancel = null;
 
 // Confirm Modal Helpers
-function openConfirmModal({ title, message, onConfirm }) {
+function openConfirmModal({ title, message, onConfirm, onCancel, confirmText, cancelText, confirmClass }) {
   if (!appEl.modalConfirm) return;
   if (appEl.confirmTitle) appEl.confirmTitle.textContent = title || 'Confirm Action';
   if (appEl.confirmMessage) appEl.confirmMessage.textContent = message || 'Are you sure you want to proceed?';
+  
+  if (appEl.btnExecuteConfirm) {
+    appEl.btnExecuteConfirm.textContent = confirmText || 'Delete';
+    if (confirmClass) {
+      appEl.btnExecuteConfirm.className = `btn ${confirmClass}`;
+    } else if (confirmText && confirmText.toLowerCase().includes('proceed')) {
+      appEl.btnExecuteConfirm.className = 'btn btn-primary';
+    } else {
+      appEl.btnExecuteConfirm.className = 'btn btn-danger';
+    }
+  }
+
+  if (appEl.btnCancelConfirm) {
+    appEl.btnCancelConfirm.textContent = cancelText || 'Cancel';
+  }
+
   currentPendingDelete = onConfirm;
+  currentPendingCancel = onCancel;
   appEl.modalConfirm.classList.remove('hidden');
+
+  setTimeout(() => {
+    if (appEl.btnExecuteConfirm) appEl.btnExecuteConfirm.focus();
+  }, 50);
 }
 
-function closeConfirmModal() {
+function closeConfirmModal(triggerCancel = true) {
   if (appEl.modalConfirm) appEl.modalConfirm.classList.add('hidden');
+  const cancelCb = currentPendingCancel;
   currentPendingDelete = null;
+  currentPendingCancel = null;
+  if (triggerCancel && typeof cancelCb === 'function') {
+    try { cancelCb(); } catch (e) { console.error(e); }
+  }
 }
 
-if (appEl.btnCloseConfirmModal) appEl.btnCloseConfirmModal.addEventListener('click', closeConfirmModal);
-if (appEl.btnCancelConfirm) appEl.btnCancelConfirm.addEventListener('click', closeConfirmModal);
+if (appEl.btnCloseConfirmModal) appEl.btnCloseConfirmModal.addEventListener('click', () => closeConfirmModal(true));
+if (appEl.btnCancelConfirm) appEl.btnCancelConfirm.addEventListener('click', () => closeConfirmModal(true));
 if (appEl.btnExecuteConfirm) {
   appEl.btnExecuteConfirm.addEventListener('click', async () => {
-    if (currentPendingDelete) await currentPendingDelete();
-    closeConfirmModal();
+    const cb = currentPendingDelete;
+    closeConfirmModal(false);
+    if (typeof cb === 'function') {
+      try { await cb(); } catch (e) { console.error(e); }
+    }
   });
 }
+
+// Global modal keyboard handling (Escape to cancel, Enter to confirm)
+window.addEventListener('keydown', (e) => {
+  if (!appEl.modalConfirm || appEl.modalConfirm.classList.contains('hidden')) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    closeConfirmModal(true);
+  } else if (e.key === 'Enter') {
+    if (document.activeElement !== appEl.btnCancelConfirm) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (appEl.btnExecuteConfirm) appEl.btnExecuteConfirm.click();
+    }
+  }
+}, true);
 
 window.openConfirmModal = openConfirmModal;
 window.closeConfirmModal = closeConfirmModal;

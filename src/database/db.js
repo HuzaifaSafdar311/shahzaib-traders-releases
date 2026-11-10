@@ -68,7 +68,7 @@ function initJsonFallback(dbPath) {
   return dbInstance;
 }
 
-const generalInfoDb = require('../Genral info/general-info-db');
+const generalInfoDb = require('../general-info/general-info-db');
 const accountsDb = require('../accounts/accounts-db');
 const tradeFeaturesDb = require('./trade-features-db');
 
@@ -2784,6 +2784,226 @@ function clearAllLedgers() {
   }
 }
 
+function normalizeItemsForDupCheck(items) {
+  if (!Array.isArray(items) || items.length === 0) return '';
+  return items
+    .map(it => {
+      const key = String(it.productCode || it.code || it.productId || '').trim().toLowerCase();
+      const qty = Number(it.totalQty !== undefined ? it.totalQty : (it.quantity !== undefined ? it.quantity : (it.unitQty || it.packQty || 0)));
+      return `${key}:${qty}`;
+    })
+    .filter(s => !s.startsWith(':0') && s !== ':')
+    .sort()
+    .join('|');
+}
+
+function checkDuplicate(params = {}) {
+  const { module, id, partyId, partyTitle, entryDate, manualNo, amount, netAmount, totalAmount, grandTotal, items, voucherType, chequeOrRefNo, remarks } = params;
+  const matches = [];
+
+  try {
+    if (module === 'sales') {
+      const targetAmount = Number(netAmount !== undefined ? netAmount : (totalAmount !== undefined ? totalAmount : amount)) || 0;
+      const cleanDate = String(entryDate || '').trim();
+      const cleanPartyId = String(partyId || '').trim();
+      const cleanPartyTitle = String(partyTitle || '').trim();
+      const cleanId = String(id || '').trim();
+      const incomingNorm = normalizeItemsForDupCheck(items);
+
+      if (dbInstance) {
+        const stmt = dbInstance.prepare(`
+          SELECT id, voucherNo, entryDate, partyId, partyTitle, netAmount, itemsJson
+          FROM sales
+          WHERE entryDate = ?
+            AND (partyId = ? OR LOWER(TRIM(partyTitle)) = LOWER(TRIM(?)))
+            AND (? = '' OR id != ?)
+            AND LOWER(COALESCE(billStatus, '')) NOT IN ('cancelled', 'deleted')
+        `);
+        const candidates = stmt.all(cleanDate, cleanPartyId, cleanPartyTitle, cleanId, cleanId);
+
+        for (const cand of candidates) {
+          const candAmount = Number(cand.netAmount) || 0;
+          const isSameAmount = Math.abs(candAmount - targetAmount) < 0.01;
+          let isSameItems = false;
+          if (incomingNorm) {
+            try {
+              const candItems = JSON.parse(cand.itemsJson || '[]');
+              const candNorm = normalizeItemsForDupCheck(candItems);
+              if (candNorm && candNorm === incomingNorm) {
+                isSameItems = true;
+              }
+            } catch (_) {}
+          }
+
+          if (isSameAmount || isSameItems) {
+            matches.push({
+              id: cand.id,
+              voucherNo: cand.voucherNo,
+              entryDate: cand.entryDate,
+              partyTitle: cand.partyTitle,
+              amount: candAmount,
+              reason: isSameAmount && isSameItems ? 'Same amount and line items' : (isSameAmount ? 'Same total amount' : 'Identical line items')
+            });
+          }
+        }
+      } else if (isJsonFallback) {
+        const salesList = Array.isArray(jsonData.sales) ? jsonData.sales : [];
+        for (const cand of salesList) {
+          if (cleanId && String(cand.id || '') === cleanId) continue;
+          if (String(cand.entryDate || '').trim() !== cleanDate) continue;
+          const candPartyId = String(cand.partyId || '').trim();
+          const candPartyTitle = String(cand.partyTitle || '').trim().toLowerCase();
+          const matchesParty = (candPartyId === cleanPartyId) || (candPartyTitle && candPartyTitle === cleanPartyTitle.toLowerCase());
+          if (!matchesParty) continue;
+          if (['cancelled', 'deleted'].includes(String(cand.billStatus || '').toLowerCase())) continue;
+
+          const candAmount = Number(cand.netAmount) || 0;
+          const isSameAmount = Math.abs(candAmount - targetAmount) < 0.01;
+          let isSameItems = false;
+          if (incomingNorm) {
+            const candItems = Array.isArray(cand.items) ? cand.items : (typeof cand.itemsJson === 'string' ? JSON.parse(cand.itemsJson || '[]') : []);
+            const candNorm = normalizeItemsForDupCheck(candItems);
+            if (candNorm && candNorm === incomingNorm) isSameItems = true;
+          }
+          if (isSameAmount || isSameItems) {
+            matches.push({
+              id: cand.id,
+              voucherNo: cand.voucherNo,
+              entryDate: cand.entryDate,
+              partyTitle: cand.partyTitle,
+              amount: candAmount
+            });
+          }
+        }
+      }
+    } else if (module === 'purchases') {
+      const targetTotal = Number(grandTotal !== undefined ? grandTotal : (totalAmount !== undefined ? totalAmount : (netAmount !== undefined ? netAmount : amount))) || 0;
+      const cleanDate = String(entryDate || '').trim();
+      const cleanPartyId = String(partyId || '').trim();
+      const cleanManualNo = String(manualNo || '').trim();
+      const cleanId = String(id || '').trim();
+
+      if (dbInstance) {
+        const stmt = dbInstance.prepare(`
+          SELECT id, voucherNo, entryDate, partyId, partyTitle, manualNo, grandTotal
+          FROM purchases
+          WHERE partyId = ?
+            AND (? = '' OR id != ?)
+            AND (
+              (? != '' AND manualNo != '' AND LOWER(TRIM(manualNo)) = LOWER(TRIM(?)))
+              OR
+              (entryDate = ? AND ABS(grandTotal - ?) < 0.01)
+            )
+        `);
+        const rows = stmt.all(cleanPartyId, cleanId, cleanId, cleanManualNo, cleanManualNo, cleanDate, targetTotal);
+        for (const row of rows) {
+          matches.push({
+            id: row.id,
+            voucherNo: row.voucherNo,
+            entryDate: row.entryDate,
+            partyTitle: row.partyTitle,
+            manualNo: row.manualNo,
+            amount: Number(row.grandTotal) || 0
+          });
+        }
+      } else if (isJsonFallback) {
+        const purList = Array.isArray(jsonData.purchases) ? jsonData.purchases : [];
+        for (const cand of purList) {
+          if (cleanId && String(cand.id || '') === cleanId) continue;
+          if (String(cand.partyId || '').trim() !== cleanPartyId) continue;
+          const candManual = String(cand.manualNo || '').trim().toLowerCase();
+          const matchesManual = cleanManualNo !== '' && candManual !== '' && candManual === cleanManualNo.toLowerCase();
+          const matchesDateTotal = String(cand.entryDate || '').trim() === cleanDate && Math.abs((Number(cand.grandTotal) || 0) - targetTotal) < 0.01;
+          if (matchesManual || matchesDateTotal) {
+            matches.push({
+              id: cand.id,
+              voucherNo: cand.voucherNo,
+              entryDate: cand.entryDate,
+              partyTitle: cand.partyTitle,
+              manualNo: cand.manualNo,
+              amount: Number(cand.grandTotal) || 0
+            });
+          }
+        }
+      }
+    } else if (module === 'vouchers') {
+      const targetAmount = Number(amount !== undefined ? amount : netAmount) || 0;
+      const cleanDate = String(entryDate || '').trim();
+      const cleanPartyId = String(partyId || '').trim();
+      const cleanType = String(voucherType || '').trim().toUpperCase();
+      const cleanRef = String(chequeOrRefNo || '').trim();
+      const cleanRemarks = String(remarks || '').trim();
+      const cleanId = String(id || '').trim();
+
+      if (dbInstance) {
+        const stmt = dbInstance.prepare(`
+          SELECT id, voucherNo, entryDate, partyId, partyTitle, voucherType, amount, netAmount, chequeOrRefNo, remarks
+          FROM accounts_vouchers
+          WHERE voucherType = ?
+            AND entryDate = ?
+            AND partyId = ?
+            AND ABS(amount - ?) < 0.01
+            AND (? = '' OR id != ?)
+            AND (
+              (? != '' AND LOWER(TRIM(COALESCE(chequeOrRefNo, ''))) = LOWER(TRIM(?)))
+              OR
+              (? != '' AND LOWER(TRIM(COALESCE(remarks, ''))) = LOWER(TRIM(?)))
+              OR
+              (? = '' AND ? = '' AND TRIM(COALESCE(chequeOrRefNo, '')) = '' AND TRIM(COALESCE(remarks, '')) = '')
+            )
+        `);
+        const rows = stmt.all(
+          cleanType, cleanDate, cleanPartyId, targetAmount,
+          cleanId, cleanId,
+          cleanRef, cleanRef,
+          cleanRemarks, cleanRemarks,
+          cleanRef, cleanRemarks
+        );
+        for (const row of rows) {
+          matches.push({
+            id: row.id,
+            voucherNo: row.voucherNo,
+            entryDate: row.entryDate,
+            partyTitle: row.partyTitle,
+            voucherType: row.voucherType,
+            amount: Number(row.amount) || 0
+          });
+        }
+      } else if (isJsonFallback) {
+        const vList = Array.isArray(jsonData.accounts_vouchers) ? jsonData.accounts_vouchers : [];
+        for (const cand of vList) {
+          if (cleanId && String(cand.id || '') === cleanId) continue;
+          if (String(cand.voucherType || '').trim().toUpperCase() !== cleanType) continue;
+          if (String(cand.entryDate || '').trim() !== cleanDate) continue;
+          if (String(cand.partyId || '').trim() !== cleanPartyId) continue;
+          if (Math.abs((Number(cand.amount) || 0) - targetAmount) >= 0.01) continue;
+
+          const candRef = String(cand.chequeOrRefNo || '').trim().toLowerCase();
+          const candRemarks = String(cand.remarks || '').trim().toLowerCase();
+          const matchesRef = cleanRef !== '' && candRef !== '' && candRef === cleanRef.toLowerCase();
+          const matchesRemarks = cleanRemarks !== '' && candRemarks !== '' && candRemarks === cleanRemarks.toLowerCase();
+          const bothEmpty = cleanRef === '' && cleanRemarks === '' && candRef === '' && candRemarks === '';
+
+          if (matchesRef || matchesRemarks || bothEmpty) {
+            matches.push({
+              id: cand.id,
+              voucherNo: cand.voucherNo,
+              entryDate: cand.entryDate,
+              partyTitle: cand.partyTitle,
+              voucherType: cand.voucherType,
+              amount: Number(cand.amount) || 0
+            });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('checkDuplicate error:', err);
+  }
+
+  return { duplicate: matches.length > 0, matches };
+}
+
 module.exports = {
   initDatabase,
   closeDatabase,
@@ -2898,5 +3118,8 @@ module.exports = {
   restoreDatabase,
   optimizeDatabase,
   exportAllDatabaseJson,
-  clearAllLedgers
+  clearAllLedgers,
+
+  // Duplicate Check
+  checkDuplicate
 };

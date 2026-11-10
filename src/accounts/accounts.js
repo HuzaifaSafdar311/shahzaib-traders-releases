@@ -1000,6 +1000,51 @@
       dom.btnAccSave.disabled = true;
       dom.btnAccSave.textContent = 'Saving...';
 
+      // Check for duplicate voucher entry
+      const checkDupFn = window.accountsAPI?.checkDuplicate || window.api?.checkDuplicate || window.electronAPI?.checkDuplicate;
+      if (checkDupFn) {
+        try {
+          const dupRes = await checkDupFn({
+            module: 'vouchers',
+            id: voucherData.id,
+            voucherType: voucherData.voucherType,
+            entryDate: voucherData.entryDate,
+            partyId: voucherData.partyId,
+            amount: voucherData.amount,
+            netAmount: voucherData.netAmount,
+            chequeOrRefNo: voucherData.chequeOrRefNo,
+            remarks: voucherData.remarks
+          });
+          if (dupRes && dupRes.duplicate) {
+            const firstMatch = (dupRes.matches && dupRes.matches[0]) || {};
+            const matchInfo = firstMatch.voucherNo ? ` (${firstMatch.voucherNo} dated ${firstMatch.entryDate})` : '';
+            const confirmMsg = `A similar entry already exists${matchInfo}. Are you sure you want to proceed with this entry?`;
+
+            const proceed = await new Promise(resolve => {
+              if (window.openConfirmModal) {
+                window.openConfirmModal({
+                  title: 'Duplicate Entry Warning',
+                  message: confirmMsg,
+                  confirmText: 'Proceed',
+                  cancelText: 'Cancel',
+                  confirmClass: 'btn-primary',
+                  onConfirm: () => resolve(true),
+                  onCancel: () => resolve(false)
+                });
+              } else {
+                resolve(confirm(confirmMsg));
+              }
+            });
+
+            if (!proceed) {
+              return;
+            }
+          }
+        } catch (dupErr) {
+          console.warn('Voucher duplicate check skipped on error:', dupErr);
+        }
+      }
+
       const res = await api.saveVoucher(voucherData);
       if (res && res.success) {
         showToast(`${voucherType} #${res.voucherNo} saved successfully! Ledger balance updated.`, 'success');

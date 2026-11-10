@@ -850,6 +850,10 @@ function initPieProductSearch() {
       onSelect: (prod) => {
         selectProductForPurchase(prod);
       },
+      onClear: () => {
+        const stockBadge = document.getElementById('pieAvailableStockBadge');
+        if (stockBadge) stockBadge.style.display = 'none';
+      },
       nextFocusEl: () => inv.piePackQty
     });
   }
@@ -1333,6 +1337,32 @@ function selectProductForPurchase(prod) {
   if (inv.pieCode) inv.pieCode.value = prod.code;
   if (inv.pieProductSelect) inv.pieProductSelect.value = prod.code;
   if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = prod.titleEng || '';
+
+  // Update Available Stock Badge
+  const stockBadge = document.getElementById('pieAvailableStockBadge');
+  const stockVal = document.getElementById('pieAvailableStockVal');
+  if (stockBadge && stockVal) {
+    const stockQty = Number(prod.stockQty) || 0;
+    const unit = prod.unitName || 'Pcs';
+    stockVal.textContent = String(stockQty) + ' ' + unit;
+    stockBadge.style.display = 'inline-flex';
+    stockBadge.style.alignItems = 'center';
+    stockBadge.style.gap = '4px';
+    if (stockQty <= 0) {
+      stockBadge.style.background = '#fef2f2';
+      stockBadge.style.color = '#dc2626';
+      stockBadge.style.border = '1px solid #fecaca';
+    } else if (stockQty <= 5) {
+      stockBadge.style.background = '#fffbeb';
+      stockBadge.style.color = '#b45309';
+      stockBadge.style.border = '1px solid #fde68a';
+    } else {
+      stockBadge.style.background = '#eff6ff';
+      stockBadge.style.color = '#1d4ed8';
+      stockBadge.style.border = '1px solid #bfdbfe';
+    }
+  }
+
   const packSize = Number(prod.packSize) || 1;
   if (packSize <= 1) {
     if (inv.piePackQty) inv.piePackQty.value = 1;
@@ -1550,6 +1580,8 @@ function addPurchaseLineItem(overrideProd) {
   if (inv.pieCode) inv.pieCode.value = '';
   if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = '';
   if (inv.pieProductSelect) inv.pieProductSelect.value = '';
+  const stockBadgeAfterAdd = document.getElementById('pieAvailableStockBadge');
+  if (stockBadgeAfterAdd) stockBadgeAfterAdd.style.display = 'none';
   if (inv.piePackQty) inv.piePackQty.value = 0;
   if (inv.pieUnitQty) inv.pieUnitQty.value = 0;
   if (inv.pieBonus) inv.pieBonus.value = 0;
@@ -1673,12 +1705,20 @@ function renderPurchaseLineItems(targetPage = false) {
       tr.style.height = '48px';
       tr.ondblclick = () => window.editPurchaseLineItem(actualIdx);
       tr.title = "Double-click to edit line";
+      const matchedProd = (window.appData?.products || []).find(pr => String(pr.id) === String(item.productId) || String(pr.code) === String(item.productCode));
+      const availStock = matchedProd ? Number(matchedProd.stockQty || 0) : null;
+      const stockUnit = matchedProd?.unitName || 'Pcs';
+      const stockColor = availStock === null ? '#64748b' : (availStock <= 0 ? '#dc2626' : (availStock <= 5 ? '#b45309' : '#1d4ed8'));
+
       tr.innerHTML = `
         <td class="col-pur-sr font-num" style="text-align: center; vertical-align: middle; font-weight: 700; font-size: 12px; color: #64748b;">${item.srNo || (actualIdx + 1)}</td>
         <td class="col-pur-name font-bold" style="text-align: left; vertical-align: middle; padding-left: 10px;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-            <span style="color: #0f172a; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.escapeHtml(item.productTitle)}</span>
-            <button type="button" class="btn-xs" onclick="window.openChangeSubstancePriceModal(${actualIdx})" title="Change price of this substance" style="padding: 1px 6px; font-size: 0.7rem; border-radius: 4px; border: 1px solid #93c5fd; background: #eff6ff; color: #1d4ed8; font-weight: 700; cursor: pointer; white-space: nowrap;">Price</button>
+            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; min-width: 0;">
+              <span style="color: #0f172a; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${window.escapeHtml(item.productTitle)}">${window.escapeHtml(item.productTitle)}</span>
+              ${availStock !== null ? `<span style="font-size: 10.5px; font-weight: 700; color: ${stockColor}; background: #f8fafc; border: 1px solid #e2e8f0; padding: 1px 6px; border-radius: 4px; white-space: nowrap; flex-shrink: 0;" title="Available stock currently in inventory">Stock: ${availStock} ${stockUnit}</span>` : ''}
+            </div>
+            <button type="button" class="btn-xs" onclick="window.openChangeSubstancePriceModal(${actualIdx})" title="Change price of this substance" style="padding: 1px 6px; font-size: 0.7rem; border-radius: 4px; border: 1px solid #93c5fd; background: #eff6ff; color: #1d4ed8; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0;">Price</button>
           </div>
         </td>
         <td class="col-pur-pqty font-num" style="text-align: center; vertical-align: middle;">${item.packQty}</td>
@@ -2076,13 +2116,17 @@ async function savePurchaseVoucher() {
   if (!inv.purPartySelect || !inv.purPartySelect.value) {
     showAlert('Please Select the Party Title!');
     inv.purPartySelect?.focus();
-    return;
+    return false;
   }
 
   if (currentPurchaseItems.length === 0) {
     showAlert('Cannot save an empty voucher. Please add at least one line item!');
-    return;
+    return false;
   }
+
+  const saveButtons = [inv.btnPurSave, inv.btnSavePurchaseModal].filter(Boolean);
+  const disableSaveButtons = () => saveButtons.forEach(b => { b.disabled = true; });
+  const enableSaveButtons = () => saveButtons.forEach(b => { b.disabled = false; });
 
   const selectedParty = inv.purPartySelect.options[inv.purPartySelect.selectedIndex];
   const partyTitle = selectedParty ? selectedParty.text : '';
@@ -2116,6 +2160,50 @@ async function savePurchaseVoucher() {
     grandTotal
   };
 
+  disableSaveButtons();
+
+  // Check for duplicate purchase entry
+  const checkDupFn = window.api?.checkDuplicate || window.electronAPI?.checkDuplicate;
+  if (checkDupFn) {
+    try {
+      const dupRes = await checkDupFn({
+        module: 'purchases',
+        partyId: purchaseData.partyId,
+        manualNo: purchaseData.manualNo,
+        entryDate: purchaseData.entryDate,
+        grandTotal: purchaseData.grandTotal
+      });
+      if (dupRes && dupRes.duplicate) {
+        const firstMatch = (dupRes.matches && dupRes.matches[0]) || {};
+        const matchInfo = firstMatch.voucherNo ? ` (${firstMatch.voucherNo} dated ${firstMatch.entryDate})` : '';
+        const confirmMsg = `A similar entry already exists${matchInfo}. Are you sure you want to proceed with this entry?`;
+
+        const proceed = await new Promise(resolve => {
+          if (window.openConfirmModal) {
+            window.openConfirmModal({
+              title: 'Duplicate Entry Warning',
+              message: confirmMsg,
+              confirmText: 'Proceed',
+              cancelText: 'Cancel',
+              confirmClass: 'btn-primary',
+              onConfirm: () => resolve(true),
+              onCancel: () => resolve(false)
+            });
+          } else {
+            resolve(confirm(confirmMsg));
+          }
+        });
+
+        if (!proceed) {
+          enableSaveButtons();
+          return false;
+        }
+      }
+    } catch (dupErr) {
+      console.warn('Purchase duplicate check skipped on error:', dupErr);
+    }
+  }
+
   try {
     if (window.api?.savePurchase) {
       await window.api.savePurchase(purchaseData, currentPurchaseItems);
@@ -2127,9 +2215,13 @@ async function savePurchaseVoucher() {
     showAlert(`Purchase Voucher #${purchaseData.voucherNo} saved successfully! Stock updated.`, 'Success');
     applyPurchaseDateFilter();
     resetPurchaseForm();
+    return true;
   } catch (err) {
     console.error('Save purchase voucher error:', err);
     showAlert('Error saving purchase voucher: ' + err.message, 'Error');
+    return false;
+  } finally {
+    enableSaveButtons();
   }
 }
 
@@ -2148,6 +2240,8 @@ async function resetPurchaseForm() {
   if (inv.purDescription) inv.purDescription.value = '';
   if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = '';
   if (inv.pieCode) inv.pieCode.value = '';
+  const stockBadgeOnClear = document.getElementById('pieAvailableStockBadge');
+  if (stockBadgeOnClear) stockBadgeOnClear.style.display = 'none';
   if (inv.purDiscount) inv.purDiscount.value = '0.00';
   if (inv.purDiscountPercent) inv.purDiscountPercent.value = '0.0';
   if (inv.purFreightDisc) inv.purFreightDisc.value = '0.00';
@@ -2232,8 +2326,10 @@ if (inv.btnCancelAddPurchase) inv.btnCancelAddPurchase.addEventListener('click',
 if (inv.btnDonePurchaseModal) inv.btnDonePurchaseModal.addEventListener('click', closeAddPurchaseModal);
 if (inv.btnSavePurchaseModal) {
   inv.btnSavePurchaseModal.addEventListener('click', async () => {
-    await savePurchaseVoucher();
-    closeAddPurchaseModal();
+    const saved = await savePurchaseVoucher();
+    if (saved !== false) {
+      closeAddPurchaseModal();
+    }
   });
 }
 
@@ -3115,6 +3211,9 @@ if (window.findProductAPI?.onProductSelected) {
   window.findProductAPI.onProductSelected((p) => {
     if (!p) return;
     const invView = document.getElementById('inventoryView');
+    const isInvActive = (invView && invView.classList.contains('active')) || (window.currentTab === 'inventory');
+    if (!isInvActive) return; // CRITICAL: Never intercept or steal products when user is in Sales or other views!
+
     const purView = document.getElementById('viewPurchase');
     const isPurVisible = purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none'));
     const isPurchaseActive = (currentSubTab === 'purchase') || (window.currentSubTab === 'purchase') || isPurVisible || (inv.modalAddPurchase && !inv.modalAddPurchase.classList.contains('hidden'));
@@ -3129,8 +3228,7 @@ if (window.findProductAPI?.onProductSelected) {
       return;
     }
 
-    const isInventoryActive = (invView && invView.classList.contains('active')) || (window.currentTab === 'inventory');
-    if (isInventoryActive) {
+    if (isInvActive) {
       switchSubTab('product-info');
       loadProductRecord(p);
     }
@@ -3196,6 +3294,12 @@ if (inv.btnPieFind) inv.btnPieFind.addEventListener('click', openProductSearchMo
 if (inv.btnProductInfoList) inv.btnProductInfoList.addEventListener('click', openProductSearchModal);
 if (inv.btnCloseProductSearch) inv.btnCloseProductSearch.addEventListener('click', closeProductSearchModal);
 if (inv.pieProductSearchInput) {
+  inv.pieProductSearchInput.addEventListener('input', () => {
+    if (!inv.pieProductSearchInput.value.trim()) {
+      const stockBadge = document.getElementById('pieAvailableStockBadge');
+      if (stockBadge) stockBadge.style.display = 'none';
+    }
+  });
   inv.pieProductSearchInput.addEventListener('keydown', (e) => {
     if (e.key === 'F1') {
       e.preventDefault();

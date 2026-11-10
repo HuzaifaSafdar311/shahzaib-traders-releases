@@ -4482,8 +4482,8 @@ th.col-hist-action, td.col-hist-action { text-align: center !important; }
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  min-width: 540px;
-  width: 560px;
+  min-width: 580px;
+  width: 640px;
   max-width: 90vw;
   max-height: 320px;
   overflow-y: auto;
@@ -4571,6 +4571,39 @@ th.col-hist-action, td.col-hist-action { text-align: center !important; }
   background: #f8fafc;
   color: #475569;
   border: 1px solid #e2e8f0;
+}
+
+.typeahead-rate-pill.rate-stock {
+  font-weight: 700;
+}
+
+.typeahead-rate-pill.rate-stock.rate-stock-in {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.typeahead-rate-pill.rate-stock.rate-stock-low {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.typeahead-rate-pill.rate-stock.rate-stock-out {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.pie-available-stock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
 .typeahead-no-results {
