@@ -1,7 +1,7 @@
 # Graph Report - shahzaib-traders-releases  (2026-11-10)
 
 ## Corpus Check
-- 21 files · ~132,547 words
+- 21 files · ~132,650 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 12 file(s) not represented in the graph (top: .css 10, .example 1, (none) 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5348af70`
+- Built from commit: `69b65e53`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -61,12 +61,12 @@
 1. `bindEvents()` - 31 edges
 2. `saveJsonData()` - 24 edges
 3. `updateVoucherTotals()` - 24 edges
-4. `setupEventListeners()` - 23 edges
-5. `initPosCatalog()` - 23 edges
-6. `renderItemsTable()` - 23 edges
+4. `initPosCatalog()` - 23 edges
+5. `renderItemsTable()` - 23 edges
+6. `setupEventListeners()` - 23 edges
 7. `checkpoint()` - 22 edges
-8. `toNum()` - 22 edges
-9. `initReturnModule()` - 22 edges
+8. `initReturnModule()` - 22 edges
+9. `toNum()` - 22 edges
 10. `bindEvents()` - 19 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -245,7 +245,7 @@ _Questions this graph is uniquely positioned to answer:_
   _Cohesion score 0.07242063492063493 - nodes in this community are weakly interconnected._
 - **Why does `electron` connect `Development & Build Tooling` to `Main Electron Process & Window Lifecycle`, `Project Metadata & Core Dependencies`, `Export & File System Operations`?**
   _High betweenness centrality (0.010) - this node is a cross-community bridge._
-- **Are the 15 inferred relationships involving `setupEventListeners()` (e.g. with `closeAreaModal()` and `closeEditCompanyModal()`) actually correct?**
-  _`setupEventListeners()` has 15 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 3 inferred relationships involving `initPosCatalog()` (e.g. with `closeProductLookupModal()` and `closeRateChoiceModal()`) actually correct?**
+  _`initPosCatalog()` has 3 INFERRED edges - model-reasoned connections that need verification._
 - **Should `general-info.js` be split into smaller, more focused modules?**
   _Cohesion score 0.13356562137049943 - nodes in this community are weakly interconnected._
