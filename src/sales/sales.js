@@ -3780,7 +3780,38 @@
     // Initialize Previous Bill Option:
     // If customer has a positive ledger balance and bill is NOT an estimate, populate & enable previous bill option
     const isEstimated = (s.billStatus === 'Estimated');
-    const rawPrevBal = Number(s.previousBalance ?? (el.customerPrevBalance?.dataset?.rawBalance || 0));
+    let rawPrevBal = Number(s.previousBalance !== undefined && s.previousBalance !== null ? s.previousBalance : (el.customerPrevBalance?.dataset?.rawBalance || 0));
+
+    // Auto-fetch prior ledger balance from database if previousBalance is 0 or unrecorded
+    let partyIdToCheck = (s.partyId && s.partyId !== 'walk-in') ? s.partyId : (saleState.selectedCustomer?.id || null);
+    if (!partyIdToCheck && s.partyTitle) {
+      const cleanTitle = String(s.partyTitle).trim().toLowerCase();
+      if (cleanTitle && !cleanTitle.includes('walk-in')) {
+        const found = (sharedAllParties || []).find(p => (p.name || p.partyTitle || '').trim().toLowerCase() === cleanTitle);
+        if (found) partyIdToCheck = found.id;
+      }
+    }
+
+    if ((!rawPrevBal || rawPrevBal <= 0) && partyIdToCheck && !isEstimated) {
+      try {
+        if (window.accountsAPI?.getPartyLedger) {
+          const ledger = await window.accountsAPI.getPartyLedger(partyIdToCheck);
+          if (ledger && typeof ledger.closingBalance === 'number') {
+            const billDue = Number(s.balanceDue ?? (Number(s.netAmount || 0) - Number(s.paidAmount || 0))) || 0;
+            // If the bill was already saved/recorded in the ledger, the balance prior to this bill was (closingBalance - billDue)
+            const computedPrior = s.id ? (ledger.closingBalance - billDue) : ledger.closingBalance;
+            if (computedPrior > 0) {
+              rawPrevBal = computedPrior;
+            } else if (ledger.closingBalance > 0 && !s.id) {
+              rawPrevBal = ledger.closingBalance;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not auto-fetch customer ledger for print studio:', err);
+      }
+    }
+
     if (rawPrevBal > 0 && !isEstimated) {
       salePrintStudioState.includePrevBill = true;
       salePrintStudioState.prevBillAmount = rawPrevBal;
@@ -4284,11 +4315,58 @@
 
     // Customer / Party mapping
     if (el.partyTypeSelect) el.partyTypeSelect.value = sale.partyTypeId || '';
-    selectSalePartyType(sale.partyTypeId || '');
-    if (el.customerSelect) el.customerSelect.value = sale.partyId || '';
-    if (el.customerName) el.customerName.value = sale.partyTitle || '';
-    if (el.customerPhone) el.customerPhone.value = sale.customerPhone || '';
-    if (el.customerArea) el.customerArea.value = sale.areaName || '';
+    if (!sharedAllParties || sharedAllParties.length === 0) {
+      await loadAllParties();
+    }
+
+    // Auto-resolve Customer Entity (by partyId, or by matching partyTitle in sharedAllParties)
+    let targetParty = null;
+    if (sale.partyId && sale.partyId !== 'walk-in') {
+      targetParty = (sharedAllParties || []).find(p => String(p.id) === String(sale.partyId));
+    }
+    if (!targetParty && sale.partyTitle) {
+      const cleanTitle = String(sale.partyTitle).trim().toLowerCase();
+      if (cleanTitle && !cleanTitle.includes('walk-in')) {
+        targetParty = (sharedAllParties || []).find(p => (p.name || p.partyTitle || '').trim().toLowerCase() === cleanTitle);
+      }
+    }
+
+    if (targetParty) {
+      const targetPartyTypeId = targetParty.partyTypeId || targetParty.partyType || sale.partyTypeId || '';
+      if (el.partyTypeSelect) el.partyTypeSelect.value = targetPartyTypeId;
+      selectSalePartyType(targetPartyTypeId);
+
+      // Ensure targetParty exists in customer dropdown options
+      if (el.customerSelect) {
+        const optExists = Array.from(el.customerSelect.options).some(o => String(o.value) === String(targetParty.id));
+        if (!optExists) {
+          const opt = document.createElement('option');
+          opt.value = targetParty.id;
+          opt.textContent = targetParty.name || targetParty.partyTitle || 'Customer';
+          opt.dataset.party = JSON.stringify(targetParty);
+          el.customerSelect.appendChild(opt);
+        }
+        el.customerSelect.value = targetParty.id;
+      }
+
+      await selectCustomerEntity(targetParty.id);
+      if (el.customerName) el.customerName.value = sale.partyTitle || targetParty.name || targetParty.partyTitle || '';
+      if (el.customerPhone && sale.customerPhone) el.customerPhone.value = sale.customerPhone;
+      if (el.customerArea && sale.areaName) el.customerArea.value = sale.areaName;
+    } else {
+      selectSalePartyType(sale.partyTypeId || '');
+      saleState.selectedCustomer = null;
+      if (el.customerSelect) el.customerSelect.value = '';
+      if (el.customerName) el.customerName.value = sale.partyTitle || 'Walk-in Cash Customer';
+      if (el.customerPhone) el.customerPhone.value = sale.customerPhone || '';
+      if (el.customerArea) el.customerArea.value = sale.areaName || '';
+      if (el.customerPrevBalance) {
+        if ('value' in el.customerPrevBalance) el.customerPrevBalance.value = 'Rs 0.00';
+        el.customerPrevBalance.textContent = 'Rs 0.00';
+        el.customerPrevBalance.dataset.rawBalance = 0;
+        el.customerPrevBalance.className = 'pos-bal-val font-num text-secondary';
+      }
+    }
 
     renderItemsTable();
     updateVoucherTotals();
@@ -4339,11 +4417,58 @@
     setProfitMethod(sale.profitMethod || 'direct');
 
     if (el.partyTypeSelect) el.partyTypeSelect.value = sale.partyTypeId || '';
-    selectSalePartyType(sale.partyTypeId || '');
-    if (el.customerSelect) el.customerSelect.value = sale.partyId || '';
-    if (el.customerName) el.customerName.value = sale.partyTitle || '';
-    if (el.customerPhone) el.customerPhone.value = sale.customerPhone || '';
-    if (el.customerArea) el.customerArea.value = sale.areaName || '';
+    if (!sharedAllParties || sharedAllParties.length === 0) {
+      await loadAllParties();
+    }
+
+    // Auto-resolve Customer Entity (by partyId, or by matching partyTitle in sharedAllParties)
+    let targetParty = null;
+    if (sale.partyId && sale.partyId !== 'walk-in') {
+      targetParty = (sharedAllParties || []).find(p => String(p.id) === String(sale.partyId));
+    }
+    if (!targetParty && sale.partyTitle) {
+      const cleanTitle = String(sale.partyTitle).trim().toLowerCase();
+      if (cleanTitle && !cleanTitle.includes('walk-in')) {
+        targetParty = (sharedAllParties || []).find(p => (p.name || p.partyTitle || '').trim().toLowerCase() === cleanTitle);
+      }
+    }
+
+    if (targetParty) {
+      const targetPartyTypeId = targetParty.partyTypeId || targetParty.partyType || sale.partyTypeId || '';
+      if (el.partyTypeSelect) el.partyTypeSelect.value = targetPartyTypeId;
+      selectSalePartyType(targetPartyTypeId);
+
+      // Ensure targetParty exists in customer dropdown options
+      if (el.customerSelect) {
+        const optExists = Array.from(el.customerSelect.options).some(o => String(o.value) === String(targetParty.id));
+        if (!optExists) {
+          const opt = document.createElement('option');
+          opt.value = targetParty.id;
+          opt.textContent = targetParty.name || targetParty.partyTitle || 'Customer';
+          opt.dataset.party = JSON.stringify(targetParty);
+          el.customerSelect.appendChild(opt);
+        }
+        el.customerSelect.value = targetParty.id;
+      }
+
+      await selectCustomerEntity(targetParty.id);
+      if (el.customerName) el.customerName.value = sale.partyTitle || targetParty.name || targetParty.partyTitle || '';
+      if (el.customerPhone && sale.customerPhone) el.customerPhone.value = sale.customerPhone;
+      if (el.customerArea && sale.areaName) el.customerArea.value = sale.areaName;
+    } else {
+      selectSalePartyType(sale.partyTypeId || '');
+      saleState.selectedCustomer = null;
+      if (el.customerSelect) el.customerSelect.value = '';
+      if (el.customerName) el.customerName.value = sale.partyTitle || 'Walk-in Cash Customer';
+      if (el.customerPhone) el.customerPhone.value = sale.customerPhone || '';
+      if (el.customerArea) el.customerArea.value = sale.areaName || '';
+      if (el.customerPrevBalance) {
+        if ('value' in el.customerPrevBalance) el.customerPrevBalance.value = 'Rs 0.00';
+        el.customerPrevBalance.textContent = 'Rs 0.00';
+        el.customerPrevBalance.dataset.rawBalance = 0;
+        el.customerPrevBalance.className = 'pos-bal-val font-num text-secondary';
+      }
+    }
 
     renderItemsTable();
     updateVoucherTotals();
