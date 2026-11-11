@@ -64,12 +64,20 @@
           const rp = Number(prod.retailPrice || 0);
           const newRate = mode === 'wholesale' ? (wp || rp) : (rp || wp);
           it.rateType = mode;
-          it.salePrice = newRate;
-          const discAmt = (newRate * it.totalQty) * ((it.discountPercent || 0) / 100);
-          it.discountAmount = discAmt;
-          it.netAmount = (newRate * it.totalQty) - discAmt;
+          it.listPrice = newRate;
+          const discPct = Number(it.discountPercent) || 0;
+          if (discPct > 0) {
+            const netRate = newRate - (newRate * (discPct / 100));
+            it.salePrice = Math.max(0, Math.round(netRate * 100) / 100);
+            it.discountAmount = Math.round(((newRate - it.salePrice) * it.totalQty) * 100) / 100;
+          } else {
+            it.salePrice = newRate;
+            it.discountAmount = 0;
+          }
+          it.netAmount = Math.round((it.salePrice * it.totalQty) * 100) / 100;
         }
       });
+      syncSpecialDiscountInputsFromCart();
       renderItemsTable();
       updateVoucherTotals();
       if (window.showToast) window.showToast(`Converted all items in bill to ${mode === 'wholesale' ? 'Wholesale' : 'Retail'} rates.`, 'info');
@@ -211,28 +219,12 @@
     if (!it) return;
     const rate = Math.max(0, Number(newRate) || 0);
     it.salePrice = Math.round(rate * 100) / 100;
-    const isWp = it.rateType === 'wholesale';
-    const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
-
-    if (listP > 0) {
-      if (it.discountType === 'flat') {
-        const flat = Math.max(0, Math.min(listP, listP - rate));
-        it.discountValue = Math.round(flat * 100) / 100;
-        it.discountAmount = Math.round((flat * (Number(it.totalQty) || 1)) * 100) / 100;
-        it.discountPercent = Number((((listP - rate) / listP) * 100).toFixed(2));
-      } else {
-        const pct = Math.max(0, Math.min(100, (((listP - rate) / listP) * 100)));
-        it.discountValue = Number(pct.toFixed(2));
-        it.discountPercent = Number(pct.toFixed(2));
-        it.discountAmount = Math.round(((listP - rate) * (Number(it.totalQty) || 1)) * 100) / 100;
-      }
-    } else {
-      it.discountValue = 0;
-      it.discountPercent = 0;
-      it.discountAmount = 0;
-    }
-
+    it.listPrice = it.salePrice;
+    it.discountValue = 0;
+    it.discountPercent = 0;
+    it.discountAmount = 0;
     it.netAmount = Math.round((it.salePrice * (Number(it.totalQty) || 1)) * 100) / 100;
+
     syncSpecialDiscountInputsFromCart();
     renderItemsTable();
     updateVoucherTotals();
@@ -253,9 +245,17 @@
     it.unitQty = qty % packSize;
 
     const isWp = it.rateType === 'wholesale';
-    const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
-    if (listP > 0) {
-      it.discountAmount = Math.round(((listP - Number(it.salePrice || 0)) * qty) * 100) / 100;
+    const listP = (it.listPrice !== undefined && it.listPrice !== null)
+      ? Number(it.listPrice)
+      : Number((isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
+    if (listP > 0 && (Number(it.discountPercent) > 0 || Number(it.discountValue) > 0)) {
+      if (it.discountType === 'flat') {
+        it.discountAmount = Math.round((Number(it.discountValue || 0) * qty) * 100) / 100;
+      } else {
+        it.discountAmount = Math.round(((listP * (Number(it.discountPercent || 0) / 100)) * qty) * 100) / 100;
+      }
+    } else {
+      it.discountAmount = 0;
     }
     it.netAmount = Math.round((Number(it.salePrice || 0) * qty) * 100) / 100;
 
@@ -712,9 +712,17 @@
       exIt.packQty = Math.floor(exIt.totalQty / packSize);
       exIt.unitQty = exIt.totalQty % packSize;
       const isWp = exIt.rateType === 'wholesale';
-      const listP = Number(exIt.listPrice || (isWp ? (exIt.wholesalePrice || exIt.retailPrice) : (exIt.retailPrice || exIt.wholesalePrice)) || exIt.salePrice || 0);
-      if (listP > 0) {
-        exIt.discountAmount = Math.round(((listP - Number(exIt.salePrice || 0)) * exIt.totalQty) * 100) / 100;
+      const listP = (exIt.listPrice !== undefined && exIt.listPrice !== null)
+        ? Number(exIt.listPrice)
+        : Number((isWp ? (exIt.wholesalePrice || exIt.retailPrice) : (exIt.retailPrice || exIt.wholesalePrice)) || exIt.salePrice || 0);
+      if (listP > 0 && (Number(exIt.discountPercent) > 0 || Number(exIt.discountValue) > 0)) {
+        if (exIt.discountType === 'flat') {
+          exIt.discountAmount = Math.round((Number(exIt.discountValue || 0) * exIt.totalQty) * 100) / 100;
+        } else {
+          exIt.discountAmount = Math.round(((listP * (Number(exIt.discountPercent || 0) / 100)) * exIt.totalQty) * 100) / 100;
+        }
+      } else {
+        exIt.discountAmount = 0;
       }
       exIt.netAmount = Math.round((Number(exIt.salePrice || 0) * exIt.totalQty) * 100) / 100;
       const pageSize = saleState.slipPageSize || 10;
@@ -808,9 +816,17 @@
     it.unitQty = newQty % packSize;
 
     const isWp = it.rateType === 'wholesale';
-    const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
-    if (listP > 0) {
-      it.discountAmount = Math.round(((listP - Number(it.salePrice || 0)) * newQty) * 100) / 100;
+    const listP = (it.listPrice !== undefined && it.listPrice !== null)
+      ? Number(it.listPrice)
+      : Number((isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
+    if (listP > 0 && (Number(it.discountPercent) > 0 || Number(it.discountValue) > 0)) {
+      if (it.discountType === 'flat') {
+        it.discountAmount = Math.round((Number(it.discountValue || 0) * newQty) * 100) / 100;
+      } else {
+        it.discountAmount = Math.round(((listP * (Number(it.discountPercent || 0) / 100)) * newQty) * 100) / 100;
+      }
+    } else {
+      it.discountAmount = 0;
     }
     it.netAmount = Math.round((Number(it.salePrice || 0) * newQty) * 100) / 100;
 
@@ -1929,6 +1945,7 @@
     const purDiscAtSale = purDiscVal > 0 ? purDiscVal : ((listPrice > 0 && actualCost > 0 && actualCost < listPrice) ? Number((((listPrice - actualCost) / listPrice) * 100).toFixed(2)) : 0);
     const costPrice = actualCost;
     const discPct = Number(el.discountPercent?.value) || 0;
+    const effectiveListPrice = (discPct === 0 && rate > 0) ? rate : listPrice;
     const grossLine = totalQty * rate;
     const discAmt = grossLine * (discPct / 100);
     const netLine = Math.max(0, grossLine - discAmt);
@@ -1954,7 +1971,7 @@
       if (!exIt.effectiveCost) exIt.effectiveCost = actualCost;
       if (!exIt.costAtSale) exIt.costAtSale = actualCost;
       if (!exIt.purchaseDiscountAtSale) exIt.purchaseDiscountAtSale = purDiscAtSale;
-      if (!exIt.listPrice) exIt.listPrice = listPrice;
+      exIt.listPrice = effectiveListPrice;
       if (!exIt.rateType) exIt.rateType = rateType;
     } else {
       saleState.items.push({
@@ -1972,7 +1989,7 @@
         effectiveCost: actualCost,
         wholesalePrice,
         retailPrice,
-        listPrice,
+        listPrice: effectiveListPrice,
         salePrice: rate,
         rateType,
         discountType: 'percent',
@@ -2220,7 +2237,7 @@
               value="${Number(item.salePrice || 0)}" min="0" step="0.01" 
               onchange="window.SalesModule.changeItemRate(${idx}, this.value)" 
               onfocus="this.select()" 
-              title="Edit unit sale rate (updates discount)">
+              title="Edit unit sale rate">
           </div>
         </td>
         <td class="pos-cell-qty text-center" style="text-align: center; vertical-align: middle;">
