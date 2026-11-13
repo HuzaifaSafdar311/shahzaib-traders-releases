@@ -203,9 +203,11 @@
       const netRate = baseRate - (baseRate * (discPct / 100));
       it.salePrice = Math.max(0, Math.round(netRate * 100) / 100);
       it.discountAmount = Math.round(((baseRate - it.salePrice) * it.totalQty) * 100) / 100;
+      it.pricingSource = 'discount';
     } else {
       it.salePrice = baseRate;
       it.discountAmount = 0;
+      it.pricingSource = 'catalog';
     }
     it.netAmount = Math.round((it.salePrice * it.totalQty) * 100) / 100;
 
@@ -220,6 +222,7 @@
     const rate = Math.max(0, Number(newRate) || 0);
     it.salePrice = Math.round(rate * 100) / 100;
     it.listPrice = it.salePrice;
+    it.pricingSource = 'override';
     it.discountValue = 0;
     it.discountPercent = 0;
     it.discountAmount = 0;
@@ -322,6 +325,7 @@
     if (!it) return;
     if (discType) it.discountType = discType;
     else if (!it.discountType) it.discountType = 'percent';
+    it.pricingSource = 'discount';
 
     const isWp = it.rateType === 'wholesale';
     const listP = Number(it.listPrice || (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || it.salePrice || 0);
@@ -780,6 +784,7 @@
         listPrice: listPrice,
         salePrice: itemSalePrice,
         rateType: rateType,
+        pricingSource: itemDiscPct > 0 ? 'discount' : 'catalog',
         discountType: 'percent',
         discountValue: itemDiscPct,
         discountPercent: itemDiscPct,
@@ -1660,7 +1665,21 @@
     const pt = sharedPartyTypes.find(t => String(t.id) === String(partyTypeId) || t.name === partyTypeId);
     if (pt) {
       saleState.selectedPartyType = pt;
-      saleState.selectedCustomer = null;
+      const currentCust = saleState.selectedCustomer;
+      const custMatchesPt = currentCust && (String(currentCust.partyTypeId) === String(pt.id) || currentCust.partyTypeName === pt.name);
+
+      if (!custMatchesPt) {
+        saleState.selectedCustomer = null;
+        if (el.customerName) el.customerName.value = '';
+        if (el.customerPhone) el.customerPhone.value = '';
+        if (el.customerArea) el.customerArea.value = '';
+        if (el.customerPrevBalance) {
+          if ('value' in el.customerPrevBalance) el.customerPrevBalance.value = 'Rs 0.00';
+          el.customerPrevBalance.textContent = 'Rs 0.00';
+          el.customerPrevBalance.dataset.rawBalance = 0;
+          el.customerPrevBalance.className = 'pos-bal-val font-num text-secondary';
+        }
+      }
 
       // Dynamically update the labels
       if (el.partySelectLabel) {
@@ -1684,13 +1703,9 @@
         applyRateChoice(saleState.rateMode);
       }
 
-      if (el.customerPhone) el.customerPhone.value = '';
-      if (el.customerArea) el.customerArea.value = '';
-      if (el.customerPrevBalance) {
-        if ('value' in el.customerPrevBalance) el.customerPrevBalance.value = 'Rs 0.00';
-        el.customerPrevBalance.textContent = 'Rs 0.00';
-        el.customerPrevBalance.dataset.rawBalance = 0;
-        el.customerPrevBalance.className = 'pos-bal-val font-num text-secondary';
+      if (!custMatchesPt) {
+        if (el.customerPhone) el.customerPhone.value = '';
+        if (el.customerArea) el.customerArea.value = '';
       }
     }
     updateVoucherTotals();
@@ -1992,6 +2007,7 @@
         listPrice: effectiveListPrice,
         salePrice: rate,
         rateType,
+        pricingSource: discPct > 0 ? 'discount' : (rate !== effectiveListPrice ? 'override' : 'catalog'),
         discountType: 'percent',
         discountValue: discPct,
         discountPercent: discPct,
@@ -2527,6 +2543,7 @@
     }
 
     el.modalBillStatusChoice.classList.remove('hidden');
+    window.removeEventListener('keydown', handleBillStatusKeydown, true);
     window.addEventListener('keydown', handleBillStatusKeydown, true);
   }
 

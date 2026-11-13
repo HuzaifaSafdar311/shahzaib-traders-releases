@@ -1165,15 +1165,14 @@ function savePurchase(purchaseData, items = []) {
       const code = String(item.productCode || item.code || '').trim();
       const tp = Number(item.tradePrice || item.tp || 0);
       let packSize = Number(item.packSize) || 0;
-      if (packSize <= 0 && code) {
-        const pRec = jsonData.products.find(p => p.code === code || p.id === item.productId);
-        if (pRec && pRec.packSize > 0) packSize = Number(pRec.packSize);
-      }
+      const pRec = jsonData.products.find(p => (code && p.code === code) || p.id === item.productId);
+      if (packSize <= 0 && pRec && pRec.packSize > 0) packSize = Number(pRec.packSize);
       if (packSize <= 0) packSize = 1;
       const incomingQty = (Number(item.packQty || item.pQty || 0) * packSize) + Number(item.unitQty || item.uQty || 0) + Number(item.bonus || 0);
 
       const itemDiscVal = Number(item.companyDiscountPercent !== undefined && item.companyDiscountPercent !== null ? item.companyDiscountPercent : (item.discountValue !== undefined ? item.discountValue : (Number(item.discountPercent) || 0))) || 0;
-      const itemPricingMode = (item.pricingMode === 'list_discount' || itemDiscVal > 0) ? 'list_discount' : 'direct';
+      const isListModeProduct = (item.pricingMode === 'list_discount') || (pRec && pRec.purchasePricingMode === 'list_discount');
+      const itemPricingMode = (isListModeProduct || itemDiscVal > 0) ? 'list_discount' : 'direct';
       const itemListPrice = Number(item.listPrice) || (itemPricingMode === 'list_discount' ? Number(item.retailPrice || item.tradePrice || item.purchasePrice || 0) : tp);
       const itemDiscType = item.discountType === 'flat' ? 'flat' : 'percent';
       let itemNetCost = Number(item.effectiveCost !== undefined && item.effectiveCost !== null && Number(item.effectiveCost) > 0 ? item.effectiveCost : (item.netCost !== undefined ? item.netCost : 0));
@@ -1384,15 +1383,19 @@ function savePurchase(purchaseData, items = []) {
       const wp = Number(item.wholesalePrice || item.wp || 0);
       const rp = Number(item.retailPrice || item.rp || 0);
       let packSize = Number(item.packSize) || 0;
-      if (packSize <= 0 && code) {
-        const pRec = dbInstance.prepare('SELECT packSize FROM products WHERE code = ? OR id = ?').get(code, item.productId || '');
-        if (pRec && pRec.packSize > 0) packSize = Number(pRec.packSize);
+      let pRec = null;
+      if (code || item.productId) {
+        try {
+          pRec = dbInstance.prepare('SELECT packSize, purchasePricingMode FROM products WHERE code = ? OR id = ?').get(code || '', item.productId || '');
+        } catch (_) {}
       }
+      if (packSize <= 0 && pRec && pRec.packSize > 0) packSize = Number(pRec.packSize);
       if (packSize <= 0) packSize = 1;
       const incomingQty = (Number(item.packQty || item.pQty || 0) * packSize) + Number(item.unitQty || item.uQty || 0) + Number(item.bonus || 0);
 
       const itemDiscVal = Number(item.companyDiscountPercent !== undefined && item.companyDiscountPercent !== null ? item.companyDiscountPercent : (item.discountValue !== undefined ? item.discountValue : (Number(item.discountPercent) || 0))) || 0;
-      const itemPricingMode = (item.pricingMode === 'list_discount' || itemDiscVal > 0) ? 'list_discount' : 'direct';
+      const isListModeProduct = (item.pricingMode === 'list_discount') || (pRec && pRec.purchasePricingMode === 'list_discount');
+      const itemPricingMode = (isListModeProduct || itemDiscVal > 0) ? 'list_discount' : 'direct';
       const itemListPrice = Number(item.listPrice) || (itemPricingMode === 'list_discount' ? Number(item.retailPrice || item.tradePrice || item.purchasePrice || 0) : tp);
       const itemDiscType = item.discountType === 'flat' ? 'flat' : 'percent';
       let itemEffectiveCost = Number(item.effectiveCost !== undefined && item.effectiveCost !== null && Number(item.effectiveCost) > 0 ? item.effectiveCost : (item.netCost !== undefined ? item.netCost : 0));
