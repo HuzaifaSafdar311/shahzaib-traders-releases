@@ -3531,15 +3531,24 @@
     (items || []).forEach(it => {
       const name = cleanInvoiceEmoji(it.productTitle || it.title || it.name || it.productCode || 'Item');
       const qty = Number(it.totalQty ?? it.quantity ?? it.qty ?? 1);
+      const isWp = it.rateType === 'wholesale';
+      const baseList = Number(
+        (it.listPrice !== undefined && it.listPrice !== null && Number(it.listPrice) > 0)
+          ? it.listPrice
+          : (isWp ? (it.wholesalePrice || it.retailPrice) : (it.retailPrice || it.wholesalePrice)) || 0
+      );
       const rate = Number(it.salePrice ?? it.rate ?? it.unitPrice ?? it.retailPrice ?? it.wholesalePrice ?? 0);
       const disc = Number(it.discountAmount ?? it.discAmount ?? it.discount ?? 0);
-      const lineTotal = Number(it.netAmount ?? it.totalAmount ?? (qty * rate - disc) ?? 0);
+      const lineTotal = Number(it.netAmount ?? it.totalAmount ?? (disc > 0 ? (qty * (baseList || rate) - disc) : (qty * rate)) ?? 0);
+      const displayPrice = disc > 0
+        ? (baseList > rate ? baseList : (qty > 0 ? Math.round(((lineTotal + disc) / qty) * 100) / 100 : rate))
+        : rate;
 
       itemsRows += `
         <tr>
           <td class="col-td-prod">${window.escapeHtml(name)}</td>
           <td class="col-td-pack">${qty}</td>
-          <td class="col-td-price">${rate.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
+          <td class="col-td-price">${displayPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
           <td class="col-td-disc">${disc > 0 ? disc.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '0'}</td>
           <td class="col-td-amt">${lineTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
         </tr>
@@ -3629,10 +3638,6 @@
           <div class="thermal-items-count">No. of Items: ${itemsCount}</div>
           <div class="thermal-totals-list">
             ${discVal > 0 ? `
-            <div class="thermal-total-line">
-              <span class="total-lbl">Subtotal:</span>
-              <span class="total-val">${grossVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-            </div>
             <div class="thermal-total-line">
               <span class="total-lbl">Discount:</span>
               <span class="total-val">-${discVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
