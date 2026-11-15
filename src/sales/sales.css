@@ -5509,10 +5509,28 @@
   font-size: 8.5px;
 }
 
+.sale-doc-thermal[data-paper-size="58mm"] .col-th-prod,
+.sale-doc-thermal[data-paper-size="58mm"] .col-td-prod {
+  width: 44%;
+}
+
+.sale-doc-thermal[data-paper-size="58mm"] .col-th-pack,
+.sale-doc-thermal[data-paper-size="58mm"] .col-td-pack {
+  width: 12%;
+}
+
+.sale-doc-thermal[data-paper-size="58mm"] .col-th-price,
+.sale-doc-thermal[data-paper-size="58mm"] .col-td-price {
+  width: 21%;
+}
+
+.sale-doc-thermal[data-paper-size="58mm"] .col-th-amt,
+.sale-doc-thermal[data-paper-size="58mm"] .col-td-amt {
+  width: 23%;
+}
+
 .sale-doc-thermal[data-paper-size="58mm"] .col-th-price,
 .sale-doc-thermal[data-paper-size="58mm"] .col-td-price,
-.sale-doc-thermal[data-paper-size="58mm"] .col-th-disc,
-.sale-doc-thermal[data-paper-size="58mm"] .col-td-disc,
 .sale-doc-thermal[data-paper-size="58mm"] .col-th-amt,
 .sale-doc-thermal[data-paper-size="58mm"] .col-td-amt {
   letter-spacing: -0.3px;
@@ -5631,22 +5649,22 @@
 .sale-doc-thermal .col-th-prod,
 .sale-doc-thermal .col-td-prod {
   text-align: left;
-  width: 33%;
+  width: 46%;
   word-break: break-word;
-  padding-right: 2px;
+  padding-right: 4px;
 }
 
 .sale-doc-thermal .col-th-pack,
 .sale-doc-thermal .col-td-pack {
   text-align: center;
-  width: 9%;
+  width: 12%;
   padding: 2px 1px;
 }
 
 .sale-doc-thermal .col-th-price,
 .sale-doc-thermal .col-td-price {
   text-align: right;
-  width: 19%;
+  width: 20%;
   white-space: nowrap;
   padding-right: 4px;
   font-variant-numeric: tabular-nums;
@@ -5654,18 +5672,13 @@
 
 .sale-doc-thermal .col-th-disc,
 .sale-doc-thermal .col-td-disc {
-  text-align: right;
-  width: 18%;
-  white-space: nowrap;
-  padding-left: 2px;
-  padding-right: 4px;
-  font-variant-numeric: tabular-nums;
+  display: none !important;
 }
 
 .sale-doc-thermal .col-th-amt,
 .sale-doc-thermal .col-td-amt {
   text-align: right;
-  width: 21%;
+  width: 22%;
   font-weight: 600;
   white-space: nowrap;
   padding-left: 2px;
