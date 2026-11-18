@@ -2548,3 +2548,34 @@ textarea.form-control-sm {
 .pur-data-table tbody tr {
   height: 48px !important;
 }
+
+/* Purchase History Modal Table & Pagination */
+#modalPurchaseHistory .pur-history-table-container {
+  max-height: 420px !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px 8px 0 0;
+}
+
+#modalPurchaseHistory .pur-history-table-container table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f8fafc;
+}
+
+#purchaseHistoryPaginationBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 100%;
+}

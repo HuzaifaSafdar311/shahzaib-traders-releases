@@ -164,6 +164,13 @@ const inv = {
   histTotalAmount: document.getElementById('histTotalAmount'),
   purchaseHistoryTableBody: document.getElementById('purchaseHistoryTableBody'),
   purchaseHistoryEmptyState: document.getElementById('purchaseHistoryEmptyState'),
+  purchaseHistoryPaginationBar: document.getElementById('purchaseHistoryPaginationBar'),
+  purchaseHistoryPaginationInfo: document.getElementById('purchaseHistoryPaginationInfo'),
+  btnPurchaseHistoryPrev: document.getElementById('btnPurchaseHistoryPrev'),
+  btnPurchaseHistoryNext: document.getElementById('btnPurchaseHistoryNext'),
+  purchaseHistoryPaginationNumbers: document.getElementById('purchaseHistoryPaginationNumbers'),
+  purchaseHistoryPageSize: document.getElementById('purchaseHistoryPageSize'),
+  purchaseHistorySearchInput: document.getElementById('purchaseHistorySearchInput'),
 
   // 7. Product Info Master
   btnProductInfoList: document.getElementById('btnProductInfoList'),
@@ -1070,8 +1077,49 @@ function renderVoucherDropdown(filterQuery = '') {
 }
 window.renderVoucherDropdown = renderVoucherDropdown;
 
+let purchaseHistoryPagination = {
+  currentPage: 1,
+  pageSize: 10,
+  list: []
+};
+
+function changePurchaseHistoryPage(delta) {
+  const total = purchaseHistoryPagination.list.length;
+  let pageSize = purchaseHistoryPagination.pageSize;
+  if (inv.purchaseHistoryPageSize) {
+    const val = inv.purchaseHistoryPageSize.value;
+    pageSize = val === 'all' ? 999999 : (parseInt(val, 10) || 10);
+    purchaseHistoryPagination.pageSize = pageSize;
+  }
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const target = purchaseHistoryPagination.currentPage + delta;
+  if (target >= 1 && target <= totalPages) {
+    purchaseHistoryPagination.currentPage = target;
+    renderPurchaseHistoryTable(false);
+  }
+}
+window.changePurchaseHistoryPage = changePurchaseHistoryPage;
+
+function setPurchaseHistoryPage(page) {
+  const total = purchaseHistoryPagination.list.length;
+  let pageSize = purchaseHistoryPagination.pageSize;
+  if (inv.purchaseHistoryPageSize) {
+    const val = inv.purchaseHistoryPageSize.value;
+    pageSize = val === 'all' ? 999999 : (parseInt(val, 10) || 10);
+    purchaseHistoryPagination.pageSize = pageSize;
+  }
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (page >= 1 && page <= totalPages) {
+    purchaseHistoryPagination.currentPage = page;
+    renderPurchaseHistoryTable(false);
+  }
+}
+window.setPurchaseHistoryPage = setPurchaseHistoryPage;
+
 function openPurchaseHistoryModal() {
-  renderPurchaseHistoryTable();
+  if (inv.purchaseHistorySearchInput) inv.purchaseHistorySearchInput.value = '';
+  purchaseHistoryPagination.currentPage = 1;
+  renderPurchaseHistoryTable(true);
   if (inv.modalPurchaseHistory) inv.modalPurchaseHistory.classList.remove('hidden');
 }
 
@@ -1079,11 +1127,30 @@ function closePurchaseHistoryModal() {
   if (inv.modalPurchaseHistory) inv.modalPurchaseHistory.classList.add('hidden');
 }
 
-function renderPurchaseHistoryTable() {
+function renderPurchaseHistoryTable(resetPage = false) {
   if (!inv.purchaseHistoryTableBody) return;
-  inv.purchaseHistoryTableBody.innerHTML = '';
 
-  const list = filteredPurchases;
+  if (resetPage) {
+    purchaseHistoryPagination.currentPage = 1;
+  }
+
+  const baseList = (filteredPurchases && filteredPurchases.length > 0)
+    ? filteredPurchases
+    : (inv.purFilterDate?.value ? [] : (window.appData?.purchases || []));
+
+  // Optional search filter
+  const searchVal = (inv.purchaseHistorySearchInput?.value || '').trim().toLowerCase();
+  let list = baseList;
+  if (searchVal) {
+    list = baseList.filter(pur => {
+      const vNo = String(pur.voucherNo || '').toLowerCase();
+      const party = String(pur.partyTitle || '').toLowerCase();
+      const date = String(pur.entryDate || '').toLowerCase();
+      return vNo.includes(searchVal) || party.includes(searchVal) || date.includes(searchVal);
+    });
+  }
+
+  purchaseHistoryPagination.list = list;
   const count = list.length;
   const totalAmount = list.reduce((acc, p) => acc + (Number(p.grandTotal) || 0), 0);
 
@@ -1092,13 +1159,63 @@ function renderPurchaseHistoryTable() {
     inv.histTotalAmount.textContent = 'Rs. ' + totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  let pageSize = purchaseHistoryPagination.pageSize;
+  if (inv.purchaseHistoryPageSize) {
+    const val = inv.purchaseHistoryPageSize.value;
+    pageSize = val === 'all' ? 999999 : (parseInt(val, 10) || 10);
+    purchaseHistoryPagination.pageSize = pageSize;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(count / pageSize));
+  if (purchaseHistoryPagination.currentPage > totalPages) purchaseHistoryPagination.currentPage = totalPages;
+  if (purchaseHistoryPagination.currentPage < 1) purchaseHistoryPagination.currentPage = 1;
+  const currentPage = purchaseHistoryPagination.currentPage;
+
+  const paginationBar = inv.purchaseHistoryPaginationBar || document.getElementById('purchaseHistoryPaginationBar');
+  const infoEl = inv.purchaseHistoryPaginationInfo || document.getElementById('purchaseHistoryPaginationInfo');
+  const prevBtn = inv.btnPurchaseHistoryPrev || document.getElementById('btnPurchaseHistoryPrev');
+  const nextBtn = inv.btnPurchaseHistoryNext || document.getElementById('btnPurchaseHistoryNext');
+  const numbersEl = inv.purchaseHistoryPaginationNumbers || document.getElementById('purchaseHistoryPaginationNumbers');
+
   if (count === 0) {
+    inv.purchaseHistoryTableBody.innerHTML = '';
     if (inv.purchaseHistoryEmptyState) inv.purchaseHistoryEmptyState.classList.remove('hidden');
+    if (infoEl) infoEl.textContent = 'Showing 0 of 0 entries';
+    if (prevBtn) prevBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    if (numbersEl) numbersEl.innerHTML = '';
     return;
   }
   if (inv.purchaseHistoryEmptyState) inv.purchaseHistoryEmptyState.classList.add('hidden');
+  if (paginationBar) paginationBar.style.display = 'flex';
 
-  list.forEach((pur, idx) => {
+  // Calculate Slice
+  const startIdx = (currentPage - 1) * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, count);
+  const pageSlice = list.slice(startIdx, endIdx);
+
+  // Update info & controls
+  if (infoEl) {
+    infoEl.textContent = totalPages > 1
+      ? `Showing ${startIdx + 1} to ${endIdx} of ${count} entries (Page ${currentPage} of ${totalPages})`
+      : `Showing ${startIdx + 1} to ${endIdx} of ${count} entries`;
+  }
+  if (prevBtn) prevBtn.disabled = (currentPage <= 1);
+  if (nextBtn) nextBtn.disabled = (currentPage >= totalPages);
+
+  if (numbersEl) {
+    if (window.renderPaginationNumbers) {
+      window.renderPaginationNumbers(numbersEl, currentPage, totalPages, (targetP) => {
+        setPurchaseHistoryPage(targetP);
+      });
+    } else {
+      numbersEl.innerHTML = '';
+    }
+  }
+
+  inv.purchaseHistoryTableBody.innerHTML = '';
+  pageSlice.forEach((pur, idx) => {
+    const srNo = startIdx + idx + 1;
     let itemsCount = 0;
     try {
       const items = pur.itemsJson ? JSON.parse(pur.itemsJson) : [];
@@ -1107,7 +1224,7 @@ function renderPurchaseHistoryTable() {
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td style="text-align: center;" class="font-num">${idx + 1}</td>
+      <td style="text-align: center;" class="font-num">${srNo}</td>
       <td style="text-align: center;" class="font-num font-bold text-primary">#${pur.voucherNo}</td>
       <td style="text-align: center;" class="font-num">${pur.entryDate || '-'}</td>
       <td style="text-align: left;" class="font-bold">${window.escapeHtml(pur.partyTitle || 'Supplier')}</td>
@@ -2484,6 +2601,34 @@ if (inv.purVoucherQuickSelect) {
 if (inv.btnOpenPurchaseHistory) inv.btnOpenPurchaseHistory.addEventListener('click', openPurchaseHistoryModal);
 if (inv.btnClosePurchaseHistory) inv.btnClosePurchaseHistory.addEventListener('click', closePurchaseHistoryModal);
 if (inv.btnDonePurchaseHistory) inv.btnDonePurchaseHistory.addEventListener('click', closePurchaseHistoryModal);
+if (inv.btnPurchaseHistoryPrev) {
+  inv.btnPurchaseHistoryPrev.addEventListener('click', () => changePurchaseHistoryPage(-1));
+}
+if (inv.btnPurchaseHistoryNext) {
+  inv.btnPurchaseHistoryNext.addEventListener('click', () => changePurchaseHistoryPage(1));
+}
+if (inv.purchaseHistoryPageSize) {
+  inv.purchaseHistoryPageSize.addEventListener('change', () => {
+    purchaseHistoryPagination.currentPage = 1;
+    renderPurchaseHistoryTable(true);
+  });
+}
+if (inv.purchaseHistorySearchInput) {
+  inv.purchaseHistorySearchInput.addEventListener('input', () => {
+    purchaseHistoryPagination.currentPage = 1;
+    renderPurchaseHistoryTable(true);
+  });
+}
+if (inv.modalPurchaseHistory) {
+  inv.modalPurchaseHistory.addEventListener('click', (e) => {
+    if (e.target === inv.modalPurchaseHistory) closePurchaseHistoryModal();
+  });
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && inv.modalPurchaseHistory && !inv.modalPurchaseHistory.classList.contains('hidden')) {
+    closePurchaseHistoryModal();
+  }
+});
 
 if (inv.btnPurFirst) {
   inv.btnPurFirst.addEventListener('click', () => {
