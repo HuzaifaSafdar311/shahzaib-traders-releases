@@ -5038,16 +5038,23 @@
     if (!retEl.customerSelect) return;
     try {
       let parties = [];
-      if (window.generalInfoAPI?.getParties) {
-        parties = await window.generalInfoAPI.getParties();
+      if (sharedAllParties && sharedAllParties.length > 0) {
+        parties = sharedAllParties;
+      } else if (window.generalInfoAPI?.getParties) {
+        parties = (await window.generalInfoAPI.getParties()) || [];
+        sharedAllParties = parties;
+      } else if (window.appData?.parties) {
+        parties = window.appData.parties;
       }
-      const customers = (parties || []).filter(p => !p.partyType || p.partyType.toLowerCase().includes('customer'));
 
-      retEl.customerSelect.innerHTML = '<option value="">Select Customer</option>';
-      customers.forEach(c => {
+      retEl.customerSelect.innerHTML = '<option value="">Walk-in Customer</option>';
+      (parties || []).forEach(c => {
+        const pName = c.name || c.partyTitle || c.title;
+        if (!pName) return;
+        const pDetail = [c.city || c.areaName, c.phone].filter(Boolean).join(' • ');
         const opt = document.createElement('option');
         opt.value = c.id;
-        opt.textContent = `${c.partyTitle} (${c.areaName || 'General'})`;
+        opt.textContent = pDetail ? `${pName} (${pDetail})` : pName;
         opt.dataset.party = JSON.stringify(c);
         retEl.customerSelect.appendChild(opt);
       });
@@ -5064,6 +5071,7 @@
 
     if (!partyId) {
       returnState.selectedCustomer = null;
+      if (retEl.customerSelect && retEl.customerSelect.value !== '') retEl.customerSelect.value = '';
       if (custName) custName.value = 'Walk-in Customer';
       if (custPhone) { custPhone.value = ''; custPhone.textContent = '-'; }
       if (custArea) { custArea.value = ''; custArea.textContent = '-'; }
@@ -5072,32 +5080,43 @@
         prevBal.dataset.rawBalance = 0;
       }
       updateReturnTotals();
+      updateReturnSlipMeta();
       return;
     }
 
+    let c = null;
     const opt = retEl.customerSelect?.querySelector(`option[value="${partyId}"]`);
     if (opt && opt.dataset.party) {
       try {
-        const c = JSON.parse(opt.dataset.party);
-        returnState.selectedCustomer = c;
-
-        // Auto-select corresponding Party Type if set
-        if (retEl.partyTypeSelect && c.partyTypeId) {
-          retEl.partyTypeSelect.value = c.partyTypeId;
-        }
-
-        if (custName) custName.value = c.partyTitle || c.name || '';
-        if (custPhone) { custPhone.value = c.phone || ''; custPhone.textContent = c.phone || ''; }
-        if (custArea) { custArea.value = c.areaName || c.city || ''; custArea.textContent = c.areaName || c.city || ''; }
-        const bal = Number(c.openingBalance || c.currentBalance || 0);
-        if (prevBal) {
-          prevBal.textContent = `Rs ${bal.toFixed(2)}`;
-          prevBal.dataset.rawBalance = bal;
-        }
-        updateReturnTotals();
+        c = JSON.parse(opt.dataset.party);
       } catch (err) {
         console.error('Error parsing party data:', err);
       }
+    }
+    if (!c) {
+      const parties = (sharedAllParties && sharedAllParties.length > 0) ? sharedAllParties : (window.appData?.parties || []);
+      c = parties.find(p => String(p.id) === String(partyId));
+    }
+
+    if (c) {
+      returnState.selectedCustomer = c;
+
+      // Auto-select corresponding Party Type if set
+      if (retEl.partyTypeSelect && c.partyTypeId) {
+        retEl.partyTypeSelect.value = c.partyTypeId;
+      }
+
+      const partyName = c.name || c.partyTitle || c.title || '';
+      if (custName) custName.value = partyName;
+      if (custPhone) { custPhone.value = c.phone || ''; custPhone.textContent = c.phone || ''; }
+      if (custArea) { custArea.value = c.areaName || c.city || ''; custArea.textContent = c.areaName || c.city || ''; }
+      const bal = Number(c.currentBalance !== undefined ? c.currentBalance : (c.openingBalance || 0));
+      if (prevBal) {
+        prevBal.textContent = `Rs ${bal.toFixed(2)}`;
+        prevBal.dataset.rawBalance = bal;
+      }
+      updateReturnTotals();
+      updateReturnSlipMeta();
     }
   }
 
@@ -5491,7 +5510,7 @@
     const custInput = document.getElementById('returnCustomerName');
     const typedName = custInput?.value?.trim();
     const cust = returnState.selectedCustomer;
-    const displayName = typedName || (cust ? (cust.partyTitle || cust.name) : 'Walk-in Customer');
+    const displayName = typedName || (cust ? (cust.name || cust.partyTitle || cust.title) : 'Walk-in Customer');
 
     const slipCust = document.getElementById('returnSlipCustomerDisplay');
     if (slipCust) slipCust.textContent = displayName;
@@ -5830,23 +5849,7 @@
     if (billRef) billRef.addEventListener('input', updateReturnSlipMeta);
     if (discInput) discInput.addEventListener('input', updateReturnTotals);
 
-    if (custSelect) {
-      custSelect.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (!val) {
-          returnState.selectedCustomer = null;
-        } else {
-          let parties = [];
-          if (window.appData?.parties) parties = window.appData.parties;
-          returnState.selectedCustomer = parties.find(p => String(p.id) === String(val)) || null;
-          if (returnState.selectedCustomer) {
-            if (custName) custName.value = returnState.selectedCustomer.partyTitle || '';
-            if (custPhone) custPhone.value = returnState.selectedCustomer.phone || '';
-          }
-        }
-        updateReturnSlipMeta();
-      });
-    }
+    // Customer change is handled by selectReturnCustomer in bindReturnEvents
 
     const btnDone = document.getElementById('btnReturnPosDone');
     if (btnDone) {
@@ -5901,7 +5904,7 @@
 
     const enteredName = custNameInput?.value?.trim();
     const isSpecific = Boolean(returnState.selectedCustomer);
-    const chosenTitle = enteredName || (isSpecific ? (returnState.selectedCustomer.partyTitle || returnState.selectedCustomer.name) : 'Walk-in Customer');
+    const chosenTitle = enteredName || (isSpecific ? (returnState.selectedCustomer.name || returnState.selectedCustomer.partyTitle || returnState.selectedCustomer.title) : 'Walk-in Customer');
     const chosenPhone = custPhoneInput?.value?.trim() || (isSpecific ? (returnState.selectedCustomer.phone || '') : '') || '';
     const chosenPartyId = isSpecific ? returnState.selectedCustomer.id : 'walk-in';
 
@@ -6478,10 +6481,13 @@ ${window.escapeHtml(cfg.footer)}
           totalPieces += Number(it.totalQty || 0);
           grossRefund += Number(it.netAmount || 0);
         });
+        const custNameInput = document.getElementById('returnCustomerName');
+        const typedName = custNameInput?.value?.trim();
+        const partyTitle = typedName || returnState.selectedCustomer?.name || returnState.selectedCustomer?.partyTitle || returnState.selectedCustomer?.title || 'Walk-in Customer';
         openReturnReceiptModal({
           returnNo: retEl.voucherNo?.value || 'SR-0001',
           entryDate: retEl.entryDate?.value || new Date().toISOString().slice(0, 10),
-          partyTitle: returnState.selectedCustomer?.partyTitle || 'Customer',
+          partyTitle: partyTitle,
           saleVoucherRef: retEl.originalBillRef?.value || '',
           refundMode: retEl.refundMode?.value || 'Credit',
           totalPieces,
