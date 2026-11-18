@@ -653,7 +653,7 @@
     const p = f1ModalState.filteredProducts[idx];
     if (!p) return;
     if (currentSaleSubTab === 'return') {
-      addReturnProductToCart(p.id, 1);
+      addReturnProductToCart(p, 1);
       selectReturnProduct(p, false);
     } else {
       const mode = forcedRateMode || saleState.rateMode || 'retail';
@@ -5123,7 +5123,7 @@
       retEl.productSelect.value = product.id || product.code;
     }
     if (retEl.productSearchInput) {
-      retEl.productSearchInput.value = product.titleEng || '';
+      retEl.productSearchInput.value = product.titleEng || product.title || product.productTitle || product.name || '';
     }
     if (retEl.packSize) retEl.packSize.value = product.packSize || 1;
     if (retEl.packQty) retEl.packQty.value = 0;
@@ -5401,29 +5401,37 @@
 
   function addReturnProductToCart(productId, qtyToAdd = 1) {
     const products = window.appData?.products || [];
-    const p = products.find(item => String(item.id) === String(productId));
-    if (!p) return;
+    let p = (typeof productId === 'object' && productId !== null)
+      ? productId
+      : products.find(item => String(item.id) === String(productId) || String(item.code) === String(productId) || String(item.barcode) === String(productId));
+    if (!p && typeof productId === 'object') p = productId;
+    if (!p) {
+      if (window.showToast) window.showToast('Product not found in inventory', 'warning');
+      return;
+    }
 
-    const rateMode = posReturnCatalogState.rowRates[productId] || posReturnCatalogState.defaultRateMode || 'retail';
+    const pId = p.id || p.code;
+    const rateMode = p._chosenRateType || posReturnCatalogState.rowRates[pId] || posReturnCatalogState.defaultRateMode || 'retail';
     const rate = rateMode === 'wholesale'
       ? (Number(p.wholesalePrice) || Number(p.retailPrice) || 0)
       : (Number(p.retailPrice) || Number(p.wholesalePrice) || 0);
 
     const qty = Math.max(1, Number(qtyToAdd) || 1);
 
-    const existingIdx = returnState.items.findIndex(it => String(it.productId) === String(p.id) || it.productCode === p.code);
+    const existingIdx = returnState.items.findIndex(it => (p.id && String(it.productId) === String(p.id)) || (p.code && it.productCode === p.code));
     const pageSize = returnState.slipPageSize || 10;
     if (existingIdx !== -1) {
       returnState.items[existingIdx].totalQty += qty;
+      returnState.items[existingIdx].unitQty = (Number(returnState.items[existingIdx].unitQty) || 0) + qty;
       returnState.items[existingIdx].returnRate = rate;
       returnState.items[existingIdx].netAmount = returnState.items[existingIdx].totalQty * rate;
       returnState.slipCurrentPage = Math.floor(existingIdx / pageSize) + 1;
     } else {
       returnState.items.push({
-        productId: p.id,
-        productCode: p.code,
-        productTitle: p.titleEng,
-        packSize: p.packSize || 1,
+        productId: p.id || '',
+        productCode: p.code || '',
+        productTitle: p.titleEng || p.title || p.productTitle || p.name || 'Untitled',
+        packSize: Number(p.packSize) || 1,
         packQty: 0,
         unitQty: qty,
         totalQty: qty,
@@ -5431,10 +5439,10 @@
         netAmount: qty * rate,
         condition: 'Good'
       });
-      returnState.slipCurrentPage = Math.ceil(returnState.items.length / pageSize);
+      returnState.slipCurrentPage = Math.ceil(returnState.items.length / pageSize) || 1;
     }
 
-    const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+    const row = document.querySelector(`tr[data-product-id="${pId}"]`);
     if (row) {
       const btn = row.querySelector('.pos-btn-return-cart');
       if (btn) {
@@ -5446,6 +5454,9 @@
     renderReturnItemsTable();
     updateReturnTotals();
     updateReturnSlipMeta();
+    if (window.showToast) {
+      window.showToast(`Added ${p.titleEng || p.title || p.code || 'item'} to return`, 'info');
+    }
   }
 
   function adjustReturnCartItemQty(idx, delta) {
@@ -6559,11 +6570,7 @@ ${window.escapeHtml(cfg.footer)}
     // Search button (F1)
     if (retEl.btnFindProduct) {
       retEl.btnFindProduct.addEventListener('click', () => {
-        if (window.findProductAPI?.openWindow) {
-          window.findProductAPI.openWindow();
-        } else if (window.openProductSearchModal) {
-          window.openProductSearchModal();
-        }
+        openProductLookupModal();
       });
     }
 
