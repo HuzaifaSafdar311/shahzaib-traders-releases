@@ -1299,6 +1299,7 @@
         if (el.modalHistory) el.modalHistory.classList.add('hidden');
         if (retEl.modalReceipt) retEl.modalReceipt.classList.add('hidden');
         if (retEl.modalHistory) retEl.modalHistory.classList.add('hidden');
+        if (retEl.modalAddReturn) retEl.modalAddReturn.classList.add('hidden');
       }
     });
 
@@ -1596,7 +1597,7 @@
   function populatePartyTypeDropdowns() {
     const list = sharedPartyTypes || [];
     [el.partyTypeSelect, retEl.partyTypeSelect].forEach(selectEl => {
-      if (!selectEl) return;
+      if (!selectEl || selectEl.tagName !== 'SELECT') return;
       const currentVal = selectEl.value;
       selectEl.innerHTML = '<option value="">Select Party Type</option>';
       list.forEach(pt => {
@@ -5204,7 +5205,7 @@
     const condition = retEl.itemCondition?.value || 'Good';
 
     // Check if item already exists in return list
-    const existingIdx = returnState.items.findIndex(it => it.productCode === p.code);
+    const existingIdx = returnState.items.findIndex(it => (p.id && String(it.productId) === String(p.id)) || (p.code && it.productCode === p.code));
     if (existingIdx !== -1) {
       returnState.items[existingIdx].packQty += packQty;
       returnState.items[existingIdx].unitQty += unitQty;
@@ -5215,8 +5216,8 @@
     } else {
       returnState.items.push({
         productId: p.id || '',
-        productCode: p.code,
-        productTitle: p.titleEng,
+        productCode: p.code || '',
+        productTitle: p.titleEng || p.title || p.productTitle || p.name || 'Untitled',
         condition,
         packSize,
         packQty,
@@ -5232,6 +5233,7 @@
 
     renderReturnItemsTable();
     updateReturnTotals();
+    updateReturnSlipMeta();
 
     // Reset item entry fields
     returnState.selectedProduct = null;
@@ -5246,14 +5248,6 @@
     if (retEl.availableStock) retEl.availableStock.textContent = '0 pcs';
 
     setTimeout(() => retEl.itemCode?.focus(), 50);
-  }
-
-  function removeReturnItem(idx) {
-    if (idx >= 0 && idx < returnState.items.length) {
-      returnState.items.splice(idx, 1);
-      renderReturnItemsTable();
-      updateReturnTotals();
-    }
   }
 
   // ========================================================
@@ -5463,7 +5457,7 @@
 
     const row = document.querySelector(`tr[data-product-id="${pId}"]`);
     if (row) {
-      const btn = row.querySelector('.pos-btn-return-cart');
+      const btn = row.querySelector('.pos-btn-return-clean, .pos-btn-return-cart');
       if (btn) {
         btn.classList.add('added-flash');
         setTimeout(() => btn.classList.remove('added-flash'), 250);
@@ -5570,6 +5564,7 @@
       returnState.items[idx].netAmount = returnState.items[idx].totalQty * r;
       renderReturnItemsTable();
       updateReturnTotals();
+      updateReturnSlipMeta();
     }
   }
 
@@ -5580,6 +5575,7 @@
       returnState.items[idx].netAmount = q * Number(returnState.items[idx].returnRate || 0);
       renderReturnItemsTable();
       updateReturnTotals();
+      updateReturnSlipMeta();
     }
   }
 
@@ -5593,6 +5589,7 @@
       }
       renderReturnItemsTable();
       updateReturnTotals();
+      updateReturnSlipMeta();
     }
   }
 
@@ -5918,8 +5915,8 @@
       partyTypeId: 'general',
       partyTypeName: 'General Party',
       customerPhone: chosenPhone,
-      areaName: isSpecific ? (returnState.selectedCustomer.areaName || '') : '',
-      description: retEl.description?.value?.trim() || '',
+      areaName: isSpecific ? (returnState.selectedCustomer.areaName || returnState.selectedCustomer.city || '') : '',
+      description: document.getElementById('returnRemarksInput')?.value?.trim() || retEl.description?.value?.trim() || '',
       refundMode: refundModeSelect?.value || retEl.refundMode?.value || 'Credit',
       totalItems: returnState.items.length,
       totalPieces,
@@ -5938,6 +5935,9 @@
           if (window.showToast) window.showToast(`Sale Return ${res.returnNo} saved! Stock added back to inventory.`, 'success');
           
           if (window.reloadFromDatabase) await window.reloadFromDatabase();
+          if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
+            window.ReportsModule.reloadMasterData().catch(() => {});
+          }
           await loadAndRenderReturnsTable();
 
           const chkPrint = document.getElementById('chkReturnPrintReceipt');
@@ -6207,6 +6207,9 @@ ${window.escapeHtml(cfg.footer)}
         returns = window.appData?.sales_returns || [];
       }
       returnState.returnsList = Array.isArray(returns) ? returns : [];
+      if (retEl.historyTableBody) {
+        renderReturnHistoryList(returnState.returnsList);
+      }
       applyReturnsFilter();
     } catch (err) {
       console.error('Failed to load returns list:', err);
@@ -6384,7 +6387,7 @@ ${window.escapeHtml(cfg.footer)}
   }
 
   async function editReturn(id) {
-    const ret = (returnState.returnsList || []).find(r => String(r.id) === String(id));
+    const ret = (returnState.returnsList || []).find(r => String(r.id) === String(id) || String(r.returnNo) === String(id));
     if (!ret) {
       if (window.showToast) window.showToast('Return record not found', 'error');
       return;
@@ -6397,26 +6400,48 @@ ${window.escapeHtml(cfg.footer)}
     } catch (e) {
       items = [];
     }
+    if (!items.length && window.salesReturnAPI?.getReturn) {
+      try {
+        const full = await window.salesReturnAPI.getReturn(id);
+        if (full?.items?.length) items = full.items;
+      } catch (_) {}
+    }
     returnState.items = Array.isArray(items) ? [...items] : [];
 
     if (retEl.voucherNo) retEl.voucherNo.value = ret.returnNo || '';
     if (retEl.entryDate) retEl.entryDate.value = (ret.entryDate || '').slice(0, 10);
     if (retEl.originalBillRef) retEl.originalBillRef.value = ret.saleVoucherRef || '';
     if (retEl.refundMode) retEl.refundMode.value = ret.refundMode || 'Credit';
-    if (retEl.partyTypeSelect) retEl.partyTypeSelect.value = ret.partyTypeId || '';
-    selectReturnPartyType(ret.partyTypeId || '');
-    if (retEl.customerSelect) retEl.customerSelect.value = ret.partyId || '';
+
+    // Properly restore party selection so it is not lost on edit
+    if (ret.partyId && ret.partyId !== 'walk-in') {
+      if (retEl.customerSelect) retEl.customerSelect.value = ret.partyId;
+      selectReturnCustomer(ret.partyId);
+    } else {
+      if (retEl.customerSelect) retEl.customerSelect.value = '';
+      selectReturnCustomer('');
+    }
+
     const custName = document.getElementById('returnCustomerName');
-    if (custName) custName.value = ret.partyTitle || '';
+    if (custName && ret.partyTitle) custName.value = ret.partyTitle;
     const custPhone = document.getElementById('returnCustomerPhone');
-    if (custPhone) custPhone.value = ret.customerPhone || '';
+    if (custPhone && ret.customerPhone) custPhone.value = ret.customerPhone;
     const remInput = document.getElementById('returnRemarksInput');
     if (remInput) remInput.value = ret.description || '';
+
+    // Reconstruct deduction from items vs totalAmount
+    let grossRefund = 0;
+    returnState.items.forEach(it => {
+      grossRefund += Number(it.netAmount || 0);
+    });
+    const savedTotal = Number(ret.totalAmount || 0);
+    const deduction = Math.max(0, Math.round((grossRefund - savedTotal) * 100) / 100);
     const discInput = document.getElementById('returnSpecialDeduction');
-    if (discInput) discInput.value = Number(ret.discount || 0);
+    if (discInput) discInput.value = deduction;
 
     renderReturnItemsTable();
     updateReturnTotals();
+    updateReturnSlipMeta();
 
     // Close Return History modal if open and switch to Return subview
     if (retEl.modalHistory) retEl.modalHistory.classList.add('hidden');
@@ -6630,6 +6655,7 @@ ${window.escapeHtml(cfg.footer)}
     if (retEl.btnCloseHistory) {
       retEl.btnCloseHistory.addEventListener('click', () => {
         if (retEl.modalHistory) retEl.modalHistory.classList.add('hidden');
+        if (retEl.modalAddReturn) retEl.modalAddReturn.classList.add('hidden');
       });
     }
     if (retEl.historySearchInput) {
@@ -6893,11 +6919,20 @@ ${window.escapeHtml(cfg.footer)}
         openReceiptModal({ ...s, items });
       }
     },
-    reprintReturn: (id) => {
-      const r = returnState.returnsList.find(x => String(x.id) === String(id));
+    reprintReturn: async (id) => {
+      let r = (returnState.returnsList || []).find(x => String(x.id) === String(id) || String(x.returnNo) === String(id));
+      if (!r && window.salesReturnAPI?.getReturn) {
+        try { r = await window.salesReturnAPI.getReturn(id); } catch (_) {}
+      }
       if (r) {
         let items = [];
         try { items = typeof r.itemsJson === 'string' ? JSON.parse(r.itemsJson) : (r.items || []); } catch (e) {}
+        if (!items.length && window.salesReturnAPI?.getReturn) {
+          try {
+            const full = await window.salesReturnAPI.getReturn(id);
+            if (full?.items?.length) items = full.items;
+          } catch (_) {}
+        }
         openReturnReceiptModal({ ...r, items });
       }
     },
@@ -6930,6 +6965,9 @@ ${window.escapeHtml(cfg.footer)}
       window.salesReturnAPI?.deleteReturn(id).then(async () => {
         if (window.showToast) window.showToast('Sale return deleted and stock deducted', 'success');
         if (window.reloadFromDatabase) await window.reloadFromDatabase();
+        if (window.ReportsModule && window.ReportsModule.reloadMasterData) {
+          window.ReportsModule.reloadMasterData().catch(() => {});
+        }
         await loadAndRenderReturnsTable();
       }).catch(err => {
         alert('Delete failed: ' + err.message);
