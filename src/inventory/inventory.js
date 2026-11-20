@@ -276,16 +276,35 @@ if (inv.btnOkAlert) inv.btnOkAlert.addEventListener('click', closeAlert);
 function switchSubTab(subtab) {
   currentSubTab = subtab;
   window.currentSubTab = subtab;
+  window.currentTab = 'inventory';
 
-  // Ensure Inventory view is active and General Info is inactive
+  // Ensure Inventory view is active and other main views are inactive
   const invView = document.getElementById('inventoryView');
   const giView = document.getElementById('generalInfoView');
+  const salesView = document.getElementById('salesView');
+  const accountsView = document.getElementById('accountsView');
+  const reportsView = document.getElementById('reportsView');
+  const settingsView = document.getElementById('settingsView');
   const giBtn = document.getElementById('navGeneralInfoBtn');
   const invBtn = document.getElementById('navInventoryMainBtn');
+  const salesBtn = document.getElementById('navSalesMainBtn');
+  const accountsBtn = document.getElementById('navAccountsMainBtn');
+  const reportsBtn = document.getElementById('navReportsMainBtn');
+  const settingsBtn = document.getElementById('navSettingsMainBtn');
+
   if (invView) invView.classList.add('active');
   if (giView) giView.classList.remove('active');
-  if (giBtn) giBtn.classList.remove('active');
+  if (salesView) salesView.classList.remove('active');
+  if (accountsView) accountsView.classList.remove('active');
+  if (reportsView) reportsView.classList.remove('active');
+  if (settingsView) settingsView.classList.remove('active');
+
   if (invBtn) invBtn.classList.add('active');
+  if (giBtn) giBtn.classList.remove('active');
+  if (salesBtn) salesBtn.classList.remove('active');
+  if (accountsBtn) accountsBtn.classList.remove('active');
+  if (reportsBtn) reportsBtn.classList.remove('active');
+  if (settingsBtn) settingsBtn.classList.remove('active');
 
   // Sync horizontal tabs active state
   document.querySelectorAll('.inv-tab-btn').forEach(btn => {
@@ -1478,12 +1497,18 @@ function addPurchaseLineItem(overrideProd) {
     }
   }
 
+  // If adding via F1 / override, guarantee at least 1 unit / pack
+  if (overrideProd && pQty <= 0 && uQty <= 0) {
+    pQty = 1;
+    if (inv.piePackQty) inv.piePackQty.value = 1;
+  }
+
   const totalUnits = (pQty * packSize) + uQty;
 
   const isListMode = (discPercent > 0 || prod.purchasePricingMode === 'list_discount');
   const listPrice = (rp > 0 ? rp : (tp > 0 ? tp : Number(prod.listPrice || prod.retailPrice || prod.purchasePrice || 0)));
   const companyDiscountPercent = discPercent > 0 ? discPercent : (Number(prod.purchaseDiscountPercent || prod.companyDiscountPercent) || null);
-  const effectiveCost = discPercent > 0 ? Math.round(listPrice * (1 - (discPercent / 100)) * 100) / 100 : (tp > 0 ? tp : Number(prod.effectiveCost || prod.purchasePrice || 0));
+  const effectiveCost = discPercent > 0 ? Math.round(listPrice * (1 - (discPercent / 100)) * 100) / 100 : (tp > 0 ? tp : Number(prod.effectiveCost || prod.purchasePrice || prod.tradePrice || 0));
 
   // Line netAmount = effectiveCost * totalUnits (minus tradeOffer if applicable)
   let rawAmount = totalUnits * effectiveCost;
@@ -1499,6 +1524,7 @@ function addPurchaseLineItem(overrideProd) {
     productTitle: prod.titleEng || prod.title,
     packQty: pQty,
     unitQty: uQty,
+    totalQty: totalUnits,
     packSize: packSize,
     bonus,
     tradePrice: listPrice,
@@ -3541,8 +3567,11 @@ if (inv.btnPiLast) {
 // GLOBAL F1 / QUICK PRODUCT SEARCH (DEDICATED WINDOW & FALLBACK MODAL)
 // ========================================================
 function openProductSearchModal() {
+  const purView = document.getElementById('viewPurchase');
+  const isPur = (currentSubTab === 'purchase') || (window.currentSubTab === 'purchase') || (purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none')));
+
   if (window.findProductAPI?.openWindow) {
-    window.findProductAPI.openWindow();
+    window.findProductAPI.openWindow(isPur ? 'purchase' : 'inventory');
     return;
   }
   if (!inv.modalProductSearch) return;
@@ -3559,10 +3588,6 @@ function closeProductSearchModal() {
 if (window.findProductAPI?.onProductSelected) {
   window.findProductAPI.onProductSelected((p) => {
     if (!p) return;
-    const invView = document.getElementById('inventoryView');
-    const isInvActive = (invView && invView.classList.contains('active')) || (window.currentTab === 'inventory');
-    if (!isInvActive) return; // CRITICAL: Never intercept or steal products when user is in Sales or other views!
-
     const purView = document.getElementById('viewPurchase');
     const isPurVisible = purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none'));
     const isPurchaseActive = (currentSubTab === 'purchase') || (window.currentSubTab === 'purchase') || isPurVisible || (inv.modalAddPurchase && !inv.modalAddPurchase.classList.contains('hidden'));
@@ -3576,6 +3601,10 @@ if (window.findProductAPI?.onProductSelected) {
       if (window.showToast) window.showToast(`Added: ${p.titleEng || p.code}`, 'success');
       return;
     }
+
+    const invView = document.getElementById('inventoryView');
+    const isInvActive = (invView && invView.classList.contains('active')) || (window.currentTab === 'inventory');
+    if (!isInvActive) return; // CRITICAL: Never intercept or steal products when user is in Sales or other views!
 
     if (isInvActive) {
       switchSubTab('product-info');
@@ -3612,16 +3641,11 @@ function renderF1ProductSearch() {
       <td>${window.escapeHtml(p.location || '-')}</td>
     `;
     tr.addEventListener('click', () => {
-      const salesView = document.getElementById('salesView');
-      const isSale = (window.currentTab === 'sale') || (salesView && salesView.classList.contains('active'));
       const purView = document.getElementById('viewPurchase');
       const isPurVisible = purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none'));
       const isPur = (currentSubTab === 'purchase') || (window.currentSubTab === 'purchase') || isPurVisible || (inv.modalAddPurchase && !inv.modalAddPurchase.classList.contains('hidden'));
 
-      if (isSale && window.SalesModule?.addProductToCart) {
-        window.SalesModule.addProductToCart(p.id || p.code, 1);
-        if (window.SalesModule?.selectProduct) window.SalesModule.selectProduct(p, false);
-      } else if (isPur) {
+      if (isPur) {
         if (typeof window.togglePurchaseItemDrawer === 'function') {
           window.togglePurchaseItemDrawer(true);
         }
@@ -3629,8 +3653,15 @@ function renderF1ProductSearch() {
         addPurchaseLineItem(p);
         if (window.showToast) window.showToast(`Added: ${p.titleEng || p.code}`, 'success');
       } else {
-        switchSubTab('product-info');
-        loadProductRecord(p);
+        const salesView = document.getElementById('salesView');
+        const isSale = (window.currentTab === 'sale') || (salesView && salesView.classList.contains('active'));
+        if (isSale && window.SalesModule?.addProductToCart) {
+          window.SalesModule.addProductToCart(p.id || p.code, 1);
+          if (window.SalesModule?.selectProduct) window.SalesModule.selectProduct(p, false);
+        } else {
+          switchSubTab('product-info');
+          loadProductRecord(p);
+        }
       }
       closeProductSearchModal();
     });
@@ -3642,6 +3673,13 @@ if (inv.btnPiFind) inv.btnPiFind.addEventListener('click', openProductSearchModa
 if (inv.btnPieFind) inv.btnPieFind.addEventListener('click', openProductSearchModal);
 if (inv.btnProductInfoList) inv.btnProductInfoList.addEventListener('click', openProductSearchModal);
 if (inv.btnCloseProductSearch) inv.btnCloseProductSearch.addEventListener('click', closeProductSearchModal);
+const btnPurF1 = document.getElementById('btnPurF1ProductLookup');
+if (btnPurF1) {
+  btnPurF1.addEventListener('click', (e) => {
+    e.preventDefault();
+    openProductSearchModal();
+  });
+}
 if (inv.pieProductSearchInput) {
   inv.pieProductSearchInput.addEventListener('input', () => {
     if (!inv.pieProductSearchInput.value.trim()) {

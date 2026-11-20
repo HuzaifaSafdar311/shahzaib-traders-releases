@@ -652,6 +652,21 @@
   function selectF1Product(idx, forcedRateMode = null) {
     const p = f1ModalState.filteredProducts[idx];
     if (!p) return;
+
+    const purView = document.getElementById('viewPurchase');
+    const isPur = (window.currentSubTab === 'purchase') || (purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none')));
+    if (isPur && window.addPurchaseLineItem) {
+      if (typeof window.togglePurchaseItemDrawer === 'function') {
+        window.togglePurchaseItemDrawer(true);
+      }
+      if (window.selectProductForPurchase) window.selectProductForPurchase(p);
+      window.addPurchaseLineItem(p);
+      const modal = document.getElementById('modalProductLookupF1');
+      if (modal) modal.classList.add('hidden');
+      if (window.showToast) window.showToast(`Added: ${p.titleEng || p.code}`, 'success');
+      return;
+    }
+
     if (currentSaleSubTab === 'return') {
       addReturnProductToCart(p, 1);
       selectReturnProduct(p, false);
@@ -1232,6 +1247,10 @@
 
     // 8. Global Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
+      const purView = document.getElementById('viewPurchase');
+      const isPur = (window.currentSubTab === 'purchase') || (purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none')));
+      if (isPur) return; // Do not intercept shortcuts if Purchase is active!
+
       const salesView = document.getElementById('salesView');
       const isSaleActive = (salesView && salesView.classList.contains('active')) || (window.currentTab === 'sale');
       if (!isSaleActive) return;
@@ -4835,6 +4854,12 @@
     // Connect with Find Product Window callback
     if (window.findProductAPI?.onProductSelected) {
       window.findProductAPI.onProductSelected((product) => {
+        const purView = document.getElementById('viewPurchase');
+        const isPur = (window.currentSubTab === 'purchase') || (purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none')));
+        if (isPur) {
+          return; // NEVER steal products when Purchase Voucher is active!
+        }
+
         const salesView = document.getElementById('salesView');
         const isSaleActive = (salesView && salesView.classList.contains('active')) || (window.currentTab === 'sale');
 
