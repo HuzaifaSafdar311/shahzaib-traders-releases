@@ -688,7 +688,7 @@
 
                             <!-- ROW 3: Line Items Grid / Report -->
                             <div class="table-container voucher-grid-container gi-table-wrapper pur-items-grid"
-                                style="display: flex; flex-direction: column; flex: 0 0 auto; height: 310px; overflow: hidden; margin: 0; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                                style="display: flex; flex-direction: column; flex: 1 1 auto; min-height: 420px; max-height: 560px; height: auto; overflow: hidden; margin: 0; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
                                 <div class="pur-bill-header-bar"
                                     style="display: flex; justify-content: space-between; align-items: center; padding: 6px 14px; background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; flex-shrink: 0; height: 36px; box-sizing: border-box;">
                                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -707,7 +707,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div class="voucher-table-scroll" style="flex: 1; min-height: 0; height: 232px; overflow-y: hidden;">
+                                <div class="voucher-table-scroll" style="flex: 1 1 auto; min-height: 360px; max-height: 500px; height: auto; overflow-y: auto;">
                                     <table class="data-table voucher-table gi-data-table pur-data-table" style="width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important;">
                                     <thead>
                                         <tr>
@@ -1724,7 +1724,7 @@
 
                         <!-- ROW 2: ACTIVE LINE ITEMS GRID / REPORT TABLE -->
                         <div id="saleBillItemsTableContainer" class="voucher-grid-container gi-table-wrapper"
-                            style="display: flex; flex-direction: column; flex: 1 1 0; min-height: 260px; height: 100%; overflow: hidden; margin: 0; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                            style="display: flex; flex-direction: column; flex: 1 1 0; min-height: 380px; height: 100%; overflow: hidden; margin: 0; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
                             <div class="pur-bill-header-bar"
                                 style="display: flex; justify-content: space-between; align-items: center; padding: 6px 14px; background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; flex-shrink: 0; height: 36px; box-sizing: border-box;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -1750,7 +1750,7 @@
                                         title="Clear all items from bill">Clear Bill</button>
                                 </div>
                             </div>
-                            <div class="voucher-table-scroll" style="flex: 1 1 0; min-height: 0; overflow-y: auto; height: 100%;">
+                            <div class="voucher-table-scroll" style="flex: 1 1 0; min-height: 320px; overflow-y: auto; height: 100%;">
                                 <table class="data-table voucher-table gi-data-table pos-bill-table" style="width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important;">
                                     <thead>
                                         <tr>
@@ -4585,6 +4585,49 @@
                         onclick="document.getElementById('modalReturnReceipt').classList.add('hidden')">Close</button>
                     <button type="button" id="btnDoPrintReturnReceipt" class="btn btn-primary"
                         style="background: #dc2626; border-color: #dc2626;">🖨️ Print Memo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Purchase Voucher Print Preview -->
+    <div id="modalPurchaseReceipt" class="modal-overlay hidden" style="z-index: 10006;">
+        <div class="modal-card sale-print-studio-modal"
+            style="max-width: 980px; width: 95vw; height: 92vh; display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.35);">
+            <div class="modal-header"
+                style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div
+                        style="background: rgba(16, 185, 129, 0.25); border: 1px solid #10b981; width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 17px;">
+                        📦
+                    </div>
+                    <div>
+                        <h2 class="modal-title"
+                            style="color: #fff; font-size: 1.1rem; font-weight: 800; margin: 0; line-height: 1.2;">Purchase Voucher Print Preview</h2>
+                        <span id="purPrintVoucherBadge"
+                            style="font-size: 11px; color: #94a3b8; font-weight: 600;">Purchase Invoice Preview</span>
+                    </div>
+                </div>
+                <button id="btnClosePurReceipt" type="button" class="modal-close-btn"
+                    style="color: #cbd5e1; font-size: 24px; padding: 0 6px;" onclick="document.getElementById('modalPurchaseReceipt').classList.add('hidden')">&times;</button>
+            </div>
+            <div id="purReceiptPrintArea" class="modal-body sale-print-preview-viewport"
+                style="flex: 1; min-height: 0; padding: 24px; overflow-y: auto; background: #475569; display: flex; justify-content: center; align-items: flex-start;">
+                <!-- Live rendered purchase voucher injected here -->
+            </div>
+            <div class="modal-footer"
+                style="background: #ffffff; border-top: 1px solid #e2e8f0; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                <div>
+                    <span style="font-size: 11.5px; color: #64748b;">Shortcuts: <kbd style="background: #f1f5f9; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 700;">Ctrl+P</kbd> Print | <kbd style="background: #f1f5f9; padding: 2px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 700;">Esc</kbd> Close</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm"
+                        onclick="document.getElementById('modalPurchaseReceipt').classList.add('hidden')">Close</button>
+                    <button type="button" id="btnDoPrintPurReceipt" class="btn btn-primary btn-sm"
+                        style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 18px; background: #059669; border-color: #059669; box-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);">
+                        <span>🖨️</span>
+                        <span>Print Voucher</span>
+                    </button>
                 </div>
             </div>
         </div>

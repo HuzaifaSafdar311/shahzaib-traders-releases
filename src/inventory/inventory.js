@@ -838,6 +838,7 @@ if (inv.btnClearUnitSearch && inv.unitSearchInput) {
 // 5. PURCHASE VOUCHER MODULE (ENTERPRISE - MODAL WORKFLOW)
 // ========================================================
 let pieSearchTypeahead = null;
+let selectedPurchaseProduct = null;
 function initPieProductSearch() {
   if (pieSearchTypeahead) return;
   if (window.setupSearchableProductDropdown && inv.pieProductSearchInput && inv.pieProductDropdownList) {
@@ -848,9 +849,11 @@ function initPieProductSearch() {
       selectEl: inv.pieProductSelect,
       compactRateOnly: true,
       onSelect: (prod) => {
+        selectedPurchaseProduct = prod;
         selectProductForPurchase(prod);
       },
       onClear: () => {
+        selectedPurchaseProduct = null;
         const stockBadge = document.getElementById('pieAvailableStockBadge');
         if (stockBadge) stockBadge.style.display = 'none';
       },
@@ -1333,10 +1336,14 @@ setTimeout(initPurPricingModeEvents, 300);
 
 // Code and Product Dropdown Sync
 function selectProductForPurchase(prod) {
-  if (!prod) return;
-  if (inv.pieCode) inv.pieCode.value = prod.code;
-  if (inv.pieProductSelect) inv.pieProductSelect.value = prod.code;
-  if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = prod.titleEng || '';
+  if (!prod) {
+    selectedPurchaseProduct = null;
+    return;
+  }
+  selectedPurchaseProduct = prod;
+  if (inv.pieCode) inv.pieCode.value = prod.code || '';
+  if (inv.pieProductSelect) inv.pieProductSelect.value = prod.code || prod.id || '';
+  if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = prod.titleEng || prod.title || '';
 
   // Update Available Stock Badge
   const stockBadge = document.getElementById('pieAvailableStockBadge');
@@ -1388,17 +1395,25 @@ function selectProductForPurchase(prod) {
 
 if (inv.pieProductSelect) {
   inv.pieProductSelect.addEventListener('change', () => {
-    const code = inv.pieProductSelect.value;
-    const prod = (window.appData?.products || []).find(p => p.code === code);
-    selectProductForPurchase(prod);
+    const val = inv.pieProductSelect.value;
+    const prod = (window.appData?.products || []).find(p => String(p.code) === val || String(p.id) === val);
+    if (prod) {
+      selectedPurchaseProduct = prod;
+      selectProductForPurchase(prod);
+    }
   });
 }
 
 if (inv.pieCode) {
   inv.pieCode.addEventListener('input', () => {
     const code = inv.pieCode.value.trim();
-    const prod = (window.appData?.products || []).find(p => String(p.code).trim() === code);
-    if (prod) selectProductForPurchase(prod);
+    if (code) {
+      const prod = (window.appData?.products || []).find(p => String(p.code).trim() === code);
+      if (prod) {
+        selectedPurchaseProduct = prod;
+        selectProductForPurchase(prod);
+      }
+    }
   });
 }
 
@@ -1409,13 +1424,19 @@ function addPurchaseLineItem(overrideProd) {
     inv.purPartySelect.dispatchEvent(new Event('change'));
   }
 
-  let prod = overrideProd;
+  let prod = overrideProd || selectedPurchaseProduct;
   if (!prod) {
-    const code = inv.pieCode?.value.trim() || inv.pieProductSelect?.value?.trim();
+    const code = (inv.pieCode?.value || '').trim();
+    const selectVal = (inv.pieProductSelect?.value || '').trim();
     const searchTitle = (inv.pieProductSearchInput?.value || '').trim().toLowerCase();
-    prod = (window.appData?.products || []).find(p => String(p.code).trim() === code);
+
+    if (code && code !== '-') {
+      prod = (window.appData?.products || []).find(p => String(p.code || '').trim() === code);
+    } else if (selectVal && selectVal !== '-') {
+      prod = (window.appData?.products || []).find(p => String(p.code || '').trim() === selectVal || String(p.id || '').trim() === selectVal);
+    }
     if (!prod && searchTitle) {
-      prod = (window.appData?.products || []).find(p => (p.titleEng || '').toLowerCase() === searchTitle);
+      prod = (window.appData?.products || []).find(p => (p.titleEng || '').trim().toLowerCase() === searchTitle);
     }
     if (!prod && searchTitle) {
       prod = (window.appData?.products || []).find(p => (p.titleEng || '').toLowerCase().includes(searchTitle));
@@ -1475,7 +1496,7 @@ function addPurchaseLineItem(overrideProd) {
     srNo: currentPurchaseItems.length + 1,
     productId: prod.id,
     productCode: prod.code,
-    productTitle: prod.titleEng,
+    productTitle: prod.titleEng || prod.title,
     packQty: pQty,
     unitQty: uQty,
     packSize: packSize,
@@ -1496,8 +1517,20 @@ function addPurchaseLineItem(overrideProd) {
     netAmount: netAmount.toFixed(2)
   };
 
-  const existingIdx = currentPurchaseItems.findIndex(it => String(it.productId) === String(prod.id) || String(it.productCode) === String(prod.code));
+  const existingIdx = currentPurchaseItems.findIndex(it => {
+    if (it.productId && prod.id && String(it.productId) === String(prod.id)) return true;
+    const c1 = String(it.productCode || '').trim();
+    const c2 = String(prod.code || '').trim();
+    if (c1 && c2 && c1 !== '-' && c1.toLowerCase() === c2.toLowerCase()) return true;
+    const t1 = String(it.productTitle || '').trim().toLowerCase();
+    const t2 = String(prod.titleEng || prod.title || '').trim().toLowerCase();
+    if (t1 && t2 && t1 === t2 && (!prod.id || !it.productId)) return true;
+    return false;
+  });
+
+  let isExistingMerged = false;
   if (existingIdx !== -1) {
+    isExistingMerged = true;
     const existing = currentPurchaseItems[existingIdx];
     existing.bonus = (Number(existing.bonus) || 0) + bonus;
     existing.tradeOffer = (Number(existing.tradeOffer) || 0) + tradeOffer;
@@ -1508,14 +1541,14 @@ function addPurchaseLineItem(overrideProd) {
     let rawAmount = existing.totalQty * effectiveCost;
     if (existing.tradeOffer > 0) rawAmount -= existing.tradeOffer;
     existing.netAmount = Math.max(0, rawAmount).toFixed(2);
-    const pageSize = purSlipPageSize || 4;
+    const pageSize = purSlipPageSize || 10;
     purSlipCurrentPage = Math.floor(existingIdx / pageSize) + 1;
   } else {
     currentPurchaseItems.push(lineItem);
-    const pageSize = purSlipPageSize || 4;
+    const pageSize = purSlipPageSize || 10;
     purSlipCurrentPage = Math.ceil(currentPurchaseItems.length / pageSize);
   }
-  renderPurchaseLineItems();
+  renderPurchaseLineItems(true);
   updateModalPurchaseCount();
   updatePurchaseHeaderBadges();
   calculatePurchaseBill();
@@ -1576,10 +1609,15 @@ function addPurchaseLineItem(overrideProd) {
   }
 
   if (window.showToast) {
-    window.showToast(`Item "${lineItem.productTitle}" added to voucher table!`, 'success');
+    if (isExistingMerged) {
+      window.showToast(`Updated quantity for existing item "${lineItem.productTitle}"!`, 'info');
+    } else {
+      window.showToast(`Item "${lineItem.productTitle}" added to voucher table!`, 'success');
+    }
   }
 
-  // Reset inputs
+  // Reset inputs & product selection state
+  selectedPurchaseProduct = null;
   if (inv.pieCode) inv.pieCode.value = '';
   if (inv.pieProductSearchInput) inv.pieProductSearchInput.value = '';
   if (inv.pieProductSelect) inv.pieProductSelect.value = '';
@@ -1649,7 +1687,7 @@ if (btnToggleAddItem) {
 }
 
 let purSlipCurrentPage = 1;
-const purSlipPageSize = 4;
+const purSlipPageSize = 10;
 
 function changePurchaseSlipPage(delta) {
   const total = currentPurchaseItems.length;
@@ -1705,7 +1743,7 @@ function renderPurchaseLineItems(targetPage = false) {
     pageSlice.forEach((item, idx) => {
       const actualIdx = startIdx + idx;
       const tr = document.createElement('tr');
-      tr.style.height = '48px';
+      tr.style.height = '42px';
       tr.ondblclick = () => window.editPurchaseLineItem(actualIdx);
       tr.title = "Double-click to edit line";
       const matchedProd = (window.appData?.products || []).find(pr => String(pr.id) === String(item.productId) || String(pr.code) === String(item.productCode));
@@ -1827,18 +1865,20 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Wheel navigation for purchase table (flip page without scrolling layout)
+// Wheel navigation on purchase table: allows smooth natural scrolling; Alt+Wheel flips page
 setTimeout(() => {
   const gridEl = document.querySelector('#viewPurchase .pur-items-grid');
   if (gridEl) {
     gridEl.addEventListener('wheel', (e) => {
+      if (!e.altKey) return; // Natural scroll by default; Alt+Wheel flips page
       const totalPages = Math.max(1, Math.ceil(currentPurchaseItems.length / purSlipPageSize));
       if (totalPages <= 1) return;
       if (Math.abs(e.deltaY) > 30) {
+        e.preventDefault();
         if (e.deltaY > 0) changePurchaseSlipPage(1);
         else changePurchaseSlipPage(-1);
       }
-    }, { passive: true });
+    }, { passive: false });
   }
 }, 500);
 
@@ -2208,6 +2248,9 @@ async function savePurchaseVoucher() {
   }
 
   try {
+    const savedVoucherData = { ...purchaseData };
+    const savedItems = currentPurchaseItems.map(it => ({ ...it }));
+
     if (window.api?.savePurchase) {
       await window.api.savePurchase(purchaseData, currentPurchaseItems);
     }
@@ -2218,6 +2261,9 @@ async function savePurchaseVoucher() {
     showAlert(`Purchase Voucher #${purchaseData.voucherNo} saved successfully! Stock updated.`, 'Success');
     applyPurchaseDateFilter();
     resetPurchaseForm();
+
+    // Auto open printable receipt/preview modal
+    openPurchaseReceiptModal(savedVoucherData, savedItems);
     return true;
   } catch (err) {
     console.error('Save purchase voucher error:', err);
@@ -2294,11 +2340,311 @@ function loadPurchaseRecord(pur) {
   calculatePurchaseBill();
 }
 
+function renderPurchaseA4Bill(data, items, cfg = {}) {
+  const companyTitle = cfg.title || 'Shahzaib Traders';
+  const subtitle = cfg.subtitle || 'Electrical & Hardware Store';
+  const address = cfg.address || 'Near Al-Makkah Center, Main Bazar';
+  const phone = cfg.phone || '0300-1234567';
+
+  let formattedDate = '';
+  try {
+    const d = data.entryDate ? new Date(data.entryDate) : new Date();
+    formattedDate = isNaN(d.getTime()) ? (data.entryDate || '') : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch (_) {
+    formattedDate = data.entryDate || '';
+  }
+
+  const vNo = data.voucherNo || 'PV-101';
+  const vendorName = data.partyTitle || 'Vendor';
+  const contact = data.contactPerson || '-';
+  const manualNo = data.manualNo || '-';
+  const payStatus = data.paymentStatus || 'Pending';
+  const dueDate = data.dueDate || '-';
+  const store = data.storeTitle || 'Store';
+  const desc = data.description || '';
+
+  const totalLines = (items || []).length;
+  let itemsRows = '';
+  (items || []).forEach((it, idx) => {
+    const name = it.productTitle || it.titleEng || it.title || 'Product';
+    const code = it.productCode || it.code || String(idx + 1);
+    const pQty = Number(it.packQty || 0);
+    const uQty = Number(it.unitQty || 0);
+    const bonus = Number(it.bonus || 0);
+    const rate = Number(it.effectiveCost !== undefined && it.effectiveCost !== null ? it.effectiveCost : (it.netCost || it.tradePrice || 0));
+    const netAmt = Number(it.netAmount || 0);
+    const rowClass = (idx % 2 === 0) ? 'item-row-odd' : 'item-row-even';
+
+    itemsRows += `
+      <tr class="${rowClass}">
+        <td class="col-item-no" style="text-align: center;">${idx + 1}</td>
+        <td style="font-weight: 600;">${window.escapeHtml(code)}</td>
+        <td class="col-item-desc">${window.escapeHtml(name)}</td>
+        <td style="text-align: center;">${pQty}</td>
+        <td style="text-align: center;">${uQty}</td>
+        <td style="text-align: center;">${bonus}</td>
+        <td class="col-item-price">${rate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td class="col-item-total">${netAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+      </tr>
+    `;
+  });
+
+  const fillerCount = Math.max(0, 10 - totalLines);
+  for (let f = 0; f < fillerCount; f++) {
+    const fillerClass = ((totalLines + f) % 2 === 0) ? 'item-row-odd' : 'item-row-even';
+    itemsRows += `
+      <tr class="filler-row ${fillerClass}">
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td style="text-align: center; color: #64748b;">-</td>
+      </tr>
+    `;
+  }
+
+  const lineSum = Number(data.totalAmount || (items || []).reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0));
+  const discount = Number(data.discount || 0);
+  const freightDisc = Number(data.freightDisc || 0);
+  const freightExpn = Number(data.freightExpn || 0);
+  const salesTax = Number(data.salesTax || 0);
+  const extraCharges = Number(data.extraCharges || 0);
+  const extraTotal = freightExpn + salesTax + extraCharges;
+  const grandTotal = Number(data.grandTotal || Math.max(0, lineSum - discount - freightDisc + extraTotal));
+
+  return `
+    <div class="invoice-container invoice-a4">
+      <div>
+        <div class="a4-header-row">
+          <div>
+            <h1 class="a4-company-name">${window.escapeHtml(companyTitle)}</h1>
+            <div class="a4-company-slogan">${window.escapeHtml(subtitle)}</div>
+            <div class="a4-logo-box">
+              <img src="assets/full-logo.png" alt="${window.escapeHtml(companyTitle)}" class="a4-logo-img" onerror="this.onerror=null; this.src='assets/circle-logo.png'; this.onerror=()=>{ this.style.display='none'; };">
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div class="a4-invoice-big-title" style="color: #047857;">PURCHASE VOUCHER</div>
+            <table class="a4-meta-table" style="margin-left: auto;">
+              <tr>
+                <td class="a4-meta-lbl">VOUCHER #:</td>
+                <td class="a4-meta-val" style="font-weight: 800; color: #0f172a;">${window.escapeHtml(vNo)}</td>
+              </tr>
+              <tr>
+                <td class="a4-meta-lbl">DATE:</td>
+                <td class="a4-meta-val">${window.escapeHtml(formattedDate)}</td>
+              </tr>
+              <tr>
+                <td class="a4-meta-lbl">MANUAL / BILTY #:</td>
+                <td class="a4-meta-val">${window.escapeHtml(manualNo)}</td>
+              </tr>
+              <tr>
+                <td class="a4-meta-lbl">PAYMENT STATUS:</td>
+                <td class="a4-meta-val">
+                  <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; background: ${payStatus.toLowerCase() === 'paid' ? '#dcfce7; color: #15803d;' : '#fffbeb; color: #b45309;'}">${window.escapeHtml(payStatus)}</span>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="a4-parties-row">
+          <div class="a4-party-box">
+            <div class="navy-bar-header" style="background: #065f46;">Vendor / Supplier:</div>
+            <div class="a4-party-content">
+              <div class="a4-party-name">${window.escapeHtml(vendorName)}</div>
+              <div>Contact Person: ${window.escapeHtml(contact)}</div>
+              <div>Store / Destination: ${window.escapeHtml(store)}</div>
+              ${dueDate && dueDate !== '-' ? `<div>Due Date: ${window.escapeHtml(dueDate)}</div>` : ''}
+            </div>
+          </div>
+          <div class="a4-party-box">
+            <div class="navy-bar-header" style="background: #065f46;">Receiving Details:</div>
+            <div class="a4-party-content">
+              <div class="a4-party-name">${window.escapeHtml(companyTitle)}</div>
+              <div>${window.escapeHtml(address)}</div>
+              <div>Tel: ${window.escapeHtml(phone)}</div>
+              ${desc ? `<div>Remarks: ${window.escapeHtml(desc)}</div>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="a4-table-wrapper">
+          <table class="a4-items-table">
+            <thead>
+              <tr style="background: #065f46;">
+                <th style="width: 5%; text-align: center;">SR</th>
+                <th style="width: 12%;">Code</th>
+                <th style="width: 41%;">Product Description</th>
+                <th style="width: 8%; text-align: center;">P.Qty</th>
+                <th style="width: 8%; text-align: center;">U.Qty</th>
+                <th style="width: 7%; text-align: center;">Bonus</th>
+                <th style="width: 10%; text-align: right;">Cost Rate</th>
+                <th style="width: 13%; text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRows}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="a4-bottom-split-row">
+          <div class="a4-notes-box-wrapper">
+            <div class="navy-bar-header" style="background: #065f46;">Voucher Summary & Verification</div>
+            <div class="a4-notes-box-content">
+              <div style="font-weight: 600; color: #065f46; margin-bottom: 4px;">Total Items Entered: ${totalLines}</div>
+              <div>Goods received in sound condition and verified against supplier bill/bilty.</div>
+              <div style="margin-top: 24px; display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px dashed #cbd5e1; font-size: 11px; color: #64748b;">
+                <span>Store Incharge: __________________</span>
+                <span>Authorized Sign: __________________</span>
+              </div>
+            </div>
+          </div>
+          <div class="a4-totals-wrapper">
+            <table class="a4-totals-table">
+              <tr>
+                <td class="a4-tot-lbl">Items Total</td>
+                <td class="a4-tot-curr">Rs</td>
+                <td class="a4-tot-val">${lineSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              </tr>
+              ${(discount > 0 || freightDisc > 0) ? `
+              <tr>
+                <td class="a4-tot-lbl">Discount / Rebate</td>
+                <td class="a4-tot-curr">Rs</td>
+                <td class="a4-tot-val">-${(discount + freightDisc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              </tr>` : ''}
+              ${extraTotal > 0 ? `
+              <tr>
+                <td class="a4-tot-lbl">Freight & Taxes</td>
+                <td class="a4-tot-curr">Rs</td>
+                <td class="a4-tot-val">+${extraTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              </tr>` : ''}
+              <tr class="total-highlight-row" style="background: #065f46; color: #fff;">
+                <td class="a4-tot-lbl" style="color: #fff;">Grand Total</td>
+                <td class="a4-tot-curr" style="color: #fff;">Rs</td>
+                <td class="a4-tot-val" style="color: #fff;">${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <footer class="a4-footer">
+        <div class="a4-thank-you">Inventory Management • Purchase Entry Record</div>
+        <div class="a4-footer-divider"></div>
+        <div class="a4-footer-address">${window.escapeHtml(address)} • Tel: ${window.escapeHtml(phone)}</div>
+      </footer>
+    </div>
+  `;
+}
+
+async function openPurchaseReceiptModal(purchaseData, items) {
+  const modal = document.getElementById('modalPurchaseReceipt');
+  const printArea = document.getElementById('purReceiptPrintArea');
+  const badge = document.getElementById('purPrintVoucherBadge');
+  if (!modal || !printArea) return;
+
+  let cfg = {
+    title: 'Shahzaib Traders',
+    subtitle: 'Electrical & Hardware Store',
+    address: 'Near Al-Makkah Center, Main Bazar',
+    phone: '0300-1234567'
+  };
+
+  try {
+    let set = null;
+    if (window.settingsAPI?.getSettings) {
+      set = await window.settingsAPI.getSettings();
+    } else if (window.appData?.settings) {
+      set = window.appData.settings;
+    }
+    if (set) {
+      if (set.storeName || set.receiptHeaderTitle) cfg.title = set.storeName || set.receiptHeaderTitle;
+      if (set.receiptSubtitle) cfg.subtitle = set.receiptSubtitle;
+      if (set.address) cfg.address = set.address;
+      if (set.contactPhone) cfg.phone = set.contactPhone;
+    }
+  } catch (_) {}
+
+  if (badge) {
+    badge.textContent = `Voucher #${purchaseData.voucherNo || ''} • ${purchaseData.partyTitle || 'Vendor'}`;
+  }
+
+  printArea.innerHTML = renderPurchaseA4Bill(purchaseData, items, cfg);
+  modal.classList.remove('hidden');
+
+  const btnPrint = document.getElementById('btnDoPrintPurReceipt');
+  if (btnPrint) {
+    btnPrint.onclick = () => {
+      if (window.printIsolatedHtml) {
+        window.printIsolatedHtml(printArea.innerHTML, { template: 'a4' });
+      } else {
+        window.print();
+      }
+    };
+  }
+}
+window.openPurchaseReceiptModal = openPurchaseReceiptModal;
+
+// Keyboard shortcuts for purchase print preview modal
+document.addEventListener('keydown', (e) => {
+  const modal = document.getElementById('modalPurchaseReceipt');
+  if (!modal || modal.classList.contains('hidden')) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    modal.classList.add('hidden');
+  } else if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+    e.preventDefault();
+    const btnPrint = document.getElementById('btnDoPrintPurReceipt');
+    if (btnPrint) btnPrint.click();
+  }
+});
+
 // Purchase Navigation Dock
 if (inv.btnPurSave) inv.btnPurSave.addEventListener('click', savePurchaseVoucher);
 if (inv.btnPurRefresh) inv.btnPurRefresh.addEventListener('click', resetPurchaseForm);
 if (inv.btnPurNewVoucher) inv.btnPurNewVoucher.addEventListener('click', resetPurchaseForm);
-if (inv.btnPurPrint) inv.btnPurPrint.addEventListener('click', () => window.print());
+if (inv.btnPurPrint) {
+  inv.btnPurPrint.addEventListener('click', () => {
+    if (currentPurchaseItems.length > 0) {
+      const selectedParty = inv.purPartySelect?.options[inv.purPartySelect.selectedIndex];
+      const partyTitle = selectedParty ? selectedParty.text : '';
+      const lineSum = currentPurchaseItems.reduce((acc, it) => acc + (Number(it.netAmount) || 0), 0);
+      const discount = Number(inv.purDiscount?.value) || 0;
+      const freightDisc = Number(inv.purFreightDisc?.value) || 0;
+      const freightExpn = Number(inv.purFreightExpn?.value) || 0;
+      const salesTax = Number(inv.purSalesTax?.value) || 0;
+      const extraCharges = Number(inv.purExtraCharges?.value) || 0;
+      const grandTotal = Math.max(0, lineSum - discount - freightDisc + freightExpn + salesTax + extraCharges);
+
+      const draftData = {
+        voucherNo: inv.purVoucherNo?.value.trim() || 'Draft',
+        manualNo: inv.purManualNo?.value.trim() || '',
+        entryDate: inv.purEntryDate?.value || new Date().toISOString().split('T')[0],
+        partyTitle,
+        description: inv.purDescription?.value.trim() || '',
+        storeTitle: inv.purStoreTitle?.value.trim() || 'Store',
+        contactPerson: inv.purContactPerson?.value.trim() || '',
+        dueDate: inv.purDueDate?.value || '',
+        paymentStatus: inv.purPaymentStatus?.value || 'Pending',
+        totalAmount: lineSum,
+        discount,
+        freightDisc,
+        freightExpn,
+        salesTax,
+        extraCharges,
+        grandTotal
+      };
+      openPurchaseReceiptModal(draftData, currentPurchaseItems);
+    } else {
+      showAlert('Voucher has no items to print! Please add items or load a saved voucher.', 'Info');
+    }
+  });
+}
 if (inv.btnPurDelete) {
   inv.btnPurDelete.addEventListener('click', () => {
     const vNo = inv.purVoucherNo?.value;
