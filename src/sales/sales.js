@@ -652,6 +652,21 @@
   function selectF1Product(idx, forcedRateMode = null) {
     const p = f1ModalState.filteredProducts[idx];
     if (!p) return;
+
+    const purView = document.getElementById('viewPurchase');
+    const isPur = (window.currentSubTab === 'purchase') || (purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none')));
+    if (isPur && window.addPurchaseLineItem) {
+      if (typeof window.togglePurchaseItemDrawer === 'function') {
+        window.togglePurchaseItemDrawer(true);
+      }
+      if (window.selectProductForPurchase) window.selectProductForPurchase(p);
+      window.addPurchaseLineItem(p);
+      const modal = document.getElementById('modalProductLookupF1');
+      if (modal) modal.classList.add('hidden');
+      if (window.showToast) window.showToast(`Added: ${p.titleEng || p.code}`, 'success');
+      return;
+    }
+
     if (currentSaleSubTab === 'return') {
       addReturnProductToCart(p, 1);
       selectReturnProduct(p, false);
@@ -687,7 +702,16 @@
     }
 
     const requestedQty = Math.max(1, Number(quantity) || 1);
-    const existingIdx = saleState.items.findIndex(it => String(it.productId) === String(p.id) || String(it.productCode) === String(p.code));
+    const existingIdx = saleState.items.findIndex(it => {
+      if (it.productId && p.id && String(it.productId) === String(p.id)) return true;
+      const c1 = String(it.productCode || '').trim();
+      const c2 = String(p.code || '').trim();
+      if (c1 && c2 && c1 !== '-' && c1.toLowerCase() === c2.toLowerCase()) return true;
+      const t1 = String(it.productTitle || it.title || '').trim().toLowerCase();
+      const t2 = String(p.titleEng || p.title || '').trim().toLowerCase();
+      if (t1 && t2 && t1 === t2 && (!p.id || !it.productId)) return true;
+      return false;
+    });
     const existingQty = existingIdx !== -1 ? Number(saleState.items[existingIdx].totalQty || 0) : 0;
 
     let qtyToAdd = requestedQty;
@@ -1223,6 +1247,10 @@
 
     // 8. Global Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
+      const purView = document.getElementById('viewPurchase');
+      const isPur = (window.currentSubTab === 'purchase') || (purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none')));
+      if (isPur) return; // Do not intercept shortcuts if Purchase is active!
+
       const salesView = document.getElementById('salesView');
       const isSaleActive = (salesView && salesView.classList.contains('active')) || (window.currentTab === 'sale');
       if (!isSaleActive) return;
@@ -3104,6 +3132,7 @@
       setTimeout(triggerPrint, 120);
     }
   }
+  window.printIsolatedHtml = printIsolatedHtml;
 
   function doPrintSaleBill() {
     if (isPrintingLocked) return;
@@ -3405,6 +3434,7 @@
             </div>
             <div class="a4-totals-wrapper">
               <table class="a4-totals-table">
+                ${(discVal > 0) ? `
                 <tr>
                   <td class="a4-tot-lbl">Subtotal</td>
                   <td class="a4-tot-curr">Rs</td>
@@ -3413,19 +3443,24 @@
                 <tr>
                   <td class="a4-tot-lbl">Discount</td>
                   <td class="a4-tot-curr">Rs</td>
-                  <td class="a4-tot-val">${discVal > 0 ? ('-' + discVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) : '-'}</td>
+                  <td class="a4-tot-val">-${discVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>` : ''}
+                <tr>
+                  <td class="a4-tot-lbl">${isEstimatedBill ? 'Estimated Total' : (includePrevBill ? 'Current Bill Total' : 'Total')}</td>
+                  <td class="a4-tot-curr">Rs</td>
+                  <td class="a4-tot-val">${netVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
                 ${includePrevBill ? `
                 <tr>
                   <td class="a4-tot-lbl">${window.escapeHtml(prevLabel)}</td>
                   <td class="a4-tot-curr">Rs</td>
                   <td class="a4-tot-val">+${prevBillVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>` : ''}
+                </tr>
                 <tr class="total-highlight-row">
-                  <td class="a4-tot-lbl">${isEstimatedBill ? 'Estimated Total' : 'Total'}</td>
+                  <td class="a4-tot-lbl">${isEstimatedBill ? 'Estimated Total' : 'Net Payable'}</td>
                   <td class="a4-tot-curr">Rs</td>
                   <td class="a4-tot-val">${grandPayableVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
+                </tr>` : ''}
                 ${(!isEstimatedBill && paidVal > 0) ? `
                 <tr>
                   <td class="a4-tot-lbl">Amount Paid</td>
@@ -3436,7 +3471,7 @@
                 <tr class="balance-highlight-row">
                   <td class="a4-tot-lbl">Balance Due</td>
                   <td class="a4-tot-curr">Rs</td>
-                  <td class="a4-tot-val">${balanceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td class="a4-tot-val" style="${balanceVal === 0 ? 'color: #15803d; font-weight: 800;' : ''}">${balanceVal === 0 ? '0.00 (PAID)' : balanceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>` : ''}
               </table>
             </div>
@@ -4819,6 +4854,12 @@
     // Connect with Find Product Window callback
     if (window.findProductAPI?.onProductSelected) {
       window.findProductAPI.onProductSelected((product) => {
+        const purView = document.getElementById('viewPurchase');
+        const isPur = (window.currentSubTab === 'purchase') || (purView && (purView.classList.contains('active') || (purView.offsetParent !== null && getComputedStyle(purView).display !== 'none')));
+        if (isPur) {
+          return; // NEVER steal products when Purchase Voucher is active!
+        }
+
         const salesView = document.getElementById('salesView');
         const isSaleActive = (salesView && salesView.classList.contains('active')) || (window.currentTab === 'sale');
 
