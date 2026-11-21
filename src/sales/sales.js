@@ -1641,6 +1641,7 @@
 
   function populateCustomerDropdown(pt) {
     if (!el.customerSelect) return;
+    const preservedVal = String(el.customerSelect.value || saleState.selectedCustomer?.id || '');
     el.customerSelect.innerHTML = `<option value="">Select Staff / Customer</option>`;
 
     let list = sharedAllParties || [];
@@ -1666,6 +1667,24 @@
       opt.dataset.party = JSON.stringify(p);
       el.customerSelect.appendChild(opt);
     });
+
+    if (preservedVal) {
+      let optExists = Array.from(el.customerSelect.options).some(o => String(o.value) === preservedVal);
+      if (!optExists && saleState.selectedCustomer && String(saleState.selectedCustomer.id) === preservedVal) {
+        const sc = saleState.selectedCustomer;
+        const pName = sc.name || sc.partyTitle || 'Party';
+        const pDetail = [sc.city || sc.areaName, sc.phone].filter(Boolean).join(' • ');
+        const opt = document.createElement('option');
+        opt.value = sc.id;
+        opt.textContent = pDetail ? `${pName} — ${pDetail}` : pName;
+        opt.dataset.party = JSON.stringify(sc);
+        el.customerSelect.appendChild(opt);
+        optExists = true;
+      }
+      if (optExists) {
+        el.customerSelect.value = preservedVal;
+      }
+    }
   }
 
   function populateCustomers() {
@@ -1744,6 +1763,7 @@
     if (!partyId) {
       // Walk-in / Cash Customer fallback
       saleState.selectedCustomer = null;
+      if (el.customerSelect) el.customerSelect.value = '';
       if (el.customerPhone) el.customerPhone.value = '';
       if (el.customerArea) el.customerArea.value = '';
       if (el.customerPrevBalance) {
@@ -1761,6 +1781,19 @@
     if (!party) return;
 
     saleState.selectedCustomer = party;
+    if (el.customerSelect) {
+      const optExists = Array.from(el.customerSelect.options).some(o => String(o.value) === String(party.id));
+      if (!optExists) {
+        const pName = party.name || party.partyTitle || 'Party';
+        const pDetail = [party.city || party.areaName, party.phone].filter(Boolean).join(' • ');
+        const opt = document.createElement('option');
+        opt.value = party.id;
+        opt.textContent = pDetail ? `${pName} — ${pDetail}` : pName;
+        opt.dataset.party = JSON.stringify(party);
+        el.customerSelect.appendChild(opt);
+      }
+      el.customerSelect.value = party.id;
+    }
     const pName = party.name || party.partyTitle || '';
     if (el.customerName) el.customerName.value = pName;
     if (el.customerPhone) el.customerPhone.value = party.phone || party.altPhone || '';
@@ -2679,8 +2712,15 @@
 
       const enteredCustomerName = customerNameInput?.value?.trim();
       let matchedParty = saleState.selectedCustomer;
-      if (!matchedParty && enteredCustomerName && enteredCustomerName !== 'Walk-in Cash Customer' && enteredCustomerName !== 'Walk-in Customer') {
-        matchedParty = (sharedAllParties || []).find(p => (p.name || '').trim().toLowerCase() === enteredCustomerName.toLowerCase());
+      if (!matchedParty && el.customerSelect && el.customerSelect.value) {
+        matchedParty = (sharedAllParties || []).find(p => String(p.id) === String(el.customerSelect.value));
+      }
+      if (!matchedParty && enteredCustomerName && enteredCustomerName !== 'Walk-in Cash Customer' && enteredCustomerName !== 'Walk-in Customer' && !enteredCustomerName.toLowerCase().includes('walk-in')) {
+        const cleanName = enteredCustomerName.toLowerCase();
+        matchedParty = (sharedAllParties || []).find(p => {
+          const pName = (p.name || p.partyTitle || '').trim().toLowerCase();
+          return pName === cleanName || pName.includes(cleanName) || cleanName.includes(pName);
+        });
       }
       const isSpecificCustomer = Boolean(matchedParty);
       const chosenPartyId = isSpecificCustomer ? matchedParty.id : 'walk-in';
@@ -4371,36 +4411,57 @@
       updateBillStatusSelectStyle('Paid');
     }
 
+    // Close history modal if open and switch to Sale Voucher subview first so DOM elements are active
+    if (el.modalHistory) el.modalHistory.classList.add('hidden');
+    switchSaleSubTab('voucher');
+
     // Customer / Party mapping
     if (el.partyTypeSelect) el.partyTypeSelect.value = sale.partyTypeId || '';
     if (!sharedAllParties || sharedAllParties.length === 0) {
       await loadAllParties();
     }
 
-    // Auto-resolve Customer Entity (by partyId, or by matching partyTitle in sharedAllParties)
+    // Auto-resolve Customer Entity (by partyId, or by matching partyTitle/phone in sharedAllParties)
     let targetParty = null;
     if (sale.partyId && sale.partyId !== 'walk-in') {
       targetParty = (sharedAllParties || []).find(p => String(p.id) === String(sale.partyId));
     }
-    if (!targetParty && sale.partyTitle) {
-      const cleanTitle = String(sale.partyTitle).trim().toLowerCase();
-      if (cleanTitle && !cleanTitle.includes('walk-in')) {
-        targetParty = (sharedAllParties || []).find(p => (p.name || p.partyTitle || '').trim().toLowerCase() === cleanTitle);
+    const cleanTitle = String(sale.partyTitle || '').trim().toLowerCase();
+    if (!targetParty && cleanTitle && !cleanTitle.includes('walk-in')) {
+      targetParty = (sharedAllParties || []).find(p => {
+        const pName = String(p.name || p.partyTitle || '').trim().toLowerCase();
+        return pName === cleanTitle || pName.includes(cleanTitle) || cleanTitle.includes(pName);
+      });
+    }
+    if (!targetParty && sale.customerPhone) {
+      const cleanPhone = String(sale.customerPhone).replace(/\D/g, '');
+      if (cleanPhone.length >= 7) {
+        targetParty = (sharedAllParties || []).find(p => {
+          const pPhone = String(p.phone || p.altPhone || '').replace(/\D/g, '');
+          return pPhone && (pPhone === cleanPhone || pPhone.endsWith(cleanPhone) || cleanPhone.endsWith(pPhone));
+        });
       }
     }
 
     if (targetParty) {
       const targetPartyTypeId = targetParty.partyTypeId || targetParty.partyType || sale.partyTypeId || '';
-      if (el.partyTypeSelect) el.partyTypeSelect.value = targetPartyTypeId;
-      selectSalePartyType(targetPartyTypeId);
+      const pt = (sharedPartyTypes || []).find(t => String(t.id) === String(targetPartyTypeId) || (t.name && String(t.name).toLowerCase() === String(targetParty.partyTypeName || '').toLowerCase())) || { id: targetPartyTypeId, name: targetParty.partyTypeName || 'Party' };
+      saleState.selectedPartyType = pt;
+      saleState.selectedCustomer = targetParty;
 
-      // Ensure targetParty exists in customer dropdown options
+      if (el.partyTypeSelect) el.partyTypeSelect.value = pt.id || targetPartyTypeId;
+      if (el.partySelectLabel) el.partySelectLabel.textContent = `${pt.name || 'Party'} Account`;
+      if (el.customerNameLabel) el.customerNameLabel.textContent = getPartyEntityLabel(pt.name);
+
+      populateCustomerDropdown(pt);
+
       if (el.customerSelect) {
         const optExists = Array.from(el.customerSelect.options).some(o => String(o.value) === String(targetParty.id));
         if (!optExists) {
           const opt = document.createElement('option');
           opt.value = targetParty.id;
-          opt.textContent = targetParty.name || targetParty.partyTitle || 'Customer';
+          const pDetail = [targetParty.city || targetParty.areaName, targetParty.phone].filter(Boolean).join(' • ');
+          opt.textContent = pDetail ? `${targetParty.name || targetParty.partyTitle} — ${pDetail}` : (targetParty.name || targetParty.partyTitle || 'Customer');
           opt.dataset.party = JSON.stringify(targetParty);
           el.customerSelect.appendChild(opt);
         }
@@ -4408,9 +4469,17 @@
       }
 
       await selectCustomerEntity(targetParty.id);
-      if (el.customerName) el.customerName.value = sale.partyTitle || targetParty.name || targetParty.partyTitle || '';
-      if (el.customerPhone && sale.customerPhone) el.customerPhone.value = sale.customerPhone;
-      if (el.customerArea && sale.areaName) el.customerArea.value = sale.areaName;
+      if (el.customerSelect) el.customerSelect.value = targetParty.id;
+      if (el.customerName) el.customerName.value = targetParty.name || targetParty.partyTitle || sale.partyTitle || '';
+      if (el.customerPhone) el.customerPhone.value = sale.customerPhone || targetParty.phone || targetParty.altPhone || '';
+      if (el.customerArea) el.customerArea.value = sale.areaName || targetParty.areaName || targetParty.city || '';
+
+      const ptLower = String(pt.name || '').toLowerCase();
+      if (ptLower.includes('wholesale') || ptLower.includes('distributor')) {
+        saleState.rateMode = 'wholesale';
+        if (el.wholesalePill) el.wholesalePill.classList.add('active-choice');
+        if (el.retailPill) el.retailPill.classList.remove('active-choice');
+      }
     } else {
       selectSalePartyType(sale.partyTypeId || '');
       saleState.selectedCustomer = null;
@@ -4428,10 +4497,7 @@
 
     renderItemsTable();
     updateVoucherTotals();
-
-    // Close history modal if open and switch to Sale Voucher subview
-    if (el.modalHistory) el.modalHistory.classList.add('hidden');
-    switchSaleSubTab('voucher');
+    updateSlipMeta();
 
     const entryPage = document.getElementById('saleEntryPage');
     if (entryPage) entryPage.scrollTop = 0;
@@ -4446,6 +4512,11 @@
       if (window.showToast) window.showToast('Sale voucher not found', 'error');
       return;
     }
+
+    // Switch to Sale Voucher subview first so DOM elements are ready
+    if (el.modalHistory) el.modalHistory.classList.add('hidden');
+    switchSaleSubTab('voucher');
+
     saleState.saleId = sale.id;
     saleState.voucherNo = sale.voucherNo;
     let items = [];
@@ -4479,30 +4550,47 @@
       await loadAllParties();
     }
 
-    // Auto-resolve Customer Entity (by partyId, or by matching partyTitle in sharedAllParties)
+    // Auto-resolve Customer Entity (by partyId, or by matching partyTitle/phone in sharedAllParties)
     let targetParty = null;
     if (sale.partyId && sale.partyId !== 'walk-in') {
       targetParty = (sharedAllParties || []).find(p => String(p.id) === String(sale.partyId));
     }
-    if (!targetParty && sale.partyTitle) {
-      const cleanTitle = String(sale.partyTitle).trim().toLowerCase();
-      if (cleanTitle && !cleanTitle.includes('walk-in')) {
-        targetParty = (sharedAllParties || []).find(p => (p.name || p.partyTitle || '').trim().toLowerCase() === cleanTitle);
+    const cleanTitle = String(sale.partyTitle || '').trim().toLowerCase();
+    if (!targetParty && cleanTitle && !cleanTitle.includes('walk-in')) {
+      targetParty = (sharedAllParties || []).find(p => {
+        const pName = String(p.name || p.partyTitle || '').trim().toLowerCase();
+        return pName === cleanTitle || pName.includes(cleanTitle) || cleanTitle.includes(pName);
+      });
+    }
+    if (!targetParty && sale.customerPhone) {
+      const cleanPhone = String(sale.customerPhone).replace(/\D/g, '');
+      if (cleanPhone.length >= 7) {
+        targetParty = (sharedAllParties || []).find(p => {
+          const pPhone = String(p.phone || p.altPhone || '').replace(/\D/g, '');
+          return pPhone && (pPhone === cleanPhone || pPhone.endsWith(cleanPhone) || cleanPhone.endsWith(pPhone));
+        });
       }
     }
 
     if (targetParty) {
       const targetPartyTypeId = targetParty.partyTypeId || targetParty.partyType || sale.partyTypeId || '';
-      if (el.partyTypeSelect) el.partyTypeSelect.value = targetPartyTypeId;
-      selectSalePartyType(targetPartyTypeId);
+      const pt = (sharedPartyTypes || []).find(t => String(t.id) === String(targetPartyTypeId) || (t.name && String(t.name).toLowerCase() === String(targetParty.partyTypeName || '').toLowerCase())) || { id: targetPartyTypeId, name: targetParty.partyTypeName || 'Party' };
+      saleState.selectedPartyType = pt;
+      saleState.selectedCustomer = targetParty;
 
-      // Ensure targetParty exists in customer dropdown options
+      if (el.partyTypeSelect) el.partyTypeSelect.value = pt.id || targetPartyTypeId;
+      if (el.partySelectLabel) el.partySelectLabel.textContent = `${pt.name || 'Party'} Account`;
+      if (el.customerNameLabel) el.customerNameLabel.textContent = getPartyEntityLabel(pt.name);
+
+      populateCustomerDropdown(pt);
+
       if (el.customerSelect) {
         const optExists = Array.from(el.customerSelect.options).some(o => String(o.value) === String(targetParty.id));
         if (!optExists) {
           const opt = document.createElement('option');
           opt.value = targetParty.id;
-          opt.textContent = targetParty.name || targetParty.partyTitle || 'Customer';
+          const pDetail = [targetParty.city || targetParty.areaName, targetParty.phone].filter(Boolean).join(' • ');
+          opt.textContent = pDetail ? `${targetParty.name || targetParty.partyTitle} — ${pDetail}` : (targetParty.name || targetParty.partyTitle || 'Customer');
           opt.dataset.party = JSON.stringify(targetParty);
           el.customerSelect.appendChild(opt);
         }
@@ -4510,9 +4598,17 @@
       }
 
       await selectCustomerEntity(targetParty.id);
-      if (el.customerName) el.customerName.value = sale.partyTitle || targetParty.name || targetParty.partyTitle || '';
-      if (el.customerPhone && sale.customerPhone) el.customerPhone.value = sale.customerPhone;
-      if (el.customerArea && sale.areaName) el.customerArea.value = sale.areaName;
+      if (el.customerSelect) el.customerSelect.value = targetParty.id;
+      if (el.customerName) el.customerName.value = targetParty.name || targetParty.partyTitle || sale.partyTitle || '';
+      if (el.customerPhone) el.customerPhone.value = sale.customerPhone || targetParty.phone || targetParty.altPhone || '';
+      if (el.customerArea) el.customerArea.value = sale.areaName || targetParty.areaName || targetParty.city || '';
+
+      const ptLower = String(pt.name || '').toLowerCase();
+      if (ptLower.includes('wholesale') || ptLower.includes('distributor')) {
+        saleState.rateMode = 'wholesale';
+        if (el.wholesalePill) el.wholesalePill.classList.add('active-choice');
+        if (el.retailPill) el.retailPill.classList.remove('active-choice');
+      }
     } else {
       selectSalePartyType(sale.partyTypeId || '');
       saleState.selectedCustomer = null;
@@ -4530,10 +4626,8 @@
 
     renderItemsTable();
     updateVoucherTotals();
+    updateSlipMeta();
 
-    // Close history modal if open and switch to Sale Voucher subview
-    if (el.modalHistory) el.modalHistory.classList.add('hidden');
-    switchSaleSubTab('voucher');
     const entryPage = document.getElementById('saleEntryPage');
     if (entryPage) entryPage.scrollTop = 0;
     if (window.showToast) window.showToast(`Sale Voucher ${sale.voucherNo} loaded for editing`, 'info');
